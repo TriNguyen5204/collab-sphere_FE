@@ -1,11 +1,18 @@
-import { useState } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import AcademicList from './pages/academic/AcademicList'
+import AcademicDetail from './pages/academic/AcademicDetail'
+import AcademicCreate from './pages/academic/AcademicCreate'
 
 function App() {
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <p className='text-red'>Hello World</p>
-    </div>
+   <BrowserRouter>
+    <Routes>
+      <Route path='/academic' element={<AcademicList />} />
+      <Route path='/academic/new' element={<AcademicCreate />} />
+      <Route path='/academic/:id' element={<AcademicDetail />} />
+    </Routes>
+   </BrowserRouter>
   )
 }
 
