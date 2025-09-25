@@ -7,7 +7,8 @@ export default function AcademicCreate() {
 
   async function handleSubmit(values) {
     const id = `sub_${Date.now()}`;
-    nav(`/academic/${id}`, { state: { created: true, subject: { subjectId: id, ...values } } });
+    const subject = { SubjectId: id, ...values };
+    nav(`/academic/${id}`, { state: { created: true, subject } });
   }
 
   return (
