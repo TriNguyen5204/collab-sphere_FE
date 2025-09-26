@@ -1,0 +1,696 @@
+/* Work Breakdown Structure - Academic Project Hierarchy Visualization */
+/* Designed for lecturer oversight and curriculum alignment tracking */
+
+.wbsContainer {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(12px);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 600px;
+}
+
+/* Header Section */
+.wbsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  border-bottom: 2px solid rgba(30, 58, 138, 0.1);
+  background: rgba(248, 250, 252, 0.8);
+  border-radius: 16px 16px 0 0;
+}
+
+.headerTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.headerIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #1e3a8a;
+}
+
+.headerTitle h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin: 0;
+}
+
+.headerControls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.viewModeToggle {
+  display: flex;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  overflow: hidden;
+}
+
+.toggleButton {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.toggleButton:hover {
+  background: rgba(30, 58, 138, 0.05);
+  color: #1e3a8a;
+}
+
+.toggleButton.active {
+  background: #1e3a8a;
+  color: white;
+}
+
+.curriculumButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 10px;
+  color: #059669;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.curriculumButton:hover {
+  background: rgba(16, 185, 129, 0.2);
+  transform: translateY(-1px);
+}
+
+.curriculumButton.active {
+  background: #059669;
+  color: white;
+}
+
+.buttonIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Content Areas */
+.wbsContent {
+  padding: 1.5rem 2rem;
+  max-height: 70vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+
+.wbsContent::-webkit-scrollbar {
+  width: 6px;
+}
+
+.wbsContent::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.wbsContent::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 3px;
+}
+
+/* Tree Structure */
+.treeView {
+  position: relative;
+}
+
+.treeNode {
+  position: relative;
+  margin-bottom: 0.5rem;
+}
+
+.nodeContent {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(6px);
+}
+
+.nodeContent:hover {
+  border-color: rgba(30, 58, 138, 0.3);
+  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.1);
+  transform: translateY(-1px);
+}
+
+.nodeContent.selected {
+  border-color: #1e3a8a;
+  box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.2);
+}
+
+/* Node Types */
+.projectNode {
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.1), rgba(59, 130, 246, 0.05));
+  border-color: rgba(30, 58, 138, 0.3);
+  border-width: 2px;
+}
+
+.objectiveNode {
+  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.2);
+  margin-left: 1rem;
+  border-left: 3px solid #10b981;
+}
+
+.milestoneNode {
+  background: rgba(245, 158, 11, 0.05);
+  border-color: rgba(245, 158, 11, 0.2);
+  margin-left: 1rem;
+  border-left: 3px solid #f59e0b;
+}
+
+.checkpointNode {
+  background: rgba(139, 92, 246, 0.05);
+  border-color: rgba(139, 92, 246, 0.2);
+  margin-left: 1rem;
+  border-left: 3px solid #8b5cf6;
+}
+
+/* Node Structure */
+.nodeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.expandButton {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  margin-right: 0.5rem;
+}
+
+.expandButton:hover {
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.chevronIcon {
+  width: 1rem;
+  height: 1rem;
+  color: #64748b;
+}
+
+.nodeTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.nodeIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #374151;
+  flex-shrink: 0;
+}
+
+.titleText {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  line-height: 1.4;
+}
+
+.nodeActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nodeDescription {
+  color: #64748b;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+}
+
+.academicMetadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.learningOutcomes,
+.assessmentCriteria,
+.learningOutcome {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #374151;
+}
+
+.metadataIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: #64748b;
+}
+
+/* Academic Status Indicators */
+.academicStatusIndicator {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.competencyIcon {
+  width: 1rem;
+  height: 1rem;
+  color: #f59e0b;
+}
+
+.competencyBadges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.competencyBadge {
+  background: rgba(30, 58, 138, 0.1);
+  color: #1e3a8a;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.assessmentWeight {
+  background: rgba(139, 92, 246, 0.15);
+  color: #7c3aed;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Progress Indicators */
+.curriculumAlignment {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 100px;
+}
+
+.alignmentBar {
+  flex: 1;
+  height: 6px;
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.alignmentFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+.alignmentText {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+  min-width: 35px;
+}
+
+.progressContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 120px;
+}
+
+.progressBar {
+  flex: 1;
+  height: 6px;
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #059669);
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+.progressText {
+  font-size: 0.75rem;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.teamCount {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.teamIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Team Status Grid */
+.teamStatusGrid {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.statusItem {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.statusIconComplete {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: #10b981;
+}
+
+.statusIconProgress {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: #f59e0b;
+}
+
+.statusIconBlocked {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: #ef4444;
+}
+
+/* Subject Outcomes */
+.subjectOutcomes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.outcomeItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: rgba(248, 250, 252, 0.8);
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.outcomeTitle {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.outcomeCoverage {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.coverageBar {
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+
+.outcomeCoverage span {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Children Container */
+.childrenContainer {
+  margin-top: 1rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid rgba(148, 163, 184, 0.1);
+}
+
+/* Timeline and Assessment Views */
+.timelineView,
+.assessmentView {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.timelinePlaceholder,
+.assessmentPlaceholder {
+  text-align: center;
+  color: #64748b;
+}
+
+.placeholderIcon {
+  width: 3rem;
+  height: 3rem;
+  color: #94a3b8;
+  margin: 0 auto 1rem;
+}
+
+.timelinePlaceholder h4,
+.assessmentPlaceholder h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 0.5rem 0;
+}
+
+.timelinePlaceholder p,
+.assessmentPlaceholder p {
+  font-size: 0.875rem;
+  margin: 0;
+  max-width: 400px;
+}
+
+/* Curriculum Panel */
+.curriculumPanel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90vw;
+  max-width: 800px;
+  max-height: 80vh;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.panelHeader h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e3a8a;
+  margin: 0;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  background: rgba(148, 163, 184, 0.1);
+  color: #374151;
+}
+
+.panelContent {
+  padding: 2rem;
+  color: #64748b;
+}
+
+/* Responsive Design */
+@media (max-width: 1199px) {
+  .wbsHeader {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .headerControls {
+    justify-content: space-between;
+  }
+  
+  .subjectOutcomes {
+    grid-template-columns: 1fr;
+  }
+  
+  .nodeActions {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-end;
+  }
+}
+
+@media (max-width: 767px) {
+  .wbsContainer {
+    border-radius: 12px;
+  }
+  
+  .wbsHeader {
+    padding: 1rem;
+  }
+  
+  .wbsContent {
+    padding: 1rem;
+    max-height: 60vh;
+  }
+  
+  .nodeContent {
+    padding: 0.75rem 1rem;
+  }
+  
+  .nodeHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .nodeActions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .academicMetadata {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .viewModeToggle {
+    width: 100%;
+  }
+  
+  .toggleButton {
+    flex: 1;
+    text-align: center;
+  }
+  
+  .curriculumPanel {
+    width: 95vw;
+    max-height: 90vh;
+  }
+  
+  .panelHeader {
+    padding: 1rem;
+  }
+  
+  .panelContent {
+    padding: 1rem;
+  }
+}
+
+/* Accessibility Enhancements */
+@media (prefers-reduced-motion: reduce) {
+  .nodeContent,
+  .toggleButton,
+  .curriculumButton,
+  .alignmentFill,
+  .progressFill,
+  .coverageBar {
+    transition: none;
+  }
+  
+  .nodeContent:hover {
+    transform: none;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .wbsContainer {
+    background: #ffffff;
+    border: 2px solid #000000;
+  }
+  
+  .nodeContent {
+    background: #ffffff;
+    border: 1px solid #000000;
+  }
+  
+  .projectNode,
+  .objectiveNode,
+  .milestoneNode,
+  .checkpointNode {
+    background: #ffffff;
+    border: 2px solid #000000;
+  }
+  
+  .titleText {
+    color: #000000;
+  }
+  
+  .nodeDescription {
+    color: #333333;
+  }
+}
+
+/* Focus States for Keyboard Navigation */
+.expandButton:focus,
+.toggleButton:focus,
+.curriculumButton:focus,
+.closeButton:focus {
+  outline: 2px solid #1e3a8a;
+  outline-offset: 2px;
+}
+
+.nodeContent:focus {
+  outline: 2px solid #1e3a8a;
+  outline-offset: 2px;
+}
