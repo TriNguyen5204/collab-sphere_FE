@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Plus, Users, BookOpen, Calendar, Search, Filter, Grid3X3, List, Eye, Edit3, Trash2, MoreVertical, Clock, Award, TrendingUp } from 'lucide-react';
+import CreateClassForm from '../../components/ui/CreateClassForm';
+import ModalWrapper from '../../components/layout/Layout';
 
 export default function ImprovedClassList() {
   const [classes, setClasses] = useState([
@@ -74,10 +76,10 @@ export default function ImprovedClassList() {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [classToDelete, setClassToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -143,7 +145,7 @@ export default function ImprovedClassList() {
               <p className="text-gray-600">Manage your classes and monitor student progress</p>
             </div>
             <button 
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => setIsOpen(true)}
               className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl hover:from-indigo-700 hover:to-purple-700 transition-all"
             >
               <Plus className="w-5 h-5" />
@@ -527,6 +529,13 @@ export default function ImprovedClassList() {
           </div>
         </div>
       )}
+      <ModalWrapper
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        title='Create New Class'
+      >
+        <CreateClassForm onClose={() => setIsOpen(false)} />
+      </ModalWrapper>
     </div>
   );
 }

@@ -8,7 +8,7 @@ import {
   MoreVertical,
   Eye,
 } from 'lucide-react';
-import ModalWrapper from '../layout/ModalWrapper';
+import ModalWrapper from '../../components/layout/ModalWrapper';
 import CreateLecturerForm from './CreateLecturerForm';
 
 export default function ImprovedAccountsTable() {

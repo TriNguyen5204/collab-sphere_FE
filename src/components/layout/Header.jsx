@@ -1,7 +1,9 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import logo from '../../assets/logov1.png'
 
 const Header = () => {
+  const navigate = useNavigate();
   return (
     <header className="bg-white shadow-sm border-b">
       <div className="container mx-auto px-1">
@@ -13,11 +15,11 @@ const Header = () => {
             </h1>
           </div>
           <nav className="hidden md:flex space-x-8">
-            <a href="#" className="text-gray-600 hover:text-gray-900 transition-colors">
+            <a href="/" className="text-gray-600 hover:text-gray-900 transition-colors">
               Home
             </a>
-            <a href="#" className="text-gray-600 hover:text-gray-900 transition-colors">
-              About
+            <a href="/meet" className="text-gray-600 hover:text-gray-900 transition-colors">
+              Meet
             </a>
             <a href="#" className="text-gray-600 hover:text-gray-900 transition-colors">
               Services
@@ -27,7 +29,9 @@ const Header = () => {
             </a>
           </nav>
           <div className="flex items-center space-x-4">
-            <button className="text-gray-600 hover:text-gray-900 transition-colors">
+            <button
+              onClick={() => navigate('/login')}
+             className="text-gray-600 hover:text-gray-900 transition-colors">
               Login
             </button>
             <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">

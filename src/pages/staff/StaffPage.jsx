@@ -1,4 +1,4 @@
-import Header from '../layout/Header';
+import Header from '../../components/layout/Header';
 import lecturerIcon from '../../assets/lecturer.png';
 import classIcon from '../../assets/class.png';
 import { useNavigate } from 'react-router-dom';
