@@ -10,13 +10,13 @@ const StaffPage = () => {
       title: 'Manage lecturer',
       icon: lecturerIcon,
       description: 'Easily manage lecturer profiles and assignments',
-      navigator: '/lecturers',
+      navigator: '/staff/lecturers',
     },
     {
       title: 'Manage class',
       icon: classIcon,
       description: 'Organize classes, schedules, and student groups',
-      navigator: '/classes',
+      navigator: '/staff/classes',
     },
   ];
 

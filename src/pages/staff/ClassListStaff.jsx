@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Users, BookOpen, Calendar, Search, Filter, Grid3X3, List, Eye, Edit3, Trash2, MoreVertical, Clock, Award, TrendingUp } from 'lucide-react';
 import CreateClassForm from '../../components/ui/CreateClassForm';
-import ModalWrapper from '../../components/layout/Layout';
+import ModalWrapper from '../../components/layout/ModalWrapper';
 
 export default function ImprovedClassList() {
   const [classes, setClasses] = useState([

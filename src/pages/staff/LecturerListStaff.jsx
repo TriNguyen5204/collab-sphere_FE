@@ -7,15 +7,22 @@ import {
   Filter,
   MoreVertical,
   Eye,
+  ChevronDown
 } from 'lucide-react';
 import ModalWrapper from '../../components/layout/ModalWrapper';
 import CreateLecturerForm from './CreateLecturerForm';
+import CreateMultipleLecturerForm from '../../components/ui/CreateMultipleLecturerForm';
+import CreateStudentForm from '../../components/ui/CreateStudentForm';
+import CreateMultipleStudentForm from '../../components/ui/CreateMultipleStudent';
 
 export default function ImprovedAccountsTable() {
   const [selectedAccounts, setSelectedAccounts] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [isMultipleOpen, setIsMultipleOpen] = useState(false);
+  const [isStudentOpen, setIsStudentOpen] = useState(false);
+  const [isMultipleStudentOpen, setIsMultipleStudentOpen] = useState(false);
 
   const lecturers = [
     {
@@ -168,13 +175,51 @@ export default function ImprovedAccountsTable() {
                 </div>
               )}
 
-              <button
-                onClick={() => setIsOpen(true)}
-                className='flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg shadow-sm hover:bg-blue-700 transition-all hover:shadow-md'
-              >
-                <Plus className='w-4 h-4' />
-                Create Account
-              </button>
+              {/* Create Lecturer Dropdown */}
+              <div className='relative group'>
+                <button className='flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg shadow-sm hover:bg-blue-700 transition-all hover:shadow-md'>
+                  <Plus className='w-4 h-4' />
+                  Create Lecturer
+                  <ChevronDown className='w-4 h-4' />
+                </button>
+                <div className='absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10'>
+                  <button
+                    onClick={() => setIsOpen(true)}
+                    className='w-full text-left px-4 py-2 hover:bg-gray-50 first:rounded-t-lg'
+                  >
+                    Single Lecturer
+                  </button>
+                  <button
+                    onClick={() => setIsMultipleOpen(true)}
+                    className='w-full text-left px-4 py-2 hover:bg-gray-50 last:rounded-b-lg'
+                  >
+                    Multiple Lecturers
+                  </button>
+                </div>
+              </div>
+
+              {/* Create Student Dropdown */}
+              <div className='relative group'>
+                <button className='flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-lg shadow-sm hover:bg-green-700 transition-all hover:shadow-md'>
+                  <Plus className='w-4 h-4' />
+                  Create Student
+                  <ChevronDown className='w-4 h-4' />
+                </button>
+                <div className='absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10'>
+                  <button
+                    onClick={() => setIsStudentOpen(true)}
+                    className='w-full text-left px-4 py-2 hover:bg-gray-50 first:rounded-t-lg'
+                  >
+                    Single Student
+                  </button>
+                  <button
+                    onClick={() => setIsMultipleStudentOpen(true)}
+                    className='w-full text-left px-4 py-2 hover:bg-gray-50 last:rounded-b-lg'
+                  >
+                    Multiple Students
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -362,6 +407,27 @@ export default function ImprovedAccountsTable() {
         title='Create New Lecturer'
       >
         <CreateLecturerForm onClose={() => setIsOpen(false)} />
+      </ModalWrapper>
+      <ModalWrapper
+        isOpen={isMultipleOpen}
+        onClose={() => setIsMultipleOpen(false)}
+        title='Create multiple lecturer'
+      >
+        <CreateMultipleLecturerForm onClose={() => setIsMultipleOpen(false)} />
+      </ModalWrapper>
+      <ModalWrapper
+        isOpen={isStudentOpen}
+        onClose={() => setIsStudentOpen(false)}
+        title='Create student'
+      >
+        <CreateStudentForm onClose={() => setIsStudentOpen(false)} />
+      </ModalWrapper>
+      <ModalWrapper
+        isOpen={isMultipleStudentOpen}
+        onClose={() => setIsMultipleStudentOpen(false)}
+        title='Create multiple student'
+      >
+        <CreateMultipleStudentForm onClose={() => setIsMultipleStudentOpen(false)} />
       </ModalWrapper>
     </div>
   );

@@ -1,0 +1,204 @@
+/* Minimal Kanban Board CSS - Drag & Drop Focus */
+
+.kanbanBoardSimple {
+  padding: 20px;
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+/* Debug Panel */
+.debugInfo {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+}
+
+.debugPanel {
+  background: #1f2937;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+/* Swimlanes */
+.swimlane {
+  margin-bottom: 24px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.swimlaneHeader {
+  padding: 16px 20px;
+  background: #f9fafb;
+  border-left: 4px solid #3b82f6;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.swimlaneHeader h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.swimlaneColumns {
+  display: flex;
+  min-height: 400px;
+}
+
+/* Columns */
+.columnSimple {
+  flex: 1;
+  padding: 16px;
+  border-right: 1px solid #e5e7eb;
+  background: #fafbfc;
+  min-height: 350px;
+}
+
+.columnSimple:last-child {
+  border-right: none;
+}
+
+.columnHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.columnHeader h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.taskCount {
+  background: #e5e7eb;
+  color: #6b7280;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Task List */
+.taskList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Task Cards - DRAG FRIENDLY */
+.taskCardSimple {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 12px;
+  cursor: grab;
+  transition: all 0.2s ease;
+  user-select: none; /* Prevents text selection during drag */
+}
+
+.taskCardSimple:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+  transform: translateY(-1px);
+}
+
+.taskCardSimple:active {
+  cursor: grabbing;
+}
+
+/* Drag States */
+.taskCardSimple[draggable="true"] {
+  cursor: grab;
+}
+
+.taskCardSimple:hover[draggable="true"] {
+  cursor: grab;
+}
+
+/* Task Content */
+.taskTitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2937;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.taskMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.taskId {
+  font-family: monospace;
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.taskPriority {
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Drop Zone States */
+.columnSimple {
+  transition: all 0.2s ease;
+}
+
+/* When dragging, show drop zones */
+.kanbanBoardSimple:has([draggable]:hover) .columnSimple {
+  background: #f0f9ff;
+  border: 2px dashed #3b82f6;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .swimlaneColumns {
+    flex-direction: column;
+  }
+  
+  .columnSimple {
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+    min-height: 200px;
+  }
+  
+  .columnSimple:last-child {
+    border-bottom: none;
+  }
+}
+
+/* Accessibility */
+.taskCardSimple:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .taskCardSimple {
+    transition: none;
+  }
+  
+  .columnSimple {
+    transition: none;
+  }
+}
