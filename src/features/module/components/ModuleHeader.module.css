@@ -1,0 +1,151 @@
+/* Module Header Styles */
+.header {
+  background: white;
+  margin: -24px -24px 24px -24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.headerTop {
+  padding: 16px 24px 0;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.backButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #6b7280;
+  text-decoration: none;
+  transition: color 0.2s;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+}
+
+.backButton:hover {
+  color: #374151;
+}
+
+.breadcrumbSeparator {
+  color: #d1d5db;
+}
+
+.breadcrumbCurrent {
+  color: #111827;
+  font-weight: 500;
+}
+
+.headerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px 24px 24px;
+  gap: 24px;
+}
+
+.moduleInfo {
+  flex: 1;
+}
+
+.titleSection {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.moduleTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.moduleRating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ratingText {
+  font-size: 14px;
+  color: #6b7280;
+  margin-left: 4px;
+}
+
+.moduleDescription {
+  font-size: 16px;
+  color: #6b7280;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.moduleStats {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.statItem svg {
+  color: #6b7280;
+}
+
+.headerActions {
+  display: flex;
+  gap: 12px;
+}
+
+.editButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.editButton:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .headerContent {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .titleSection {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .moduleStats {
+    gap: 16px;
+  }
+}

@@ -143,8 +143,11 @@ const ClassManagementDashboard = () => {
                   >
                     Manage
                   </button>
-                  <button className="flex-1 border border-gray-300 text-gray-700 text-sm py-2.5 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 font-medium">
-                    Roster
+                  <button 
+                    onClick={() => navigate(`/lecturer/monitoring/${cls.id}`)}
+                    className="flex-1 bg-blue-600 text-white text-sm py-2.5 px-4 rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium"
+                  >
+                    Monitor
                   </button>
                 </div>
               </div>

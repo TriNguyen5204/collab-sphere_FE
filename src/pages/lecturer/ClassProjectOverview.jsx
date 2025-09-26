@@ -264,9 +264,13 @@ const ClassProjectOverview = () => {
 
               {/* Action Buttons */}
               <div className={styles.projectActions}>
-                <button className={styles.btnPrimary}>
+                <Link 
+                  to={`/lecturer/classes/${classId}/projects/${project.id}`} 
+                  className={styles.btnPrimary}
+                  style={{ textDecoration: 'none' }}
+                >
                   📊 View Details
-                </button>
+                </Link>
                 <button className={styles.btnSecondary}>
                   💬 Contact Team
                 </button>

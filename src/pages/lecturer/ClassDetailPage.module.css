@@ -612,8 +612,8 @@
   box-shadow: 0 8px 20px rgba(0,0,0,0.25);
 }
 
-/* Topics Management */
-.topicCard {
+/* Modules Management */
+.moduleCard {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 12px;
@@ -623,13 +623,13 @@
   transition: all var(--duration-normal) var(--ease-out);
 }
 
-.topicCard:hover {
+.moduleCard:hover {
   border-color: var(--border-hover);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
-.topicIndex {
+.moduleIndex {
   width: 32px;
   height: 32px;
   border-radius: 8px;
@@ -641,26 +641,26 @@
   flex-shrink: 0;
 }
 
-.topicIndex.difficulty-beginner {
+.moduleIndex.difficulty-beginner {
   background: linear-gradient(135deg, #10b981, #059669);
 }
 
-.topicIndex.difficulty-intermediate {
+.moduleIndex.difficulty-intermediate {
   background: linear-gradient(135deg, #3b82f6, #2563eb);
 }
 
-.topicIndex.difficulty-advanced {
+.moduleIndex.difficulty-advanced {
   background: linear-gradient(135deg, #ef4444, #dc2626);
 }
 
-.topicTitle {
+.moduleTitle {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
 }
 
-.topicDescription {
+.moduleDescription {
   color: var(--text-secondary);
   margin: 0;
   line-height: 1.5;
@@ -849,7 +849,7 @@
     flex-wrap: wrap;
   }
   
-  .topicCard {
+  .moduleCard {
     padding: 16px;
   }
   

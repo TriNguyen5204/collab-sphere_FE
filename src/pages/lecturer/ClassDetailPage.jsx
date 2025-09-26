@@ -45,7 +45,7 @@ const ClassDetailPage = () => {
     instructor: 'Dr. Sarah Chen',
     schedule: 'Mon, Wed, Fri 10:00-12:00',
     totalStudents: 42,
-    totalTopics: 12,
+    totalModules: 12,
     totalResources: 28,
     avgScore: 84,
     description: 'Learn fundamental concepts of object-oriented programming including classes, objects, inheritance, and polymorphism.',
@@ -53,8 +53,8 @@ const ClassDetailPage = () => {
     activeLearningHours: 234,
   };
 
-  // Topics data for LMS-style topic management
-  const topicsData = [
+  // Modules data for LMS-style module management
+  const modulesData = [
     {
       id: 1,
       title: 'Introduction to OOP Concepts',
@@ -558,56 +558,56 @@ const ClassDetailPage = () => {
     </div>
   );
 
-  const renderTopicsTab = () => (
+  const renderModulesTab = () => (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-slate-900">Course Topics</h3>
+        <h3 className="text-lg font-semibold text-slate-900">Course Modules</h3>
         <button className={styles.btnPrimary}>
           <PlusIcon className="w-4 h-4 mr-2" />
-          Add Topic
+          Add Module
         </button>
       </div>
       
       <div className="space-y-4">
-        {topicsData.map((topic, index) => (
-          <div key={topic.id} className={styles.topicCard}>
+        {modulesData.map((module, index) => (
+          <div key={module.id} className={styles.moduleCard}>
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-4 flex-1">
-                <div className={`${styles.topicIndex} ${styles[`difficulty-${topic.difficulty}`]}`}>
+                <div className={`${styles.moduleIndex} ${styles[`difficulty-${module.difficulty}`]}`}>
                   {index + 1}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h4 className={styles.topicTitle}>{topic.title}</h4>
-                    <span className={`${styles.statusBadge} ${styles[`status-${topic.status}`]}`}>
-                      {topic.status}
+                    <h4 className={styles.moduleTitle}>{module.title}</h4>
+                    <span className={`${styles.statusBadge} ${styles[`status-${module.status}`]}`}>
+                      {module.status}
                     </span>
-                    <span className={`${styles.difficultyBadge} ${styles[`difficulty-${topic.difficulty}`]}`}>
-                      {topic.difficulty}
+                    <span className={`${styles.difficultyBadge} ${styles[`difficulty-${module.difficulty}`]}`}>
+                      {module.difficulty}
                     </span>
                   </div>
-                  <p className={styles.topicDescription}>{topic.description}</p>
+                  <p className={styles.moduleDescription}>{module.description}</p>
                   
                   <div className="flex items-center gap-6 mt-3 text-sm text-slate-600">
                     <div className="flex items-center gap-1">
                       <UserGroupIcon className="w-4 h-4" />
-                      <span>{topic.studentsCompleted}/{topic.totalStudents} completed</span>
+                      <span>{module.studentsCompleted}/{module.totalStudents} completed</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <FolderIcon className="w-4 h-4" />
-                      <span>{topic.resources} resources</span>
+                      <span>{module.resources} resources</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <DocumentTextIcon className="w-4 h-4" />
-                      <span>{topic.assignments} assignments</span>
+                      <span>{module.assignments} assignments</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <ClockIcon className="w-4 h-4" />
-                      <span>{topic.estimatedHours}h estimated</span>
+                      <span>{module.estimatedHours}h estimated</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <CalendarIcon className="w-4 h-4" />
-                      <span>Due: {new Date(topic.dueDate).toLocaleDateString()}</span>
+                      <span>Due: {new Date(module.dueDate).toLocaleDateString()}</span>
                     </div>
                   </div>
                   
@@ -615,16 +615,16 @@ const ClassDetailPage = () => {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-slate-700">Progress</span>
                       <span className="text-sm font-medium text-slate-900">
-                        {Math.round((topic.studentsCompleted / topic.totalStudents) * 100)}%
+                        {Math.round((module.studentsCompleted / module.totalStudents) * 100)}%
                       </span>
                     </div>
                     <div className={styles.progressBarContainer}>
                       <div 
                         className={styles.progressBarFill}
                         style={{
-                          width: `${(topic.studentsCompleted / topic.totalStudents) * 100}%`,
-                          backgroundColor: topic.status === 'completed' ? '#10b981' : 
-                                         topic.status === 'active' ? '#3b82f6' : '#94a3b8'
+                          width: `${(module.studentsCompleted / module.totalStudents) * 100}%`,
+                          backgroundColor: module.status === 'completed' ? '#10b981' : 
+                                         module.status === 'active' ? '#3b82f6' : '#94a3b8'
                         }}
                       />
                     </div>
@@ -789,7 +789,7 @@ const ClassDetailPage = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'students': return renderStudentsTab();
-      case 'topics': return renderTopicsTab();
+      case 'modules': return renderModulesTab();
       case 'resources': return renderResourcesTab();
       case 'teams': return renderTeamsTab();
       case 'analytics': return renderAnalyticsTab();
@@ -865,8 +865,8 @@ const ClassDetailPage = () => {
               <BookOpenIcon className="w-6 h-6" />
             </div>
             <div className={styles.statContent}>
-              <div className={styles.statValue}>{classData.totalTopics}</div>
-              <div className={styles.statLabel}>Topics</div>
+              <div className={styles.statValue}>{classData.totalModules}</div>
+              <div className={styles.statLabel}>Modules</div>
             </div>
           </div>
           <div className={styles.statChip}>
@@ -893,7 +893,7 @@ const ClassDetailPage = () => {
         <div className={styles.md3Tabs}>
           {[
             { id: 'students', label: 'Students', icon: UserGroupIcon },
-            { id: 'topics', label: 'Topics', icon: BookOpenIcon },
+            { id: 'modules', label: 'Modules', icon: BookOpenIcon },
             { id: 'resources', label: 'Resources', icon: FolderIcon },
             { id: 'teams', label: 'Teams', icon: AcademicCapIcon },
             { id: 'analytics', label: 'Analytics', icon: ChartBarIcon },

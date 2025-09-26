@@ -4,20 +4,17 @@ import App from '../App';
 import ClassManagementDashboard from '../pages/lecturer/ClassManagementDashboard';
 import ClassDetailPage from '../pages/lecturer/ClassDetailPage';
 import ClassProjectOverview from '../pages/lecturer/ClassProjectOverview';
-import QuickAccess from '../pages/QuickAccess';
+import TeamProjectDetail from '../pages/lecturer/TeamProjectDetail';
+import CreateProject from '../pages/lecturer/CreateProject';
+import ModuleLibrary from '../pages/lecturer/ModuleLibrary';
+import ModuleDetail from '../pages/lecturer/ModuleDetail';
+import ModuleAnalysis from '../pages/lecturer/ModuleAnalysis';
+import LecturerMonitoringDashboard from '../pages/lecturer/LecturerMonitoringDashboard';
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: <App />,
-  },
-  {
-    path: '/quick-access',
-    element: <QuickAccess />,
-  },
-  {
-    path: '/lecturer',
-    element: <ClassManagementDashboard />,
   },
   {
     path: '/lecturer/classes',
@@ -30,6 +27,50 @@ const router = createBrowserRouter([
   {
     path: '/lecturer/classes/:classId/projects',
     element: <ClassProjectOverview />,
+  },
+  {
+    path: '/lecturer/classes/:classId/projects/:projectId',
+    element: <TeamProjectDetail />,
+  },
+  {
+    path: '/lecturer/create-project',
+    element: <CreateProject />,
+  },
+  {
+    path: '/lecturer/classes/:classId/create-project',
+    element: <CreateProject />,
+  },
+  {
+    path: '/lecturer/modules',
+    element: <ModuleLibrary />,
+  },
+  {
+    path: '/lecturer/modules/create',
+    element: <CreateProject />,
+  },
+  {
+    path: '/lecturer/modules/upload',
+    element: <CreateProject />,
+  },
+  {
+    path: '/lecturer/modules/:moduleId',
+    element: <ModuleDetail />,
+  },
+  {
+    path: '/lecturer/modules/:moduleId/edit',
+    element: <ModuleDetail />,
+  },
+  {
+    path: '/lecturer/modules/:moduleId/analysis',
+    element: <ModuleAnalysis />,
+  },
+  {
+    path: '/lecturer/monitoring/:classId',
+    element: <LecturerMonitoringDashboard />,
+  },
+  {
+    path: '/lecturer/monitoring',
+    element: <LecturerMonitoringDashboard />,
   },
 ]);
 

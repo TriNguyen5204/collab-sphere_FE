@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styles from './DashboardLayout.module.css';
 import { 
@@ -12,16 +12,21 @@ import {
   WrenchScrewdriverIcon,
   MagnifyingGlassIcon,
   PlusIcon,
-  BellIcon
+  BellIcon,
+  Bars3Icon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 
 const DashboardLayout = ({ children }) => {
   const location = useLocation();
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const expandTimeoutRef = useRef(null);
+  const collapseTimeoutRef = useRef(null);
 
   const navigationItems = [
-    { name: 'Overview', href: '/lecturer', icon: HomeIcon },
     { name: 'Classes', href: '/lecturer/classes', icon: AcademicCapIcon },
-    { name: 'Topics Library', href: '/lecturer/topics', icon: BookOpenIcon },
+    { name: 'Module Library', href: '/lecturer/modules', icon: BookOpenIcon },
     { name: 'Projects', href: '/lecturer/projects', icon: UserGroupIcon },
     { name: 'Grading', href: '/lecturer/grading', icon: ClipboardDocumentListIcon },
     { name: 'Analytics', href: '/lecturer/analytics', icon: ChartBarIcon },
@@ -31,24 +36,98 @@ const DashboardLayout = ({ children }) => {
 
   const isActive = (href) => location.pathname === href;
 
+  // Handle responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Debounced sidebar handlers to prevent lag and rapid toggling
+  const handleSidebarMouseEnter = useCallback(() => {
+    if (!isMobile) {
+      // Clear any pending collapse timeout
+      if (collapseTimeoutRef.current) {
+        clearTimeout(collapseTimeoutRef.current);
+        collapseTimeoutRef.current = null;
+      }
+      
+      // Clear any pending expand timeout to prevent duplicates
+      if (expandTimeoutRef.current) {
+        clearTimeout(expandTimeoutRef.current);
+        expandTimeoutRef.current = null;
+      }
+      
+      // Add small delay to prevent accidental triggers
+      expandTimeoutRef.current = setTimeout(() => {
+        setSidebarExpanded(true);
+      }, 50);
+    }
+  }, [isMobile]);
+
+  const handleSidebarMouseLeave = useCallback(() => {
+    if (!isMobile) {
+      // Clear any pending expand timeout
+      if (expandTimeoutRef.current) {
+        clearTimeout(expandTimeoutRef.current);
+        expandTimeoutRef.current = null;
+      }
+      
+      // Clear any pending collapse timeout to prevent duplicates
+      if (collapseTimeoutRef.current) {
+        clearTimeout(collapseTimeoutRef.current);
+        collapseTimeoutRef.current = null;
+      }
+      
+      // Add delay to prevent accidental collapse when moving to child elements
+      collapseTimeoutRef.current = setTimeout(() => {
+        setSidebarExpanded(false);
+      }, 150);
+    }
+  }, [isMobile]);
+
+  const handleMobileToggle = useCallback(() => {
+    if (isMobile) {
+      setSidebarExpanded(!sidebarExpanded);
+    }
+  }, [isMobile, sidebarExpanded]);
+
+  const closeMobileSidebar = useCallback(() => {
+    if (isMobile) {
+      setSidebarExpanded(false);
+    }
+  }, [isMobile]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (expandTimeoutRef.current) clearTimeout(expandTimeoutRef.current);
+      if (collapseTimeoutRef.current) clearTimeout(collapseTimeoutRef.current);
+    };
+  }, []);
+
   return (
     <div className={styles.layout}>
+      {/* Sidebar Overlay for Mobile */}
+      {isMobile && sidebarExpanded && (
+        <div className={styles.sidebarOverlay} onClick={closeMobileSidebar} />
+      )}
+
       {/* Sidebar */}
-      <div className={styles.sidebar}>
-        {/* Logo */}
-        <div className={styles.logo}>
-          <div className={styles.logoContent}>
-            <div className={styles.logoIcon}>
-              <div className={styles.logoIconInner}></div>
-            </div>
-            <span className={styles.logoText}>CollabSphere</span>
-          </div>
-        </div>
+      <div 
+        className={`${styles.sidebar} ${!sidebarExpanded ? styles.sidebarCollapsed : ''}`}
+        onMouseEnter={handleSidebarMouseEnter}
+        onMouseLeave={handleSidebarMouseLeave}
+      >
 
         {/* Navigation */}
         <nav className={styles.navigation}>
           <div className={styles.navSection}>
-            <p className={styles.navTitle}>Navigation</p>
             <div className={styles.navList}>
               {navigationItems.map((item) => {
                 const Icon = item.icon;
@@ -57,9 +136,11 @@ const DashboardLayout = ({ children }) => {
                     key={item.name}
                     to={item.href}
                     className={`${styles.navItem} ${isActive(item.href) ? styles.active : ''}`}
+                    onClick={closeMobileSidebar}
+                    title={!sidebarExpanded ? item.name : ''}
                   >
                     <Icon className={styles.navIcon} />
-                    {item.name}
+                    <span className={styles.navText}>{item.name}</span>
                   </Link>
                 );
               })}
@@ -69,12 +150,36 @@ const DashboardLayout = ({ children }) => {
       </div>
 
       {/* Main Content */}
-      <div className={styles.main}>
+      <div className={`${styles.main} ${!sidebarExpanded ? styles.mainExpanded : ''}`}>
         {/* Top Header */}
         <header className={styles.header}>
           <div className={styles.headerBg}></div>
           
           <div className={styles.headerContent}>
+            {/* Logo and Mobile Menu Button */}
+            <div className={styles.headerLeft}>
+              {isMobile && (
+                <button 
+                  onClick={handleMobileToggle}
+                  className={styles.menuButton}
+                  aria-label={sidebarExpanded ? 'Close sidebar' : 'Open sidebar'}
+                >
+                  {sidebarExpanded ? (
+                    <XMarkIcon className={styles.menuIcon} />
+                  ) : (
+                    <Bars3Icon className={styles.menuIcon} />
+                  )}
+                </button>
+              )}
+              
+              <div className={styles.headerLogo}>
+                <div className={styles.headerLogoIcon}>
+                  <div className={styles.headerLogoIconInner}></div>
+                </div>
+                <span className={styles.headerLogoText}>CollabSphere</span>
+              </div>
+            </div>
+
             {/* Search Bar */}
             <div className={styles.searchSection}>
               <div className={styles.searchWrapper}>

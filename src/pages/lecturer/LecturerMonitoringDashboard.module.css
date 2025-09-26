@@ -1,0 +1,911 @@
+/* Lecturer Monitoring Dashboard - Screen 5 */
+/* Modern UI with Glassmorphism and Academic Accessibility */
+
+.lecturerDashboard {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Header Section (Top 15%) */
+.headerSection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 2rem;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  min-height: 15vh;
+}
+
+.classSelector {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.selectorWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.classDropdown {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(30, 58, 138, 0.2);
+  border-radius: 12px;
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e3a8a;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 280px;
+}
+
+.classDropdown:focus {
+  outline: none;
+  border-color: #1e3a8a;
+  box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+}
+
+.dropdownIcon {
+  position: absolute;
+  right: 0.75rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #1e3a8a;
+  pointer-events: none;
+}
+
+.classInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.enrollmentCount {
+  font-weight: 600;
+  color: #1e3a8a;
+}
+
+.qrStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.qrIcon {
+  width: 1rem;
+  height: 1rem;
+  color: #059669;
+}
+
+.qrText {
+  color: #059669;
+  font-weight: 500;
+}
+
+.healthIndicator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+}
+
+.healthLight {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.healthText {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.actionToolbar {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(30, 58, 138, 0.1);
+  border: 1px solid rgba(30, 58, 138, 0.2);
+  border-radius: 10px;
+  color: #1e3a8a;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(4px);
+}
+
+.actionButton:hover {
+  background: rgba(30, 58, 138, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(30, 58, 138, 0.15);
+}
+
+.actionIcon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.notificationBell {
+  position: relative;
+}
+
+.bellButton {
+  position: relative;
+  padding: 0.75rem;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.bellButton:hover {
+  background: rgba(245, 158, 11, 0.2);
+  transform: scale(1.05);
+}
+
+.bellIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #f59e0b;
+}
+
+.notificationBadge {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  background: #ef4444;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.375rem;
+  border-radius: 10px;
+  min-width: 1.25rem;
+  text-align: center;
+}
+
+/* Main Dashboard Grid (Middle 70%) */
+.mainGrid {
+  display: grid;
+  grid-template-columns: 40% 60%;
+  gap: 2rem;
+  padding: 2rem;
+  min-height: 70vh;
+}
+
+/* Left Column - Project Overview Cards */
+.leftColumn {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid rgba(30, 58, 138, 0.1);
+}
+
+.sectionHeader h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin: 0;
+}
+
+.projectCount {
+  background: rgba(30, 58, 138, 0.1);
+  color: #1e3a8a;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.projectCards {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.projectCard {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+}
+
+.projectCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  border-color: rgba(30, 58, 138, 0.3);
+}
+
+.projectHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 1rem;
+}
+
+.projectName {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.riskIndicator {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.projectMetrics {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.metric {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.metricIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.progressBar {
+  width: 100%;
+  height: 8px;
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.projectStatus {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.statusText {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Right Column - Academic Analytics Panel */
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.analyticsPanel,
+.assessmentPanel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid rgba(30, 58, 138, 0.1);
+}
+
+.panelHeader h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin: 0;
+}
+
+.panelIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #1e3a8a;
+}
+
+.outcomesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.outcomeCard {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+  padding: 1rem;
+  backdrop-filter: blur(6px);
+}
+
+.outcomeHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.outcomeCard h4 {
+  font-size: 0.975rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.outcomeStatus {
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.outcomeProgress {
+  width: 100%;
+  height: 6px;
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.outcomeProgressBar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+.outcomeTeams {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.curriculumHeatmap {
+  margin-top: 1rem;
+}
+
+.curriculumHeatmap h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 1rem 0;
+}
+
+.heatmapGrid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 0.25rem;
+}
+
+.heatmapCell {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.heatmapCell:hover {
+  transform: scale(1.1);
+}
+
+.assessmentGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.gradeDistribution,
+.peerEvaluations,
+.aiRecommendations {
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 10px;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+}
+
+.gradeDistribution {
+  grid-column: 1 / -1;
+}
+
+.gradeDistribution h4,
+.peerEvaluations h4,
+.aiRecommendations h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 1rem 0;
+}
+
+.distributionBars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.distributionBar {
+  display: grid;
+  grid-template-columns: 120px 1fr 60px;
+  align-items: center;
+  gap: 1rem;
+}
+
+.gradeLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  text-transform: capitalize;
+}
+
+.barContainer {
+  height: 20px;
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.bar {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+  border-radius: 10px;
+  transition: width 0.6s ease;
+}
+
+.percentage {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1f2937;
+  text-align: right;
+}
+
+.peerStats {
+  display: flex;
+  justify-content: space-around;
+  gap: 1rem;
+}
+
+.stat {
+  text-align: center;
+}
+
+.statValue {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.statLabel {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.recommendation {
+  display: flex;
+  align-items: start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(248, 250, 252, 0.8);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.recIcon {
+  flex-shrink: 0;
+}
+
+.highPriority {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #ef4444;
+}
+
+.mediumPriority {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #10b981;
+}
+
+.recText {
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.assessmentActions {
+  display: flex;
+  justify-content: center;
+}
+
+.assessmentButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  background: linear-gradient(135deg, #1e3a8a, #3730a3);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+}
+
+.assessmentButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(30, 58, 138, 0.4);
+}
+
+.buttonIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Academic Supervision & Intervention Section */
+.supervisionSection {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 2rem;
+}
+
+.interventionPanel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 2rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+  margin-bottom: 2rem;
+}
+
+.interventionGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 2rem;
+}
+
+.urgentAlerts,
+.performanceInsights,
+.academicOversight {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.urgentAlerts h3,
+.performanceInsights h3,
+.academicOversight h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e3a8a;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.urgentAlert {
+  display: flex;
+  align-items: start;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.urgentIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #ef4444;
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+}
+
+.alertContent {
+  flex: 1;
+}
+
+.alertText {
+  display: block;
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+}
+
+.alertContent .actionButton {
+  padding: 0.5rem 1rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.alertContent .actionButton:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.insightCards {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.insightCard {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  border-radius: 10px;
+}
+
+.insightIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.insightContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.insightValue {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.insightLabel {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.complianceMetrics {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.complianceItem {
+  padding: 1rem;
+  background: rgba(248, 250, 252, 0.8);
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.complianceHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.complianceHeader span:first-child {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.complianceScore {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.complianceBar {
+  width: 100%;
+  height: 8px;
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.complianceFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.8s ease;
+}
+
+.supervisoryActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.supervisoryButton {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(30, 58, 138, 0.2);
+  border-radius: 12px;
+  color: #1e3a8a;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.supervisoryButton:hover {
+  background: rgba(30, 58, 138, 0.1);
+  border-color: rgba(30, 58, 138, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(30, 58, 138, 0.15);
+}
+
+.supervisoryIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1199px) {
+  .mainGrid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .leftColumn {
+    order: 2;
+  }
+  
+  .rightColumn {
+    order: 1;
+  }
+  
+  .assessmentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .headerSection {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .actionToolbar {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .actionButton {
+    font-size: 0.8rem;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .mainGrid {
+    padding: 1rem;
+  }
+  
+  .outcomesGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .interventionGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .supervisoryActions {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .supervisoryButton {
+    padding: 0.75rem 1rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Accessibility Enhancements */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .lecturerDashboard {
+    background: #ffffff;
+  }
+  
+  .headerSection,
+  .leftColumn,
+  .analyticsPanel,
+  .assessmentPanel,
+  .supervisionSection,
+  .interventionPanel {
+    background: #ffffff;
+    border: 2px solid #000000;
+  }
+  
+  .projectCard,
+  .outcomeCard {
+    border: 1px solid #000000;
+  }
+}
