@@ -10,6 +10,11 @@ import ModuleLibrary from '../pages/lecturer/ModuleLibrary';
 import ModuleDetail from '../pages/lecturer/ModuleDetail';
 import ModuleAnalysis from '../pages/lecturer/ModuleAnalysis';
 import LecturerMonitoringDashboard from '../pages/lecturer/LecturerMonitoringDashboard';
+// Academic role imports
+import AcademicList from '../pages/academic/AcademicList';
+import AcademicDetail from '../pages/academic/AcademicDetail';
+import AcademicCreate from '../pages/academic/AcademicCreate';
+import ProjectApprovals from '../pages/academic/ProjectApprovals';
 
 const router = createBrowserRouter([
   {
@@ -71,6 +76,23 @@ const router = createBrowserRouter([
   {
     path: '/lecturer/monitoring',
     element: <LecturerMonitoringDashboard />,
+  },
+  // Academic role routes
+  {
+    path: '/academic',
+    element: <AcademicList />,
+  },
+  {
+    path: '/academic/create',
+    element: <AcademicCreate />,
+  },
+  {
+    path: '/academic/:id',
+    element: <AcademicDetail />,
+  },
+  {
+    path: '/academic/project-approvals',
+    element: <ProjectApprovals />,
   },
 ]);
 

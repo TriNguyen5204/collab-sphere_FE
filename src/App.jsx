@@ -1,8 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import AcademicList from './pages/academic/AcademicList'
-import AcademicDetail from './pages/academic/AcademicDetail'
-import AcademicCreate from './pages/academic/AcademicCreate'
-import { Link } from 'react-router-dom';
+import React from 'react';
 
 function App() {
   return (
