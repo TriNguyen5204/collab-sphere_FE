@@ -1,5 +1,6 @@
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+
 import App from '../App';
 import ClassManagementDashboard from '../pages/lecturer/ClassManagementDashboard';
 import ClassDetailPage from '../pages/lecturer/ClassDetailPage';
@@ -18,12 +19,17 @@ import LecturerListStaff from '../pages/staff/LecturerListStaff';
 import ClassListStaff from '../pages/staff/ClassListStaff';
 import ClassDetail from '../pages/staff/ClassDetail';
 import LoginPage from '../pages/LoginPage';
+import ConnectRoom from '../test/ConnectRoom';
+import VideoRoom from '../test/VideoRoom';
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: <App />,
   },
+  {
+    path: '/login', 
+    element: <LoginPage />},
   {
     path: '/lecturer/classes',
     element: <ClassManagementDashboard />,
@@ -110,6 +116,14 @@ const router = createBrowserRouter([
     path: '/staff/classes/:classId',
     element: <ClassDetail />,
   },
+  {
+    path: '/room',
+    element: <ConnectRoom />,
+  },
+  {
+    path: '/room/:roomId',
+    element: <VideoRoom />,
+  }
 ]);
 
 export const Router = () => {
