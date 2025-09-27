@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
-    "@react-oauth/google": "^0.12.2",
+    "@zegocloud/zego-uikit-prebuilt": "^2.16.0",
     "agora-rtc-react": "^2.5.0",
     "file-saver": "^2.0.5",
     "react": "^19.1.1",
