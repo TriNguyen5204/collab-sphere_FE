@@ -122,7 +122,8 @@ const router = createBrowserRouter([
   {
     path: '/room/:roomId',
     element: <VideoRoom />,
-  }
+  },
+  {
     path: '/academic/project-approvals',
     element: <ProjectApprovals />,
   },
