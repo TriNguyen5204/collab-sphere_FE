@@ -21,6 +21,7 @@ import ClassDetail from '../pages/staff/ClassDetail';
 import LoginPage from '../pages/LoginPage';
 import ConnectRoom from '../test/ConnectRoom';
 import VideoRoom from '../test/VideoRoom';
+import ProjectApprovals from '../pages/academic/ProjectApprovals';
 
 const router = createBrowserRouter([
   {
@@ -86,8 +87,6 @@ const router = createBrowserRouter([
     path: '/lecturer/monitoring',
     element: <LecturerMonitoringDashboard />,
   },
-
-  //staff
   {
     path: '/staff',
     element: <StaffPage />,
@@ -124,6 +123,9 @@ const router = createBrowserRouter([
     path: '/room/:roomId',
     element: <VideoRoom />,
   }
+    path: '/academic/project-approvals',
+    element: <ProjectApprovals />,
+  },
 ]);
 
 export const Router = () => {
