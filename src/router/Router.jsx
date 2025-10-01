@@ -15,6 +15,10 @@ import AcademicList from '../pages/academic/AcademicList';
 import AcademicDetail from '../pages/academic/AcademicDetail';
 import AcademicCreate from '../pages/academic/AcademicCreate';
 import ProjectApprovals from '../pages/academic/ProjectApprovals';
+//Student role imports
+import StudentHomePage from '../pages/student/StudentHomepage';
+import StudentProjectPage from '../pages/student/StudentProjectPage';
+import ProjectHomePage from '../pages/student/project/ProjectHomePage';
 
 const router = createBrowserRouter([
   {
@@ -93,6 +97,19 @@ const router = createBrowserRouter([
   {
     path: '/academic/project-approvals',
     element: <ProjectApprovals />,
+  },
+  // Student role routes
+  {
+    path: '/student/home',
+    element: <StudentHomePage />,
+  },
+  {
+    path: '/student/projects',
+    element: <StudentProjectPage />,
+  },
+  {
+    path: '/student/project/:id',
+    element: <ProjectHomePage />,
   },
 ]);
 
