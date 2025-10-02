@@ -22,6 +22,11 @@ import LoginPage from '../pages/LoginPage';
 import ConnectRoom from '../test/ConnectRoom';
 import VideoRoom from '../test/VideoRoom';
 import ProjectApprovals from '../pages/academic/ProjectApprovals';
+import AdminDashboard from '../pages/admin/AdminDashboard';
+import AccountManagement from '../pages/admin/AccountManagement';
+import SystemReport from '../pages/admin/SystemReport';
+import DepartmentDashboard from '../pages/headDepartment/Dashboard';
+import SubjectManagement from '../pages/headDepartment/Subject&SyllabusManagement';
 
 const router = createBrowserRouter([
   {
@@ -123,10 +128,40 @@ const router = createBrowserRouter([
     path: '/room/:roomId',
     element: <VideoRoom />,
   },
+  // {
+  //   path: '/academic/project-approvals',
+  //   element: <ProjectApprovals />,
+  // },
+  //admin
   {
-    path: '/academic/project-approvals',
-    element: <ProjectApprovals />,
+    path: '/admin',
+    element: <AdminDashboard />,
   },
+  {
+    path: '/admin/account-management',
+    element: <AccountManagement />,
+  },
+  {
+    path: '/admin/reports',
+    element: <SystemReport />,
+  },
+  //head of department
+  {
+    path: '/head-department',
+    element: <DepartmentDashboard />,
+  },
+  {
+    path: '/head-department/subject-management',
+    element: <SubjectManagement />,
+  },
+  {
+    path: '/head-department/syllabus-management',
+  },
+  {
+    path: '/head-department/project-approvals',
+    element: <ProjectApprovals />,
+  }
+
 ]);
 
 export const Router = () => {
