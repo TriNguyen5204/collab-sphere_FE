@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
 import styles from './ModuleLibrary.module.css';
@@ -7,280 +7,396 @@ import {
   PlusIcon,
   DocumentArrowUpIcon,
   BookOpenIcon,
-  UserGroupIcon,
-  CalendarIcon,
-  TagIcon,
-  ChartBarIcon,
-  FunnelIcon,
   Squares2X2Icon,
   ListBulletIcon,
-  StarIcon,
-  ClockIcon,
-  AcademicCapIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  DocumentDuplicateIcon,
-  ShareIcon,
   ArrowPathIcon,
-  CheckBadgeIcon,
-  ExclamationTriangleIcon,
+  ShareIcon,
+  EyeIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 
+const MODULES_DATA = [
+  {
+    id: 1,
+    title: 'E-commerce Platform Development',
+    description:
+      'Build a complete e-commerce platform with user authentication, product catalog, shopping cart, and payment integration.',
+    category: 'Web Development',
+    difficulty: 'Advanced',
+    status: 'published',
+    estimatedDuration: '8-12 weeks',
+    maxTeamSize: 5,
+    skillsRequired: ['React', 'Node.js', 'MongoDB', 'Express', 'Payment APIs'],
+    learningOutcomes: [
+      'Full-stack web development',
+      'Database design and management',
+      'API integration',
+      'User authentication and security',
+    ],
+    assignedClasses: ['SE301', 'CS401'],
+    totalTeams: 12,
+    activeTeams: 8,
+    completedTeams: 4,
+    averageScore: 85.2,
+    createdDate: '2024-09-15',
+    lastModified: '2024-11-20',
+    createdBy: 'Dr. Sarah Chen',
+    tags: ['react', 'nodejs', 'ecommerce', 'full-stack'],
+    isFavorite: true,
+    documentCount: 5,
+    resourceCount: 12,
+    hasAIAnalysis: true,
+    syllabusAlignment: 92,
+    complexity: 'high',
+  },
+  {
+    id: 2,
+    title: 'Mobile Health Tracking App',
+    description:
+      'Develop a mobile application for health and fitness tracking with sensor integration and data visualization.',
+    category: 'Mobile Development',
+    difficulty: 'Intermediate',
+    status: 'published',
+    estimatedDuration: '6-8 weeks',
+    maxTeamSize: 4,
+    skillsRequired: ['React Native', 'Firebase', 'Charts.js', 'Mobile Sensors'],
+    learningOutcomes: [
+      'Mobile app development',
+      'Sensor integration',
+      'Data visualization',
+      'Real-time data processing',
+    ],
+    assignedClasses: ['CS302'],
+    totalTeams: 6,
+    activeTeams: 6,
+    completedTeams: 0,
+    averageScore: 0,
+    createdDate: '2024-10-01',
+    lastModified: '2024-11-18',
+    createdBy: 'Dr. Michael Rodriguez',
+    tags: ['mobile', 'health', 'react-native', 'sensors'],
+    isFavorite: false,
+    documentCount: 3,
+    resourceCount: 8,
+    hasAIAnalysis: true,
+    syllabusAlignment: 88,
+    complexity: 'medium',
+  },
+  {
+    id: 3,
+    title: 'AI-Powered Chatbot',
+    description:
+      'Create an intelligent chatbot using natural language processing and machine learning algorithms.',
+    category: 'Artificial Intelligence',
+    difficulty: 'Advanced',
+    status: 'draft',
+    estimatedDuration: '10-14 weeks',
+    maxTeamSize: 3,
+    skillsRequired: ['Python', 'TensorFlow', 'NLP', 'REST APIs'],
+    learningOutcomes: [
+      'Machine learning implementation',
+      'Natural language processing',
+      'AI model training',
+      'Conversational AI design',
+    ],
+    assignedClasses: [],
+    totalTeams: 0,
+    activeTeams: 0,
+    completedTeams: 0,
+    averageScore: 0,
+    createdDate: '2024-11-10',
+    lastModified: '2024-11-19',
+    createdBy: 'Dr. Emily Watson',
+    tags: ['ai', 'chatbot', 'nlp', 'python'],
+    isFavorite: true,
+    documentCount: 2,
+    resourceCount: 6,
+    hasAIAnalysis: false,
+    syllabusAlignment: 0,
+    complexity: 'high',
+  },
+  {
+    id: 4,
+    title: 'IoT Smart Home System',
+    description:
+      'Design and implement an IoT-based smart home system with sensor networks and mobile control.',
+    category: 'Internet of Things',
+    difficulty: 'Advanced',
+    status: 'published',
+    estimatedDuration: '12-16 weeks',
+    maxTeamSize: 6,
+    skillsRequired: ['Arduino', 'Raspberry Pi', 'MQTT', 'React', 'Python'],
+    learningOutcomes: [
+      'IoT system architecture',
+      'Embedded systems programming',
+      'Wireless communication protocols',
+      'Real-time monitoring systems',
+    ],
+    assignedClasses: ['EE401', 'CS403'],
+    totalTeams: 4,
+    activeTeams: 3,
+    completedTeams: 1,
+    averageScore: 78.5,
+    createdDate: '2024-08-20',
+    lastModified: '2024-11-15',
+    createdBy: 'Prof. James Liu',
+    tags: ['iot', 'arduino', 'smart-home', 'embedded'],
+    isFavorite: false,
+    documentCount: 7,
+    resourceCount: 15,
+    hasAIAnalysis: true,
+    syllabusAlignment: 95,
+    complexity: 'high',
+  },
+  {
+    id: 5,
+    title: 'Social Media Analytics Dashboard',
+    description:
+      'Build a comprehensive analytics dashboard for social media data with real-time visualization.',
+    category: 'Data Science',
+    difficulty: 'Intermediate',
+    status: 'published',
+    estimatedDuration: '6-8 weeks',
+    maxTeamSize: 4,
+    skillsRequired: ['Python', 'Pandas', 'D3.js', 'APIs', 'PostgreSQL'],
+    learningOutcomes: [
+      'Data analysis and visualization',
+      'API integration and data collection',
+      'Dashboard design and development',
+      'Statistical analysis and reporting',
+    ],
+    assignedClasses: ['DS201'],
+    totalTeams: 8,
+    activeTeams: 5,
+    completedTeams: 3,
+    averageScore: 82.7,
+    createdDate: '2024-09-05',
+    lastModified: '2024-11-12',
+    createdBy: 'Dr. Anna Kim',
+    tags: ['data-science', 'analytics', 'dashboard', 'python'],
+    isFavorite: false,
+    documentCount: 4,
+    resourceCount: 10,
+    hasAIAnalysis: true,
+    syllabusAlignment: 90,
+    complexity: 'medium',
+  },
+  {
+    id: 6,
+    title: 'Blockchain Voting System',
+    description:
+      'Develop a secure voting system using blockchain technology with transparency and immutability.',
+    category: 'Blockchain',
+    difficulty: 'Advanced',
+    status: 'review',
+    estimatedDuration: '14-18 weeks',
+    maxTeamSize: 5,
+    skillsRequired: ['Solidity', 'Web3.js', 'Ethereum', 'React', 'Cryptography'],
+    learningOutcomes: [
+      'Blockchain development',
+      'Smart contract programming',
+      'Decentralized application (DApp) creation',
+      'Cryptographic security implementation',
+    ],
+    assignedClasses: [],
+    totalTeams: 0,
+    activeTeams: 0,
+    completedTeams: 0,
+    averageScore: 0,
+    createdDate: '2024-11-01',
+    lastModified: '2024-11-20',
+    createdBy: 'Dr. Robert Zhang',
+    tags: ['blockchain', 'voting', 'solidity', 'web3'],
+    isFavorite: true,
+    documentCount: 3,
+    resourceCount: 8,
+    hasAIAnalysis: false,
+    syllabusAlignment: 0,
+    complexity: 'high',
+  },
+];
+
+const statusLabels = {
+  published: 'Published',
+  draft: 'Draft',
+  review: 'In Review',
+};
+
+const formatDate = (value) =>
+  new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(value));
+
 const ModuleLibrary = () => {
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [viewMode, setViewMode] = useState('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [sortBy, setSortBy] = useState('recent');
   const [selectedModules, setSelectedModules] = useState(new Set());
-  const [isLoading, setIsLoading] = useState(false);
+  const [favoriteModules, setFavoriteModules] = useState(
+    () => new Set(MODULES_DATA.filter((module) => module.isFavorite).map((module) => module.id))
+  );
+  const [isLoading] = useState(false);
 
-  // Mock data for modules with comprehensive metadata
-  const modulesData = [
-    {
-      id: 1,
-      title: 'E-commerce Platform Development',
-      description: 'Build a complete e-commerce platform with user authentication, product catalog, shopping cart, and payment integration.',
-      category: 'Web Development',
-      difficulty: 'Advanced',
-      status: 'published',
-      estimatedDuration: '8-12 weeks',
-      maxTeamSize: 5,
-      skillsRequired: ['React', 'Node.js', 'MongoDB', 'Express', 'Payment APIs'],
-      learningOutcomes: [
-        'Full-stack web development',
-        'Database design and management',
-        'API integration',
-        'User authentication and security'
-      ],
-      assignedClasses: ['SE301', 'CS401'],
-      totalTeams: 12,
-      activeTeams: 8,
-      completedTeams: 4,
-      averageScore: 85.2,
-      createdDate: '2024-09-15',
-      lastModified: '2024-11-20',
-      createdBy: 'Dr. Sarah Chen',
-      tags: ['react', 'nodejs', 'ecommerce', 'full-stack'],
-      isFavorite: true,
-      documentCount: 5,
-      resourceCount: 12,
-      hasAIAnalysis: true,
-      syllabusAlignment: 92,
-      complexity: 'high'
-    },
-    {
-      id: 2,
-      title: 'Mobile Health Tracking App',
-      description: 'Develop a mobile application for health and fitness tracking with sensor integration and data visualization.',
-      category: 'Mobile Development',
-      difficulty: 'Intermediate',
-      status: 'published',
-      estimatedDuration: '6-8 weeks',
-      maxTeamSize: 4,
-      skillsRequired: ['React Native', 'Firebase', 'Charts.js', 'Mobile Sensors'],
-      learningOutcomes: [
-        'Mobile app development',
-        'Sensor integration',
-        'Data visualization',
-        'Real-time data processing'
-      ],
-      assignedClasses: ['CS302'],
-      totalTeams: 6,
-      activeTeams: 6,
-      completedTeams: 0,
-      averageScore: 0,
-      createdDate: '2024-10-01',
-      lastModified: '2024-11-18',
-      createdBy: 'Dr. Michael Rodriguez',
-      tags: ['mobile', 'health', 'react-native', 'sensors'],
-      isFavorite: false,
-      documentCount: 3,
-      resourceCount: 8,
-      hasAIAnalysis: true,
-      syllabusAlignment: 88,
-      complexity: 'medium'
-    },
-    {
-      id: 3,
-      title: 'AI-Powered Chatbot',
-      description: 'Create an intelligent chatbot using natural language processing and machine learning algorithms.',
-      category: 'Artificial Intelligence',
-      difficulty: 'Advanced',
-      status: 'draft',
-      estimatedDuration: '10-14 weeks',
-      maxTeamSize: 3,
-      skillsRequired: ['Python', 'TensorFlow', 'NLP', 'REST APIs'],
-      learningOutcomes: [
-        'Machine learning implementation',
-        'Natural language processing',
-        'AI model training',
-        'Conversational AI design'
-      ],
-      assignedClasses: [],
-      totalTeams: 0,
-      activeTeams: 0,
-      completedTeams: 0,
-      averageScore: 0,
-      createdDate: '2024-11-10',
-      lastModified: '2024-11-19',
-      createdBy: 'Dr. Emily Watson',
-      tags: ['ai', 'chatbot', 'nlp', 'python'],
-      isFavorite: true,
-      documentCount: 2,
-      resourceCount: 6,
-      hasAIAnalysis: false,
-      syllabusAlignment: 0,
-      complexity: 'high'
-    },
-    {
-      id: 4,
-      title: 'IoT Smart Home System',
-      description: 'Design and implement an IoT-based smart home system with sensor networks and mobile control.',
-      category: 'Internet of Things',
-      difficulty: 'Advanced',
-      status: 'published',
-      estimatedDuration: '12-16 weeks',
-      maxTeamSize: 6,
-      skillsRequired: ['Arduino', 'Raspberry Pi', 'MQTT', 'React', 'Python'],
-      learningOutcomes: [
-        'IoT system architecture',
-        'Embedded systems programming',
-        'Wireless communication protocols',
-        'Real-time monitoring systems'
-      ],
-      assignedClasses: ['EE401', 'CS403'],
-      totalTeams: 4,
-      activeTeams: 3,
-      completedTeams: 1,
-      averageScore: 78.5,
-      createdDate: '2024-08-20',
-      lastModified: '2024-11-15',
-      createdBy: 'Prof. James Liu',
-      tags: ['iot', 'arduino', 'smart-home', 'embedded'],
-      isFavorite: false,
-      documentCount: 7,
-      resourceCount: 15,
-      hasAIAnalysis: true,
-      syllabusAlignment: 95,
-      complexity: 'high'
-    },
-    {
-      id: 5,
-      title: 'Social Media Analytics Dashboard',
-      description: 'Build a comprehensive analytics dashboard for social media data with real-time visualization.',
-      category: 'Data Science',
-      difficulty: 'Intermediate',
-      status: 'published',
-      estimatedDuration: '6-8 weeks',
-      maxTeamSize: 4,
-      skillsRequired: ['Python', 'Pandas', 'D3.js', 'APIs', 'PostgreSQL'],
-      learningOutcomes: [
-        'Data analysis and visualization',
-        'API integration and data collection',
-        'Dashboard design and development',
-        'Statistical analysis and reporting'
-      ],
-      assignedClasses: ['DS201'],
-      totalTeams: 8,
-      activeTeams: 5,
-      completedTeams: 3,
-      averageScore: 82.7,
-      createdDate: '2024-09-05',
-      lastModified: '2024-11-12',
-      createdBy: 'Dr. Anna Kim',
-      tags: ['data-science', 'analytics', 'dashboard', 'python'],
-      isFavorite: false,
-      documentCount: 4,
-      resourceCount: 10,
-      hasAIAnalysis: true,
-      syllabusAlignment: 90,
-      complexity: 'medium'
-    },
-    {
-      id: 6,
-      title: 'Blockchain Voting System',
-      description: 'Develop a secure voting system using blockchain technology with transparency and immutability.',
-      category: 'Blockchain',
-      difficulty: 'Advanced',
-      status: 'review',
-      estimatedDuration: '14-18 weeks',
-      maxTeamSize: 5,
-      skillsRequired: ['Solidity', 'Web3.js', 'Ethereum', 'React', 'Cryptography'],
-      learningOutcomes: [
-        'Blockchain development',
-        'Smart contract programming',
-        'Decentralized application (DApp) creation',
-        'Cryptographic security implementation'
-      ],
-      assignedClasses: [],
-      totalTeams: 0,
-      activeTeams: 0,
-      completedTeams: 0,
-      averageScore: 0,
-      createdDate: '2024-11-01',
-      lastModified: '2024-11-20',
-      createdBy: 'Dr. Robert Zhang',
-      tags: ['blockchain', 'voting', 'solidity', 'web3'],
-      isFavorite: true,
-      documentCount: 3,
-      resourceCount: 8,
-      hasAIAnalysis: false,
-      syllabusAlignment: 0,
-      complexity: 'high'
-    }
-  ];
+  const categories = useMemo(
+    () => ['all', ...new Set(MODULES_DATA.map((module) => module.category))],
+    []
+  );
 
-  // Filter and search logic
-  const filteredModules = modulesData.filter(module => {
-    const matchesSearch = module.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         module.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         module.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesCategory = selectedCategory === 'all' || module.category === selectedCategory;
-    const matchesDifficulty = selectedDifficulty === 'all' || module.difficulty === selectedDifficulty;
-    const matchesStatus = selectedStatus === 'all' || module.status === selectedStatus;
-    
-    return matchesSearch && matchesCategory && matchesDifficulty && matchesStatus;
-  });
+  const difficulties = useMemo(
+    () => ['all', ...new Set(MODULES_DATA.map((module) => module.difficulty))],
+    []
+  );
 
-  // Sort logic
-  const sortedModules = [...filteredModules].sort((a, b) => {
+  const statuses = useMemo(
+    () => ['all', ...new Set(MODULES_DATA.map((module) => module.status))],
+    []
+  );
+
+  const filteredModules = useMemo(() => {
+    const lowerSearch = searchTerm.trim().toLowerCase();
+
+    return MODULES_DATA.filter((module) => {
+      const matchesSearch =
+        !lowerSearch ||
+        module.title.toLowerCase().includes(lowerSearch) ||
+        module.description.toLowerCase().includes(lowerSearch) ||
+        module.tags.some((tag) => tag.toLowerCase().includes(lowerSearch));
+
+      const matchesCategory = selectedCategory === 'all' || module.category === selectedCategory;
+      const matchesDifficulty =
+        selectedDifficulty === 'all' || module.difficulty === selectedDifficulty;
+      const matchesStatus = selectedStatus === 'all' || module.status === selectedStatus;
+
+      return matchesSearch && matchesCategory && matchesDifficulty && matchesStatus;
+    });
+  }, [searchTerm, selectedCategory, selectedDifficulty, selectedStatus]);
+
+  const sortedModules = useMemo(() => {
+    const modules = [...filteredModules];
+
     switch (sortBy) {
       case 'recent':
-        return new Date(b.lastModified) - new Date(a.lastModified);
+        return modules.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
       case 'name':
-        return a.title.localeCompare(b.title);
+        return modules.sort((a, b) => a.title.localeCompare(b.title));
       case 'popularity':
-        return b.totalTeams - a.totalTeams;
+        return modules.sort((a, b) => b.totalTeams - a.totalTeams);
       case 'score':
-        return b.averageScore - a.averageScore;
+        return modules.sort((a, b) => b.averageScore - a.averageScore);
       default:
-        return 0;
+        return modules;
     }
-  });
+  }, [filteredModules, sortBy]);
 
-  // Statistics calculations
-  const statistics = {
-    total: modulesData.length,
-    published: modulesData.filter(m => m.status === 'published').length,
-    draft: modulesData.filter(m => m.status === 'draft').length,
-    review: modulesData.filter(m => m.status === 'review').length,
-    totalTeams: modulesData.reduce((sum, m) => sum + m.totalTeams, 0),
-    averageAlignment: Math.round(
-      modulesData.filter(m => m.syllabusAlignment > 0)
-        .reduce((sum, m) => sum + m.syllabusAlignment, 0) / 
-      modulesData.filter(m => m.syllabusAlignment > 0).length
-    ) || 0
+  const statistics = useMemo(() => {
+    const total = MODULES_DATA.length;
+    const published = MODULES_DATA.filter((module) => module.status === 'published').length;
+    const draft = MODULES_DATA.filter((module) => module.status === 'draft').length;
+    const review = MODULES_DATA.filter((module) => module.status === 'review').length;
+    const totalTeams = MODULES_DATA.reduce((sum, module) => sum + module.totalTeams, 0);
+    const activeTeams = MODULES_DATA.reduce((sum, module) => sum + module.activeTeams, 0);
+    const aiReady = MODULES_DATA.filter((module) => module.hasAIAnalysis).length;
+    const alignmentCandidates = MODULES_DATA.filter((module) => module.syllabusAlignment > 0);
+    const averageAlignment = alignmentCandidates.length
+      ? Math.round(
+          alignmentCandidates.reduce((sum, module) => sum + module.syllabusAlignment, 0) /
+            alignmentCandidates.length
+        )
+      : 0;
+
+    return {
+      total,
+      published,
+      draft,
+      review,
+      totalTeams,
+      activeTeams,
+      aiReady,
+      averageAlignment,
+    };
+  }, []);
+
+  const heroMetrics = useMemo(
+    () => [
+      {
+        label: 'Published Modules',
+        value: statistics.published,
+        delta: statistics.total
+          ? `${Math.round((statistics.published / statistics.total) * 100)}% of library`
+          : 'No modules yet',
+        positive: true,
+      },
+      {
+        label: 'Awaiting Review',
+        value: statistics.review,
+        delta: statistics.review === 0 ? 'All clear' : 'Action required',
+        positive: statistics.review === 0,
+      },
+      {
+        label: 'Average Alignment',
+        value: `${statistics.averageAlignment}%`,
+        delta: `${statistics.aiReady} modules AI-ready`,
+        positive: true,
+      },
+      {
+        label: 'Active Teams',
+        value: statistics.activeTeams,
+        delta: `${statistics.totalTeams} teams overall`,
+        positive: true,
+      },
+    ],
+    [statistics]
+  );
+
+  const statusClassMap = {
+    published: styles.badgeSuccess,
+    draft: styles.badgeMuted,
+    review: styles.badgeWarning,
   };
 
-  const categories = [...new Set(modulesData.map(m => m.category))];
-  const difficulties = [...new Set(modulesData.map(m => m.difficulty))];
-  const statuses = [...new Set(modulesData.map(m => m.status))];
+  const difficultyClassMap = {
+    Beginner: styles.badgeMuted,
+    Intermediate: styles.badgeSuccess,
+    Advanced: styles.badgeAccent,
+  };
+
+  const toggleFavorite = (moduleId) => {
+    setFavoriteModules((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(moduleId)) {
+        updated.delete(moduleId);
+      } else {
+        updated.add(moduleId);
+      }
+      return updated;
+    });
+  };
+
+  const toggleModuleSelection = (moduleId) => {
+    setSelectedModules((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(moduleId)) {
+        updated.delete(moduleId);
+      } else {
+        updated.add(moduleId);
+      }
+      return updated;
+    });
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedModules(new Set(sortedModules.map((module) => module.id)));
+    } else {
+      setSelectedModules(new Set());
+    }
+  };
 
   const handleCreateModule = () => {
     navigate('/lecturer/modules/create');
@@ -298,178 +414,144 @@ const ModuleLibrary = () => {
     navigate(`/lecturer/modules/${moduleId}/analysis`);
   };
 
-  const toggleFavorite = (moduleId) => {
-    // This would typically update the backend
-    console.log('Toggle favorite for module:', moduleId);
+  const handleDuplicateModule = (moduleId) => {
+    navigate(`/lecturer/modules/${moduleId}/duplicate`);
   };
 
-  const toggleModuleSelection = (moduleId) => {
-    const newSelection = new Set(selectedModules);
-    if (newSelection.has(moduleId)) {
-      newSelection.delete(moduleId);
-    } else {
-      newSelection.add(moduleId);
-    }
-    setSelectedModules(newSelection);
-  };
-
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      published: { class: 'published', icon: CheckBadgeIcon, text: 'Published' },
-      draft: { class: 'draft', icon: PencilIcon, text: 'Draft' },
-      review: { class: 'review', icon: ExclamationTriangleIcon, text: 'In Review' }
-    };
-    
-    const config = statusConfig[status] || statusConfig.draft;
-    const Icon = config.icon;
-    
-    return (
-      <span className={`${styles.statusBadge} ${styles[config.class]}`}>
-        <Icon className="w-3 h-3" />
-        {config.text}
-      </span>
-    );
-  };
-
-  const getDifficultyBadge = (difficulty) => {
-    const difficultyConfig = {
-      'Beginner': { class: 'beginner' },
-      'Intermediate': { class: 'intermediate' },
-      'Advanced': { class: 'advanced' }
-    };
-    
-    return (
-      <span className={`${styles.difficultyBadge} ${styles[difficultyConfig[difficulty]?.class || 'beginner']}`}>
-        {difficulty}
-      </span>
-    );
+  const handleShareModule = (moduleId) => {
+    console.log('Share module', moduleId);
   };
 
   const renderGridView = () => (
-    <div className={styles.gridContainer}>
-      {sortedModules.map((module) => (
-        <div key={module.id} className={styles.moduleCard}>
-          <div className={styles.cardHeader}>
-            <div className={styles.cardHeaderLeft}>
-              <input
-                type="checkbox"
-                checked={selectedModules.has(module.id)}
-                onChange={() => toggleModuleSelection(module.id)}
-                className={styles.checkbox}
-              />
-              <div className={styles.statusContainer}>
-                {getStatusBadge(module.status)}
-                {getDifficultyBadge(module.difficulty)}
+    <div className={styles.moduleGrid}>
+      {sortedModules.map((module) => {
+        const cardClasses = [styles.moduleCard];
+        if (selectedModules.has(module.id)) {
+          cardClasses.push(styles.moduleCardSelected);
+        }
+
+        const statusClass = statusClassMap[module.status] || styles.badgeMuted;
+        const difficultyClass = difficultyClassMap[module.difficulty] || styles.badgeMuted;
+        const isFavorite = favoriteModules.has(module.id);
+
+        return (
+          <article key={module.id} className={cardClasses.join(' ')}>
+            <div className={styles.cardTopRow}>
+              <div className={styles.cardMeta}>
+                <div className={styles.tagRow}>
+                  <label className={styles.selectionCheckbox}>
+                    <input
+                      type="checkbox"
+                      checked={selectedModules.has(module.id)}
+                      onChange={() => toggleModuleSelection(module.id)}
+                    />
+                  </label>
+                  <span className={`${styles.tag} ${statusClass}`}>
+                    {statusLabels[module.status] || module.status}
+                  </span>
+                  <span className={`${styles.tag} ${difficultyClass}`}>{module.difficulty}</span>
+                  <span
+                    className={`${styles.tag} ${
+                      module.hasAIAnalysis ? styles.badgePrimary : styles.badgeWarning
+                    }`}
+                  >
+                    {module.hasAIAnalysis ? 'AI Insights' : 'AI Pending'}
+                  </span>
+                </div>
+
+                <h3 className={styles.moduleTitle} onClick={() => handleModuleClick(module.id)}>
+                  {module.title}
+                </h3>
+                <p className={styles.moduleSubtitle}>{module.description}</p>
+
+                <div className={`${styles.tagRow} ${styles.skillTagRow}`}>
+                  {module.skillsRequired.slice(0, 3).map((skill) => (
+                    <span key={skill} className={`${styles.tag} ${styles.badgeMuted}`}>
+                      {skill}
+                    </span>
+                  ))}
+                  {module.skillsRequired.length > 3 && (
+                    <span className={`${styles.tag} ${styles.badgeMuted}`}>
+                      +{module.skillsRequired.length - 3}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className={styles.cardActions}>
+
               <button
+                type="button"
+                className={`${styles.favoriteBtn} ${isFavorite ? styles.favoriteBtnActive : ''}`}
                 onClick={() => toggleFavorite(module.id)}
-                className={styles.favoriteBtn}
+                aria-label={isFavorite ? 'Remove from favourites' : 'Add to favourites'}
               >
-                {module.isFavorite ? (
-                  <StarIconSolid className="w-4 h-4 text-yellow-500" />
-                ) : (
-                  <StarIcon className="w-4 h-4" />
-                )}
+                <StarIconSolid className="w-4 h-4" />
               </button>
-              <div className={styles.dropdownMenu}>
-                <button className={styles.dropdownBtn}>⋯</button>
-                <div className={styles.dropdownContent}>
-                  <button onClick={() => handleModuleClick(module.id)}>
-                    <EyeIcon className="w-4 h-4" />
-                    View Details
+            </div>
+
+            <div className={styles.cardLower}>
+              <div className={styles.metricsRow}>
+                <div className={styles.metricBlock}>
+                  <span className={styles.metricLabelSmall}>Active Teams</span>
+                  <span className={styles.metricValueStrong}>{module.activeTeams}</span>
+                  <span className={styles.metricFootnote}>of {module.totalTeams} teams</span>
+                </div>
+                <div className={styles.metricBlock}>
+                  <span className={styles.metricLabelSmall}>Alignment</span>
+                  <span className={styles.metricValueStrong}>
+                    {module.syllabusAlignment ? `${module.syllabusAlignment}%` : '—'}
+                  </span>
+                  <span className={styles.metricFootnote}>
+                    {module.hasAIAnalysis ? 'AI-reviewed' : 'Awaiting AI analysis'}
+                  </span>
+                </div>
+                <div className={styles.metricBlock}>
+                  <span className={styles.metricLabelSmall}>Duration</span>
+                  <span className={styles.metricValueStrong}>{module.estimatedDuration}</span>
+                  <span className={styles.metricFootnote}>
+                    Max team size {module.maxTeamSize}
+                  </span>
+                </div>
+              </div>
+
+              <div className={styles.divider} />
+
+              <div className={styles.footerRow}>
+                <div className={styles.footerMeta}>
+                  <span>Updated {formatDate(module.lastModified)}</span>
+                  <span>
+                    {module.assignedClasses.length > 0
+                      ? `${module.assignedClasses.length} classes assigned`
+                      : 'Not assigned yet'}
+                  </span>
+                </div>
+                <div className={styles.cardActions}>
+                  <button
+                    type="button"
+                    className={styles.actionBtn}
+                    onClick={() => handleModuleClick(module.id)}
+                  >
+                    Open module
                   </button>
-                  <button onClick={() => navigate(`/lecturer/modules/${module.id}/edit`)}>
-                    <PencilIcon className="w-4 h-4" />
-                    Edit Module
+                  <button
+                    type="button"
+                    className={styles.secondaryBtn}
+                    onClick={() => handleAnalyzeWithAI(module.id)}
+                  >
+                    AI insights
                   </button>
-                  <button onClick={() => navigate(`/lecturer/modules/${module.id}/duplicate`)}>
-                    <DocumentDuplicateIcon className="w-4 h-4" />
+                  <button
+                    type="button"
+                    className={styles.secondaryBtn}
+                    onClick={() => handleDuplicateModule(module.id)}
+                  >
                     Duplicate
                   </button>
-                  <button onClick={() => handleAnalyzeWithAI(module.id)}>
-                    <ArrowPathIcon className="w-4 h-4" />
-                    Re-analyze with AI
-                  </button>
-                  <button>
-                    <ShareIcon className="w-4 h-4" />
-                    Share Module
-                  </button>
-                  <hr />
-                  <button className={styles.deleteBtn}>
-                    <TrashIcon className="w-4 h-4" />
-                    Delete
-                  </button>
                 </div>
               </div>
             </div>
-          </div>
-
-          <div className={styles.cardContent} onClick={() => handleModuleClick(module.id)}>
-            <h3 className={styles.moduleTitle}>{module.title}</h3>
-            <p className={styles.moduleDescription}>{module.description}</p>
-            
-            <div className={styles.moduleMeta}>
-              <div className={styles.metaRow}>
-                <span className={styles.metaItem}>
-                  <TagIcon className="w-4 h-4" />
-                  {module.category}
-                </span>
-                <span className={styles.metaItem}>
-                  <ClockIcon className="w-4 h-4" />
-                  {module.estimatedDuration}
-                </span>
-                <span className={styles.metaItem}>
-                  <UserGroupIcon className="w-4 h-4" />
-                  Max {module.maxTeamSize} members
-                </span>
-              </div>
-              
-              {module.hasAIAnalysis && (
-                <div className={styles.aiAnalysisIndicator}>
-                  <div className={styles.alignmentScore}>
-                    <span className={styles.alignmentLabel}>Syllabus Alignment</span>
-                    <span className={styles.alignmentValue}>{module.syllabusAlignment}%</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className={styles.skillsTags}>
-              {module.skillsRequired.slice(0, 3).map((skill, index) => (
-                <span key={index} className={styles.skillTag}>{skill}</span>
-              ))}
-              {module.skillsRequired.length > 3 && (
-                <span className={styles.skillTag}>+{module.skillsRequired.length - 3}</span>
-              )}
-            </div>
-          </div>
-
-          <div className={styles.cardFooter}>
-            <div className={styles.statsRow}>
-              <div className={styles.stat}>
-                <ChartBarIcon className="w-4 h-4" />
-                <span>{module.totalTeams} teams</span>
-              </div>
-              <div className={styles.stat}>
-                <AcademicCapIcon className="w-4 h-4" />
-                <span>{module.assignedClasses.length} classes</span>
-              </div>
-              {module.averageScore > 0 && (
-                <div className={styles.stat}>
-                  <StarIcon className="w-4 h-4" />
-                  <span>{module.averageScore}% avg</span>
-                </div>
-              )}
-            </div>
-            
-            <div className={styles.cardTimestamp}>
-              Modified {new Date(module.lastModified).toLocaleDateString()}
-            </div>
-          </div>
-        </div>
-      ))}
+          </article>
+        );
+      })}
     </div>
   );
 
@@ -477,306 +559,307 @@ const ModuleLibrary = () => {
     <div className={styles.listContainer}>
       <div className={styles.listHeader}>
         <div className={styles.listHeaderRow}>
-          <div className={styles.listHeaderCell}>
-            <input
-              type="checkbox"
-              onChange={(e) => {
-                if (e.target.checked) {
-                  setSelectedModules(new Set(sortedModules.map(m => m.id)));
-                } else {
-                  setSelectedModules(new Set());
-                }
-              }}
-              checked={selectedModules.size === sortedModules.length && sortedModules.length > 0}
-            />
-          </div>
-          <div className={styles.listHeaderCell}>Module</div>
-          <div className={styles.listHeaderCell}>Category</div>
-          <div className={styles.listHeaderCell}>Status</div>
-          <div className={styles.listHeaderCell}>Teams</div>
-          <div className={styles.listHeaderCell}>Classes</div>
-          <div className={styles.listHeaderCell}>Score</div>
-          <div className={styles.listHeaderCell}>Modified</div>
-          <div className={styles.listHeaderCell}>Actions</div>
-        </div>
-      </div>
-      
-      <div className={styles.listBody}>
-        {sortedModules.map((module) => (
-          <div key={module.id} className={styles.listRow}>
-            <div className={styles.listCell}>
+          <div className={styles.listCell}>
+            <label className={styles.selectionCheckbox}>
               <input
                 type="checkbox"
-                checked={selectedModules.has(module.id)}
-                onChange={() => toggleModuleSelection(module.id)}
+                onChange={(event) => handleSelectAll(event.target.checked)}
+                checked={sortedModules.length > 0 && selectedModules.size === sortedModules.length}
+                aria-label="Select all modules"
               />
-            </div>
-            <div className={styles.listCell}>
-              <div className={styles.listModuleInfo}>
-                <div className={styles.listModuleTitle}>
-                  <Link to={`/lecturer/modules/${module.id}`}>{module.title}</Link>
-                  {module.isFavorite && <StarIconSolid className="w-4 h-4 text-yellow-500 ml-2" />}
-                </div>
-                <div className={styles.listModuleDescription}>{module.description}</div>
-                <div className={styles.listModuleTags}>
-                  {module.skillsRequired.slice(0, 3).map((skill, index) => (
-                    <span key={index} className={styles.listSkillTag}>{skill}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className={styles.listCell}>
-              <span className={styles.categoryBadge}>{module.category}</span>
-            </div>
-            <div className={styles.listCell}>
-              {getStatusBadge(module.status)}
-            </div>
-            <div className={styles.listCell}>
-              <span>{module.totalTeams}</span>
-            </div>
-            <div className={styles.listCell}>
-              <span>{module.assignedClasses.length}</span>
-            </div>
-            <div className={styles.listCell}>
-              <span>{module.averageScore > 0 ? `${module.averageScore}%` : '-'}</span>
-            </div>
-            <div className={styles.listCell}>
-              <span>{new Date(module.lastModified).toLocaleDateString()}</span>
-            </div>
-            <div className={styles.listCell}>
-              <div className={styles.listActions}>
-                <button onClick={() => handleModuleClick(module.id)}>
-                  <EyeIcon className="w-4 h-4" />
-                </button>
-                <button onClick={() => navigate(`/lecturer/modules/${module.id}/edit`)}>
-                  <PencilIcon className="w-4 h-4" />
-                </button>
-                <button onClick={() => handleAnalyzeWithAI(module.id)}>
-                  <ArrowPathIcon className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+            </label>
           </div>
-        ))}
+          <div className={styles.listCell}>Module</div>
+          <div className={styles.listCell}>Category</div>
+          <div className={styles.listCell}>Status</div>
+          <div className={styles.listCell}>Difficulty</div>
+          <div className={styles.listCell}>Teams</div>
+          <div className={styles.listCell}>Alignment</div>
+          <div className={styles.listCell}>Modified</div>
+          <div className={styles.listCell}>Actions</div>
+        </div>
+      </div>
+
+      <div className={styles.listBody}>
+        {sortedModules.map((module) => {
+          const statusClass = statusClassMap[module.status] || styles.badgeMuted;
+          const difficultyClass = difficultyClassMap[module.difficulty] || styles.badgeMuted;
+          const isFavorite = favoriteModules.has(module.id);
+
+          return (
+            <div
+              key={module.id}
+              className={`${styles.listRow} ${
+                selectedModules.has(module.id) ? styles.listRowSelected : ''
+              }`}
+            >
+              <div className={styles.listCell}>
+                <label className={styles.selectionCheckbox}>
+                  <input
+                    type="checkbox"
+                    checked={selectedModules.has(module.id)}
+                    onChange={() => toggleModuleSelection(module.id)}
+                    aria-label={`Select ${module.title}`}
+                  />
+                </label>
+              </div>
+              <div className={styles.listCell}>
+                <div className={styles.listModuleInfo}>
+                  <div className={styles.listModuleTitle}>
+                    <Link to={`/lecturer/modules/${module.id}`}>{module.title}</Link>
+                    {isFavorite && <StarIconSolid className="w-4 h-4 text-yellow-400" />}
+                  </div>
+                  <div className={styles.listModuleDescription}>{module.description}</div>
+                  <div className={styles.listModuleTags}>
+                    {module.skillsRequired.slice(0, 3).map((skill) => (
+                      <span key={skill} className={styles.listSkillTag}>
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className={styles.listCell}>
+                <span className={`${styles.tag} ${statusClass}`}>
+                  {statusLabels[module.status] || module.status}
+                </span>
+              </div>
+              <div className={styles.listCell}>
+                <span className={`${styles.tag} ${difficultyClass}`}>{module.difficulty}</span>
+              </div>
+              <div className={styles.listCell}>
+                <span>{module.totalTeams}</span>
+              </div>
+              <div className={styles.listCell}>
+                <div className={styles.listProgress} aria-hidden>
+                  <div
+                    className={styles.listProgressFill}
+                    style={{ width: `${module.syllabusAlignment}%` }}
+                  />
+                </div>
+              </div>
+              <div className={styles.listCell}>
+                <span>{formatDate(module.lastModified)}</span>
+              </div>
+              <div className={styles.listCell}>
+                <div className={styles.listActions}>
+                  <button
+                    type="button"
+                    onClick={() => handleModuleClick(module.id)}
+                    title="Open module"
+                  >
+                    <EyeIcon className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAnalyzeWithAI(module.id)}
+                    title="Run AI analysis"
+                  >
+                    <ArrowPathIcon className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleShareModule(module.id)}
+                    title="Share module"
+                  >
+                    <ShareIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 
   return (
     <DashboardLayout>
-      <div className={styles.moduleLibrary}>
-        {/* Header Section */}
-        <div className={styles.header}>
-          <div className={styles.headerTop}>
-            <div className={styles.headerTitle}>
-              <BookOpenIcon className="w-8 h-8" />
-              <div>
-                <h1>Module Library</h1>
-                <p>Manage and create project modules for your classes</p>
+      <div className={styles.page}>
+        <section className={styles.hero}>
+          <div className={styles.heroContent}>
+            <div className={styles.heroHeader}>
+              <div className="flex items-center gap-3">
+                <BookOpenIcon className="w-9 h-9 text-slate-100" />
+                <div>
+                  <h1 className={styles.heroTitle}>Module Library</h1>
+                  <p className={styles.heroSubtitle}>
+                    Curate, launch, and monitor project modules with AI insights and streamlined oversight for every class you guide.
+                  </p>
+                </div>
               </div>
             </div>
-            
-            <div className={styles.headerActions}>
-              <button 
-                onClick={handleUploadDocument}
-                className={styles.uploadBtn}
-              >
-                <DocumentArrowUpIcon className="w-5 h-5" />
-                Upload Document
-              </button>
-              <button 
-                onClick={handleCreateModule}
-                className={styles.createBtn}
-              >
+
+            <div className={styles.heroActions}>
+              <button type="button" className={styles.primaryAction} onClick={handleCreateModule}>
                 <PlusIcon className="w-5 h-5" />
-                Create Module
+                Create module
+              </button>
+              <button type="button" className={styles.secondaryAction} onClick={handleUploadDocument}>
+                <DocumentArrowUpIcon className="w-5 h-5" />
+                Upload requirements
               </button>
             </div>
-          </div>
 
-          {/* Statistics Dashboard */}
-          <div className={styles.statsGrid}>
-            <div className={styles.statCard}>
-              <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-                <BookOpenIcon className="w-6 h-6" />
-              </div>
-              <div className={styles.statContent}>
-                <div className={styles.statValue}>{statistics.total}</div>
-                <div className={styles.statLabel}>Total Modules</div>
-              </div>
-            </div>
-            
-            <div className={styles.statCard}>
-              <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}>
-                <CheckBadgeIcon className="w-6 h-6" />
-              </div>
-              <div className={styles.statContent}>
-                <div className={styles.statValue}>{statistics.published}</div>
-                <div className={styles.statLabel}>Published</div>
-              </div>
-            </div>
-            
-            <div className={styles.statCard}>
-              <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}>
-                <UserGroupIcon className="w-6 h-6" />
-              </div>
-              <div className={styles.statContent}>
-                <div className={styles.statValue}>{statistics.totalTeams}</div>
-                <div className={styles.statLabel}>Active Teams</div>
-              </div>
-            </div>
-            
-            <div className={styles.statCard}>
-              <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}>
-                <AcademicCapIcon className="w-6 h-6" />
-              </div>
-              <div className={styles.statContent}>
-                <div className={styles.statValue}>{statistics.averageAlignment}%</div>
-                <div className={styles.statLabel}>Avg Alignment</div>
-              </div>
+            <div className={styles.impactGrid}>
+              {heroMetrics.map((metric) => (
+                <div key={metric.label} className={styles.impactCard}>
+                  <div className={styles.metricHeader}>
+                    <span className={styles.metricLabel}>{metric.label}</span>
+                  </div>
+                  <div className={styles.metricValueGroup}>
+                    <span className={styles.metricValue}>{metric.value}</span>
+                  </div>
+                  <span
+                    className={`${styles.metricDelta} ${
+                      metric.positive ? styles.metricDeltaPositive : styles.metricDeltaNegative
+                    }`}
+                  >
+                    {metric.delta}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Filters and Search */}
-        <div className={styles.filtersSection}>
-          <div className={styles.searchContainer}>
-            <MagnifyingGlassIcon className="w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search modules, descriptions, or tags..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className={styles.searchInput}
-            />
+        <section className={styles.filterDock}>
+          <div className={styles.queryRow}>
+            <div className={styles.searchWrap}>
+              <input
+                type="text"
+                className={styles.searchInput}
+                placeholder="Search modules, descriptions, or tags"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </div>
+            <select
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value)}
+              className={styles.sortSelect}
+            >
+              <option value="recent">Recently updated</option>
+              <option value="name">Name A-Z</option>
+              <option value="popularity">Most teams</option>
+              <option value="score">Highest score</option>
+            </select>
           </div>
 
-          <div className={styles.filtersRow}>
-            <div className={styles.filterGroup}>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className={styles.filterSelect}
-              >
-                <option value="all">All Categories</option>
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-
+          <div className={styles.controlRow}>
+            <div className={styles.selectGroup}>
               <select
                 value={selectedDifficulty}
-                onChange={(e) => setSelectedDifficulty(e.target.value)}
-                className={styles.filterSelect}
+                onChange={(event) => setSelectedDifficulty(event.target.value)}
+                className={styles.select}
               >
-                <option value="all">All Difficulties</option>
-                {difficulties.map(difficulty => (
-                  <option key={difficulty} value={difficulty}>{difficulty}</option>
+                {difficulties.map((difficulty) => (
+                  <option key={difficulty} value={difficulty}>
+                    {difficulty === 'all' ? 'All difficulties' : difficulty}
+                  </option>
                 ))}
               </select>
 
               <select
                 value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className={styles.filterSelect}
+                onChange={(event) => setSelectedStatus(event.target.value)}
+                className={styles.select}
               >
-                <option value="all">All Statuses</option>
-                {statuses.map(status => (
+                {statuses.map((status) => (
                   <option key={status} value={status}>
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                    {status === 'all' ? 'All statuses' : statusLabels[status] || status}
                   </option>
                 ))}
               </select>
             </div>
 
-            <div className={styles.viewControls}>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className={styles.sortSelect}
+            <div className={styles.modeToggle}>
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`${styles.modeButton} ${viewMode === 'grid' ? styles.modeButtonActive : ''}`}
               >
-                <option value="recent">Recently Modified</option>
-                <option value="name">Name A-Z</option>
-                <option value="popularity">Most Popular</option>
-                <option value="score">Highest Score</option>
-              </select>
-
-              <div className={styles.viewToggle}>
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`${styles.viewBtn} ${viewMode === 'grid' ? styles.active : ''}`}
-                >
-                  <Squares2X2Icon className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`${styles.viewBtn} ${viewMode === 'list' ? styles.active : ''}`}
-                >
-                  <ListBulletIcon className="w-5 h-5" />
-                </button>
-              </div>
+                <Squares2X2Icon className="w-4 h-4" />
+                Grid
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`${styles.modeButton} ${viewMode === 'list' ? styles.modeButtonActive : ''}`}
+              >
+                <ListBulletIcon className="w-4 h-4" />
+                List
+              </button>
             </div>
           </div>
 
+          <div className={styles.chipRow}>
+            {categories.map((category) => (
+              <button
+                key={category}
+                type="button"
+                className={`${styles.chip} ${selectedCategory === category ? styles.chipActive : ''}`}
+                onClick={() => setSelectedCategory(category)}
+              >
+                {category === 'all' ? 'All categories' : category}
+              </button>
+            ))}
+          </div>
+
           {selectedModules.size > 0 && (
-            <div className={styles.bulkActions}>
-              <span className={styles.selectionCount}>
-                {selectedModules.size} module{selectedModules.size !== 1 ? 's' : ''} selected
+            <div className={styles.bulkBar}>
+              <span>
+                {selectedModules.size} module{selectedModules.size > 1 ? 's' : ''} selected
               </span>
-              <div className={styles.bulkActionButtons}>
-                <button className={styles.bulkBtn}>Assign to Class</button>
-                <button className={styles.bulkBtn}>Export</button>
-                <button className={styles.bulkBtn}>Archive</button>
-                <button className={styles.bulkBtnDanger}>Delete</button>
+              <div className={styles.bulkActions}>
+                <button type="button" className={`${styles.bulkButton} ${styles.bulkButtonPrimary}`}>
+                  Assign to class
+                </button>
+                <button type="button" className={`${styles.bulkButton} ${styles.bulkButtonSecondary}`}>
+                  Export
+                </button>
+                <button type="button" className={`${styles.bulkButton} ${styles.bulkButtonSecondary}`}>
+                  Archive
+                </button>
               </div>
             </div>
           )}
-        </div>
+        </section>
 
-        {/* Results Section */}
-        <div className={styles.resultsSection}>
-          <div className={styles.resultsHeader}>
-            <span className={styles.resultsCount}>
-              {sortedModules.length} of {modulesData.length} modules
+        <section className={styles.moduleSection}>
+          <div className={styles.sectionHeading}>
+            <h2 className={styles.sectionTitle}>Library overview</h2>
+            <span className={styles.sectionCaption}>
+              Showing {sortedModules.length} of {MODULES_DATA.length} modules
             </span>
-            {searchTerm && (
-              <span className={styles.searchIndicator}>
-                Filtered by: "{searchTerm}"
-              </span>
-            )}
           </div>
 
           {isLoading ? (
             <div className={styles.loadingState}>
               <ArrowPathIcon className="w-8 h-8 animate-spin" />
-              <p>Loading modules...</p>
+              <p>Loading modules…</p>
             </div>
           ) : sortedModules.length === 0 ? (
             <div className={styles.emptyState}>
-              <BookOpenIcon className="w-16 h-16 text-gray-300" />
-              <h3>No modules found</h3>
-              <p>
-                {searchTerm || selectedCategory !== 'all' || selectedDifficulty !== 'all' || selectedStatus !== 'all'
-                  ? 'Try adjusting your filters or search term.'
-                  : 'Get started by creating your first module or uploading a document.'}
-              </p>
+              <strong>No modules match your query</strong>
+              <p>Adjust your filters or create a new module to populate the library.</p>
               <div className={styles.emptyActions}>
-                <button onClick={handleCreateModule} className={styles.createBtn}>
+                <button type="button" className={styles.primaryAction} onClick={handleCreateModule}>
                   <PlusIcon className="w-5 h-5" />
-                  Create First Module
+                  Create module
                 </button>
-                <button onClick={handleUploadDocument} className={styles.uploadBtn}>
+                <button type="button" className={styles.secondaryAction} onClick={handleUploadDocument}>
                   <DocumentArrowUpIcon className="w-5 h-5" />
-                  Upload Document
+                  Upload requirements
                 </button>
               </div>
             </div>
+          ) : viewMode === 'grid' ? (
+            renderGridView()
           ) : (
-            <>
-              {viewMode === 'grid' ? renderGridView() : renderListView()}
-            </>
+            renderListView()
           )}
-        </div>
+        </section>
       </div>
     </DashboardLayout>
   );

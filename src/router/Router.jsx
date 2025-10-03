@@ -1,5 +1,6 @@
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+
 import App from '../App';
 import ClassManagementDashboard from '../pages/lecturer/ClassManagementDashboard';
 import ClassDetailPage from '../pages/lecturer/ClassDetailPage';
@@ -10,10 +11,16 @@ import ModuleLibrary from '../pages/lecturer/ModuleLibrary';
 import ModuleDetail from '../pages/lecturer/ModuleDetail';
 import ModuleAnalysis from '../pages/lecturer/ModuleAnalysis';
 import LecturerMonitoringDashboard from '../pages/lecturer/LecturerMonitoringDashboard';
-// Academic role imports
 import AcademicList from '../pages/academic/AcademicList';
 import AcademicDetail from '../pages/academic/AcademicDetail';
 import AcademicCreate from '../pages/academic/AcademicCreate';
+import StaffPage from '../pages/staff/StaffPage';
+import LecturerListStaff from '../pages/staff/LecturerListStaff';
+import ClassListStaff from '../pages/staff/ClassListStaff';
+import ClassDetail from '../pages/staff/ClassDetail';
+import LoginPage from '../pages/LoginPage';
+import ConnectRoom from '../test/ConnectRoom';
+import VideoRoom from '../test/VideoRoom';
 import ProjectApprovals from '../pages/academic/ProjectApprovals';
 //Student role imports
 import StudentHomePage from '../pages/student/StudentHomepage';
@@ -22,12 +29,16 @@ import ProjectBoard from '../pages/student/project/ProjectBoard';
 import ProjectMilestones from '../pages/student/project/ProjectMilestones';
 import ProjectCheckpoints from '../pages/student/project/ProjectCheckpoints';
 import ProjectMembers from '../pages/student/project/ProjectMembers';
+import TestKanbanBoard from '../pages/TestKanbanBoard';
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: <App />,
   },
+  {
+    path: '/login', 
+    element: <LoginPage />},
   {
     path: '/lecturer/classes',
     element: <ClassManagementDashboard />,
@@ -84,18 +95,45 @@ const router = createBrowserRouter([
     path: '/lecturer/monitoring',
     element: <LecturerMonitoringDashboard />,
   },
-  // Academic role routes
+  {
+    path: '/staff',
+    element: <StaffPage />,
+  },
   {
     path: '/academic',
     element: <AcademicList />,
   },
   {
-    path: '/academic/create',
+    path: '/academic/new',
     element: <AcademicCreate />,
   },
   {
     path: '/academic/:id',
     element: <AcademicDetail />,
+  },
+  {
+    path: '/staff/lecturers',
+    element: <LecturerListStaff />,
+  },
+  {
+    path: '/staff/classes',
+    element: <ClassListStaff />,
+  },
+  {
+    path: '/staff/classes/:classId',
+    element: <ClassDetail />,
+  },
+  {
+    path: '/room',
+    element: <ConnectRoom />,
+  },
+  {
+    path: '/room/:roomId',
+    element: <VideoRoom />,
+  },
+  {
+    path: '/test/kanban',
+    element: <TestKanbanBoard />,
   },
   {
     path: '/academic/project-approvals',

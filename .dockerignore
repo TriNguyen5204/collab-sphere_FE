@@ -1,0 +1,22 @@
+# Exclude node modules
+node_modules
+
+# Exclude infrastructure files from Docker build (CRITICAL: Reduces build context size)
+infra/
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Exclude development files
+.git/
+.gitignore
+README.md
+Jenkinsfile
+
+# Exclude VS Code settings
+.vscode/
+
+# Exclude logs
+*.log
+npm-debug.log*
