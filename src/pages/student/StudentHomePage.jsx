@@ -25,8 +25,8 @@ const StudentHomePage = () => {
   const [starred, setStarred] = useState([]);
   const navigate = useNavigate();
 
-  const handleCardClick = (projectId) => {
-    navigate(`/student/project/${projectId}`);
+  const handleCardClick = (project) => {
+    navigate(`/student/project/${project.ProjectId}/${encodeURIComponent(project.ProjectName)}`);
   };
 
   const toggleStar = (e, projectId) => {
@@ -45,7 +45,7 @@ const StudentHomePage = () => {
       <div
         key={project.ProjectId}
         className="bg-white rounded-lg shadow-md w-80 relative group hover:ring-2 hover:ring-brand-500 hover:shadow-lg transition cursor-pointer"
-        onClick={() => handleCardClick(project.ProjectId)}
+        onClick={() => handleCardClick(project)}
       >
         <button
           onClick={(e) => toggleStar(e, project.ProjectId)}
