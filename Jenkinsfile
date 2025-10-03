@@ -38,83 +38,12 @@ pipeline {
             }
         }
 
-        stage('Debug SSH Key Configuration') {
-            steps {
-                script {
-                    withCredentials([aws(credentialsId: 'aws-jenkins-credentials')]) {
-                        dir('infra') {
-                            sh """
-                                echo "Checking AWS EC2 key pairs:"
-                                aws ec2 describe-key-pairs --region ap-southeast-1 || echo "Failed to list key pairs"
-                                
-                                echo ""
-                                echo "Expected key name from variables.tf: asia-pacific"
-                                echo "Current Terraform state:"
-                                terraform show || echo "No terraform state found"
-                            """
-                        }
-                    }
-                    
-                    def credentialsToTry = ['aws-ec2-ssh-key', 'github-ssh-key', 'asia-pacific-key']
-                    def workingCredential = null
-                    
-                    for (cred in credentialsToTry) {
-                        echo "Testing SSH credential: ${cred}"
-                        try {
-                            sshagent(credentials: [cred]) {
-                                sh """
-                                    echo "Testing credential: ${cred}"
-                                    echo "SSH Agent keys loaded:"
-                                    ssh-add -l || echo "No SSH keys loaded in agent"
-                                    
-                                    echo "Testing SSH connection..."
-                                    if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 ubuntu@${env.APP_SERVER_IP} 'echo "SUCCESS: SSH working with ${cred}"'; then
-                                        echo "✅ CREDENTIAL WORKS: ${cred}"
-                                        exit 0
-                                    else
-                                        echo "❌ CREDENTIAL FAILED: ${cred}"
-                                        exit 1
-                                    fi
-                                """
-                            }
-                            workingCredential = cred
-                            break
-                        } catch (Exception e) {
-                            echo "❌ Credential '${cred}' not found or failed: ${e.getMessage()}"
-                        }
-                    }
-                    
-                    if (workingCredential) {
-                        env.WORKING_SSH_CREDENTIAL = workingCredential
-                        echo "🎉 Found working SSH credential: ${workingCredential}"
-                    } else {
-                        echo """
-                        ❌ NO WORKING SSH CREDENTIALS FOUND!
-                        
-                        SOLUTION:
-                        1. Go to Jenkins → Manage Credentials
-                        2. Create new SSH credential with ID: 'aws-ec2-ssh-key'
-                        3. Username: ubuntu
-                        4. Private Key: Content of asia-pacific.pem file
-                        
-                        Key fingerprint should match: a2:7c:cd:73:73:46:0c:61:c3:ee:df:84:73:55:7f:3a:12:ea:92:4d
-                        """
-                        error "Please configure correct SSH credentials in Jenkins"
-                    }
-                }
-            }
-        }
-
         stage('Configure Server with Ansible') {
             when {
                 expression { env.WORKING_SSH_CREDENTIAL != null }
             }
             steps {
                 script {
-                    echo "Using working SSH credential: ${env.WORKING_SSH_CREDENTIAL}"
-                    
-                    // Clean up old host keys for this IP
-                    echo "Cleaning up old SSH host keys for ${env.APP_SERVER_IP}..."
                     sh """
                         ssh-keygen -f '/var/lib/jenkins/.ssh/known_hosts' -R '${env.APP_SERVER_IP}' || echo 'No existing host key found'
                         echo "Host key removed for ${env.APP_SERVER_IP}"
@@ -124,7 +53,7 @@ pipeline {
                     dir('infra') {
                         sh "echo '[all]\n${env.APP_SERVER_IP}' > inventory"
 
-                        sshagent(credentials: [env.WORKING_SSH_CREDENTIAL]) {
+                        sshagent(credentials: ['collabsphere-ssh-key']) {
                             sh """
                                 export ANSIBLE_HOST_KEY_CHECKING=False
                                 ansible-playbook -i inventory playbook.yml --user ubuntu \\
@@ -133,49 +62,6 @@ pipeline {
                             """
                         }
                     }
-                }
-            }
-        }
-
-        stage('Manual SSH Credential Setup') {
-            when {
-                expression { env.WORKING_SSH_CREDENTIAL == null }
-            }
-            steps {
-                script {
-                    echo """
-                    ⚠️  MANUAL SETUP REQUIRED ⚠️
-                    
-                    No working SSH credentials found. Please:
-                    
-                    1. Go to Jenkins Dashboard → Manage Jenkins → Manage Credentials
-                    2. Click on 'Global' domain
-                    3. Click 'Add Credentials'
-                    4. Select 'SSH Username with private key'
-                    5. Fill in:
-                       - ID: aws-ec2-ssh-key
-                       - Username: ubuntu
-                       - Private Key: Select 'Enter directly' and paste your asia-pacific.pem content
-                    
-                    The private key should start with:
-                    -----BEGIN RSA PRIVATE KEY-----
-                    
-                    And end with:
-                    -----END RSA PRIVATE KEY-----
-                    
-                    After creating the credential, re-run this pipeline.
-                    """
-                    
-                    // Try to provide more help
-                    withCredentials([aws(credentialsId: 'aws-jenkins-credentials')]) {
-                        sh """
-                            echo "You can also create a new key pair and update Terraform:"
-                            echo "aws ec2 create-key-pair --key-name jenkins-ssh-key --query 'KeyMaterial' --output text > jenkins-ssh-key.pem"
-                            echo "Then update variables.tf to use 'jenkins-ssh-key' instead of 'asia-pacific'"
-                        """
-                    }
-                    
-                    error "Please setup SSH credentials and re-run the pipeline"
                 }
             }
         }
@@ -241,13 +127,13 @@ pipeline {
 
         stage('Deploy to App Server') {
             steps {
-                sshagent(credentials: [env.WORKING_SSH_CREDENTIAL]) {
+                sshagent(credentials: ['collabsphere-ssh-key']) {
                     sh """
                         ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_SERVER_IP} '
                             docker pull ${env.DOCKER_IMAGE_NAME}:latest
-                            docker stop hairsalon-app || true
-                            docker rm hairsalon-app || true
-                            docker run -d --name hairsalon-app -p 80:80 ${env.DOCKER_IMAGE_NAME}:latest
+                            docker stop collabsphere-app || true
+                            docker rm collabsphere-app || true
+                            docker run -d --name collabsphere-app -p 80:80 ${env.DOCKER_IMAGE_NAME}:latest
                             echo "Deployment successful!"
                         '
                     """
