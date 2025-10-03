@@ -18,7 +18,10 @@ import ProjectApprovals from '../pages/academic/ProjectApprovals';
 //Student role imports
 import StudentHomePage from '../pages/student/StudentHomepage';
 import StudentProjectPage from '../pages/student/StudentProjectPage';
-import ProjectHomePage from '../pages/student/project/ProjectHomePage';
+import ProjectBoard from '../pages/student/project/ProjectBoard';
+import ProjectMilestones from '../pages/student/project/ProjectMilestones';
+import ProjectCheckpoints from '../pages/student/project/ProjectCheckpoints';
+import ProjectMembers from '../pages/student/project/ProjectMembers';
 
 const router = createBrowserRouter([
   {
@@ -108,8 +111,20 @@ const router = createBrowserRouter([
     element: <StudentProjectPage />,
   },
   {
-    path: '/student/project/:id',
-    element: <ProjectHomePage />,
+    path: '/student/project/:id/:projectName',
+    element: <ProjectBoard />,
+  },
+  {
+    path: '/student/project/:id/:projectName/milestones',
+    element: <ProjectMilestones />,
+  },
+  {
+    path: '/student/project/:id/:projectName/checkpoints',
+    element: <ProjectCheckpoints />,
+  },
+  {
+    path: '/student/project/:id/:projectName/members',
+    element: <ProjectMembers />,
   },
 ]);
 
