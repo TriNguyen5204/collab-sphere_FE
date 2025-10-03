@@ -1,0 +1,51 @@
+- hosts: all
+  become: yes
+  vars:
+    target_user: "ubuntu"
+
+  tasks:
+    - name: "SYSTEM | Update APT package cache"
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: "DOCKER | Install prerequisite packages"
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+
+    - name: "DOCKER | Add Docker's official GPG key"
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: "DOCKER | Set up the Docker APT repository"
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+        update_cache: yes
+
+    - name: "DOCKER | Install Docker Engine and related tools"
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+
+    - name: "DOCKER | Ensure Docker service is started and enabled on boot"
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: "USER | Add '{{ target_user }}' to the docker group"
+      ansible.builtin.user:
+        name: "{{ target_user }}"
+        groups: docker
+        append: yes
