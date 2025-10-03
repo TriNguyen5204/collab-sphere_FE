@@ -22,6 +22,7 @@ import LoginPage from '../pages/LoginPage';
 import ConnectRoom from '../test/ConnectRoom';
 import VideoRoom from '../test/VideoRoom';
 import ProjectApprovals from '../pages/academic/ProjectApprovals';
+import TestKanbanBoard from '../pages/TestKanbanBoard';
 
 const router = createBrowserRouter([
   {
@@ -122,6 +123,10 @@ const router = createBrowserRouter([
   {
     path: '/room/:roomId',
     element: <VideoRoom />,
+  },
+  {
+    path: '/test/kanban',
+    element: <TestKanbanBoard />,
   },
   {
     path: '/academic/project-approvals',

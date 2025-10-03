@@ -1,1044 +1,328 @@
-/* Educational Kanban Board Styles */
-.educationalKanbanBoard {
+﻿/* Professional Kanban Board Styles */
+
+.board {
   display: flex;
   flex-direction: column;
   height: 100vh;
   background: #f8fafc;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-/* Control Panel */
-.controlPanel {
+.header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  padding: 1.5rem 2rem;
   background: white;
-  border-bottom: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.viewControls {
-  display: flex;
-  gap: 8px;
-}
-
-.viewButton {
+.headerLeft {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: white;
-  color: #64748b;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  gap: 1rem;
 }
 
-.viewButton:hover {
-  border-color: #3b82f6;
-  color: #3b82f6;
+.icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+  background: #dbeafe;
+  color: #2563eb;
 }
 
-.viewButton.active {
-  background: #3b82f6;
-  border-color: #3b82f6;
-  color: white;
-}
-
-.filterControls {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.filterButton, .dependencyToggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: white;
-  color: #64748b;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.dependencyToggle.active {
-  background: #10b981;
-  border-color: #10b981;
-  color: white;
-}
-
-/* Swimlane Board */
-.swimlaneBoard {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px;
-}
-
-.swimlane {
-  margin-bottom: 32px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-}
-
-.swimlaneHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  background: #f8fafc;
-  border-left: 4px solid #3b82f6;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.teamInfo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.teamIcon {
-  font-size: 24px;
-}
-
-.teamName {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1e293b;
+.title {
   margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
 }
 
-.teamTaskCount {
-  background: #e2e8f0;
-  color: #64748b;
-  padding: 4px 12px;
-  border-radius: 16px;
-  font-size: 12px;
-  font-weight: 500;
+.subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: #6b7280;
 }
 
-.teamProgress {
+.roleFilter {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: #374151;
 }
 
-.teamVelocity {
-  font-size: 14px;
-  color: #10b981;
-  font-weight: 600;
+.select {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background: white;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-/* Swimlane Columns */
-.swimlaneColumns {
+.select:hover {
+  border-color: #9ca3af;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.columns {
   display: flex;
-  gap: 16px;
-  padding: 24px;
+  gap: 1rem;
+  padding: 1.5rem;
   overflow-x: auto;
-  min-height: 400px;
+  flex: 1;
 }
 
-.swimlaneColumn {
-  position: relative;
+.column {
+  flex: 1;
   min-width: 280px;
-  width: 280px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 16px;
-  height: fit-content;
-  flex-shrink: 0;
-}
-
-.kanbanBoard::-webkit-scrollbar {
-  height: 8px;
-}
-
-.kanbanBoard::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 4px;
-}
-
-.kanbanBoard::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
-}
-
-.kanbanBoard::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-.kanbanColumn {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 16px;
-  min-width: 300px;
-  width: 300px;
-  height: calc(100vh - 160px);
+  max-width: 350px;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
+  background: #f9fafb;
+  border-radius: 0.75rem;
+  border: 2px solid #e5e7eb;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.kanbanColumn:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+.column:hover {
+  background: #f3f4f6;
+}
+
+/* Drag over effect for columns */
+.columnDragOver {
+  background: #eff6ff !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  transform: scale(1.02);
 }
 
 .columnHeader {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-  padding: 8px 12px;
-  background: #f1f5f9;
-  border-radius: 8px;
-  border: none;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.columnIndicator {
-  width: 4px;
-  height: 20px;
-  border-radius: 2px;
+.indicator {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
 }
 
 .columnTitle {
-  font-size: 15px;
-  font-weight: 700;
-  color: #1e293b;
+  flex: 1;
   margin: 0;
-  flex: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.taskCount {
-  background: #e2e8f0;
-  color: #64748b;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 12px;
-  min-width: 20px;
-  text-align: center;
-}
-
-.columnTasks {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  max-height: calc(100vh - 180px);
-  overflow-y: auto;
-  overflow-x: visible;
-  padding: 8px 4px;
-  min-height: 0;
-  flex: 1;
-}
-
-.columnTasks::-webkit-scrollbar {
-  width: 6px;
-}
-
-.columnTasks::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.columnTasks::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
-.columnTasks::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-
-
-/* Enhanced Task Cards */
-.enhancedTaskCard {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 16px;
-  cursor: grab;
-  user-select: none;
-  transition: all 0.2s ease;
-  position: relative;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  width: 100%;
-  box-sizing: border-box;
-  height: auto;
-  min-height: 200px;
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  margin-bottom: 16px;
-}
-
-.enhancedTaskCard:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  transform: translateY(-2px);
-}
-
-.enhancedTaskCard:active {
-  cursor: grabbing;
-}
-
-.enhancedTaskCard.dragging {
-  opacity: 0.6;
-  transform: rotate(2deg) scale(1.02);
-  z-index: 1000;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
-  cursor: grabbing;
-}
-
-.enhancedTaskCard.blocked {
-  border-left: 4px solid #ef4444;
-  opacity: 0.8;
-}
-
-/* Drag and Drop Visual Feedback */
-.swimlaneColumn.dropZone {
-  transition: all 0.2s ease;
-}
-
-.swimlaneColumn.dragOver {
-  background-color: rgba(59, 130, 246, 0.1);
-  border: 2px dashed #3b82f6;
-  transform: scale(1.02);
-}
-
-.swimlaneColumn.forbidden {
-  background-color: rgba(239, 68, 68, 0.1);
-  border: 2px dashed #ef4444;
-}
-
-.swimlaneColumn.forbiddenDrop {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.swimlaneColumn.forbiddenDrop::after {
-  content: '🚫';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 24px;
-  z-index: 10;
-}
-
-/* Task Header with Team Badge */
-.taskHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-}
-
-.taskMeta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.teamBadge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 16px;
-  font-size: 10px;
+  font-size: 0.875rem;
   font-weight: 600;
-  color: white;
+  color: #111827;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
 }
 
-.priorityIndicator {
+.count {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  font-size: 10px;
-}
-
-.priorityIndicator.high {
-  background: #fef2f2;
-  color: #ef4444;
-}
-
-.priorityIndicator.medium {
-  background: #fffbeb;
-  color: #f59e0b;
-}
-
-.priorityIndicator.low {
-  background: #f0f9ff;
-  color: #3b82f6;
-}
-
-.dependencyIndicators {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.blockedIndicator {
-  font-size: 14px;
-}
-
-.dependencyCount {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  background: #f1f5f9;
-  color: #64748b;
-  padding: 2px 6px;
-  border-radius: 12px;
-  font-size: 10px;
-  font-weight: 500;
-}
-
-/* Technology Stack */
-.techStack {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin: 8px 0;
-}
-
-.techTag {
-  background: #f1f5f9;
-  color: #475569;
-  font-size: 10px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-}
-
-/* Educational Context */
-.educationalContext {
-  margin: 12px 0;
-  padding: 12px;
-  background: #f8fafc;
-  border-radius: 8px;
-  border-left: 3px solid #3b82f6;
-}
-
-.sectionLabel {
-  font-size: 11px;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.375rem;
+  border-radius: 0.375rem;
+  background: #e5e7eb;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-right: 8px;
+  color: #374151;
 }
 
-.skillsList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
-}
-
-.skillBadge {
-  background: #ecfdf5;
-  color: #10b981;
-  font-size: 10px;
-  font-weight: 500;
-  padding: 2px 6px;
-  border-radius: 8px;
-  border: 1px solid #d1fae5;
-}
-
-.learningOutcomes {
-  margin-top: 8px;
-}
-
-.outcomeText {
-  font-size: 11px;
-  color: #64748b;
-  line-height: 1.4;
-}
-
-/* Enhanced Progress Tracking */
-.taskProgress {
-  margin: 12px 0;
-}
-
-.progressHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-}
-
-.progressInfo {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: #64748b;
+.taskList {
   flex: 1;
+  padding: 0.75rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.timeTracking {
+.emptyState {
+  padding: 2rem 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+.card {
+  padding: 1rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  cursor: grab;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px) scale(1.02);
+}
+
+.card:active {
+  cursor: grabbing;
+}
+
+/* Dragging state with professional effects */
+.cardDragging {
+  opacity: 0.6;
+  transform: rotate(3deg) scale(1.05);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 0 2px #3b82f6;
+  border-color: #3b82f6;
+  cursor: grabbing;
+  z-index: 1000;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.taskId {
+  font-size: 0.75rem;
   font-weight: 600;
-  color: #10b981;
+  color: #6b7280;
+  font-family: 'Courier New', monospace;
 }
 
-.gitStatus {
-  margin-left: 8px;
-}
-
-.gitBadge {
-  font-size: 9px;
-  padding: 2px 6px;
-  border-radius: 8px;
-  font-weight: 500;
+.priority {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 600;
   text-transform: uppercase;
 }
 
-.gitBadge.active {
-  background: #dcfce7;
-  color: #16a34a;
+.priority.high {
+  background: #fee2e2;
+  color: #dc2626;
 }
 
-.gitBadge.pending {
+.priority.medium {
   background: #fef3c7;
   color: #d97706;
 }
 
-.progressBar {
-  height: 6px;
-  background: #f1f5f9;
-  border-radius: 3px;
+.priority.low {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.cardTitle {
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.4;
+}
+
+.cardDescription {
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  position: relative;
+}
+
+.cardFooter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.375rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.progressBar {
+  width: 100%;
+  height: 0.375rem;
+  background: #e5e7eb;
+  border-radius: 0.25rem;
+  overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
-  border-radius: 3px;
-  transition: width 0.3s ease;
+  background: linear-gradient(90deg, #3b82f6, #06b6d4);
+  border-radius: 0.25rem;
+  transition: width 0.3s;
 }
 
-.milestoneMarkers {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-}
-
-.milestoneMarker {
-  position: absolute;
-  top: -2px;
-  width: 10px;
-  height: 10px;
-  background: #64748b;
-  border-radius: 50%;
-  border: 2px solid white;
-  transform: translateX(-50%);
-}
-
-.milestoneMarker.completed {
-  background: #10b981;
-}
-
-/* Collaboration Features */
-.taskFooter {
+.technologies {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid #f1f5f9;
-}
-
-.taskAssignee {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.assigneeAvatar {
-  width: 24px;
-  height: 24px;
-  background: #3b82f6;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.assigneeName {
-  font-size: 12px;
-  color: #475569;
-  font-weight: 500;
-}
-
-.reviewerAvatars {
-  display: flex;
-  gap: -4px;
-  margin-left: 4px;
-}
-
-.reviewerAvatar {
-  width: 20px;
-  height: 20px;
-  background: #10b981;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 8px;
-  font-weight: 600;
-  border: 2px solid white;
-  margin-left: -4px;
-}
-
-.taskActions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.actionButton {
-  background: none;
-  border: none;
-  color: #64748b;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.actionButton:hover {
-  background: #f1f5f9;
-  color: #3b82f6;
-}
-
-.dueDate {
-  font-size: 11px;
-  color: #64748b;
-}
-
-.dueDate .overdue {
-  color: #ef4444;
-  font-weight: 600;
-}
-
-/* Assessment Integration */
-.assessmentBar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 8px;
-  padding: 8px 12px;
-  background: #fef7ff;
-  border: 1px solid #e9d5ff;
-  border-radius: 8px;
-}
-
-.assessmentLabel {
-  font-size: 10px;
-  color: #7c3aed;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.gradeProgress {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #7c3aed;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-/* Swimlane Management */
-.swimlaneManager {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.addSwimlaneButton {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.addSwimlaneButton:hover {
-  background: #2563eb;
-}
-
-.addColumnButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 280px;
-  width: 280px;
-  height: 120px;
-  background: #f8fafc;
-  border: 2px dashed #cbd5e1;
-  border-radius: 12px;
-  color: #64748b;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.addColumnButton:hover {
-  border-color: #3b82f6;
-  color: #3b82f6;
-  background: #f0f9ff;
-}
-
-.editableHeader {
-  position: relative;
-}
-
-.headerInput {
-  background: transparent;
-  border: none;
-  font-size: 18px;
-  font-weight: 700;
-  color: #1e293b;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.headerInput:focus {
-  outline: none;
-  background: white;
-  box-shadow: 0 0 0 2px #3b82f6;
-}
-
-.columnHeaderEdit {
-  position: relative;
-}
-
-.columnTitleInput {
-  background: transparent;
-  border: none;
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
-  padding: 2px 4px;
-  border-radius: 4px;
-  width: 100%;
-}
-
-.columnTitleInput:focus {
-  outline: none;
-  background: white;
-  box-shadow: 0 0 0 2px #3b82f6;
-}
-
-.deleteButton {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  cursor: pointer;
-  opacity: 0;
-  transition: all 0.2s ease;
-}
-
-.swimlane:hover .deleteButton,
-.swimlaneColumn:hover .deleteButton {
-  opacity: 1;
-}
-
-.deleteButton:hover {
-  background: #dc2626;
-}
-
-/* Dependency Visualization */
-.dependencyOverlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  z-index: 50;
-}
-
-.dependencyCanvas {
-  width: 100%;
-  height: 100%;
-}
-
-/* Animations */
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .swimlaneColumns {
-    flex-direction: column;
-  }
-  
-  .swimlaneColumn {
-    width: 100%;
-    min-width: auto;
-  }
-  
-  .controlPanel {
-    flex-direction: column;
-    gap: 12px;
-    align-items: stretch;
-  }
-  
-  .addColumnButton {
-    width: 100%;
-    min-width: auto;
-  }
-}
-
-.taskCard:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  transform: translateY(-2px);
-}
-
-.taskCard:active {
-  cursor: grabbing;
-}
-
-.taskCard.dragging {
-  opacity: 0.5;
-  transform: rotate(5deg);
-  cursor: grabbing;
-}
-
-.taskHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-  gap: 8px;
-}
-
-.taskMeta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.taskPhase {
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  color: #64748b;
-  letter-spacing: 0.5px;
-}
-
-.priorityDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.taskLabels {
-  display: flex;
-  gap: 4px;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  min-height: 16px;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
 }
 
-.taskLabel {
-  background: #f1f5f9;
-  color: #475569;
-  font-size: 10px;
+.tech {
+  padding: 0.125rem 0.5rem;
+  background: #f3f4f6;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
   font-weight: 500;
-  padding: 2px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+  color: #374151;
 }
 
-.taskTitle {
-  font-size: 16px;
+.techMore {
+  padding: 0.125rem 0.5rem;
+  background: #e5e7eb;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
   font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 12px 0;
-  line-height: 1.4;
+  color: #6b7280;
 }
 
-.taskDescription {
-  font-size: 13px;
-  color: #64748b;
-  margin: 0 0 12px 0;
-  line-height: 1.4;
-  flex: 1;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-
-.taskProgress {
-  margin-bottom: 12px;
-}
-
-.progressLabel {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: #64748b;
-  margin-bottom: 6px;
-}
-
-.progressBar {
-  height: 4px;
-  background: #f1f5f9;
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.progressFill {
-  height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
-.taskFooter {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: auto;
-  padding-top: 12px;
-  flex-shrink: 0;
-}
-
-.taskAssignee {
+.assignee {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f3f4f6;
+  font-size: 0.75rem;
+  color: #374151;
 }
 
-.assigneeAvatar {
-  width: 24px;
-  height: 24px;
-  background: #3b82f6;
-  color: white;
-  border-radius: 50%;
+.avatar {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #2563eb;
+  font-size: 0.625rem;
   font-weight: 600;
-  text-transform: uppercase;
-}
-
-.assigneeName {
-  font-size: 12px;
-  color: #475569;
-  font-weight: 500;
-}
-
-.taskDates {
-  text-align: right;
-}
-
-.dueDate {
-  font-size: 11px;
-  color: #64748b;
-}
-
-/* Responsive Design for Kanban */
-@media (max-width: 768px) {
-  .kanbanBoard {
-    padding: 12px;
-    gap: 12px;
-  }
-  
-  .kanbanColumn {
-    min-width: 260px;
-    width: 260px;
-  }
-  
-  .taskCard {
-    padding: 16px;
-    min-height: 100px;
-  }
-  
-  .taskTitle {
-    font-size: 15px;
-  }
-  
-  .taskDescription {
-    font-size: 13px;
-  }
-}
-
-/* Add to your KanbanBoard.module.css */
-.enhancedTaskCard {
-  cursor: grab;
-  user-select: none;
-  transition: opacity 0.2s ease;
-}
-
-.enhancedTaskCard:active {
-  cursor: grabbing;
-}
-
-/* Use CSS hover states instead of JavaScript classes */
-.swimlaneColumn.dropZone:hover {
-  background-color: rgba(59, 130, 246, 0.1);
-  border: 2px dashed #3b82f6;
-}
-
-.swimlaneColumn.forbiddenDrop:hover {
-  background-color: rgba(239, 68, 68, 0.1);
-  border: 2px dashed #ef4444;
 }
