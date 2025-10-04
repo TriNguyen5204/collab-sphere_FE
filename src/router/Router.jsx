@@ -18,7 +18,8 @@ import StaffPage from '../pages/staff/StaffPage';
 import LecturerListStaff from '../pages/staff/LecturerListStaff';
 import ClassListStaff from '../pages/staff/ClassListStaff';
 import ClassDetail from '../pages/staff/ClassDetail';
-import LoginPage from '../pages/LoginPage';
+import LoginPage from '../pages/auth/LoginPage';
+import RegisterPage from '../pages/auth/RegisterPage';
 import ConnectRoom from '../test/ConnectRoom';
 import VideoRoom from '../test/VideoRoom';
 import ProjectApprovals from '../pages/academic/ProjectApprovals';
@@ -31,7 +32,12 @@ const router = createBrowserRouter([
   },
   {
     path: '/login', 
-    element: <LoginPage />},
+    element: <LoginPage />
+  },
+  {
+    path: '/register', 
+    element: <RegisterPage />
+  },
   {
     path: '/lecturer/classes',
     element: <ClassManagementDashboard />,
