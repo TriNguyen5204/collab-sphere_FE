@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent none  // We'll use different agents per stage
 
     environment {
         DOCKER_IMAGE        = 'nguyense21/collab-sphere-fe'
@@ -14,30 +14,43 @@ pipeline {
 
     stages {
         stage('Checkout') {
+            agent any
             steps {
                 checkout scm
             }
         }
 
-        stage('Install Dependencies') {
-            steps {
-                sh 'npm ci --no-audit --prefer-offline'
+        stage('Build Application') {
+            agent {
+                docker {
+                    image 'node:20-alpine'
+                    args '-v $HOME/.npm:/root/.npm'  // Cache npm packages
+                    reuseNode true
+                }
             }
-        }
+            stages {
+                stage('Install Dependencies') {
+                    steps {
+                        sh 'npm ci --no-audit --prefer-offline'
+                    }
+                }
 
-        stage('Lint') {
-            steps {
-                sh 'npm run lint'
-            }
-        }
+                stage('Lint') {
+                    steps {
+                        sh 'npm run lint'
+                    }
+                }
 
-        stage('Build') {
-            steps {
-                sh 'npm run build'
+                stage('Build') {
+                    steps {
+                        sh 'npm run build'
+                    }
+                }
             }
         }
 
         stage('Docker Build & Push') {
+            agent any
             steps {
                 script {
                     def imageTag = "${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}"
@@ -67,6 +80,7 @@ pipeline {
         }
 
         stage('Deploy to Server') {
+            agent any
             when {
                 allOf {
                     expression { return !params.SKIP_DEPLOY }
@@ -100,7 +114,9 @@ pipeline {
             echo 'Pipeline failed. Check logs above. ❌'
         }
         always {
-            cleanWs()
+            node('') {
+                cleanWs()
+            }
         }
     }
 }
