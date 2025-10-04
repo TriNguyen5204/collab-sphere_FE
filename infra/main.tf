@@ -195,7 +195,7 @@ resource "local_file" "ansible_inventory" {
   content = templatefile("${path.module}/templates/inventory.tpl", {
     app_server_ip = aws_eip.app_server.public_ip
     ssh_user      = "ubuntu"
-    ssh_key_path  = replace(var.ssh_public_key_path, ".pub", "")
+    ssh_key_path  = var.ssh_private_key_path
   })
   filename = "${path.module}/inventory"
 

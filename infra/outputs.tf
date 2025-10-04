@@ -37,7 +37,7 @@ output "ansible_inventory_path" {
 
 output "ssh_connection_string" {
   description = "SSH command to connect to the app server"
-  value       = "ssh -i ${replace(var.ssh_public_key_path, ".pub", "")} ubuntu@${aws_eip.app_server.public_ip}"
+  value       = "ssh -i ${var.ssh_private_key_path} ubuntu@${aws_eip.app_server.public_ip}"
 }
 
 output "app_url" {

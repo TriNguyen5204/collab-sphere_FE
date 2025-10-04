@@ -36,6 +36,12 @@ variable "ssh_public_key" {
   sensitive   = true
 }
 
+variable "ssh_private_key_path" {
+  description = "Path to the SSH private key file used by Ansible."
+  type        = string
+  sensitive   = true
+}
+
 variable "jenkins_server_ip" {
   description = "IP address of Jenkins server for SSH access."
   type        = string

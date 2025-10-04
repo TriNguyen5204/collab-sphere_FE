@@ -13,7 +13,8 @@ pipeline {
             steps {
                 withCredentials([
                     string(credentialsId: 'jenkins-server-ip', variable: 'TF_VAR_jenkins_server_ip'),
-                    string(credentialsId: 'ssh-public-key',  variable: 'TF_VAR_ssh_public_key')
+                    string(credentialsId: 'ssh-public-key',  variable: 'TF_VAR_ssh_public_key'),
+                    string(credentialsId: 'ssh-private-key-path', variable: 'TF_VAR_ssh_private_key_path')
                 ]) {
                     dir(env.INFRA_DIR) {
                         echo "=== Provisioning and Configuring Infrastructure ==="
