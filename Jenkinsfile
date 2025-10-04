@@ -1,103 +1,175 @@
 pipeline {
     agent any
-
-    options {
-        ansiColor('xterm')
-        skipDefaultCheckout(true)
-        timestamps()
-    }
-
     environment {
-        DOCKER_IMAGE        = 'torithblackcat/collab-sphere-fe'
-        DOCKER_CREDENTIAL_ID = 'dockerhub-credentials'
-        SSH_CREDENTIAL_ID    = 'app-server-ssh'
-    }
-
-    parameters {
-        string(name: 'DEPLOY_HOST', defaultValue: '', description: 'Target host for deployment (e.g. ubuntu@1.2.3.4). Leave blank to skip deployment.')
-        booleanParam(name: 'SKIP_DEPLOY', defaultValue: false, description: 'Skip the deployment stage when true.')
+        DOCKER_IMAGE_NAME = "nguyense21/collabsphere-frontend"
     }
 
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Install dependencies') {
-            steps {
-                sh 'npm ci --no-audit --prefer-offline'
-            }
-        }
-
-        stage('Lint') {
-            steps {
-                sh 'npm run lint'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                sh 'npm run build'
-            }
-        }
-
-        stage('Docker Build & Push') {
+        stage('Deploy Green Environment with Terraform') {
             steps {
                 script {
-                    def imageTag = "${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}"
-                    sh """
-                        docker build \
-                          --pull \
-                          -t ${imageTag} \
-                          -t ${env.DOCKER_IMAGE}:latest \
-                          .
-                    """
-
-                    withCredentials([usernamePassword(credentialsId: env.DOCKER_CREDENTIAL_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sh """
-                            echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
-                            docker push ${imageTag}
-                            docker push ${env.DOCKER_IMAGE}:latest
-                            docker logout
-                        """
+                    withCredentials([aws(credentialsId: 'aws-jenkins-credentials')]) {
+                        echo 'Provisioning GREEN server...'
+                        dir('infra') {
+                            sh 'terraform init'
+                            sh 'terraform plan'
+                            sh 'terraform apply -auto-approve'
+                    
+                            env.APP_SERVER_IP = sh(script: 'terraform output -raw public_ip', returnStdout: true).trim()
+                            echo "New GREEN Server IP: ${env.APP_SERVER_IP}"
+                            
+                            // Validate IP format
+                            if (!env.APP_SERVER_IP || env.APP_SERVER_IP == "null") {
+                                error "Failed to get valid IP address from Terraform output"
+                            }
+                            
+                            // Wait for AWS to propagate the Elastic IP association
+                            echo "Waiting for Elastic IP association to propagate..."
+                            sleep(time: 30, unit: 'SECONDS')
+                        }
                     }
                 }
             }
         }
 
-        stage('Deploy') {
+        stage('Configure Server with Ansible') {
             when {
-                allOf {
-                    expression { return !params.SKIP_DEPLOY }
-                    expression { return params.DEPLOY_HOST?.trim() }
-                }
+                expression { env.WORKING_SSH_CREDENTIAL != null }
             }
             steps {
-                sshagent(credentials: [env.SSH_CREDENTIAL_ID]) {
+                script {
                     sh """
-                        ssh -o StrictHostKeyChecking=no ${params.DEPLOY_HOST} '
-                            docker pull ${env.DOCKER_IMAGE}:latest &&
-                            docker stop collab-sphere-fe || true &&
-                            docker rm collab-sphere-fe || true &&
-                            docker run -d --name collab-sphere-fe -p 80:80 ${env.DOCKER_IMAGE}:latest
+                        ssh-keygen -f '/var/lib/jenkins/.ssh/known_hosts' -R '${env.APP_SERVER_IP}' || echo 'No existing host key found'
+                        echo "Host key removed for ${env.APP_SERVER_IP}"
+                    """
+                    
+                    echo "Configuring server with Ansible..."
+                    dir('infra') {
+                        sh "echo '[all]\n${env.APP_SERVER_IP}' > inventory"
+
+                        sshagent(credentials: ['collabsphere-ssh-key']) {
+                            sh """
+                                export ANSIBLE_HOST_KEY_CHECKING=False
+                                ansible-playbook -i inventory playbook.yml --user ubuntu \\
+                                    -e 'host_key_checking=False' \\
+                                    --ssh-extra-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Build and Push Docker Image') {
+            steps {
+                script {
+                    echo "=== DISK SPACE CHECK & CLEANUP ==="
+                    
+                    // Move to root directory to avoid infra folder
+                    dir('.') {
+                        // Check available disk space
+                        sh """
+                            echo "Current working directory:"
+                            pwd
+                            ls -la
+                            echo "Disk space before cleanup:"
+                            df -h || echo "df command not available"
+                        """
+                        
+                        // Cleanup Docker to free space
+                        sh """
+                            echo "Cleaning up Docker resources..."
+                            docker system prune -f || echo "Docker cleanup failed"
+                            docker image prune -f || echo "Docker image cleanup failed"
+                            
+                            # Remove old unused images
+                            docker images --filter "dangling=true" -q | xargs -r docker rmi || echo "No dangling images"
+                        """
+                        
+                        // Check space after cleanup
+                        sh """
+                            echo "Disk space after cleanup:"
+                            df -h || echo "df command not available"
+                        """
+                        
+                        echo "=== BUILDING DOCKER IMAGE ==="
+                        echo "Build Docker image: ${env.DOCKER_IMAGE_NAME}"
+                        
+                        // Build with reduced context and explicit dockerignore
+                        sh """
+                            echo "Checking .dockerignore:"
+                            cat .dockerignore || echo "No .dockerignore found"
+                            
+                            echo "Docker build context size estimation:"
+                            find . -name "infra" -type d -exec du -sh {} \\; || echo "No infra folder"
+                            
+                            echo "Building Docker image (excluding infra folder)..."
+                            docker build --no-cache -t ${env.DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER} .
+                            docker tag ${env.DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER} ${env.DOCKER_IMAGE_NAME}:latest
+                        """
+                        
+                        withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                            sh """
+                                echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
+                                docker push ${env.DOCKER_IMAGE_NAME}:latest
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to App Server') {
+            steps {
+                sshagent(credentials: ['collabsphere-ssh-key']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_SERVER_IP} '
+                            docker pull ${env.DOCKER_IMAGE_NAME}:latest
+                            docker stop collabsphere-app || true
+                            docker rm collabsphere-app || true
+                            docker run -d --name collabsphere-app -p 80:80 ${env.DOCKER_IMAGE_NAME}:latest
+                            echo "Deployment successful!"
                         '
                     """
                 }
             }
         }
     }
-
+    
     post {
-        success {
-            echo 'Pipeline completed successfully.'
+        always {
+            script {
+                echo "=== POST-BUILD CLEANUP ==="
+                // Cleanup workspace but keep essential files
+                sh """
+                    echo "Cleaning up Terraform files to save space..."
+                    rm -rf infra/.terraform/ || echo "No .terraform folder to clean"
+                    rm -f infra/*.tfstate.backup || echo "No backup files to clean"
+                    
+                    echo "Cleaning up Docker build cache..."
+                    docker builder prune -f || echo "Docker builder cleanup failed"
+                    
+                    echo "Final disk space check:"
+                    df -h || echo "df command not available"
+                """
+            }
+            cleanWs() 
         }
         failure {
-            echo 'Pipeline failed. Please review the stage logs for details.'
-        }
-        always {
-            cleanWs()
+            script {
+                echo "=== BUILD FAILED - EMERGENCY CLEANUP ==="
+                sh """
+                    echo "Emergency cleanup due to build failure..."
+                    docker system prune -af || echo "Emergency Docker cleanup failed"
+                    rm -rf infra/.terraform/ || echo "No .terraform to clean"
+                """
+            }
         }
     }
 }

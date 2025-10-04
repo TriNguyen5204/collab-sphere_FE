@@ -18,7 +18,8 @@ import StaffPage from '../pages/staff/StaffPage';
 import LecturerListStaff from '../pages/staff/LecturerListStaff';
 import ClassListStaff from '../pages/staff/ClassListStaff';
 import ClassDetail from '../pages/staff/ClassDetail';
-import LoginPage from '../pages/LoginPage';
+import LoginPage from '../pages/auth/LoginPage';
+import RegisterPage from '../pages/auth/RegisterPage';
 import ConnectRoom from '../test/ConnectRoom';
 import VideoRoom from '../test/VideoRoom';
 import ProjectApprovals from '../pages/academic/ProjectApprovals';
@@ -27,6 +28,7 @@ import AccountManagement from '../pages/admin/AccountManagement';
 import SystemReport from '../pages/admin/SystemReport';
 import DepartmentDashboard from '../pages/headDepartment/Dashboard';
 import SubjectManagement from '../pages/headDepartment/Subject&SyllabusManagement';
+import TestKanbanBoard from '../pages/TestKanbanBoard';
 
 const router = createBrowserRouter([
   {
@@ -35,7 +37,12 @@ const router = createBrowserRouter([
   },
   {
     path: '/login', 
-    element: <LoginPage />},
+    element: <LoginPage />
+  },
+  {
+    path: '/register', 
+    element: <RegisterPage />
+  },
   {
     path: '/lecturer/classes',
     element: <ClassManagementDashboard />,
@@ -158,7 +165,11 @@ const router = createBrowserRouter([
     path: '/head-department/syllabus-management',
   },
   {
-    path: '/head-department/project-approvals',
+    path: '/test/kanban',
+    element: <TestKanbanBoard />,
+  },
+  {
+    path: '/academic/project-approvals',
     element: <ProjectApprovals />,
   }
 
