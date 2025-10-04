@@ -1,12 +1,45 @@
-# React + Vite
+# CollabSphere Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite collaborative project management platform.
 
-Currently, two official plugins are available:
+## Development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+npm install
+npm run dev
+```
 
-## Expanding the ESLint configuration
+## Deployment
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+**Already have Jenkins?** → Read **[SETUP-FOR-EXISTING-JENKINS.md](SETUP-FOR-EXISTING-JENKINS.md)** (step-by-step guide)
+
+Just push to GitHub - Jenkins will automatically:
+1. Build the app
+2. Create Docker image
+3. Deploy to AWS
+
+### First Time Setup
+
+1. **Create AWS Infrastructure** (one-time):
+```bash
+cd infra
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars - add your Jenkins IP
+terraform init
+terraform apply
+```
+
+2. **Configure Jenkins** (one-time):
+   - Add credential `dockerhub-credentials` (Username: nguyense21, Password: your token)
+   - Add credential `app-server-ssh` (Username: ubuntu, Private Key: from `~/.ssh/collabsphere-key`)
+   - Create pipeline job from this GitHub repo
+   - Set `DEPLOY_HOST` parameter from: `terraform output jenkins_deploy_host`
+
+3. **Done!** Every git push will auto-deploy.
+
+## Tech Stack
+
+- React 18 + Vite 7.1.5 (requires Node 20+)
+- Docker + Nginx
+- AWS (Terraform + Ansible)
+- Jenkins CI/CD

@@ -1,106 +1,209 @@
-pipeline {
-    agent any
+pipeline {pipeline {
+
+    agent any    agent any
+
     environment {
-        DOCKER_IMAGE_NAME = "nguyense21/collabsphere-frontend"
-    }
 
-    stages {
-        stage('Checkout Code') {
-            steps {
-                checkout scm
-            }
-        }
+    options {        DOCKER_IMAGE_NAME = "nguyense21/collabsphere-frontend"
 
-        stage('Deploy Green Environment with Terraform') {
+        ansiColor('xterm')    }
+
+        skipDefaultCheckout(true)
+
+        timestamps()    stages {
+
+    }        stage('Checkout Code') {
+
             steps {
-                script {
-                    withCredentials([aws(credentialsId: 'aws-jenkins-credentials')]) {
-                        echo 'Provisioning GREEN server...'
-                        dir('infra') {
+
+    environment {                checkout scm
+
+        DOCKER_IMAGE        = 'nguyense21/collab-sphere-fe'            }
+
+        DOCKER_CREDENTIAL_ID = 'dockerhub-credentials'        }
+
+        SSH_CREDENTIAL_ID    = 'app-server-ssh'
+
+    }        stage('Deploy Green Environment with Terraform') {
+
+            steps {
+
+    parameters {                script {
+
+        string(name: 'DEPLOY_HOST', defaultValue: '', description: 'Target host for deployment (e.g. ubuntu@1.2.3.4). Leave blank to skip deployment.')                    withCredentials([aws(credentialsId: 'aws-jenkins-credentials')]) {
+
+        booleanParam(name: 'SKIP_DEPLOY', defaultValue: false, description: 'Skip the deployment stage when true.')                        echo 'Provisioning GREEN server...'
+
+    }                        dir('infra') {
+
                             sh 'terraform init'
-                            sh 'terraform plan'
-                            sh 'terraform apply -auto-approve'
-                    
-                            env.APP_SERVER_IP = sh(script: 'terraform output -raw public_ip', returnStdout: true).trim()
-                            echo "New GREEN Server IP: ${env.APP_SERVER_IP}"
-                            
+
+    stages {                            sh 'terraform plan'
+
+        stage('Checkout') {                            sh 'terraform apply -auto-approve'
+
+            steps {                    
+
+                checkout scm                            env.APP_SERVER_IP = sh(script: 'terraform output -raw public_ip', returnStdout: true).trim()
+
+            }                            echo "New GREEN Server IP: ${env.APP_SERVER_IP}"
+
+        }                            
+
                             // Validate IP format
-                            if (!env.APP_SERVER_IP || env.APP_SERVER_IP == "null") {
-                                error "Failed to get valid IP address from Terraform output"
-                            }
-                            
-                            // Wait for AWS to propagate the Elastic IP association
+
+        stage('Install dependencies') {                            if (!env.APP_SERVER_IP || env.APP_SERVER_IP == "null") {
+
+            steps {                                error "Failed to get valid IP address from Terraform output"
+
+                sh 'npm ci --no-audit --prefer-offline'                            }
+
+            }                            
+
+        }                            // Wait for AWS to propagate the Elastic IP association
+
                             echo "Waiting for Elastic IP association to propagate..."
-                            sleep(time: 30, unit: 'SECONDS')
-                        }
-                    }
-                }
-            }
+
+        stage('Lint') {                            sleep(time: 30, unit: 'SECONDS')
+
+            steps {                        }
+
+                sh 'npm run lint'                    }
+
+            }                }
+
+        }            }
+
         }
 
-        stage('Configure Server with Ansible') {
-            when {
-                expression { env.WORKING_SSH_CREDENTIAL != null }
-            }
-            steps {
-                script {
-                    sh """
-                        ssh-keygen -f '/var/lib/jenkins/.ssh/known_hosts' -R '${env.APP_SERVER_IP}' || echo 'No existing host key found'
-                        echo "Host key removed for ${env.APP_SERVER_IP}"
-                    """
-                    
-                    echo "Configuring server with Ansible..."
-                    dir('infra') {
-                        sh "echo '[all]\n${env.APP_SERVER_IP}' > inventory"
+        stage('Build') {
 
-                        sshagent(credentials: ['collabsphere-ssh-key']) {
+            steps {        stage('Configure Server with Ansible') {
+
+                sh 'npm run build'            when {
+
+            }                expression { env.WORKING_SSH_CREDENTIAL != null }
+
+        }            }
+
+            steps {
+
+        stage('Docker Build & Push') {                script {
+
+            steps {                    sh """
+
+                script {                        ssh-keygen -f '/var/lib/jenkins/.ssh/known_hosts' -R '${env.APP_SERVER_IP}' || echo 'No existing host key found'
+
+                    def imageTag = "${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}"                        echo "Host key removed for ${env.APP_SERVER_IP}"
+
+                    sh """                    """
+
+                        docker build \                    
+
+                          --pull \                    echo "Configuring server with Ansible..."
+
+                          -t ${imageTag} \                    dir('infra') {
+
+                          -t ${env.DOCKER_IMAGE}:latest \                        sh "echo '[all]\n${env.APP_SERVER_IP}' > inventory"
+
+                          .
+
+                    """                        sshagent(credentials: ['collabsphere-ssh-key']) {
+
                             sh """
-                                export ANSIBLE_HOST_KEY_CHECKING=False
-                                ansible-playbook -i inventory playbook.yml --user ubuntu \\
-                                    -e 'host_key_checking=False' \\
-                                    --ssh-extra-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
-                            """
-                        }
-                    }
-                }
-            }
+
+                    withCredentials([usernamePassword(credentialsId: env.DOCKER_CREDENTIAL_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {                                export ANSIBLE_HOST_KEY_CHECKING=False
+
+                        sh """                                ansible-playbook -i inventory playbook.yml --user ubuntu \\
+
+                            echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin                                    -e 'host_key_checking=False' \\
+
+                            docker push ${imageTag}                                    --ssh-extra-args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+
+                            docker push ${env.DOCKER_IMAGE}:latest                            """
+
+                            docker logout                        }
+
+                        """                    }
+
+                    }                }
+
+                }            }
+
+            }        }
+
         }
 
         stage('Build and Push Docker Image') {
-            steps {
-                script {
-                    echo "=== DISK SPACE CHECK & CLEANUP ==="
-                    
-                    // Move to root directory to avoid infra folder
-                    dir('.') {
-                        // Check available disk space
-                        sh """
-                            echo "Current working directory:"
-                            pwd
-                            ls -la
-                            echo "Disk space before cleanup:"
-                            df -h || echo "df command not available"
-                        """
-                        
-                        // Cleanup Docker to free space
-                        sh """
-                            echo "Cleaning up Docker resources..."
-                            docker system prune -f || echo "Docker cleanup failed"
-                            docker image prune -f || echo "Docker image cleanup failed"
-                            
+
+        stage('Deploy') {            steps {
+
+            when {                script {
+
+                allOf {                    echo "=== DISK SPACE CHECK & CLEANUP ==="
+
+                    expression { return !params.SKIP_DEPLOY }                    
+
+                    expression { return params.DEPLOY_HOST?.trim() }                    // Move to root directory to avoid infra folder
+
+                }                    dir('.') {
+
+            }                        // Check available disk space
+
+            steps {                        sh """
+
+                sshagent(credentials: [env.SSH_CREDENTIAL_ID]) {                            echo "Current working directory:"
+
+                    sh """                            pwd
+
+                        ssh -o StrictHostKeyChecking=no ${params.DEPLOY_HOST} '                            ls -la
+
+                            docker pull ${env.DOCKER_IMAGE}:latest &&                            echo "Disk space before cleanup:"
+
+                            docker stop collab-sphere-fe || true &&                            df -h || echo "df command not available"
+
+                            docker rm collab-sphere-fe || true &&                        """
+
+                            docker run -d --name collab-sphere-fe -p 80:80 ${env.DOCKER_IMAGE}:latest                        
+
+                        '                        // Cleanup Docker to free space
+
+                    """                        sh """
+
+                }                            echo "Cleaning up Docker resources..."
+
+            }                            docker system prune -f || echo "Docker cleanup failed"
+
+        }                            docker image prune -f || echo "Docker image cleanup failed"
+
+    }                            
+
                             # Remove old unused images
-                            docker images --filter "dangling=true" -q | xargs -r docker rmi || echo "No dangling images"
-                        """
-                        
-                        // Check space after cleanup
-                        sh """
-                            echo "Disk space after cleanup:"
-                            df -h || echo "df command not available"
-                        """
-                        
-                        echo "=== BUILDING DOCKER IMAGE ==="
-                        echo "Build Docker image: ${env.DOCKER_IMAGE_NAME}"
-                        
+
+    post {                            docker images --filter "dangling=true" -q | xargs -r docker rmi || echo "No dangling images"
+
+        success {                        """
+
+            echo 'Pipeline completed successfully.'                        
+
+        }                        // Check space after cleanup
+
+        failure {                        sh """
+
+            echo 'Pipeline failed. Please review the stage logs for details.'                            echo "Disk space after cleanup:"
+
+        }                            df -h || echo "df command not available"
+
+        always {                        """
+
+            cleanWs()                        
+
+        }                        echo "=== BUILDING DOCKER IMAGE ==="
+
+    }                        echo "Build Docker image: ${env.DOCKER_IMAGE_NAME}"
+
+}                        
+
                         // Build with reduced context and explicit dockerignore
                         sh """
                             echo "Checking .dockerignore:"
