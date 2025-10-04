@@ -80,18 +80,7 @@ pipeline {
                     echo "Deploying to host: ${deployHost}"
                     
                     sshagent(credentials: [env.SSH_CREDENTIAL_ID]) {
-                        sh """
-                            ssh -o StrictHostKeyChecking=no ${deployHost} '
-                                docker pull ${env.DOCKER_IMAGE}:latest &&
-                                docker stop collab-sphere-fe || true &&
-                                docker rm collab-sphere-fe || true &&
-                                docker run -d \\
-                                  --name collab-sphere-fe \\
-                                  -p 80:80 \\
-                                  --restart unless-stopped \\
-                                  ${env.DOCKER_IMAGE}:latest
-                            '
-                        """
+                        sh "ssh -o StrictHostKeyChecking=no ${deployHost} 'docker pull ${env.DOCKER_IMAGE}:latest && docker stop collab-sphere-fe || true && docker rm collab-sphere-fe || true && docker run -d --name collab-sphere-fe -p 80:80 --restart unless-stopped ${env.DOCKER_IMAGE}:latest'"
                     }
                 }
             }
