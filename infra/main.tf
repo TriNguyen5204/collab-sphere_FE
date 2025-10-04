@@ -101,7 +101,7 @@ resource "aws_security_group" "app_server" {
 # EC2 Key Pair (create from public key)
 resource "aws_key_pair" "app_server" {
   key_name   = "${var.project_name}-${var.environment}-key"
-  public_key = file(var.ssh_public_key_path)
+  public_key = var.ssh_public_key
 
   tags = merge(
     var.tags,

@@ -4,25 +4,29 @@ pipeline {
     environment {
         DOCKER_IMAGE         = 'nguyense21/collab-sphere-fe'
         DOCKER_CREDENTIAL_ID = 'dockerhub-credentials'
-        
         INFRA_DIR            = 'infra'
-        TF_VARS_FILE         = 'terraform.tfvars'
         SSH_CREDENTIAL_ID    = 'collabsphere-ssh-key'
     }
 
     stages {
         stage('Infrastructure: Provision & Configure') {
             steps {
-                script {
+                withCredentials([
+                    string(credentialsId: 'jenkins-server-ip', variable: 'TF_VAR_jenkins_server_ip'),
+                    string(credentialsId: 'ssh-public-key',  variable: 'TF_VAR_ssh_public_key')
+                ]) {
                     dir(env.INFRA_DIR) {
                         echo "=== Provisioning and Configuring Infrastructure ==="
+                        
                         sh 'terraform init'
-                        sh "terraform apply -var-file=${env.TF_VARS_FILE} -auto-approve"
+
+                        sh "terraform apply -auto-approve"
+
                         echo "Configuring the new server with Ansible..."
                         sshagent(credentials: [env.SSH_CREDENTIAL_ID]) {
                             sh """
-                                ansible-playbook \
-                                  -i inventory \
+                                ansible-playbook \\
+                                  -i inventory \\
                                   playbook.yml
                             """
                         }
@@ -31,7 +35,6 @@ pipeline {
                     }
                 }
             }
-        }
 
         stage('Application: Build & Deploy') {
             parallel {
