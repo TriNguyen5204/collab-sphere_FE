@@ -35,6 +35,7 @@ pipeline {
                     }
                 }
             }
+        }
 
         stage('Application: Build & Deploy') {
             parallel {
