@@ -38,6 +38,7 @@ output "ansible_inventory_path" {
 output "ssh_connection_string" {
   description = "SSH command to connect to the app server"
   value       = "ssh -i ${var.ssh_private_key_path} ubuntu@${aws_eip.app_server.public_ip}"
+  sensitive   = true
 }
 
 output "app_url" {
@@ -48,6 +49,7 @@ output "app_url" {
 output "jenkins_deploy_host" {
   description = "DEPLOY_HOST parameter for Jenkins pipeline"
   value       = "ubuntu@${aws_eip.app_server.public_ip}"
+  sensitive   = true
 }
 
 output "docker_image_full_name" {
