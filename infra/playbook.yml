@@ -1,71 +1,49 @@
 ---
-# Ansible playbook to configure CollabSphere application server
-# This installs Docker and prepares the server for containerized deployments
-
 - name: Configure CollabSphere Application Server
-  hosts: app_servers
+  hosts: app_servers 
   become: yes
   gather_facts: yes
   
   vars:
-    docker_compose_version: "2.24.0"
     docker_users:
       - ubuntu
-    app_name: "collab-sphere-fe"
-    docker_image: "{{ docker_hub_username }}/{{ docker_image_name }}"
-    container_port: 80
-    host_port: 80
 
   pre_tasks:
-    - name: Wait for system to become reachable
+    - name: "SYSTEM | Wait for system to become reachable"
       wait_for_connection:
         timeout: 300
-      
-    - name: Gather facts
+    
+    - name: "SYSTEM | Gather facts if not already done"
       setup:
 
   tasks:
-    # System Updates
-    - name: Update apt cache
+    - name: "SYSTEM | Update apt cache"
       apt:
         update_cache: yes
         cache_valid_time: 3600
-      tags: [system, update]
+      tags: [system]
 
-    - name: Upgrade all packages
-      apt:
-        upgrade: dist
-        autoremove: yes
-        autoclean: yes
-      tags: [system, update]
-
-    # Install Prerequisites
-    - name: Install required system packages
+    - name: "SYSTEM | Install required system packages"
       apt:
         name:
           - apt-transport-https
           - ca-certificates
           - curl
           - gnupg
-          - lsb-release
           - software-properties-common
           - python3-pip
           - git
-          - htop
-          - vim
-          - unzip
         state: present
-      tags: [system, packages]
+      tags: [system]
 
-    # Docker Installation
-    - name: Create directory for Docker GPG key
+    - name: "DOCKER | Create directory for Docker GPG key"
       file:
         path: /etc/apt/keyrings
         state: directory
         mode: '0755'
       tags: [docker]
 
-    - name: Add Docker GPG key
+    - name: "DOCKER | Add Docker GPG key"
       get_url:
         url: https://download.docker.com/linux/ubuntu/gpg
         dest: /etc/apt/keyrings/docker.asc
@@ -73,14 +51,14 @@
         force: true
       tags: [docker]
 
-    - name: Add Docker repository
+    - name: "DOCKER | Add Docker repository"
       apt_repository:
         repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
         state: present
         update_cache: yes
       tags: [docker]
 
-    - name: Install Docker packages
+    - name of: "DOCKER | Install Docker packages"
       apt:
         name:
           - docker-ce
@@ -91,14 +69,14 @@
         state: present
       tags: [docker]
 
-    - name: Ensure Docker service is started and enabled
+    - name: "DOCKER | Ensure Docker service is started and enabled"
       systemd:
         name: docker
         state: started
         enabled: yes
       tags: [docker]
 
-    - name: Add users to docker group
+    - name: "DOCKER | Add ubuntu user to docker group"
       user:
         name: "{{ item }}"
         groups: docker
@@ -106,165 +84,7 @@
       loop: "{{ docker_users }}"
       tags: [docker]
 
-    # Docker Configuration
-    - name: Create Docker daemon configuration
-      copy:
-        content: |
-          {
-            "log-driver": "json-file",
-            "log-opts": {
-              "max-size": "10m",
-              "max-file": "3"
-            },
-            "live-restore": true
-          }
-        dest: /etc/docker/daemon.json
-        mode: '0644'
-      notify: restart docker
-      tags: [docker, config]
-
-    # Firewall Configuration (UFW)
-    - name: Install UFW firewall
-      apt:
-        name: ufw
-        state: present
-      tags: [security, firewall]
-
-    - name: Allow SSH through firewall
-      ufw:
-        rule: allow
-        port: '22'
-        proto: tcp
-      tags: [security, firewall]
-
-    - name: Allow HTTP through firewall
-      ufw:
-        rule: allow
-        port: '80'
-        proto: tcp
-      tags: [security, firewall]
-
-    - name: Allow HTTPS through firewall
-      ufw:
-        rule: allow
-        port: '443'
-        proto: tcp
-      tags: [security, firewall]
-
-    - name: Enable UFW
-      ufw:
-        state: enabled
-        policy: deny
-      tags: [security, firewall]
-
-    # Application Directory Setup
-    - name: Create application directory
-      file:
-        path: /opt/{{ app_name }}
-        state: directory
-        owner: ubuntu
-        group: ubuntu
-        mode: '0755'
-      tags: [app]
-
-    - name: Create log directory
-      file:
-        path: /var/log/{{ app_name }}
-        state: directory
-        owner: ubuntu
-        group: ubuntu
-        mode: '0755'
-      tags: [app]
-
-    # System Optimization
-    - name: Set vm.max_map_count for better performance
-      sysctl:
-        name: vm.max_map_count
-        value: '262144'
-        state: present
-        reload: yes
-      tags: [system, optimization]
-
-    - name: Configure system limits
-      pam_limits:
-        domain: '*'
-        limit_type: '-'
-        limit_item: nofile
-        value: '65536'
-      tags: [system, optimization]
-
-    # Health Check Script
-    - name: Create health check script
-      copy:
-        content: |
-          #!/bin/bash
-          # Health check for {{ app_name }}
-          
-          CONTAINER_NAME="{{ app_name }}"
-          
-          if docker ps --filter "name=$CONTAINER_NAME" --filter "status=running" | grep -q $CONTAINER_NAME; then
-            echo "✓ Container is running"
-            exit 0
-          else
-            echo "✗ Container is not running"
-            exit 1
-          fi
-        dest: /usr/local/bin/check-{{ app_name }}.sh
-        mode: '0755'
-      tags: [app, monitoring]
-
-    # Auto-cleanup old Docker images (cron job)
-    - name: Add Docker cleanup cron job
-      cron:
-        name: "Docker image cleanup"
-        minute: "0"
-        hour: "2"
-        job: "docker image prune -af --filter 'until=72h' >> /var/log/docker-cleanup.log 2>&1"
-        user: root
-      tags: [docker, maintenance]
-
-    # Final verification
-    - name: Verify Docker installation
-      command: docker --version
-      register: docker_version
-      changed_when: false
-      tags: [docker, verify]
-
-    - name: Display Docker version
-      debug:
-        msg: "Docker version: {{ docker_version.stdout }}"
-      tags: [docker, verify]
-
-    - name: Verify Docker Compose installation
-      command: docker compose version
-      register: compose_version
-      changed_when: false
-      tags: [docker, verify]
-
-    - name: Display Docker Compose version
-      debug:
-        msg: "Docker Compose version: {{ compose_version.stdout }}"
-      tags: [docker, verify]
-
-  handlers:
-    - name: restart docker
-      systemd:
-        name: docker
-        state: restarted
-
   post_tasks:
-    - name: Display completion message
+    - name: "SYSTEM | Display completion message"
       debug:
-        msg: |
-          ================================================
-          Server configuration completed successfully!
-          ================================================
-          Server IP: {{ ansible_host }}
-          Docker: Installed and running
-          Firewall: Configured (UFW enabled)
-          Application directory: /opt/{{ app_name }}
-          
-          Next steps:
-          1. Deploy your application using Jenkins
-          2. Access at: http://{{ ansible_host }}
-          ================================================
+        msg: "Server configuration completed successfully! Ready for deployment."

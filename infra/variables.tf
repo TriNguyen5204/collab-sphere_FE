@@ -37,7 +37,7 @@ variable "ssh_public_key_path" {
 }
 
 variable "jenkins_server_ip" {
-  description = "IP address of Jenkins server for SSH access (leave empty to allow from any)"
+  description = "IP address of Jenkins server for SSH access."
   type        = string
   default     = ""
 }

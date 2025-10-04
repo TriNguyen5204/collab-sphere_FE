@@ -1,121 +1,106 @@
 pipeline {
-    agent none  // We'll use different agents per stage
+    agent any
 
     environment {
-        DOCKER_IMAGE        = 'nguyense21/collab-sphere-fe'
+        DOCKER_IMAGE         = 'nguyense21/collab-sphere-fe'
         DOCKER_CREDENTIAL_ID = 'dockerhub-credentials'
-        SSH_CREDENTIAL_ID    = 'app-server-ssh'
-    }
-
-    parameters {
-        string(name: 'DEPLOY_HOST', defaultValue: '', description: 'Target host for deployment (e.g. ubuntu@13.xxx.xxx.xxx). Get from: terraform output jenkins_deploy_host')
-        booleanParam(name: 'SKIP_DEPLOY', defaultValue: false, description: 'Skip deployment stage')
+        
+        INFRA_DIR            = 'infra'
+        TF_VARS_FILE         = 'terraform.tfvars'
+        SSH_CREDENTIAL_ID    = 'collabsphere-ssh-key'
     }
 
     stages {
-        stage('Checkout') {
-            agent any
+        stage('Infrastructure: Provision & Configure') {
             steps {
-                checkout scm
+                script {
+                    dir(env.INFRA_DIR) {
+                        echo "=== Provisioning and Configuring Infrastructure ==="
+                        sh 'terraform init'
+                        sh "terraform apply -var-file=${env.TF_VARS_FILE} -auto-approve"
+                        echo "Configuring the new server with Ansible..."
+                        sshagent(credentials: [env.SSH_CREDENTIAL_ID]) {
+                            sh """
+                                ansible-playbook \
+                                  -i inventory \
+                                  playbook.yml
+                            """
+                        }
+                        
+                        echo "=== Infrastructure is Ready ==="
+                    }
+                }
             }
         }
 
-        stage('Build Application') {
-            agent {
-                docker {
-                    image 'node:20-alpine'
-                    args '-v $HOME/.npm:/root/.npm'  // Cache npm packages
-                    reuseNode true
-                }
-            }
-            stages {
-                stage('Install Dependencies') {
-                    steps {
-                        sh 'npm ci --no-audit --prefer-offline'
+        stage('Application: Build & Deploy') {
+            parallel {
+                stage('Build App') {
+                    agent {
+                        docker {
+                            image 'node:20-alpine'
+                            args '-v $HOME/.npm:/root/.npm'
+                        }
                     }
-                }
-
-                stage('Lint') {
                     steps {
-                        sh 'npm run lint'
-                    }
-                }
-
-                stage('Build') {
-                    steps {
+                        echo "Installing dependencies and building application..."
+                        sh 'npm ci'
                         sh 'npm run build'
                     }
                 }
-            }
-        }
 
-        stage('Docker Build & Push') {
-            agent any
-            steps {
-                script {
-                    def imageTag = "${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}"
-                    
-                    sh """
-                        docker build \
-                          --pull \
-                          -t ${imageTag} \
-                          -t ${env.DOCKER_IMAGE}:latest \
-                          .
-                    """
-
-                    withCredentials([usernamePassword(
-                        credentialsId: env.DOCKER_CREDENTIAL_ID,
-                        usernameVariable: 'DOCKER_USERNAME',
-                        passwordVariable: 'DOCKER_PASSWORD'
-                    )]) {
-                        sh """
-                            echo \${DOCKER_PASSWORD} | docker login -u \${DOCKER_USERNAME} --password-stdin
-                            docker push ${imageTag}
-                            docker push ${env.DOCKER_IMAGE}:latest
-                            docker logout
-                        """
+                stage('Build Docker Image') {
+                    steps {
+                        echo "Building Docker image..."
+                        script {
+                            def imageTag = "${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}"
+                            docker.build(imageTag, ".")
+                            docker.withRegistry("https://index.docker.io/v1/", env.DOCKER_CREDENTIAL_ID) {
+                                docker.image(imageTag).push()
+                                docker.image(imageTag).push("latest")
+                            }
+                        }
                     }
                 }
             }
         }
-
-        stage('Deploy to Server') {
-            agent any
-            when {
-                allOf {
-                    expression { return !params.SKIP_DEPLOY }
-                    expression { return params.DEPLOY_HOST?.trim() }
-                }
-            }
+        
+        stage('Deploy') {
             steps {
-                sshagent(credentials: [env.SSH_CREDENTIAL_ID]) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ${params.DEPLOY_HOST} '
-                            docker pull ${env.DOCKER_IMAGE}:latest &&
-                            docker stop collab-sphere-fe || true &&
-                            docker rm collab-sphere-fe || true &&
-                            docker run -d \
-                              --name collab-sphere-fe \
-                              -p 80:80 \
-                              --restart unless-stopped \
-                              ${env.DOCKER_IMAGE}:latest
-                        '
-                    """
+                script {
+                    def deployHost = sh(script: "cd ${env.INFRA_DIR} && terraform output -raw jenkins_deploy_host", returnStdout: true).trim()
+
+                    if (!deployHost) {
+                        error "Failed to get DEPLOY_HOST from Terraform output."
+                    }
+
+                    echo "Deploying to host: ${deployHost}"
+                    
+                    sshagent(credentials: [env.SSH_CREDENTIAL_ID]) {
+                        sh """
+                            ssh -o StrictHostKeyChecking=no ${deployHost} '
+                                docker pull ${env.DOCKER_IMAGE}:latest &&
+                                docker stop collab-sphere-fe || true &&
+                                docker rm collab-sphere-fe || true &&
+                                docker run -d \\
+                                  --name collab-sphere-fe \\
+                                  -p 80:80 \\
+                                  --restart unless-stopped \\
+                                  ${env.DOCKER_IMAGE}:latest
+                            '
+                        """
+                    }
                 }
             }
         }
     }
 
     post {
-        success {
-            echo 'Pipeline completed successfully! ✅'
-        }
-        failure {
-            echo 'Pipeline failed. Check logs above. ❌'
-        }
         always {
-            node('') {
-                cleanWs()
+            echo 'Pipeline finished. Cleaning up workspace.'
+            cleanWs()
+            dir(env.INFRA_DIR) {
+                // sh "terraform destroy -var-file=${env.TF_VARS_FILE} -auto-approve"
             }
         }
     }
