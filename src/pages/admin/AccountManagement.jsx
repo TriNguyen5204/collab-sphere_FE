@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   UserMinus,
   Trash2,
@@ -15,110 +15,176 @@ import {
   Calendar,
 } from 'lucide-react';
 import AdminSidebar from '../../components/layout/AdminSidebar';
+import { getAllAccount } from '../../services/userService';
 
 export default function AccountManagement() {
   const [selectedRole, setSelectedRole] = useState('HeadDepartment');
   const [selectedIds, setSelectedIds] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newUser, setNewUser] = useState({
-    fullname: '',
-    email: '',
-    role: 'HeadDepartment',
+
+  const [data, setData] = useState({
+    headDepartmentList: [],
+    staffList: [],
+    lecturerList: [],
+    studentList: [],
+  });
+  const [roleStats, setRoleStats] = useState({
+    HeadDepartment: 0,
+    Staff: 0,
+    Lecturer: 0,
+    Student: 0,
   });
 
-  // Mock data
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      fullname: 'Nguyễn Văn A',
-      email: 'nguyenvana@edu.vn',
-      role: 'HeadDepartment',
-      active: true,
-      joinDate: '15/01/2024',
-    },
-    {
-      id: 2,
-      fullname: 'Trần Thị B',
-      email: 'tranthib@edu.vn',
-      role: 'HeadDepartment',
-      active: true,
-      joinDate: '20/02/2024',
-    },
-    {
-      id: 3,
-      fullname: 'Lê Văn C',
-      email: 'levanc@edu.vn',
-      role: 'Staff',
-      active: false,
-      joinDate: '10/03/2024',
-    },
-    {
-      id: 4,
-      fullname: 'Phạm Thị D',
-      email: 'phamthid@edu.vn',
-      role: 'Staff',
-      active: true,
-      joinDate: '05/04/2024',
-    },
-    {
-      id: 5,
-      fullname: 'Hoàng Văn E',
-      email: 'hoangvane@edu.vn',
-      role: 'Lecturer',
-      active: true,
-      joinDate: '12/05/2024',
-    },
-    {
-      id: 6,
-      fullname: 'Võ Thị F',
-      email: 'vothif@edu.vn',
-      role: 'Student',
-      active: true,
-      joinDate: '18/06/2024',
-    },
-  ]);
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await getAllAccount();
+        setData({
+          headDepartmentList: response.headDepartmentList || [],
+          staffList: response.staffList || [],
+          lecturerList: response.lecturerList || [],
+          studentList: response.studentList || [],
+        });
+        setRoleStats({
+          HeadDepartment: response.headDepartmentCount || 0,
+          Staff: response.staffCount || 0,
+          Lecturer: response.lecturerCount || 0,
+          Student: response.studentCount || 0,
+        });
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    };
+    fetchUsers();
+  }, []);
 
-  const filteredUsers = users.filter(
-    u =>
-      u.role === selectedRole &&
-      (u.fullname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.email.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredUsers = useMemo(() => {
+    let users = [];
+    switch (selectedRole) {
+      case 'HeadDepartment':
+        users = data.headDepartmentList;
+        break;
+      case 'Staff':
+        users = data.staffList;
+        break;
+      case 'Lecturer':
+        users = data.lecturerList;
+        break;
+      case 'Student':
+        users = data.studentList;
+        break;
+      default:
+        users = [];
+    }
 
-  const handleToggleActive = id => {
-    setUsers(users.map(u => (u.id === id ? { ...u, active: !u.active } : u)));
+    if (searchQuery.trim() !== '') {
+      users = users.filter(
+        u =>
+          u.fullname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    return users;
+  }, [selectedRole, data, searchQuery]);
+
+  const handleToggleActive = email => {
+    setData(prev => {
+      const updated = { ...prev };
+      let listKey = '';
+      switch (selectedRole) {
+        case 'HeadDepartment':
+          listKey = 'headDepartmentList';
+          break;
+        case 'Staff':
+          listKey = 'staffList';
+          break;
+        case 'Lecturer':
+          listKey = 'lecturerList';
+          break;
+        case 'Student':
+          listKey = 'studentList';
+          break;
+        default:
+          return prev;
+      }
+      
+      updated[listKey] = updated[listKey].map(u =>
+        u.email === email ? { ...u, isActive: !u.isActive } : u
+      );
+      return updated;
+    });
   };
 
   const handleBulkDeactivate = () => {
-    setUsers(
-      users.map(u => (selectedIds.includes(u.id) ? { ...u, active: false } : u))
-    );
+    setData(prev => {
+      const updated = { ...prev };
+      let listKey = '';
+      switch (selectedRole) {
+        case 'HeadDepartment':
+          listKey = 'headDepartmentList';
+          break;
+        case 'Staff':
+          listKey = 'staffList';
+          break;
+        case 'Lecturer':
+          listKey = 'lecturerList';
+          break;
+        case 'Student':
+          listKey = 'studentList';
+          break;
+        default:
+          return prev;
+      }
+      
+      updated[listKey] = updated[listKey].map(u =>
+        selectedIds.includes(u.email) ? { ...u, isActive: false } : u
+      );
+      return updated;
+    });
     setSelectedIds([]);
   };
 
-  const handleCreateUser = () => {
-    if (newUser.fullname && newUser.email) {
-      const newId = Math.max(...users.map(u => u.id)) + 1;
-      setUsers([
-        ...users,
-        {
-          id: newId,
-          ...newUser,
-          active: true,
-          joinDate: new Date().toLocaleDateString('vi-VN'),
-        },
-      ]);
-      setNewUser({ fullname: '', email: '', role: 'HeadDepartment' });
-      setShowCreateForm(false);
+  const getActiveCount = (role) => {
+    let list = [];
+    switch (role) {
+      case 'HeadDepartment':
+        list = data.headDepartmentList;
+        break;
+      case 'Staff':
+        list = data.staffList;
+        break;
+      case 'Lecturer':
+        list = data.lecturerList;
+        break;
+      case 'Student':
+        list = data.studentList;
+        break;
+      default:
+        list = [];
+    }
+    return list.filter(u => u.isActive).length;
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('vi-VN');
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'N/A';
     }
   };
 
-  const roleStats = {
-    HeadDepartment: users.filter(u => u.role === 'HeadDepartment').length,
-    Staff: users.filter(u => u.role === 'Staff').length,
-    Lecturer: users.filter(u => u.role === 'Lecturer').length,
-    Student: users.filter(u => u.role === 'Student').length,
+  const getRoleDisplayName = (roleName) => {
+    const roleMap = {
+      'HEAD_DEPARTMENT': 'Head Department',
+      'STAFF': 'Staff',
+      'LECTURER': 'Lecturer',
+      'STUDENT': 'Student',
+    };
+    return roleMap[roleName] || roleName;
   };
 
   return (
@@ -173,7 +239,7 @@ export default function AccountManagement() {
                     >
                       <div className='flex items-center justify-between mb-2'>
                         <h3 className='text-sm font-medium text-gray-600'>
-                          {role}
+                          {role === 'HeadDepartment' ? 'Head Department' : role}
                         </h3>
                         <Users
                           className={`w-5 h-5 ${selectedRole === role ? 'text-blue-600' : 'text-gray-400'}`}
@@ -183,93 +249,12 @@ export default function AccountManagement() {
                         {roleStats[role]}
                       </p>
                       <p className='text-xs text-gray-500 mt-1'>
-                        {users.filter(u => u.role === role && u.active).length}{' '}
-                        active
+                        {getActiveCount(role)} active
                       </p>
                     </div>
                   )
                 )}
               </div>
-
-              {/* Create User Form - Collapsible */}
-              {showCreateForm && (
-                <div className='bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-600'>
-                  <div className='flex items-center justify-between mb-4'>
-                    <h2 className='text-xl font-semibold text-gray-800 flex items-center gap-2'>
-                      <Plus className='w-5 h-5 text-blue-600' />
-                      Create New Account
-                    </h2>
-                    <button
-                      onClick={() => setShowCreateForm(false)}
-                      className='text-gray-400 hover:text-gray-600'
-                    >
-                      <XCircle className='w-5 h-5' />
-                    </button>
-                  </div>
-                  <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                    <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-2'>
-                        Full Name
-                      </label>
-                      <input
-                        type='text'
-                        placeholder='Enter full name'
-                        className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        value={newUser.fullname}
-                        onChange={e =>
-                          setNewUser({ ...newUser, fullname: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-2'>
-                        Email Address
-                      </label>
-                      <input
-                        type='email'
-                        placeholder='Enter email address'
-                        className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        value={newUser.email}
-                        onChange={e =>
-                          setNewUser({ ...newUser, email: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-2'>
-                        Role
-                      </label>
-                      <select
-                        className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        value={newUser.role}
-                        onChange={e =>
-                          setNewUser({ ...newUser, role: e.target.value })
-                        }
-                      >
-                        <option value='HeadDepartment'>Head Department</option>
-                        <option value='Staff'>Staff</option>
-                        <option value='Lecturer'>Lecturer</option>
-                        <option value='Student'>Student</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className='flex justify-end gap-3 mt-4'>
-                    <button
-                      className='px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'
-                      onClick={() => setShowCreateForm(false)}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      className='flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors'
-                      onClick={handleCreateUser}
-                    >
-                      <CheckCircle className='w-4 h-4' />
-                      Create Account
-                    </button>
-                  </div>
-                </div>
-              )}
 
               {/* User Table */}
               <div className='bg-white rounded-lg shadow-md overflow-hidden'>
@@ -277,7 +262,7 @@ export default function AccountManagement() {
                 <div className='p-4 bg-gradient-to-r from-blue-50 to-white border-b'>
                   <div className='flex items-center justify-between mb-4'>
                     <h2 className='text-xl font-semibold text-gray-800'>
-                      {selectedRole} Accounts
+                      {selectedRole === 'HeadDepartment' ? 'Head Department' : selectedRole} Accounts
                       <span className='ml-2 text-sm font-normal text-gray-500'>
                         ({filteredUsers.length} users)
                       </span>
@@ -328,7 +313,7 @@ export default function AccountManagement() {
                             onChange={e =>
                               setSelectedIds(
                                 e.target.checked
-                                  ? filteredUsers.map(u => u.id)
+                                  ? filteredUsers.map(u => u.email)
                                   : []
                               )
                             }
@@ -354,19 +339,19 @@ export default function AccountManagement() {
                     <tbody className='divide-y divide-gray-200'>
                       {filteredUsers.map(u => (
                         <tr
-                          key={u.id}
+                          key={u.email}
                           className='hover:bg-gray-50 transition-colors'
                         >
                           <td className='px-6 py-4'>
                             <input
                               type='checkbox'
                               className='w-4 h-4 rounded border-gray-300 focus:ring-2 focus:ring-blue-500'
-                              checked={selectedIds.includes(u.id)}
+                              checked={selectedIds.includes(u.email)}
                               onChange={e =>
                                 setSelectedIds(prev =>
                                   e.target.checked
-                                    ? [...prev, u.id]
-                                    : prev.filter(id => id !== u.id)
+                                    ? [...prev, u.email]
+                                    : prev.filter(email => email !== u.email)
                                 )
                               }
                             />
@@ -374,14 +359,14 @@ export default function AccountManagement() {
                           <td className='px-6 py-4'>
                             <div className='flex items-center gap-3'>
                               <div className='w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold'>
-                                {u.fullname.charAt(0)}
+                                {(u.fullname || u.email).charAt(0).toUpperCase()}
                               </div>
                               <div>
                                 <p className='font-medium text-gray-800'>
-                                  {u.fullname}
+                                  {u.fullname || u.email.split('@')[0]}
                                 </p>
                                 <p className='text-xs text-gray-500'>
-                                  {u.role}
+                                  {getRoleDisplayName(u.roleName)}
                                 </p>
                               </div>
                             </div>
@@ -395,11 +380,11 @@ export default function AccountManagement() {
                           <td className='px-6 py-4'>
                             <div className='flex items-center gap-2 text-gray-600'>
                               <Calendar className='w-4 h-4 text-gray-400' />
-                              {u.joinDate}
+                              {formatDate(u.createdDate)}
                             </div>
                           </td>
                           <td className='px-6 py-4'>
-                            {u.active ? (
+                            {u.isActive ? (
                               <span className='inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800'>
                                 <CheckCircle className='w-3 h-3' />
                                 Active
@@ -415,13 +400,13 @@ export default function AccountManagement() {
                             <div className='flex gap-2'>
                               <button
                                 className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                                  u.active
+                                  u.isActive
                                     ? 'bg-red-50 text-red-600 hover:bg-red-100'
                                     : 'bg-green-50 text-green-600 hover:bg-green-100'
                                 }`}
-                                onClick={() => handleToggleActive(u.id)}
+                                onClick={() => handleToggleActive(u.email)}
                               >
-                                {u.active ? (
+                                {u.isActive ? (
                                   <>
                                     <Trash2 className='w-4 h-4' />
                                     Deactivate

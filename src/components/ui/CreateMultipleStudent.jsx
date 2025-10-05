@@ -14,54 +14,38 @@ const ImprovedStudentCreation = () => {
   const downloadTemplate = () => {
     const template = [
       {
-        'Fullname': 'Nguyễn Văn A',
-        'Address': '123 Đường ABC, Quận 1, TP.HCM',
-        'Phone': '0123456789',
-        'Year of Birth': '2000',
-        'Avatar': 'https://example.com/avatar1.jpg',
-        'School': 'Đại học Bách Khoa TP.HCM',
-        'Major': 'Công nghệ thông tin'
+        Email: 'nguyenvana@university.edu.vn',
+        Password: '12345',
+        Fullname: 'Nguyễn Văn A',
+        Address: '123 Đường ABC, Quận 1, TP.HCM',
+        PhoneNumber: '0123456789',
+        YOB: 1980,
+        School: 'FPT University',
+        StudentCode: 'SE184727',
+        Major: 'Computer Science',
       },
-      {
-        'Fullname': 'Trần Thị B',
-        'Address': '456 Đường XYZ, Quận 2, TP.HCM',
-        'Phone': '0987654321',
-        'Year of Birth': '2001',
-        'Avatar': 'https://example.com/avatar2.jpg',
-        'School': 'Đại học Kinh tế TP.HCM',
-        'Major': 'Quản trị kinh doanh'
-      },
-      {
-        'Fullname': 'Lê Văn C',
-        'Address': '789 Đường DEF, Quận 3, TP.HCM',
-        'Phone': '0369852147',
-        'Year of Birth': '1999',
-        'Avatar': '',
-        'School': 'Đại học Sư phạm TP.HCM',
-        'Major': 'Toán học'
-      }
     ];
 
     const ws = XLSX.utils.json_to_sheet(template);
     
-    // Add instructions
-    const noteRow = 5;
-    ws[`A${noteRow}`] = { v: "HƯỚNG DẪN:", t: "s" };
-    ws[`A${noteRow + 1}`] = { v: "- Fullname: Họ và tên đầy đủ (bắt buộc)", t: "s" };
-    ws[`A${noteRow + 2}`] = { v: "- Address: Địa chỉ chi tiết (bắt buộc)", t: "s" };
-    ws[`A${noteRow + 3}`] = { v: "- Phone: Số điện thoại (10-11 số)", t: "s" };
-    ws[`A${noteRow + 4}`] = { v: "- Year of Birth: Năm sinh (YYYY)", t: "s" };
-    ws[`A${noteRow + 5}`] = { v: "- Avatar: URL ảnh đại diện (không bắt buộc)", t: "s" };
-    ws[`A${noteRow + 6}`] = { v: "- School: Trường học (bắt buộc)", t: "s" };
-    ws[`A${noteRow + 7}`] = { v: "- Major: Chuyên ngành (bắt buộc)", t: "s" };
+    const instructionData = [
+          ['HƯỚNG DẪN:'],
+          ['- Fullname: Họ và tên đầy đủ (bắt buộc)'],
+          ['- Address: Địa chỉ chi tiết (bắt buộc)'],
+          ['- PhoneNumber: Số điện thoại (10-11 số)'],
+          ['- Major: Ngành học (bắt buộc)'],
+          ['- Email: Email công việc (Bắt buộc)'],
+          ['- StudentCode: Mã sinh viên (bắt buộc)'],
+          ['- Password: Mật khẩu (mặc định là 12345, nên đổi sau khi đăng nhập)'],
+          ['- YOB: Năm sinh (bắt buộc)'],
+          ['- School: Trường (bắt buộc)'],
+        ];
+        const wsInstruction = XLSX.utils.aoa_to_sheet(instructionData);
     
-    ws['!ref'] = XLSX.utils.encode_range({
-      s: { c: 0, r: 0 },
-      e: { c: 6, r: noteRow + 7 }
-    });
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Student Template");
+    XLSX.utils.book_append_sheet(wb, wsInstruction, 'Instructions');
     XLSX.writeFile(wb, "student_accounts_template.xlsx");
   };
 
@@ -94,8 +78,10 @@ const ImprovedStudentCreation = () => {
           fullname: row.Fullname || '',
           address: row.Address || '',
           phone: row.Phone?.toString() || '',
-          yearOfBirth: row['Year of Birth']?.toString() || '',
-          avatar_img: row.Avatar || '',
+          yearOfBirth: row['YOB']?.toString() || '',
+          studentCode: row.StudentCode || '',
+          email: row.Email || '',
+          password: row.Password || '12345',
           school: row.School || '',
           major: row.Major || ''
         }));
@@ -109,7 +95,11 @@ const ImprovedStudentCreation = () => {
           if (!student.phone?.trim()) rowErrors.push('Thiếu số điện thoại');
           if (!student.school?.trim()) rowErrors.push('Thiếu trường học');
           if (!student.major?.trim()) rowErrors.push('Thiếu chuyên ngành');
-          
+          if (!student.yearOfBirth?.trim()) rowErrors.push('Thiếu năm sinh');
+          if (!student.phone?.trim()) rowErrors.push('Thiếu số điện thoại');
+          if (!student.email?.trim()) rowErrors.push('Thiếu email');
+          if (!student.studentCode?.trim()) rowErrors.push('Thiếu mã sinh viên');
+
           if (student.phone && !/^[0-9]{10,11}$/.test(student.phone.replace(/\s/g, ''))) {
             rowErrors.push('Số điện thoại không hợp lệ');
           }

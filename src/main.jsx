@@ -5,11 +5,14 @@ import './styles/design-system.css';
 import Router from './router/Router.jsx';
 import { Provider } from 'react-redux';
 import { store } from './store/index.js';
+import AuthProvider from './components/layout/AuthProvider.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <Provider store={store}>
-      <Router />
+      <AuthProvider>
+        <Router />
+      </AuthProvider>
     </Provider>
   </StrictMode>
 );

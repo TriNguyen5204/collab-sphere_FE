@@ -11,9 +11,15 @@ import {
 } from '@heroicons/react/24/outline';
 import AuthInput from '../../components/ui/AuthInput';
 import logo from '../../assets/logov1.png';
+import { login } from '../../services/authService';
+import { useDispatch } from 'react-redux';
+import { setUserRedux } from '../../store/slices/userSlice';
+import Cookies from 'js-cookie';
+import { toast } from 'react-toastify';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -46,7 +52,7 @@ const LoginPage = () => {
     
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
+    } else if (formData.password.length < 5) {
       newErrors.password = 'Password must be at least 6 characters';
     }
     
@@ -61,13 +67,15 @@ const LoginPage = () => {
     
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Login data:', formData);
-      setIsLoading(false);
-      // Navigate to dashboard after successful login
-      // navigate('/dashboard');
-    }, 1500);
+    const response = await login(formData.email, formData.password);
+    if (response.userId) {
+      dispatch(setUserRedux(response));
+      Cookies.set("user", JSON.stringify(response), { expires: 7 });
+      toast.success("Login successful!");
+      navigate('/'); 
+    }else{
+      toast.error("Login failed. Please try again.");
+    }
   };
 
   return (
