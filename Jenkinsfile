@@ -18,6 +18,16 @@ pipeline {
                         echo 'Provisioning GREEN server...'
                         dir('infra') {
                             sh 'terraform init'
+                            
+                            // Import existing Security Group if it exists
+                            sh '''
+                                if aws ec2 describe-security-groups --group-names CollabSphere-SG --region ap-southeast-1 >/dev/null 2>&1; then
+                                    echo "Security Group exists, importing to state..."
+                                    SG_ID=$(aws ec2 describe-security-groups --group-names CollabSphere-SG --region ap-southeast-1 --query 'SecurityGroups[0].GroupId' --output text)
+                                    terraform import aws_security_group.app_sg $SG_ID || echo "Already imported or failed"
+                                fi
+                            '''
+                            
                             sh 'terraform plan'
                             sh 'terraform apply -auto-approve'
                     
@@ -55,7 +65,7 @@ pipeline {
                         }
                     }
                     
-                    def credentialsToTry = ['aws-ec2-ssh-key', 'github-ssh-key', 'asia-pacific-key']
+                    def credentialsToTry = ['collabsphere-ssh-key', 'asia-pacific']
                     def workingCredential = null
                     
                     for (cred in credentialsToTry) {
