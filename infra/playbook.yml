@@ -1,90 +1,51 @@
----
-- name: Configure CollabSphere Application Server
-  hosts: app_servers 
+- hosts: all
   become: yes
-  gather_facts: yes
-  
   vars:
-    docker_users:
-      - ubuntu
-
-  pre_tasks:
-    - name: "SYSTEM | Wait for system to become reachable"
-      wait_for_connection:
-        timeout: 300
-    
-    - name: "SYSTEM | Gather facts if not already done"
-      setup:
+    target_user: "ubuntu"
 
   tasks:
-    - name: "SYSTEM | Update apt cache"
-      apt:
+    - name: "SYSTEM | Update APT package cache"
+      ansible.builtin.apt:
         update_cache: yes
         cache_valid_time: 3600
-      tags: [system]
 
-    - name: "SYSTEM | Install required system packages"
-      apt:
+    - name: "DOCKER | Install prerequisite packages"
+      ansible.builtin.apt:
         name:
           - apt-transport-https
           - ca-certificates
           - curl
           - gnupg
-          - software-properties-common
-          - python3-pip
-          - git
+          - lsb-release
         state: present
-      tags: [system]
 
-    - name: "DOCKER | Create directory for Docker GPG key"
-      file:
-        path: /etc/apt/keyrings
-        state: directory
-        mode: '0755'
-      tags: [docker]
-
-    - name: "DOCKER | Add Docker GPG key"
-      get_url:
+    - name: "DOCKER | Add Docker's official GPG key"
+      ansible.builtin.apt_key:
         url: https://download.docker.com/linux/ubuntu/gpg
-        dest: /etc/apt/keyrings/docker.asc
-        mode: '0644'
-        force: true
-      tags: [docker]
+        state: present
 
-    - name: "DOCKER | Add Docker repository"
-      apt_repository:
-        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    - name: "DOCKER | Set up the Docker APT repository"
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
         state: present
         update_cache: yes
-      tags: [docker]
 
-    - name of: "DOCKER | Install Docker packages"
-      apt:
+    - name: "DOCKER | Install Docker Engine and related tools"
+      ansible.builtin.apt:
         name:
           - docker-ce
           - docker-ce-cli
           - containerd.io
-          - docker-buildx-plugin
-          - docker-compose-plugin
         state: present
-      tags: [docker]
 
-    - name: "DOCKER | Ensure Docker service is started and enabled"
-      systemd:
+    - name: "DOCKER | Ensure Docker service is started and enabled on boot"
+      ansible.builtin.service:
         name: docker
         state: started
         enabled: yes
-      tags: [docker]
 
-    - name: "DOCKER | Add ubuntu user to docker group"
-      user:
-        name: "{{ item }}"
+    - name: "USER | Add '{{ target_user }}' to the docker group"
+      ansible.builtin.user:
+        name: "{{ target_user }}"
         groups: docker
         append: yes
-      loop: "{{ docker_users }}"
-      tags: [docker]
-
-  post_tasks:
-    - name: "SYSTEM | Display completion message"
-      debug:
-        msg: "Server configuration completed successfully! Ready for deployment."
