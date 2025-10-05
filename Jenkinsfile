@@ -1,7 +1,8 @@
 pipeline {
     agent any
+    
     environment {
-        DOCKER_IMAGE_NAME = "nguyense21/collabsphere-frontend"
+        DOCKER_IMAGE_NAME = "nguyense21/collabsphere-frontend:latest"
     }
 
     stages {
@@ -103,7 +104,7 @@ pipeline {
                         
                         SOLUTION:
                         1. Go to Jenkins → Manage Credentials
-                        2. Create new SSH credential with ID: 'aws-ec2-ssh-key'
+                        2. Create new SSH credential with ID: 'collabsphere-ssh-key'
                         3. Username: ubuntu
                         4. Private Key: Content of asia-pacific.pem file
                         
@@ -125,7 +126,7 @@ pipeline {
                     
                     echo "Cleaning up old SSH host keys for ${env.APP_SERVER_IP}..."
                     sh """
-                        ssh-keygen -f '/var/lib/jenkins/.ssh/known_hosts' -R '${env.APP_SERVER_IP}' || echo 'No existing host key found'
+                        ssh-keygen -f '/var/jenkins_home/.ssh/known_hosts' -R '${env.APP_SERVER_IP}' || echo 'No existing host key found'
                         echo "Host key removed for ${env.APP_SERVER_IP}"
                     """
                     
@@ -146,119 +147,88 @@ pipeline {
             }
         }
 
-        stage('Manual SSH Credential Setup') {
-            when {
-                expression { env.WORKING_SSH_CREDENTIAL == null }
-            }
+        stage('Pull Pre-Built Docker Image') {
             steps {
                 script {
-                    echo """
-                    ⚠️  MANUAL SETUP REQUIRED ⚠️
+                    echo "=== USING PRE-BUILT IMAGE FROM DOCKER HUB ==="
+                    echo "Image: ${env.DOCKER_IMAGE_NAME}"
+                    echo "This image was built by GitHub Actions on push to main branch"
+                    echo ""
+                    echo "⚠️  NOTE: Make sure GitHub Actions workflow has completed before running this pipeline"
+                    echo ""
                     
-                    No working SSH credentials found. Please:
-                    
-                    1. Go to Jenkins Dashboard → Manage Jenkins → Manage Credentials
-                    2. Click on 'Global' domain
-                    3. Click 'Add Credentials'
-                    4. Select 'SSH Username with private key'
-                    5. Fill in:
-                       - ID: aws-ec2-ssh-key
-                       - Username: ubuntu
-                       - Private Key: Select 'Enter directly' and paste your asia-pacific.pem content
-                    
-                    The private key should start with:
-                    -----BEGIN RSA PRIVATE KEY-----
-                    
-                    And end with:
-                    -----END RSA PRIVATE KEY-----
-                    
-                    After creating the credential, re-run this pipeline.
-                    """
-                    
-                    // Try to provide more help
-                    withCredentials([aws(credentialsId: 'aws-jenkins-credentials')]) {
-                        sh """
-                            echo "You can also create a new key pair and update Terraform:"
-                            echo "aws ec2 create-key-pair --key-name jenkins-ssh-key --query 'KeyMaterial' --output text > jenkins-ssh-key.pem"
-                            echo "Then update variables.tf to use 'jenkins-ssh-key' instead of 'asia-pacific'"
-                        """
-                    }
-                    
-                    error "Please setup SSH credentials and re-run the pipeline"
-                }
-            }
-        }
-
-        stage('Build and Push Docker Image') {
-            steps {
-                script {
-                    echo "=== DISK SPACE CHECK & CLEANUP ==="
-                    
-                    // Move to root directory to avoid infra folder
-                    dir('.') {
-                        // Check available disk space
-                        sh """
-                            echo "Current working directory:"
-                            pwd
-                            ls -la
-                            echo "Disk space before cleanup:"
-                            df -h || echo "df command not available"
-                        """
-                        
-                        // Cleanup Docker to free space
-                        sh """
-                            echo "Cleaning up Docker resources..."
-                            docker system prune -f || echo "Docker cleanup failed"
-                            docker image prune -f || echo "Docker image cleanup failed"
-                            
-                            # Remove old unused images
-                            docker images --filter "dangling=true" -q | xargs -r docker rmi || echo "No dangling images"
-                        """
-                        
-                        // Check space after cleanup
-                        sh """
-                            echo "Disk space after cleanup:"
-                            df -h || echo "df command not available"
-                        """
-                        
-                        echo "=== BUILDING DOCKER IMAGE ==="
-                        echo "Build Docker image: ${env.DOCKER_IMAGE_NAME}"
-                        
-                        // Build with reduced context and explicit dockerignore
-                        sh """
-                            echo "Checking .dockerignore:"
-                            cat .dockerignore || echo "No .dockerignore found"
-                            
-                            echo "Docker build context size estimation:"
-                            find . -name "infra" -type d -exec du -sh {} \\; || echo "No infra folder"
-                            
-                            echo "Building Docker image (excluding infra folder)..."
-                            docker build --no-cache -t ${env.DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER} .
-                            docker tag ${env.DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER} ${env.DOCKER_IMAGE_NAME}:latest
-                        """
-                        
-                        withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                            sh """
-                                echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
-                                docker push ${env.DOCKER_IMAGE_NAME}:latest
-                            """
+                    // Verify image exists
+                    sh """
+                        echo "Verifying image exists on Docker Hub..."
+                        docker pull ${env.DOCKER_IMAGE_NAME} || {
+                            echo "❌ ERROR: Image not found on Docker Hub"
+                            echo ""
+                            echo "TROUBLESHOOTING:"
+                            echo "1. Check GitHub Actions workflow status"
+                            echo "2. Verify Docker Hub credentials in GitHub Secrets"
+                            echo "3. Ensure build completed successfully"
+                            exit 1
                         }
-                    }
+                        echo "✅ Image verified and pulled successfully"
+                    """
                 }
             }
         }
 
         stage('Deploy to App Server') {
             steps {
-                sshagent(credentials: [env.WORKING_SSH_CREDENTIAL]) {
+                script {
+                    echo "=== DEPLOYING TO APP SERVER ==="
+                    echo "Target: ${env.APP_SERVER_IP}"
+                    echo "Image: ${env.DOCKER_IMAGE_NAME}"
+                    
+                    sshagent(credentials: [env.WORKING_SSH_CREDENTIAL]) {
+                        sh """
+                            ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_SERVER_IP} '
+                                echo "Pulling latest image on App Server..."
+                                docker pull ${env.DOCKER_IMAGE_NAME}
+                                
+                                echo "Stopping old container..."
+                                docker stop collabsphere-app || true
+                                docker rm collabsphere-app || true
+                                
+                                echo "Starting new container..."
+                                docker run -d \\
+                                    --name collabsphere-app \\
+                                    --restart unless-stopped \\
+                                    -p 80:80 \\
+                                    ${env.DOCKER_IMAGE_NAME}
+                                
+                                echo "Waiting for container to start..."
+                                sleep 5
+                                
+                                echo "Checking container status..."
+                                docker ps | grep collabsphere-app || {
+                                    echo "❌ Container failed to start"
+                                    docker logs collabsphere-app
+                                    exit 1
+                                }
+                                
+                                echo "✅ Deployment successful!"
+                            '
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                script {
+                    echo "=== HEALTH CHECK ==="
                     sh """
-                        ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_SERVER_IP} '
-                            docker pull ${env.DOCKER_IMAGE_NAME}:latest
-                            docker stop hairsalon-app || true
-                            docker rm hairsalon-app || true
-                            docker run -d --name hairsalon-app -p 80:80 ${env.DOCKER_IMAGE_NAME}:latest
-                            echo "Deployment successful!"
-                        '
+                        echo "Testing app accessibility..."
+                        sleep 3
+                        curl -f http://${env.APP_SERVER_IP} -o /dev/null -s -w "HTTP Status: %{http_code}\\n" || {
+                            echo "⚠️ WARNING: App might not be responding yet"
+                            echo "Please check manually: http://${env.APP_SERVER_IP}"
+                        }
+                        echo "✅ Health check completed"
                     """
                 }
             }
@@ -266,31 +236,42 @@ pipeline {
     }
     
     post {
+        success {
+            echo """
+            ========================================
+            ✅ PIPELINE COMPLETED SUCCESSFULLY!
+            ========================================
+            App URL: http://${env.APP_SERVER_IP}
+            Docker Image: ${env.DOCKER_IMAGE_NAME}
+            ========================================
+            """
+        }
+        failure {
+            echo """
+            ========================================
+            ❌ PIPELINE FAILED!
+            ========================================
+            Please check:
+            1. GitHub Actions build completed
+            2. Terraform/Ansible configuration
+            3. SSH credentials
+            4. App Server accessibility
+            ========================================
+            """
+        }
         always {
             script {
                 echo "=== POST-BUILD CLEANUP ==="
-                // Cleanup workspace but keep essential files
                 sh """
-                    echo "Cleaning up Terraform files to save space..."
-                    rm -rf infra/.terraform/ || echo "No .terraform folder to clean"
-                    rm -f infra/*.tfstate.backup || echo "No backup files to clean"
+                    echo "Cleaning up Terraform files..."
+                    rm -rf infra/.terraform/ || echo "No .terraform folder"
+                    rm -f infra/*.tfstate.backup || echo "No backup files"
                     
-                    echo "Cleaning up Docker build cache..."
-                    docker builder prune -f || echo "Docker builder cleanup failed"
+                    echo "Cleaning up Docker images..."
+                    docker image prune -f || echo "Cleanup skipped"
                     
-                    echo "Final disk space check:"
+                    echo "Final disk space:"
                     df -h || echo "df command not available"
-                """
-            }
-            cleanWs() 
-        }
-        failure {
-            script {
-                echo "=== BUILD FAILED - EMERGENCY CLEANUP ==="
-                sh """
-                    echo "Emergency cleanup due to build failure..."
-                    docker system prune -af || echo "Emergency Docker cleanup failed"
-                    rm -rf infra/.terraform/ || echo "No .terraform to clean"
                 """
             }
         }
