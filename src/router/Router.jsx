@@ -22,14 +22,17 @@ import LoginPage from '../pages/LoginPage';
 import ConnectRoom from '../test/ConnectRoom';
 import VideoRoom from '../test/VideoRoom';
 import ProjectApprovals from '../pages/academic/ProjectApprovals';
+import MilestonePage from '../pages/student/project/MilestonePage';
+import CheckpointPage from '../pages/student/project/CheckpointPage';
+import PeerEvaluationPage from '../pages/student/project/PeerEvaluationPage';
 //Student role imports
 import StudentHomePage from '../pages/student/StudentHomepage';
 import StudentProjectPage from '../pages/student/StudentProjectPage';
 import ProjectBoard from '../pages/student/project/ProjectBoard';
-import ProjectMilestones from '../pages/student/project/ProjectMilestones';
-import ProjectCheckpoints from '../pages/student/project/ProjectCheckpoints';
-import ProjectMembers from '../pages/student/project/ProjectMembers';
 import TestKanbanBoard from '../pages/TestKanbanBoard';
+import StudentProfile from '../pages/student/StudentProfile';
+import StudentClassPage from '../pages/student/StudentClassPage';
+import TeamWorkspace from '../pages/student/project/TeamWorkspace';
 
 const router = createBrowserRouter([
   {
@@ -149,21 +152,34 @@ const router = createBrowserRouter([
     element: <StudentProjectPage />,
   },
   {
+    path: '/student/profile',
+    element: <StudentProfile />,
+  },
+  {
+    path: '/student/classes',
+    element: <StudentClassPage />,
+  },
+  {
+    path: '/student/project/:id/:projectName/team-workspace',
+    element: <TeamWorkspace />,
+  },
+  {
+    path: '/student/project/:id/:projectName/peer-evaluation',
+    element: <PeerEvaluationPage />,
+  },
+  {
     path: '/student/project/:id/:projectName',
     element: <ProjectBoard />,
   },
   {
     path: '/student/project/:id/:projectName/milestones',
-    element: <ProjectMilestones />,
+    element: <MilestonePage />,
   },
   {
     path: '/student/project/:id/:projectName/checkpoints',
-    element: <ProjectCheckpoints />,
+    element: <CheckpointPage />,
   },
-  {
-    path: '/student/project/:id/:projectName/members',
-    element: <ProjectMembers />,
-  },
+
 ]);
 
 export const Router = () => {

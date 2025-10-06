@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Archive } from "lucide-react";
+import { Home, Archive, User, School } from "lucide-react";
 
 const StudentSidebar = () => {
     const location = useLocation();
@@ -34,6 +34,31 @@ const StudentSidebar = () => {
                             <Archive className="inline-block mr-3 h-7 w-7" />Projects
                         </Link>
                     </li>
+                    <li>
+                        <Link
+                            to="/student/classes"
+                            className={`flex items-center px-4 py-2 rounded-lg text-xl font-semibold ${
+                                currentPath === "/student/classes"
+                                    ? "bg-blue-700 bg-opacity-25 text-blue-600"
+                                    : "hover:bg-gray-100"
+                            }`}
+                        >
+                            <School className="inline-block mr-3 h-7 w-7" />Classes
+                        </Link>
+                    </li>
+                    <li>
+                        <Link
+                            to="/student/profile"
+                            className={`flex items-center px-4 py-2 rounded-lg text-xl font-semibold ${
+                                currentPath === "/student/profile"
+                                    ? "bg-blue-700 bg-opacity-25 text-blue-600"
+                                    : "hover:bg-gray-100"
+                            }`}
+                        >
+                            <User className="inline-block mr-3 h-7 w-7" />Profile
+                        </Link>
+                    </li>
+                    
                 </ul>
             </nav>
         </aside>
