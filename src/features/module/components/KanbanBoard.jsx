@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+﻿import React, { useState } from 'react';
 import { Squares2X2Icon } from '@heroicons/react/24/outline';
 import styles from './KanbanBoard.module.css';
 
@@ -19,16 +19,9 @@ const ROLE_COLORS = {
   'QA Engineer': '#f97316'
 };
 
-const KanbanBoard = ({ kanbanTasks = [], setKanbanTasks }) => {
-  const [selectedRole, setSelectedRole] = useState('all');
+const KanbanBoard = ({ kanbanTasks = [], setKanbanTasks, selectedRole = 'all' }) => {
   const [draggedTaskId, setDraggedTaskId] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
-
-  const roles = useMemo(() => {
-    const roleSet = new Set();
-    kanbanTasks.forEach(task => task.role && roleSet.add(task.role));
-    return ['all', ...Array.from(roleSet)];
-  }, [kanbanTasks]);
 
   const getColumnTasks = (columnId) => {
     return kanbanTasks.filter(task => {
@@ -75,7 +68,7 @@ const KanbanBoard = ({ kanbanTasks = [], setKanbanTasks }) => {
 
   return (
     <div className={styles.board}>
-      <div className={styles.header}>
+      {/* <div className={styles.header}>
         <div className={styles.headerLeft}>
           <Squares2X2Icon className={styles.icon} />
           <div>
@@ -83,16 +76,7 @@ const KanbanBoard = ({ kanbanTasks = [], setKanbanTasks }) => {
             <p className={styles.subtitle}>Organize and track your team tasks</p>
           </div>
         </div>
-        
-        <div className={styles.roleFilter}>
-          <label htmlFor="role-select">Filter by Role:</label>
-          <select id="role-select" value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)} className={styles.select}>
-            {roles.map(role => (
-              <option key={role} value={role}>{role === 'all' ? 'All Roles' : role}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+      </div> */}
 
       <div className={styles.columns}>
         {COLUMNS.map(column => {

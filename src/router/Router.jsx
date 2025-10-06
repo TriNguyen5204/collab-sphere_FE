@@ -28,7 +28,17 @@ import AccountManagement from '../pages/admin/AccountManagement';
 import SystemReport from '../pages/admin/SystemReport';
 import DepartmentDashboard from '../pages/headDepartment/Dashboard';
 import SubjectManagement from '../pages/headDepartment/Subject&SyllabusManagement';
+import MilestonePage from '../pages/student/project/MilestonePage';
+import CheckpointPage from '../pages/student/project/CheckpointPage';
+import PeerEvaluationPage from '../pages/student/project/PeerEvaluationPage';
+//Student role imports
+import StudentHomePage from '../pages/student/StudentHomepage';
+import StudentProjectPage from '../pages/student/StudentProjectPage';
+import ProjectBoard from '../pages/student/project/ProjectBoard';
 import TestKanbanBoard from '../pages/TestKanbanBoard';
+import StudentProfile from '../pages/student/StudentProfile';
+import StudentClassPage from '../pages/student/StudentClassPage';
+import TeamWorkspace from '../pages/student/project/TeamWorkspace';
 
 const router = createBrowserRouter([
   {
@@ -175,8 +185,7 @@ const router = createBrowserRouter([
   {
     path: '/academic/project-approvals',
     element: <ProjectApprovals />,
-  }
-
+  },
 ]);
 
 export const Router = () => {
