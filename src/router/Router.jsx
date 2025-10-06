@@ -169,6 +169,10 @@ const router = createBrowserRouter([
     element: <TestKanbanBoard />,
   },
   {
+    path: '/test/kanban',
+    element: <TestKanbanBoard />,
+  },
+  {
     path: '/academic/project-approvals',
     element: <ProjectApprovals />,
   }
