@@ -7,7 +7,7 @@ on:
 
 env:
   DOCKER_IMAGE: nguyense21/collabsphere-frontend
-  JENKINS_URL: http://54.254.148.245:8080
+  JENKINS_URL: http://13.229.249.207:8080/
 
 jobs:
   build:
