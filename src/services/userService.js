@@ -16,6 +16,36 @@ export const createMultipleClasses = async (data) => {
         throw error;
     }
 }
+export const importStudentList = async (data) => {
+    try{
+        const formData = new FormData();
+        formData.append('file', data);
+        const response = await apiClient.post('/Student/import', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    }catch(error){
+        console.error('Error importing student list:', error);
+        throw error;
+    }
+}
+export const importLecturerList = async (data) => {
+    try{
+        const formData = new FormData();
+        formData.append('file', data);
+        const response = await apiClient.post('/Lecturer/import', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    }catch(error){
+        console.error('Error importing lecturer list:', error);
+        throw error;
+    }
+}
 export const getAllLecturer = async () => {
     try{
         const response = await apiClient.get('/Lecturer');
@@ -27,7 +57,7 @@ export const getAllLecturer = async () => {
 }
 export const getAllStudent = async () => {
     try{
-        const response = await apiClient.get('/student');
+        const response = await apiClient.get('/Student');
         return response.data;
     }catch(error){
         console.error('Error fetching all students:', error);
@@ -78,3 +108,12 @@ export const createMultipleSubjects = async (data) => {
         throw error;
     }
 }
+export const getAllProject = async (params = {}) => {
+  try {
+    const response = await apiClient.get('/project', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching all projects:', error);
+    throw error;
+  }
+};

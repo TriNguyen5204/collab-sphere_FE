@@ -29,6 +29,7 @@ import SystemReport from '../pages/admin/SystemReport';
 import DepartmentDashboard from '../pages/headDepartment/Dashboard';
 import SubjectManagement from '../pages/headDepartment/Subject&SyllabusManagement';
 import TestKanbanBoard from '../pages/TestKanbanBoard';
+import ProjectManagement from '../pages/headDepartment/ProjectManagement';
 
 const router = createBrowserRouter([
   {
@@ -162,19 +163,16 @@ const router = createBrowserRouter([
     element: <SubjectManagement />,
   },
   {
-    path: '/head-department/syllabus-management',
-  },
-  {
     path: '/test/kanban',
     element: <TestKanbanBoard />,
   },
   {
-    path: '/test/kanban',
-    element: <TestKanbanBoard />,
-  },
-  {
-    path: '/academic/project-approvals',
+    path: '/head-department/project-approvals',
     element: <ProjectApprovals />,
+  },
+  {
+    path: '/head-department/project-management',
+    element: <ProjectManagement />,
   }
 
 ]);

@@ -43,10 +43,10 @@ export default function ImprovedCreateClassForm() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // const studentsData = await getAllStudent();
-        // setStudents(studentsData);
-        // const lecturersData = await getAllLecturer();
-        // setLecturers(lecturersData);
+        const studentsData = await getAllStudent();
+        setStudents(studentsData);
+        const lecturersData = await getAllLecturer();
+        setLecturers(lecturersData);
         const subjectsData = await getAllSubject();
         setSubjects(subjectsData);
       } catch (error) {
@@ -131,12 +131,12 @@ export default function ImprovedCreateClassForm() {
   const getFilteredStudents = () => {
     return students.filter(student => {
       const matchesSearch =
-        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.uId.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.email.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesYear =
         yearFilter === 'all' ||
-        student.year.toLowerCase() === yearFilter.toLowerCase();
+        student.yob.toLowerCase() === yearFilter.toLowerCase();
       return matchesSearch && matchesYear;
     });
   };
@@ -437,10 +437,10 @@ export default function ImprovedCreateClassForm() {
                 <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-96 overflow-y-auto'>
                   {filteredStudents.map(student => (
                     <div
-                      key={student.id}
+                      key={student.uId}
                       onClick={() => toggleStudent(student)}
                       className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                        form.students.some(s => s.id === student.id)
+                        form.students.some(s => s.uId === student.uId)
                           ? 'border-blue-500 bg-blue-50'
                           : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
                       }`}
@@ -448,11 +448,11 @@ export default function ImprovedCreateClassForm() {
                       <div className='flex items-center gap-3'>
                         <div className='relative'>
                           <img
-                            src={student.avatar}
-                            alt={student.name}
+                            src={student.avatarPublicId}
+                            alt={student.fullname}
                             className='w-10 h-10 rounded-full object-cover'
                           />
-                          {form.students.some(s => s.id === student.id) && (
+                          {form.students.some(s => s.uId === student.uId) && (
                             <div className='absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center'>
                               <CheckCircle className='w-3 h-3 text-white' />
                             </div>
@@ -460,13 +460,13 @@ export default function ImprovedCreateClassForm() {
                         </div>
                         <div className='flex-1'>
                           <h3 className='font-semibold text-gray-900'>
-                            {student.name}
+                            {student.fullname}
                           </h3>
                           <p className='text-sm text-gray-600'>
-                            {student.studentId}
+                            {student.uId}
                           </p>
                           <p className='text-xs text-gray-500'>
-                            {student.major} • {student.year}
+                            {student.major} • {student.yob}
                           </p>
                         </div>
                       </div>
@@ -561,20 +561,20 @@ export default function ImprovedCreateClassForm() {
                     <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto'>
                       {form.students.map(student => (
                         <div
-                          key={student.id}
+                          key={student.uId}
                           className='flex items-center gap-3 p-3 bg-white rounded-lg border'
                         >
                           <img
-                            src={student.avatar}
-                            alt={student.name}
+                            src={student.avatarPublicId}
+                            alt={student.fullname}
                             className='w-8 h-8 rounded-full object-cover'
                           />
                           <div>
                             <p className='font-medium text-gray-900 text-sm'>
-                              {student.name}
+                              {student.fullname}
                             </p>
                             <p className='text-xs text-gray-600'>
-                              {student.studentId}
+                              {student.uId}
                             </p>
                           </div>
                         </div>
