@@ -45,6 +45,7 @@ const router = createBrowserRouter([
     path: '/',
     element: <App />,
   },
+  // Auth routes
   {
     path: '/login', 
     element: <LoginPage />
@@ -53,6 +54,7 @@ const router = createBrowserRouter([
     path: '/register', 
     element: <RegisterPage />
   },
+  // Lecturer routes
   {
     path: '/lecturer/classes',
     element: <ClassManagementDashboard />,
@@ -109,21 +111,10 @@ const router = createBrowserRouter([
     path: '/lecturer/monitoring',
     element: <LecturerMonitoringDashboard />,
   },
+  // Staff routes
   {
     path: '/staff',
     element: <StaffPage />,
-  },
-  {
-    path: '/academic',
-    element: <AcademicList />,
-  },
-  {
-    path: '/academic/new',
-    element: <AcademicCreate />,
-  },
-  {
-    path: '/academic/:id',
-    element: <AcademicDetail />,
   },
   {
     path: '/staff/lecturers',
@@ -137,19 +128,24 @@ const router = createBrowserRouter([
     path: '/staff/classes/:classId',
     element: <ClassDetail />,
   },
+  // Academic routes
   {
-    path: '/room',
-    element: <ConnectRoom />,
+    path: '/academic',
+    element: <AcademicList />,
   },
   {
-    path: '/room/:roomId',
-    element: <VideoRoom />,
+    path: '/academic/new',
+    element: <AcademicCreate />,
   },
-  // {
-  //   path: '/academic/project-approvals',
-  //   element: <ProjectApprovals />,
-  // },
-  //admin
+  {
+    path: '/academic/:id',
+    element: <AcademicDetail />,
+  },
+  {
+    path: '/academic/project-approvals',
+    element: <ProjectApprovals />,
+  },
+  // Admin routes
   {
     path: '/admin',
     element: <AdminDashboard />,
@@ -162,7 +158,7 @@ const router = createBrowserRouter([
     path: '/admin/reports',
     element: <SystemReport />,
   },
-  //head of department
+  // Head of Department routes
   {
     path: '/head-department',
     element: <DepartmentDashboard />,
@@ -171,20 +167,55 @@ const router = createBrowserRouter([
     path: '/head-department/subject-management',
     element: <SubjectManagement />,
   },
+  // Student routes
   {
-    path: '/head-department/syllabus-management',
+    path: '/student/home',
+    element: <StudentHomePage />,
   },
+  {
+    path: '/student/profile',
+    element: <StudentProfile />,
+  },
+  {
+    path: '/student/projects',
+    element: <StudentProjectPage />,
+  },
+  {
+    path: '/student/classes',
+    element: <StudentClassPage />,
+  },
+  {
+    path: '/student/project/:id/:projectName',
+    element: <ProjectBoard />,
+  },
+  {
+    path: '/student/project/:id/:projectName/team-workspace',
+    element: <TeamWorkspace />,
+  },
+  {
+    path: '/student/project/:id/:projectName/milestones',
+    element: <MilestonePage />,
+  },
+  {
+    path: '/student/project/:id/:projectName/checkpoints',
+    element: <CheckpointPage />,
+  },
+  {
+    path: '/student/project/:id/:projectName/peer-evaluation',
+    element: <PeerEvaluationPage />,
+  },
+  // Test routes
   {
     path: '/test/kanban',
     element: <TestKanbanBoard />,
   },
   {
-    path: '/test/kanban',
-    element: <TestKanbanBoard />,
+    path: '/room',
+    element: <ConnectRoom />,
   },
   {
-    path: '/academic/project-approvals',
-    element: <ProjectApprovals />,
+    path: '/room/:roomId',
+    element: <VideoRoom />,
   },
 ]);
 
