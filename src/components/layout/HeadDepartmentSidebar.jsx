@@ -1,7 +1,7 @@
 
-import { path } from 'framer-motion/client';
 import { BookOpen, FolderKanban, ChevronRight, LayoutDashboard, Clock } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import Logo from '../../assets/logov1.png';
 
 const HeadDepartmentSidebar = () => {
   const navigate = useNavigate();
@@ -43,8 +43,8 @@ const HeadDepartmentSidebar = () => {
       {/* Header */}
       <div className='p-6 border-b border-gray-200'>
         <div className='flex items-center gap-3'>
-          <div className='w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md'>
-            <LayoutDashboard className='w-5 h-5 text-white' />
+          <div className='w-10 h-10 bg-gradient-to-br rounded-lg flex items-center justify-center shadow-md'>
+            <img src={Logo} alt='Logo' className='w-6 h-6 object-contain' />
           </div>
           <h1 className='text-xl font-bold text-gray-800'>SmartEnroll</h1>
         </div>

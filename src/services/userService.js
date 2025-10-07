@@ -1,6 +1,15 @@
 import apiClient from './apiClient';
 
 //staff
+export const createClass = async (data) => {
+    try{
+        const response = await apiClient.post('/class', data);
+        return response.data;
+    }catch(error){
+        console.error('Error creating class:', error);
+        throw error;
+    }
+}
 export const createMultipleClasses = async (data) => {
     try{
         const formData = new FormData();
@@ -105,6 +114,24 @@ export const createMultipleSubjects = async (data) => {
         return response.data;
     }catch(error){
         console.error('Error creating multiple subjects:', error);
+        throw error;
+    }
+}
+export const deleteSubjectById = async (subjectId) => {
+    try{
+        const response = await apiClient.delete(`/Subject/${subjectId}`);
+        return response.data;
+    }catch(error){
+        console.error(`Error deleting subject with ID ${subjectId}:`, error);
+        throw error;
+    }
+}
+export const updateSubject = async (data) => {
+    try{
+        const response = await apiClient.put(`/Subject`, data);    
+        return response.data;
+    }catch(error){
+        console.error(`Error updating syllabus for subject}:`, error);
         throw error;
     }
 }

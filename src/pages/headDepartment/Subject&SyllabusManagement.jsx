@@ -15,15 +15,17 @@ import {
 } from 'lucide-react';
 import ModalWrapper from '../../components/layout/ModalWrapper';
 import CreateMultipleSubjectForm from '../../components/ui/CreateMultipleSubjectForm';
+import UpdateSubjectForm from '../../components/ui/UpdateSubjectForm';
 import {
   getAllSubject,
   getSyllabusBySubjectId,
 } from '../../services/userService';
 import HeadDepartmentSidebar from '../../components/layout/HeadDepartmentSidebar';
 
-export default function ImprovedSubjectManagement() {
+export default function SubjectManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
 
   const [subjects, setSubjects] = useState([]);
 
@@ -47,6 +49,11 @@ export default function ImprovedSubjectManagement() {
   const handleSelectSubject = subject => {
     setSelectedSubject(subject);
   };
+  const handleUpdateSubject = updatedSubject => {
+    setSelectedSubject(updatedSubject);
+    setIsUpdateModalOpen(true);
+  }
+
 
   useEffect(() => {
     const fetchSyllabus = async () => {
@@ -106,6 +113,19 @@ export default function ImprovedSubjectManagement() {
 
     fetchSyllabus();
   }, [selectedSubject]);
+
+  // const handleDeleteSubject = subjectId => {
+  //   const confirmed = window.confirm(
+  //     'Are you sure you want to delete this subject? This action cannot be undone.'
+  //   );
+  //   if (confirmed) {
+  //     const response = await 
+  //     setSubjects(prev => prev.filter(s => s.subjectId !== subjectId));
+  //     if (selectedSubject?.subjectId === subjectId) {
+  //       setSelectedSubject(null);
+  //     }
+      
+  // }
 
   const getSyllabus = subjectId =>
     syllabus.find(s => s.subjectId === subjectId);
@@ -223,11 +243,15 @@ export default function ImprovedSubjectManagement() {
                           </div>
                         </div>
                         <div className='flex gap-2 mt-3 pt-3 border-t'>
-                          <button className='flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors'>
+                          <button 
+                          onClick={() => handleUpdateSubject(sub)}
+                          className='flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors'>
                             <Edit className='w-3 h-3' />
                             Edit
                           </button>
-                          <button className='flex items-center gap-1 px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors'>
+                          <button 
+                          
+                          className='flex items-center gap-1 px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors'>
                             <Trash2 className='w-3 h-3' />
                             Delete
                           </button>
@@ -378,6 +402,15 @@ export default function ImprovedSubjectManagement() {
             >
               <CreateMultipleSubjectForm
                 onClose={() => setIsModalOpen(false)}
+              />
+            </ModalWrapper>
+            <ModalWrapper
+              isOpen={isUpdateModalOpen}
+              onClose={() => setIsUpdateModalOpen(false)}
+            >
+              <UpdateSubjectForm
+                subject={selectedSubject}
+                onClose={() => setIsUpdateModalOpen(false)}
               />
             </ModalWrapper>
           </div>
