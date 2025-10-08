@@ -27,7 +27,7 @@ import AdminDashboard from '../pages/admin/AdminDashboard';
 import AccountManagement from '../pages/admin/AccountManagement';
 import SystemReport from '../pages/admin/SystemReport';
 import DepartmentDashboard from '../pages/headDepartment/Dashboard';
-import SubjectManagement from '../pages/headDepartment/Subject&SyllabusManagement';
+import SubjectManagement from '../pages/headDepartment/SubjectAndSyllabusManagement';
 import MilestonePage from '../pages/student/project/MilestonePage';
 import CheckpointPage from '../pages/student/project/CheckpointPage';
 import PeerEvaluationPage from '../pages/student/project/PeerEvaluationPage';
@@ -45,7 +45,6 @@ const router = createBrowserRouter([
     path: '/',
     element: <App />,
   },
-  // Auth routes
   {
     path: '/login', 
     element: <LoginPage />
@@ -54,7 +53,43 @@ const router = createBrowserRouter([
     path: '/register', 
     element: <RegisterPage />
   },
-  // Lecturer routes
+  // student
+  {
+    path: '/student',
+    element: <StudentHomePage />,
+  },
+  {
+    path: '/student/projects',
+    element: <StudentProjectPage />,
+  },
+  {
+    path: '/student/classes',
+    element: <StudentClassPage />,
+  },
+  {
+    path: '/student/profile',
+    element: <StudentProfile />,
+  },
+  {
+    path: '/student/project/:id/:projectName',
+    element: <ProjectBoard />,
+  },
+  {
+    path: '/student/project/:id/:projectName/milestones',
+    element: <MilestonePage />,
+  },
+  {
+    path: '/student/project/:id/:projectName/checkpoints',
+    element: <CheckpointPage />,
+  },
+  {
+    path: '/student/project/:id/:projectName/peer-evaluation',
+    element: <PeerEvaluationPage />,
+  },
+  {
+    path: '/student/project/:id/:projectName/team-workspace',
+    element: <TeamWorkspace />,
+  },
   {
     path: '/lecturer/classes',
     element: <ClassManagementDashboard />,
@@ -111,24 +146,10 @@ const router = createBrowserRouter([
     path: '/lecturer/monitoring',
     element: <LecturerMonitoringDashboard />,
   },
-  // Staff routes
   {
     path: '/staff',
     element: <StaffPage />,
   },
-  {
-    path: '/staff/lecturers',
-    element: <LecturerListStaff />,
-  },
-  {
-    path: '/staff/classes',
-    element: <ClassListStaff />,
-  },
-  {
-    path: '/staff/classes/:classId',
-    element: <ClassDetail />,
-  },
-  // Academic routes
   {
     path: '/academic',
     element: <AcademicList />,
@@ -142,10 +163,30 @@ const router = createBrowserRouter([
     element: <AcademicDetail />,
   },
   {
-    path: '/academic/project-approvals',
-    element: <ProjectApprovals />,
+    path: '/staff/lecturers',
+    element: <LecturerListStaff />,
   },
-  // Admin routes
+  {
+    path: '/staff/classes',
+    element: <ClassListStaff />,
+  },
+  {
+    path: '/staff/classes/:classId',
+    element: <ClassDetail />,
+  },
+  {
+    path: '/room',
+    element: <ConnectRoom />,
+  },
+  {
+    path: '/room/:roomId',
+    element: <VideoRoom />,
+  },
+  // {
+  //   path: '/academic/project-approvals',
+  //   element: <ProjectApprovals />,
+  // },
+  //admin
   {
     path: '/admin',
     element: <AdminDashboard />,
@@ -158,7 +199,7 @@ const router = createBrowserRouter([
     path: '/admin/reports',
     element: <SystemReport />,
   },
-  // Head of Department routes
+  //head of department
   {
     path: '/head-department',
     element: <DepartmentDashboard />,
@@ -167,55 +208,20 @@ const router = createBrowserRouter([
     path: '/head-department/subject-management',
     element: <SubjectManagement />,
   },
-  // Student routes
   {
-    path: '/student/home',
-    element: <StudentHomePage />,
+    path: '/head-department/syllabus-management',
   },
-  {
-    path: '/student/profile',
-    element: <StudentProfile />,
-  },
-  {
-    path: '/student/projects',
-    element: <StudentProjectPage />,
-  },
-  {
-    path: '/student/classes',
-    element: <StudentClassPage />,
-  },
-  {
-    path: '/student/project/:id/:projectName',
-    element: <ProjectBoard />,
-  },
-  {
-    path: '/student/project/:id/:projectName/team-workspace',
-    element: <TeamWorkspace />,
-  },
-  {
-    path: '/student/project/:id/:projectName/milestones',
-    element: <MilestonePage />,
-  },
-  {
-    path: '/student/project/:id/:projectName/checkpoints',
-    element: <CheckpointPage />,
-  },
-  {
-    path: '/student/project/:id/:projectName/peer-evaluation',
-    element: <PeerEvaluationPage />,
-  },
-  // Test routes
   {
     path: '/test/kanban',
     element: <TestKanbanBoard />,
   },
   {
-    path: '/room',
-    element: <ConnectRoom />,
+    path: '/test/kanban',
+    element: <TestKanbanBoard />,
   },
   {
-    path: '/room/:roomId',
-    element: <VideoRoom />,
+    path: '/academic/project-approvals',
+    element: <ProjectApprovals />,
   },
 ]);
 
