@@ -4,7 +4,7 @@ import './index.css';
 import './styles/design-system.css';
 import Router from './router/Router.jsx';
 import { Provider } from 'react-redux';
-import { store } from './store/index.js';
+import { store } from './store';
 import AuthProvider from './components/layout/AuthProvider.jsx';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
