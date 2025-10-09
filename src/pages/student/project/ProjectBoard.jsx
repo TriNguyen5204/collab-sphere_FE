@@ -9,12 +9,12 @@ const ProjectBoard = () => {
   const roles = ['all', 'Frontend', 'Backend', 'UI/UX', 'QA', 'DevOps'];
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#D5DADF" }}>
-      <ProjectBoardHeader />
+    <div className="min-h-screen min-w-full" style={{ backgroundColor: "#D5DADF" }}>
+      <ProjectBoardHeader className=" fixed top-0 left-0 right-0 z-10" />
       
-      <main className="p-6 min-h-screen">
+      <main className="p-6 overflow-auto min-h-screen">
         {/* Role Filter */}
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between min-w-full">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Project Board</h1>
             <p className="text-gray-600 text-sm mt-1">Organize and track your tasks</p>
@@ -91,7 +91,9 @@ const ProjectBoard = () => {
           </div>
         </div>
 
-        <TrelloBoard selectedRole={selectedRole} />
+        <div className="inline-block min-w-full">
+          <TrelloBoard selectedRole={selectedRole} />
+        </div>
       </main>
     </div>
   );
