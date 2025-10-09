@@ -57,6 +57,5 @@ jobs:
           if [ "${{ needs.build.result }}" == "success" ]; then
             echo "✅ Build and deployment triggered successfully!"
           else
-            echo "❌ Build failed!"
             exit 1
           fi
