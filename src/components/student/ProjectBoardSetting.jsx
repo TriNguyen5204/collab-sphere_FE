@@ -18,7 +18,7 @@ import {
   RefreshCw
 } from "lucide-react";
 
-const ProjectBoardSetting = () => {
+const ProjectBoardSetting = ({ archivedItems, onRestoreArchived, onDeleteArchived }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showModal, setShowModal] = useState(null);
   const menuRef = useRef(null);
@@ -113,6 +113,12 @@ const ProjectBoardSetting = () => {
           label: "Sync Data",
           action: () => handleSyncData(),
           description: "Synchronize project data"
+        },
+        {
+          icon: Archive,
+          label: "Archived Items",
+          action: () => setShowModal('archiveItems'),
+          description: "View and restore archived cards/lists"
         },
         {
           icon: Archive,
@@ -253,6 +259,13 @@ const ProjectBoardSetting = () => {
       <LeaveProjectModal 
         isOpen={showModal === 'leave'} 
         onClose={() => setShowModal(null)} 
+      />
+      <ArchivedItemsModal 
+        isOpen={showModal === 'archiveItems'}
+        onClose={() => setShowModal(null)}
+        archivedItems={archivedItems}
+        onRestore={(type, id, listId) => onRestoreArchived?.(type, id, listId)}
+        onDelete={(type, id) => onDeleteArchived?.(type, id)}
       />
     </>
   );
@@ -560,6 +573,115 @@ const LeaveProjectModal = ({ isOpen, onClose }) => {
           </button>
           <button className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
             Leave Project
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ArchivedItemsModal = ({ isOpen, onClose, archivedItems, onRestore, onDelete }) => {
+  const [activeTab, setActiveTab] = useState('cards');
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden">
+        <div className="p-6 border-b">
+          <h2 className="text-2xl font-bold">Archived Items</h2>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border-b">
+          <button
+            onClick={() => setActiveTab('cards')}
+            className={`px-6 py-3 font-medium ${
+              activeTab === 'cards'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            Cards ({archivedItems?.cards?.length || 0})
+          </button>
+          <button
+            onClick={() => setActiveTab('lists')}
+            className={`px-6 py-3 font-medium ${
+              activeTab === 'lists'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            Lists ({archivedItems?.lists?.length || 0})
+          </button>
+        </div>
+
+        <div className="p-6 max-h-[60vh] overflow-y-auto">
+          {activeTab === 'cards' && (
+            <div className="space-y-3">
+              {(!archivedItems?.cards || archivedItems.cards.length === 0) ? (
+                <p className="text-gray-500 text-center py-8">No archived cards</p>
+              ) : (
+                archivedItems.cards.map((card) => (
+                  <div key={card.id} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">{card.title}</h3>
+                      <p className="text-sm text-gray-600">{card.description || 'No description'}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => onRestore('card', card.id, card.listId)}
+                        className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        Restore
+                      </button>
+                      <button
+                        onClick={() => onDelete('card', card.id, card.listId)}
+                        className="px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {activeTab === 'lists' && (
+            <div className="space-y-3">
+              {(!archivedItems?.lists || archivedItems.lists.length === 0) ? (
+                <p className="text-gray-500 text-center py-8">No archived lists</p>
+              ) : (
+                archivedItems.lists.map((list) => (
+                  <div key={list.id} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">{list.title}</h3>
+                      <p className="text-sm text-gray-600">{list.cards?.length || 0} cards</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => onRestore('list', list.id)}
+                        className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        Restore
+                      </button>
+                      <button
+                        onClick={() => onDelete('list', list.id)}
+                        className="px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+        <div className="p-6 border-t flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 border rounded-lg hover:bg-gray-50">
+            Close
           </button>
         </div>
       </div>

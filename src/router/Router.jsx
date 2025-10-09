@@ -55,7 +55,7 @@ const router = createBrowserRouter([
   },
   // student
   {
-    path: '/student',
+    path: '/student/home',
     element: <StudentHomePage />,
   },
   {

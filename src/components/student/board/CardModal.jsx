@@ -1,9 +1,9 @@
-import React, { useState, useRef } from 'react';
-import { X, Clock, User, AlignLeft, CheckCircle2, Circle, Calendar, Trash2, Upload, FileText, Image as ImageIcon, Download, Paperclip, Plus } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Clock, User, AlignLeft, CheckCircle2, Circle, Calendar, Trash2, Upload, FileText, Image as ImageIcon, Download, Paperclip, Plus, Archive } from 'lucide-react';
 import useClickOutside from '../../../hooks/useClickOutside';
 import ProjectMemberPopover from '../../student/ProjectMemberPopover';
 
-const CardModal = ({ card, listId, onClose, onUpdate, onDelete, members }) => {
+const CardModal = ({ card, listId, listTitle, onClose, onUpdate, onDelete, onArchive, members }) => {
   const [editedCard, setEditedCard] = useState({ 
     ...card,
     assignedMembers: card.assignedMembers || [],
@@ -14,13 +14,22 @@ const CardModal = ({ card, listId, onClose, onUpdate, onDelete, members }) => {
   const [showMemberMenu, setShowMemberMenu] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [popoverAnchor, setPopoverAnchor] = useState(null);
+
   const fileInputRef = useRef(null);
+  const dateInputRef = useRef(null);
+  const plusButtonRef = useRef(null);
+  const memberMenuRef = useRef(null);
 
   const panelRef = useRef(null);
   useClickOutside(panelRef, onClose);
-
-  const memberMenuRef = useRef(null);
   useClickOutside(memberMenuRef, () => setShowMemberMenu(false));
+
+  // helper to anchor member menu to plus icon
+  const getMemberMenuPosition = () => {
+    const rect = plusButtonRef.current?.getBoundingClientRect();
+    if (!rect) return {};
+    return { top: `${rect.bottom + 8}px`, left: `${rect.left}px` };
+  };
 
   const handleSave = () => {
     onUpdate(listId, editedCard);
@@ -32,6 +41,11 @@ const CardModal = ({ card, listId, onClose, onUpdate, onDelete, members }) => {
       onDelete(listId, editedCard.id);
       onClose();
     }
+  };
+
+  const handleArchive = () => {
+    onArchive(listId, editedCard.id);
+    onClose();
   };
 
   const toggleComplete = () => {
@@ -55,6 +69,7 @@ const CardModal = ({ card, listId, onClose, onUpdate, onDelete, members }) => {
         assignedMembers: [...assignedMembers, member]
       });
     }
+    setShowMemberMenu(false);
   };
 
   const handleMemberClick = (member, event) => {
@@ -102,7 +117,7 @@ const CardModal = ({ card, listId, onClose, onUpdate, onDelete, members }) => {
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
   const getFileIcon = (type) => {
@@ -112,23 +127,11 @@ const CardModal = ({ card, listId, onClose, onUpdate, onDelete, members }) => {
 
   const isOverdue = editedCard.dueDate && new Date(editedCard.dueDate) < new Date() && !editedCard.isCompleted;
 
-  const labelColors = [
-    { name: 'Red', value: 'red', bg: 'bg-red-500' },
-    { name: 'Yellow', value: 'yellow', bg: 'bg-yellow-500' },
-    { name: 'Green', value: 'green', bg: 'bg-green-500' },
-    { name: 'Blue', value: 'blue', bg: 'bg-blue-500' },
-    { name: 'Purple', value: 'purple', bg: 'bg-purple-500' },
-    { name: 'Pink', value: 'pink', bg: 'bg-pink-500' },
+  const riskLevels = [
+    { name: 'Low', value: 'low', bg: 'bg-green-500', hoverBg: 'hover:bg-green-600' },
+    { name: 'Medium', value: 'medium', bg: 'bg-yellow-500', hoverBg: 'hover:bg-yellow-600' },
+    { name: 'High', value: 'high', bg: 'bg-red-500', hoverBg: 'hover:bg-red-600' },
   ];
-
-  const toggleLabel = (labelValue) => {
-    const labels = editedCard.labels || [];
-    if (labels.includes(labelValue)) {
-      setEditedCard({ ...editedCard, labels: labels.filter(l => l !== labelValue) });
-    } else {
-      setEditedCard({ ...editedCard, labels: [...labels, labelValue] });
-    }
-  };
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
@@ -136,24 +139,41 @@ const CardModal = ({ card, listId, onClose, onUpdate, onDelete, members }) => {
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-white font-semibold text-lg">Card Details</h2>
-            <button 
-              onClick={onClose} 
-              className="text-white/80 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-all"
-              type="button"
-            >
-              <X size={24} />
-            </button>
+            <h2 className="text-white font-bold text-2xl md:text-3xl">{listTitle}</h2>
+            <div className="flex items-center gap-2">
+              {/* Move Archive/Delete to header */}
+              <button
+                onClick={handleArchive}
+                className="text-white/90 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg transition-all flex items-center gap-2"
+                type="button"
+                title="Archive Card"
+              >
+                <Archive size={18} />
+                Archive
+              </button>
+              <button
+                onClick={handleDelete}
+                className="text-white/90 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg transition-all flex items-center gap-2"
+                type="button"
+                title="Delete Card"
+              >
+                <Trash2 size={18} />
+                Delete
+              </button>
+              <button 
+                onClick={onClose} 
+                className="text-white/80 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-all"
+                type="button"
+                title="Close"
+              >
+                <X size={24} />
+              </button>
+            </div>
           </div>
         </div>
 
         <div className="p-6 overflow-y-auto max-h-[calc(95vh-180px)] space-y-6">
-          {/* 1st: List Title */}
-          <div className="text-sm text-gray-500">
-            in list <span className="font-semibold text-gray-700">To Do</span>
-          </div>
-
-          {/* 2nd: Checkbox and Title */}
+          {/* Checkbox + Title */}
           <div className="flex items-start gap-3">
             <button
               onClick={toggleComplete}
@@ -179,8 +199,9 @@ const CardModal = ({ card, listId, onClose, onUpdate, onDelete, members }) => {
             </div>
           </div>
 
-          {/* 3rd: Members and Labels */}
-          <div className="space-y-4">
+          {/* Members and Risk */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Members */}
             <div>
               <h3 className="text-gray-800 font-semibold mb-3 flex items-center gap-2">
                 <User size={20} className="text-gray-600" />
@@ -201,118 +222,202 @@ const CardModal = ({ card, listId, onClose, onUpdate, onDelete, members }) => {
                     />
                   </button>
                 ))}
-                <button
-                  onClick={() => setShowMemberMenu(!showMemberMenu)}
-                  className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all"
-                  type="button"
-                >
-                  <Plus size={20} className="text-gray-600" />
-                </button>
-              </div>
+                <div className="relative">
+                  <button
+                    ref={plusButtonRef}
+                    onClick={() => setShowMemberMenu(!showMemberMenu)}
+                    className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all"
+                    type="button"
+                  >
+                    <Plus size={20} className="text-gray-600" />
+                  </button>
 
-              {/* Member Menu */}
-              {showMemberMenu && (
-                <div ref={memberMenuRef} className="mt-2 w-80 bg-white rounded-xl shadow-2xl p-3 border border-gray-200">
-                  <h4 className="text-gray-800 font-semibold mb-3 px-2 flex items-center gap-2">
-                    <User size={16} />
-                    Select Members
-                  </h4>
-                  <div className="space-y-1 max-h-96 overflow-y-auto">
-                    {members.map((member) => {
-                      const isAssigned = editedCard.assignedMembers?.some(m => m.id === member.id);
-                      return (
-                        <button
-                          key={member.id}
-                          onClick={() => toggleMember(member)}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-                            isAssigned 
-                              ? 'bg-blue-50 hover:bg-blue-100 ring-2 ring-blue-200' 
-                              : 'hover:bg-gray-50'
-                          }`}
-                          type="button"
-                        >
-                          <img src={member.avatar} alt={member.name} className="w-9 h-9 rounded-full ring-2 ring-white shadow object-cover" />
-                          <div className="flex-1 text-left">
-                            <div className="flex items-center gap-2">
-                              <span className="text-gray-800 font-medium text-sm">{member.name}</span>
-                              <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                                member.role === 'Leader' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
-                              }`}>
-                                {member.role}
-                              </span>
-                            </div>
-                          </div>
-                          {isAssigned && <CheckCircle2 size={18} className="text-blue-600" />}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {/* Member Menu - anchored to plus icon */}
+                  {showMemberMenu && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-[60]"
+                        onClick={() => setShowMemberMenu(false)}
+                      />
+                      <div 
+                        ref={memberMenuRef}
+                        className="fixed z-[70] w-80 bg-white rounded-xl shadow-2xl p-3 border border-gray-200"
+                        style={getMemberMenuPosition()}
+                      >
+                        <h4 className="text-gray-800 font-semibold mb-3 px-2 flex items-center gap-2">
+                          <User size={16} />
+                          Select Members
+                        </h4>
+                        <div className="space-y-1">
+                          {members.map((member) => {
+                            const isAssigned = editedCard.assignedMembers?.some(m => m.id === member.id);
+                            return (
+                              <button
+                                key={member.id}
+                                onClick={() => toggleMember(member)}
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+                                  isAssigned 
+                                    ? 'bg-blue-50 hover:bg-blue-100 ring-2 ring-blue-200' 
+                                    : 'hover:bg-gray-50'
+                                }`}
+                                type="button"
+                              >
+                                <img src={member.avatar} alt={member.name} className="w-9 h-9 rounded-full ring-2 ring-white shadow object-cover" />
+                                <div className="flex-1 text-left">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-gray-800 font-medium text-sm">{member.name}</span>
+                                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                                      member.role === 'Leader' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
+                                    }`}>
+                                      {member.role}
+                                    </span>
+                                  </div>
+                                </div>
+                                {isAssigned && <CheckCircle2 size={18} className="text-blue-600" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
 
-            {/* Labels */}
+            {/* Risk Labels */}
             <div>
-              <h3 className="text-gray-800 font-semibold mb-3">Labels</h3>
+              <h3 className="text-gray-800 font-semibold mb-3">Risk Level</h3>
               <div className="flex flex-wrap gap-2">
-                {labelColors.map((label) => (
+                {riskLevels.map((risk) => (
                   <button
-                    key={label.value}
-                    onClick={() => toggleLabel(label.value)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${label.bg} ${
-                      editedCard.labels?.includes(label.value)
+                    key={risk.value}
+                    onClick={() => setEditedCard({ ...editedCard, riskLevel: risk.value })}
+                    className={`px-4 py-2 rounded-lg font-medium transition-all ${risk.bg} ${
+                      editedCard.riskLevel === risk.value
                         ? 'text-white ring-2 ring-offset-2 ring-gray-400'
                         : 'opacity-50 hover:opacity-100 text-white'
                     }`}
                     type="button"
                   >
-                    {label.name}
+                    {risk.name}
                   </button>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* 4th: Due Date */}
-          <div>
-            <h3 className="text-gray-800 font-semibold mb-3 flex items-center gap-2">
-              <Clock size={20} className="text-gray-600" />
-              Due Date
-            </h3>
-            <input
-              type="date"
-              value={editedCard.dueDate || ''}
-              onChange={(e) => setEditedCard({ ...editedCard, dueDate: e.target.value })}
-              className="w-full bg-gray-50 text-gray-700 px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-            />
-            {editedCard.dueDate && (
-              <div className={`mt-2 flex items-center gap-3 p-3 rounded-lg ${
-                editedCard.isCompleted
-                  ? 'bg-green-50 text-green-700'
-                  : isOverdue
-                  ? 'bg-red-50 text-red-700'
-                  : 'bg-blue-50 text-blue-700'
-              }`}>
-                <Calendar size={18} />
-                <span className="font-medium">
-                  {new Date(editedCard.dueDate).toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </span>
-                {editedCard.isCompleted && <CheckCircle2 size={18} />}
-                {isOverdue && (
-                  <span className="text-xs font-semibold bg-red-600 text-white px-2 py-1 rounded-full ml-auto">
-                    OVERDUE
-                  </span>
-                )}
+          {/* Details: Due Date (left) + Attachments (right) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Due Date */}
+            <div>
+              <h3 className="text-gray-800 font-semibold mb-3 flex items-center gap-2">
+                <Clock size={20} className="text-gray-600" />
+                Due Date
+              </h3>
+              <div className="space-y-2">
+                <div className="w-full bg-gray-50 text-gray-700 px-3 py-2 rounded-lg border border-gray-200 flex items-center gap-2">
+                  <input
+                    ref={dateInputRef}
+                    type="date"
+                    value={editedCard.dueDate || ''}
+                    onChange={(e) => setEditedCard({ ...editedCard, dueDate: e.target.value || null })}
+                    className="flex-1 bg-transparent outline-none"
+                  /> 
+                </div>
+                <div className="text-sm text-gray-600">
+                  {editedCard.dueDate ? (
+                    <span>
+                      {new Date(editedCard.dueDate).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
+                    </span>
+                  ) : (
+                    <span>No due date set</span>
+                  )}
+                  {editedCard.dueDate && !editedCard.isCompleted && isOverdue && (
+                    <span className="ml-2 text-xs font-semibold bg-red-600 text-white px-2 py-0.5 rounded-full">
+                      OVERDUE
+                    </span>
+                  )}
+                </div>
               </div>
-            )}
+            </div>
+
+            {/* Attachments */}
+            <div>
+              <h3 className="text-gray-800 font-semibold mb-3 flex items-center gap-2">
+                <Paperclip size={20} className="text-gray-600" />
+                Attachments
+              </h3>
+
+              {/* Upload button moved below the title */}
+              <div className="mb-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  accept="*/*"
+                />
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-2 text-sm font-medium transition-all"
+                  type="button"
+                >
+                  <Upload size={16} />
+                  Upload
+                </button>
+              </div>
+
+              {editedCard.attachments?.length > 0 && (
+                <div className="grid grid-cols-1 gap-3">
+                  {editedCard.attachments.map((attachment) => (
+                    <div key={attachment.id} className="bg-gray-50 hover:bg-gray-100 text-gray-800 p-3 rounded-lg flex items-center gap-3 transition-colors border border-gray-200">
+                      {getFileIcon(attachment.type)}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{attachment.name}</p>
+                        <p className="text-xs text-gray-500">{formatFileSize(attachment.size)}</p>
+                      </div>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => {
+                            if (attachment.file) {
+                              const url = URL.createObjectURL(attachment.file);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = attachment.name;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            }
+                          }}
+                          className="p-2 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors"
+                          title="Download"
+                          type="button"
+                        >
+                          <Download size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleRemoveAttachment(attachment.id)}
+                          className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+                          title="Remove"
+                          type="button"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* 5th: Description */}
+          {/* Description */}
           <div>
             <h3 className="text-gray-800 font-semibold mb-3 flex items-center gap-2">
               <AlignLeft size={20} className="text-gray-600" />
@@ -327,99 +432,23 @@ const CardModal = ({ card, listId, onClose, onUpdate, onDelete, members }) => {
             />
           </div>
 
-          {/* Attachments */}
-          <div>
-            <h3 className="text-gray-800 font-semibold mb-3 flex items-center gap-2">
-              <Paperclip size={20} className="text-gray-600" />
-              Attachments
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                onChange={handleFileSelect}
-                className="hidden"
-                accept="*/*"
-              />
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="ml-auto px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-2 text-sm font-medium transition-all"
-                type="button"
-              >
-                <Upload size={16} />
-                Upload
-              </button>
-            </h3>
-            {editedCard.attachments?.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {editedCard.attachments.map((attachment) => (
-                  <div key={attachment.id} className="bg-gray-50 hover:bg-gray-100 text-gray-800 p-3 rounded-lg flex items-center gap-3 transition-colors border border-gray-200">
-                    {getFileIcon(attachment.type)}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{attachment.name}</p>
-                      <p className="text-xs text-gray-500">{formatFileSize(attachment.size)}</p>
-                    </div>
-                    <div className="flex gap-1 flex-shrink-0">
-                      <button
-                        onClick={() => {
-                          if (attachment.file) {
-                            const url = URL.createObjectURL(attachment.file);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = attachment.name;
-                            a.click();
-                            URL.revokeObjectURL(url);
-                          }
-                        }}
-                        className="p-2 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors"
-                        title="Download"
-                        type="button"
-                      >
-                        <Download size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleRemoveAttachment(attachment.id)}
-                        className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
-                        title="Remove"
-                        type="button"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Delete Section */}
-          <div className="border-t pt-4">
+          {/* Footer */}
+          <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
             <button
-              onClick={handleDelete}
-              className="w-full bg-red-50 hover:bg-red-100 text-red-600 px-4 py-3 rounded-lg flex items-center justify-center gap-3 font-medium transition-all"
+              onClick={onClose}
+              className="px-6 py-2.5 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg font-medium transition-all"
               type="button"
             >
-              <Trash2 size={18} />
-              Delete Card
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all"
+              type="button"
+            >
+              Save Changes
             </button>
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-6 py-2.5 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg font-medium transition-all"
-            type="button"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all"
-            type="button"
-          >
-            Save Changes
-          </button>
         </div>
       </div>
 

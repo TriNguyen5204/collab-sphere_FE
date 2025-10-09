@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Users, TrendingUp, Crown, CheckCircle, Clock, Sparkles, Send, Filter } from 'lucide-react';
+import { Users, TrendingUp, Crown, CheckCircle, Clock, Sparkles, Send } from 'lucide-react';
 import ProjectBoardHeader from '../../../components/layout/ProjectBoardHeader';
-import TeamMemberCard from '../../../components/student/TeamMemberCard';
 import StatCard from '../../../components/student/StatCard';
 import GitRepoCard from '../../../components/student/GitRepoCard';
 import ProgressAnalytics from '../../../components/student/ProgressAnalytics';
@@ -11,6 +10,7 @@ import GitConfigModal from '../../../components/student/GitConfigModal';
 
 const TeamWorkspace = () => {
   const { id, projectName } = useParams();
+  const [selectedRole, setSelectedRole] = useState('all');
   
   // Sample data
   const [teamData] = useState({
@@ -86,8 +86,6 @@ const TeamWorkspace = () => {
     ],
   });
 
-  const [selectedRole, setSelectedRole] = useState('all');
-  const [showRoleFilter, setShowRoleFilter] = useState(false);
   const [aiMessages, setAiMessages] = useState([
     {
       id: 1,
@@ -104,8 +102,6 @@ const TeamWorkspace = () => {
   ]);
   const [aiInput, setAiInput] = useState('');
   const [showGitConfig, setShowGitConfig] = useState(false);
-
-  const roles = ['all', 'Frontend', 'Backend', 'UI/UX', 'QA', 'DevOps'];
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -154,85 +150,13 @@ const TeamWorkspace = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#D5DADF" }}>
-      <ProjectBoardHeader />
+      <ProjectBoardHeader selectedRole={selectedRole} onRoleChange={setSelectedRole} />
       
       <main className="p-6 space-y-6">
-        {/* Page Header with Filter Button */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Team Workspace</h1>
-            <p className="text-gray-600 mt-1">Manage your team and track collaboration</p>
-          </div>
-          
-          {/* Filter Button */}
-          <div className="relative">
-            <button
-              onClick={() => setShowRoleFilter(!showRoleFilter)}
-              className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-md hover:bg-gray-50 transition border border-gray-200"
-            >
-              <Filter size={20} />
-              <span className="font-medium">
-                {selectedRole === 'all' ? 'All Roles' : selectedRole}
-              </span>
-            </button>
-
-            {/* Popup Menu */}
-            {showRoleFilter && (
-              <>
-                {/* Backdrop */}
-                <div 
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowRoleFilter(false)}
-                />
-                
-                {/* Popup */}
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
-                  <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-500">
-                    <h3 className="text-white font-semibold flex items-center gap-2">
-                      <Filter size={18} />
-                      Filter by Role
-                    </h3>
-                  </div>
-                  
-                  <div className="p-2 max-h-80 overflow-y-auto">
-                    {roles.map((role) => (
-                      <button
-                        key={role}
-                        onClick={() => {
-                          setSelectedRole(role);
-                          setShowRoleFilter(false);
-                        }}
-                        className={`w-full text-left px-4 py-3 rounded-lg font-medium transition flex items-center justify-between ${
-                          selectedRole === role
-                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                            : 'text-gray-700 hover:bg-gray-50'
-                        }`}
-                      >
-                        <span>{role.charAt(0).toUpperCase() + role.slice(1)}</span>
-                        {selectedRole === role && (
-                          <CheckCircle size={18} className="text-blue-600" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                  
-                  {selectedRole !== 'all' && (
-                    <div className="p-2 border-t">
-                      <button
-                        onClick={() => {
-                          setSelectedRole('all');
-                          setShowRoleFilter(false);
-                        }}
-                        className="w-full px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition"
-                      >
-                        Clear Filter
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+        {/* Page Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Team Workspace</h1>
+          <p className="text-gray-600 mt-1">Manage your team and track collaboration</p>
         </div>
 
         {/* Quick Stats */}

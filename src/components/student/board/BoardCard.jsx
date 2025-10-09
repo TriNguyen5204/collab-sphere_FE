@@ -112,9 +112,9 @@ const BoardCard = ({ card, listId, onClick, onUpdate }) => {
           )}
         </div>
 
-        {/* 4th line: Assigned members avatars */}
+        {/* 4th line: Assigned members avatars - align right */}
         {card.assignedMembers && card.assignedMembers.length > 0 && (
-          <div className="flex -space-x-2">
+          <div className="flex -space-x-2 justify-end">
             {card.assignedMembers.slice(0, 3).map((member) => (
               <img
                 key={member.id}
