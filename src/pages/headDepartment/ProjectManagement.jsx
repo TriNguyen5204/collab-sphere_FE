@@ -19,7 +19,7 @@ export default function ProjectManagement() {
     setLoading(true);
     try {
       const data = await getAllProject(params);
-      setProjects(data);
+      setProjects(data.list);
       setError(null);
     } catch (err) {
       setError("Failed to fetch projects");

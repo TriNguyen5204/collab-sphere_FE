@@ -11,6 +11,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 import { createMultipleSubjects } from '../../services/userService';
+import { toast } from 'react-toastify';
 
 const CreateMultipleSubjectForm = () => {
   const [subjects, setSubjects] = useState([]);
@@ -18,6 +19,7 @@ const CreateMultipleSubjectForm = () => {
   const [uploadStatus, setUploadStatus] = useState('idle');
   const [fileName, setFileName] = useState('');
   const [errors, setErrors] = useState([]);
+  const [message, setMessage] = useState('');
 
   // Tải file Excel mẫu
   const downloadTemplate = () => {
@@ -113,19 +115,33 @@ const CreateMultipleSubjectForm = () => {
       alert('Vui lòng tải lên file Excel trước!');
       return;
     }
+
     try {
       setLoading(true);
-      // TODO: Gọi API
       const fileInput = document.getElementById('file-upload');
       const file = fileInput.files[0];
+
       const response = await createMultipleSubjects(file);
-      if (response) {
-        alert('Tạo môn học thành công!');
+      if (response.isSuccess) {
+        toast.success('Tạo môn học thành công!');
         resetForm();
       }
     } catch (error) {
       console.error('Error creating subjects:', error);
-      alert('Có lỗi khi tạo môn học.');
+      if (error.response && error.response.status === 400) {
+        const errorData = error.response.data;
+        const combinedMessage = errorData.errorList
+          ?.map(err => `${err.field}: ${err.message}`)
+          .join('\n');
+
+        setMessage(
+          combinedMessage || errorData.message || 'Lỗi dữ liệu đầu vào'
+        );
+        toast.error(combinedMessage || 'Lỗi khi tạo môn học');
+      } else {
+        // ✅ Các lỗi khác (500, network,...)
+        toast.error('Đã xảy ra lỗi không xác định. Vui lòng thử lại.');
+      }
     } finally {
       setLoading(false);
     }
