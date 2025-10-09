@@ -32,7 +32,7 @@ import MilestonePage from '../pages/student/project/MilestonePage';
 import CheckpointPage from '../pages/student/project/CheckpointPage';
 import PeerEvaluationPage from '../pages/student/project/PeerEvaluationPage';
 //Student role imports
-import StudentHomePage from '../pages/student/StudentHomepage';
+import StudentHomePage from '../pages/student/StudentHomePage';
 import StudentProjectPage from '../pages/student/StudentProjectPage';
 import ProjectBoard from '../pages/student/project/ProjectBoard';
 import TestKanbanBoard from '../pages/TestKanbanBoard';
