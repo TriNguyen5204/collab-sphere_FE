@@ -20,105 +20,192 @@ import {
 
 const ClassManagementDashboard = () => {
   const navigate = useNavigate();
+  const PROJECT_ASSIGNMENT_STATUS = {
+    1: { label: 'Drafted', category: 'draft' },
+    2: { label: 'In delivery', category: 'active' },
+    3: { label: 'Submitted', category: 'submitted' },
+    4: { label: 'Archived', category: 'archived' }
+  };
+
+  const TEAM_MILESTONE_STATUS = {
+    1: { label: 'Planned' },
+    2: { label: 'In progress' },
+    3: { label: 'Completed' },
+    4: { label: 'Deferred' }
+  };
   
   const [classes] = useState([
     {
-      id: 'SE109-2025',
-      name: 'SE109',
-      fullName: 'Software Engineering Fundamentals',
-      semester: 'Fall 2025',
-      enrolledStudents: 42,
-      teams: 9,
-      status: 'Active',
-      joinCode: 'A9F-3K0',
-      lastActivity: '2025-09-20T10:00:00Z',
-      progress: 78,
-      nextSession: 'Mon · 10:00 AM',
-      upcomingMilestone: {
-        title: 'Milestone 2 Review',
-        dueDate: '2025-10-05T23:59:59Z'
-      },
-      attentionLevel: 'low'
+      classId: 201,
+      className: 'SE109 - Software Engineering Fundamentals',
+      subjectCode: 'SE109',
+      subjectName: 'Software Engineering Fundamentals',
+      enrolKey: 'A9F-3K0',
+      memberCount: 42,
+      teamCount: 9,
+      lecturerName: 'Dr. Sarah Chen',
+      createdDate: '2025-08-12T09:00:00Z',
+      isActive: true,
+      projectAssignments: [
+        {
+          projectAssignmentId: 5001,
+          projectId: 3001,
+          projectName: 'AI Study Companion',
+          projectStatus: 2,
+          assignmentStatus: 2,
+          assignedDate: '2025-08-15T09:00:00Z'
+        },
+        {
+          projectAssignmentId: 5002,
+          projectId: 3002,
+          projectName: 'Code Quality Toolkit',
+          projectStatus: 3,
+          assignmentStatus: 3,
+          assignedDate: '2025-09-05T09:00:00Z'
+        }
+      ],
+      teamMilestones: [
+        {
+          teamMilestoneId: 7601,
+          teamId: 4101,
+          teamName: 'Team Alpha',
+          title: 'User Testing Milestone',
+          endDate: '2025-10-05T23:59:59Z',
+          progress: 0.72,
+          status: 2
+        },
+        {
+          teamMilestoneId: 7602,
+          teamId: 4102,
+          teamName: 'Team Beta',
+          title: 'Prototype Revision',
+          endDate: '2025-10-02T23:59:59Z',
+          progress: 0.55,
+          status: 2
+        }
+      ],
+      checkpointDeadlines: [
+        {
+          checkpointId: 9101,
+          teamId: 4102,
+          title: 'Sprint 3 Checkpoint',
+          dueDate: '2025-10-02T23:59:59Z',
+          status: 1
+        },
+        {
+          checkpointId: 9102,
+          teamId: 4101,
+          title: 'Peer Evaluation Round 2',
+          dueDate: '2025-10-04T17:00:00Z',
+          status: 1
+        }
+      ],
+      meetings: [
+        {
+          meetingId: 30101,
+          title: 'Mentor Sync',
+          scheduleTime: '2025-09-27T10:00:00Z',
+          status: 2
+        }
+      ]
     },
     {
-      id: 'SE203-2025',
-      name: 'SE203',
-      fullName: 'Advanced Database Systems',
-      semester: 'Fall 2025',
-      enrolledStudents: 36,
-      teams: 8,
-      status: 'Grading',
-      joinCode: 'J2X-7PD',
-      lastActivity: '2025-09-19T09:30:00Z',
-      progress: 64,
-      nextSession: 'Tue · 13:30 PM',
-      upcomingMilestone: {
-        title: 'Prototype Demo',
-        dueDate: '2025-09-30T17:00:00Z'
-      },
-      attentionLevel: 'medium'
+      classId: 202,
+      className: 'SE203 - Advanced Database Systems',
+      subjectCode: 'SE203',
+      subjectName: 'Advanced Database Systems',
+      enrolKey: 'J2X-7PD',
+      memberCount: 36,
+      teamCount: 8,
+      lecturerName: 'Dr. Sarah Chen',
+      createdDate: '2025-08-10T09:00:00Z',
+      isActive: true,
+      projectAssignments: [
+        {
+          projectAssignmentId: 5101,
+          projectId: 3101,
+          projectName: 'Intelligent Query Assistant',
+          projectStatus: 2,
+          assignmentStatus: 2,
+          assignedDate: '2025-08-20T09:00:00Z'
+        },
+        {
+          projectAssignmentId: 5102,
+          projectId: 3102,
+          projectName: 'Distributed Caching Dashboard',
+          projectStatus: 2,
+          assignmentStatus: 2,
+          assignedDate: '2025-09-01T09:00:00Z'
+        }
+      ],
+      teamMilestones: [
+        {
+          teamMilestoneId: 7701,
+          teamId: 4201,
+          teamName: 'Team Lambda',
+          title: 'Prototype Demo Dry Run',
+          endDate: '2025-09-30T17:00:00Z',
+          progress: 0.41,
+          status: 2
+        },
+        {
+          teamMilestoneId: 7702,
+          teamId: 4202,
+          teamName: 'Team Sigma',
+          title: 'Data Model Validation',
+          endDate: '2025-10-01T12:00:00Z',
+          progress: 0.64,
+          status: 2
+        }
+      ],
+      checkpointDeadlines: [
+        {
+          checkpointId: 9201,
+          teamId: 4201,
+          title: 'Schema Performance Checkpoint',
+          dueDate: '2025-09-29T12:00:00Z',
+          status: 1
+        }
+      ],
+      meetings: [
+        {
+          meetingId: 30111,
+          title: 'Database Lab Consultation',
+          scheduleTime: '2025-09-26T15:00:00Z',
+          status: 2
+        }
+      ]
     },
     {
-      id: 'SE301-2026',
-      name: 'SE301',
-      fullName: 'Software Architecture & Design',
-      semester: 'Spring 2026',
-      enrolledStudents: 0,
-      teams: 0,
-      status: 'Planned',
-      joinCode: 'TBD',
-      lastActivity: null,
-      progress: 0,
-      nextSession: 'Planning',
-      upcomingMilestone: null,
-      attentionLevel: 'none'
+      classId: 203,
+      className: 'SE301 - Software Architecture & Design',
+      subjectCode: 'SE301',
+      subjectName: 'Software Architecture & Design',
+      enrolKey: 'TBD',
+      memberCount: 0,
+      teamCount: 0,
+      lecturerName: 'Dr. Sarah Chen',
+      createdDate: '2025-09-18T09:00:00Z',
+      isActive: false,
+      projectAssignments: [
+        {
+          projectAssignmentId: 5201,
+          projectId: 3201,
+          projectName: 'Microservices Reference Architecture',
+          projectStatus: 1,
+          assignmentStatus: 1,
+          assignedDate: '2025-09-20T09:00:00Z'
+        }
+      ],
+      teamMilestones: [],
+      checkpointDeadlines: [],
+      meetings: []
     }
   ]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [semesterFilter, setSemesterFilter] = useState('all');
-
-  const [upcomingEvents] = useState([
-    {
-      id: 'event-1',
-      title: 'Database Project Prototype Demo',
-      classId: 'SE203-2025',
-      dueDate: '2025-09-30T17:00:00Z',
-      type: 'Milestone'
-    },
-    {
-      id: 'event-2',
-      title: 'SE109 Checkpoint Submission',
-      classId: 'SE109-2025',
-      dueDate: '2025-10-02T23:59:59Z',
-      type: 'Checkpoint'
-    },
-    {
-      id: 'event-3',
-      title: 'Curriculum Sync with HOD',
-      classId: 'SE301-2026',
-      dueDate: '2025-10-04T09:00:00Z',
-      type: 'Planning'
-    }
-  ]);
-
-  const [teamAlerts] = useState([
-    {
-      id: 'alert-1',
-      team: 'Team Lambda · SE203',
-      message: 'Behind on prototype deliverables',
-      severity: 'high',
-      updatedAt: '2h ago'
-    },
-    {
-      id: 'alert-2',
-      team: 'Team Beta · SE109',
-      message: 'Peer evaluation pending for two members',
-      severity: 'medium',
-      updatedAt: '6h ago'
-    }
-  ]);
+  const [subjectFilter, setSubjectFilter] = useState('all');
 
   const [announcements] = useState([
     {
@@ -162,54 +249,167 @@ const ClassManagementDashboard = () => {
     [navigate]
   );
 
-  const semesters = useMemo(
-    () => Array.from(new Set(classes.map(cls => cls.semester))),
+  const subjects = useMemo(
+    () => Array.from(new Set(classes.map(cls => cls.subjectCode))),
     [classes]
   );
 
-  const filteredClasses = useMemo(() => {
-    return classes.filter(cls => {
-      const matchesSearch =
-        cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cls.fullName.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus =
-        statusFilter === 'all' || cls.status.toLowerCase() === statusFilter.toLowerCase();
-      const matchesSemester = semesterFilter === 'all' || cls.semester === semesterFilter;
-      return matchesSearch && matchesStatus && matchesSemester;
+  const classInsights = useMemo(() => {
+    const now = new Date();
+
+    return classes.map((cls) => {
+      const projectAssignments = cls.projectAssignments ?? [];
+      const activeAssignments = projectAssignments.filter((assignment) => assignment.assignmentStatus === 2).length;
+      const submittedAssignments = projectAssignments.filter((assignment) => assignment.assignmentStatus === 3).length;
+
+      const milestoneProgressValues = (cls.teamMilestones ?? []).map((milestone) => milestone.progress ?? 0);
+      const avgMilestoneProgress =
+        milestoneProgressValues.length > 0
+          ? Math.round(
+              (milestoneProgressValues.reduce((acc, value) => acc + value, 0) / milestoneProgressValues.length) * 100
+            )
+          : null;
+
+      const deliverableCandidates = [
+        ...(cls.teamMilestones ?? []).map((milestone) => ({
+          id: `milestone-${milestone.teamMilestoneId}`,
+          title: milestone.title,
+          type: 'Team milestone',
+          dueDate: milestone.endDate,
+          teamName: milestone.teamName
+        })),
+        ...(cls.checkpointDeadlines ?? []).map((checkpoint) => ({
+          id: `checkpoint-${checkpoint.checkpointId}`,
+          title: checkpoint.title,
+          type: 'Checkpoint',
+          dueDate: checkpoint.dueDate,
+          teamName: undefined
+        })),
+        ...(cls.meetings ?? []).map((meeting) => ({
+          id: `meeting-${meeting.meetingId}`,
+          title: meeting.title,
+          type: 'Meeting',
+          dueDate: meeting.scheduleTime,
+          teamName: undefined
+        }))
+      ]
+        .filter((event) => event.dueDate && new Date(event.dueDate) >= now)
+        .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+      const nextDeliverable = deliverableCandidates[0] || null;
+
+      const isLowProgress = avgMilestoneProgress !== null && avgMilestoneProgress < 50;
+      const isDeadlineSoon =
+        nextDeliverable &&
+        (new Date(nextDeliverable.dueDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24) <= 3;
+
+      let attentionTag = 'on-track';
+      if (!cls.isActive) {
+        attentionTag = 'inactive';
+      } else if (isDeadlineSoon) {
+        attentionTag = 'deadline-soon';
+      } else if (isLowProgress) {
+        attentionTag = 'low-progress';
+      }
+
+      return {
+        ...cls,
+        totalAssignments: projectAssignments.length,
+        activeAssignments,
+        submittedAssignments,
+        avgMilestoneProgress,
+        nextDeliverable,
+        attentionTag
+      };
     });
-  }, [classes, searchTerm, semesterFilter, statusFilter]);
+  }, [classes]);
+
+  const filteredClasses = useMemo(() => {
+    return classInsights.filter((cls) => {
+      const matchesSearch =
+        cls.className.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cls.subjectCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cls.subjectName.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        statusFilter === 'all' || (statusFilter === 'active' ? cls.isActive : !cls.isActive);
+      const matchesSubject = subjectFilter === 'all' || cls.subjectCode === subjectFilter;
+      return matchesSearch && matchesStatus && matchesSubject;
+    });
+  }, [classInsights, searchTerm, statusFilter, subjectFilter]);
 
   const stats = useMemo(() => {
-    const totalStudents = classes.reduce((acc, cls) => acc + cls.enrolledStudents, 0);
-    const totalTeams = classes.reduce((acc, cls) => acc + cls.teams, 0);
-    const activeClasses = classes.filter(cls => cls.status.toLowerCase() === 'active').length;
-    const avgProgress =
-      classes.length > 0
-        ? Math.round(classes.reduce((acc, cls) => acc + cls.progress, 0) / classes.length)
-        : 0;
+    const totalStudents = classes.reduce((acc, cls) => acc + (cls.memberCount || 0), 0);
+    const totalTeams = classes.reduce((acc, cls) => acc + (cls.teamCount || 0), 0);
+    const activeClasses = classes.filter((cls) => cls.isActive).length;
+    const assignedProjects = classes.reduce(
+      (acc, cls) => acc + ((cls.projectAssignments && cls.projectAssignments.length) || 0),
+      0
+    );
 
     return {
       totalClasses: classes.length,
       totalStudents,
       totalTeams,
       activeClasses,
-      avgProgress
+      assignedProjects
     };
   }, [classes]);
 
-  const getStatusBadgeColor = (status) => {
-    switch (status.toLowerCase()) {
-      case 'active': return 'bg-green-100 text-green-700 border border-green-200';
-      case 'grading': return 'bg-yellow-100 text-yellow-700 border border-yellow-200';
-      case 'planned': return 'bg-gray-100 text-gray-700 border border-gray-200';
-      default: return 'bg-gray-100 text-gray-700 border border-gray-200';
-    }
-  };
+  const projectStatusSummary = useMemo(() => {
+    return classes.reduce(
+      (acc, cls) => {
+        (cls.projectAssignments || []).forEach((assignment) => {
+          const category = PROJECT_ASSIGNMENT_STATUS[assignment.assignmentStatus]?.category || 'draft';
+          acc[category] = (acc[category] || 0) + 1;
+        });
+        return acc;
+      },
+      { draft: 0, active: 0, submitted: 0, archived: 0 }
+    );
+  }, [classes, PROJECT_ASSIGNMENT_STATUS]);
 
-  const handleViewClass = (classId) => {
-    // Navigate to Screen 07: Class Detail & Resource Management
-    navigate(`/lecturer/classes/${classId}`);
-  };
+  const totalTrackedProjects = useMemo(
+    () => Object.values(projectStatusSummary).reduce((acc, value) => acc + value, 0),
+    [projectStatusSummary]
+  );
+
+  const projectHealthCards = useMemo(
+    () => [
+      {
+        key: 'draft',
+        label: 'Drafted',
+        count: projectStatusSummary.draft || 0,
+        tone: 'text-slate-600',
+        badgeClasses: 'bg-slate-100 text-slate-700',
+        description: 'Awaiting lecturer activation'
+      },
+      {
+        key: 'active',
+        label: 'In delivery',
+        count: projectStatusSummary.active || 0,
+        tone: 'text-emerald-600',
+        badgeClasses: 'bg-emerald-100 text-emerald-700',
+        description: 'Teams currently working on milestones'
+      },
+      {
+        key: 'submitted',
+        label: 'Submitted for review',
+        count: projectStatusSummary.submitted || 0,
+        tone: 'text-indigo-600',
+        badgeClasses: 'bg-indigo-100 text-indigo-700',
+        description: 'Ready for evaluation and grading'
+      },
+      {
+        key: 'archived',
+        label: 'Archived',
+        count: projectStatusSummary.archived || 0,
+        tone: 'text-slate-600',
+        badgeClasses: 'bg-slate-100 text-slate-600',
+        description: 'Completed or inactive assignments'
+      }
+    ],
+    [projectStatusSummary]
+  );
 
   const formatDate = (input) => {
     if (!input) return 'TBA';
@@ -221,17 +421,182 @@ const ClassManagementDashboard = () => {
     });
   };
 
+  const topTeams = useMemo(() => {
+    const teamAggregate = new Map();
+
+    classes.forEach((cls) => {
+      (cls.teamMilestones || []).forEach((milestone) => {
+        if (!teamAggregate.has(milestone.teamId)) {
+          teamAggregate.set(milestone.teamId, {
+            teamId: milestone.teamId,
+            teamName: milestone.teamName,
+            className: cls.className,
+            classId: cls.classId,
+            progressValues: [],
+            upcoming: milestone.endDate,
+            status: milestone.status
+          });
+        }
+
+        const entry = teamAggregate.get(milestone.teamId);
+        entry.progressValues.push(milestone.progress ?? 0);
+
+        if (!entry.upcoming || (milestone.endDate && new Date(milestone.endDate) < new Date(entry.upcoming))) {
+          entry.upcoming = milestone.endDate;
+        }
+
+        if (milestone.status !== undefined) {
+          entry.status = milestone.status;
+        }
+      });
+    });
+
+    return Array.from(teamAggregate.values())
+      .map((team) => ({
+        ...team,
+        progress: team.progressValues.length > 0
+          ? Math.round(
+              (team.progressValues.reduce((acc, value) => acc + value, 0) / team.progressValues.length) * 100
+            )
+          : 0
+      }))
+      .sort((a, b) => b.progress - a.progress)
+      .slice(0, 4);
+  }, [classes]);
+
+  const upcomingDeliverables = useMemo(() => {
+    const now = new Date();
+    const events = [];
+
+    classes.forEach((cls) => {
+      (cls.teamMilestones || []).forEach((milestone) => {
+        if (!milestone.endDate) return;
+        events.push({
+          id: `milestone-${milestone.teamMilestoneId}`,
+          title: milestone.title,
+          type: 'Team milestone',
+          dueDate: milestone.endDate,
+          classLabel: `${cls.subjectCode} · ${cls.className}`
+        });
+      });
+
+      (cls.checkpointDeadlines || []).forEach((checkpoint) => {
+        if (!checkpoint.dueDate) return;
+        events.push({
+          id: `checkpoint-${checkpoint.checkpointId}`,
+          title: checkpoint.title,
+          type: 'Checkpoint',
+          dueDate: checkpoint.dueDate,
+          classLabel: `${cls.subjectCode} · ${cls.className}`
+        });
+      });
+
+      (cls.meetings || []).forEach((meeting) => {
+        if (!meeting.scheduleTime) return;
+        events.push({
+          id: `meeting-${meeting.meetingId}`,
+          title: meeting.title,
+          type: 'Meeting',
+          dueDate: meeting.scheduleTime,
+          classLabel: `${cls.subjectCode} · ${cls.className}`
+        });
+      });
+    });
+
+    return events
+      .filter((event) => new Date(event.dueDate) >= now)
+      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+      .slice(0, 4);
+  }, [classes]);
+
+  const teamAlerts = useMemo(() => {
+    const now = new Date();
+    const alerts = [];
+
+    classes.forEach((cls) => {
+      (cls.teamMilestones || []).forEach((milestone) => {
+        if (milestone.progress !== undefined && milestone.progress < 0.5) {
+          alerts.push({
+            id: `low-progress-${milestone.teamMilestoneId}`,
+            team: `${milestone.teamName} · ${cls.subjectCode}`,
+            message: 'Milestone progress below 50% completion',
+            severity: 'medium',
+            updatedAt: formatDate(milestone.endDate)
+          });
+        }
+
+        if (milestone.endDate) {
+          const daysUntilDue = (new Date(milestone.endDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+          if (daysUntilDue <= 2) {
+            alerts.push({
+              id: `deadline-${milestone.teamMilestoneId}`,
+              team: `${milestone.teamName} · ${cls.subjectCode}`,
+              message: 'Milestone deadline approaching',
+              severity: 'high',
+              updatedAt: formatDate(milestone.endDate)
+            });
+          }
+        }
+      });
+
+      (cls.checkpointDeadlines || []).forEach((checkpoint) => {
+        if (!checkpoint.dueDate) return;
+        const daysUntilDue = (new Date(checkpoint.dueDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysUntilDue <= 2) {
+          alerts.push({
+            id: `checkpoint-alert-${checkpoint.checkpointId}`,
+            team: `${cls.subjectCode} · Team ${checkpoint.teamId}`,
+            message: 'Checkpoint submission due within 48 hours',
+            severity: 'high',
+            updatedAt: formatDate(checkpoint.dueDate)
+          });
+        }
+      });
+    });
+
+    if (alerts.length === 0) {
+      return [];
+    }
+
+    const deduped = new Map();
+    alerts.forEach((alert) => {
+      if (!deduped.has(alert.id)) {
+        deduped.set(alert.id, alert);
+      }
+    });
+
+    return Array.from(deduped.values()).slice(0, 4);
+  }, [classes]);
+
+  const getStatusBadgeColor = (isActive) => {
+    return isActive
+      ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+      : 'bg-slate-100 text-slate-600 border border-slate-200';
+  };
+
+  const handleViewClass = (classId) => {
+    // Navigate to Screen 07: Class Detail & Resource Management
+    navigate(`/lecturer/classes/${classId}`);
+  };
+
   const attentionStyles = {
-    high: 'ring-red-300 bg-red-50 text-red-700',
-    medium: 'ring-amber-300 bg-amber-50 text-amber-700',
-    low: 'ring-emerald-300 bg-emerald-50 text-emerald-700',
-    none: 'ring-slate-200 bg-slate-50 text-slate-500'
+    'deadline-soon': 'ring-amber-300 bg-amber-50 text-amber-700',
+    'low-progress': 'ring-rose-300 bg-rose-50 text-rose-700',
+    inactive: 'ring-slate-300 bg-slate-50 text-slate-500',
+    'on-track': 'ring-emerald-300 bg-emerald-50 text-emerald-700'
+  };
+
+  const attentionCopy = {
+    'deadline-soon': 'Deadline approaching',
+    'low-progress': 'Progress needs review',
+    inactive: 'Inactive section',
+    'on-track': 'On track'
   };
 
   return (
     <DashboardLayout>
       <div className="min-h-screen bg-slate-50">
-        <div className="max-w-7xl mx-auto px-6 py-10 space-y-10">
+        <div className="w-full px-6 py-10 space-y-10 lg:px-8 2xl:px-12">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-wider text-slate-500">Lecturer workspace</p>
@@ -258,7 +623,7 @@ const ClassManagementDashboard = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 2xl:gap-6">
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
@@ -274,14 +639,14 @@ const ClassManagementDashboard = () => {
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Students engaged</p>
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Students enrolled</p>
                   <p className="mt-2 text-2xl font-semibold text-slate-900">{stats.totalStudents}</p>
                 </div>
                 <div className="rounded-xl bg-emerald-100 p-3 text-emerald-600">
                   <UserGroupIcon className="h-6 w-6" />
                 </div>
               </div>
-              <p className="mt-3 text-xs text-slate-500">Total enrolment across current term sections.</p>
+              <p className="mt-3 text-xs text-slate-500">Active enrolments pulled from `class_member`.</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between">
@@ -293,24 +658,24 @@ const ClassManagementDashboard = () => {
                   <Squares2X2Icon className="h-6 w-6" />
                 </div>
               </div>
-              <p className="mt-3 text-xs text-slate-500">Includes project and lab-based cohorts.</p>
+              <p className="mt-3 text-xs text-slate-500">Derived from team records linked to each class.</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Average progress</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900">{stats.avgProgress}%</p>
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Assigned projects</p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-900">{stats.assignedProjects}</p>
                 </div>
                 <div className="rounded-xl bg-amber-100 p-3 text-amber-600">
-                  <ArrowTrendingUpIcon className="h-6 w-6" />
+                  <ClipboardDocumentListIcon className="h-6 w-6" />
                 </div>
               </div>
-              <p className="mt-3 text-xs text-slate-500">Based on submitted checkpoints and milestone completion.</p>
+              <p className="mt-3 text-xs text-slate-500">Counting active `project_assignment` rows per class.</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
-            <div className="space-y-6 xl:col-span-2">
+          <div className="grid grid-cols-1 gap-8 xl:grid-cols-12">
+            <div className="space-y-6 xl:col-span-8 2xl:col-span-9">
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div>
@@ -333,19 +698,18 @@ const ClassManagementDashboard = () => {
                       onChange={(e) => setStatusFilter(e.target.value)}
                       className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-600 shadow-sm transition hover:border-slate-300 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 lg:w-40"
                     >
-                      <option value="all">All status</option>
-                      <option value="Active">Active</option>
-                      <option value="Grading">Grading</option>
-                      <option value="Planned">Planned</option>
+                      <option value="all">All statuses</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
                     </select>
                     <select
-                      value={semesterFilter}
-                      onChange={(e) => setSemesterFilter(e.target.value)}
+                      value={subjectFilter}
+                      onChange={(e) => setSubjectFilter(e.target.value)}
                       className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-600 shadow-sm transition hover:border-slate-300 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 lg:w-40"
                     >
-                      <option value="all">All semesters</option>
-                      {semesters.map((semester) => (
-                        <option key={semester} value={semester}>{semester}</option>
+                      <option value="all">All subjects</option>
+                      {subjects.map((subject) => (
+                        <option key={subject} value={subject}>{subject}</option>
                       ))}
                     </select>
                   </div>
@@ -358,88 +722,150 @@ const ClassManagementDashboard = () => {
                     <p className="mt-1 text-xs text-slate-400">Adjust the search parameters or start drafting a new class plan.</p>
                   </div>
                 ) : (
-                  <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
-                    {filteredClasses.map((cls) => (
-                      <div
-                        key={cls.id}
-                        className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-lg font-semibold text-slate-900">{cls.name}</h3>
-                              <span className="text-xs font-medium text-indigo-600">{cls.semester}</span>
-                            </div>
-                            <p className="mt-1 text-sm text-slate-500">{cls.fullName}</p>
-                          </div>
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusBadgeColor(cls.status)}`}>
-                            {cls.status}
-                          </span>
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-2 gap-4 text-sm text-slate-600">
-                          <div className="flex items-center gap-2">
-                            <UserGroupIcon className="h-4 w-4 text-indigo-500" />
+                  <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">
+                    {filteredClasses.map((cls) => {
+                      const assignmentsPreview = (cls.projectAssignments || []).slice(0, 2);
+                      return (
+                        <div
+                          key={cls.classId}
+                          className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                        >
+                          <div className="flex items-start justify-between gap-2">
                             <div>
-                              <p className="font-semibold text-slate-900">{cls.enrolledStudents}</p>
-                              <p className="text-xs text-slate-500">Students enrolled</p>
+                              <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">{cls.subjectCode}</p>
+                              <h3 className="mt-1 text-lg font-semibold text-slate-900">{cls.className}</h3>
+                              <p className="mt-1 text-xs text-slate-500">Lecturer: {cls.lecturerName}</p>
+                              <p className="mt-1 text-xs text-slate-500">Enrol key: {cls.enrolKey}</p>
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusBadgeColor(cls.isActive)}`}>
+                                {cls.isActive ? 'Active' : 'Inactive'}
+                              </span>
+                              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${attentionStyles[cls.attentionTag]}`}>
+                                <BellAlertIcon className="h-3 w-3" />
+                                {attentionCopy[cls.attentionTag]}
+                              </span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <AcademicCapIcon className="h-4 w-4 text-indigo-500" />
-                            <div>
-                              <p className="font-semibold text-slate-900">{cls.teams}</p>
-                              <p className="text-xs text-slate-500">Active teams</p>
+
+                          <div className="mt-4 grid grid-cols-2 gap-4 text-sm text-slate-600">
+                            <div className="space-y-1">
+                              <p className="text-xs uppercase tracking-wide text-slate-400">Students</p>
+                              <p className="text-base font-semibold text-slate-900">{cls.memberCount}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-xs uppercase tracking-wide text-slate-400">Teams</p>
+                              <p className="text-base font-semibold text-slate-900">{cls.teamCount}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-xs uppercase tracking-wide text-slate-400">Active assignments</p>
+                              <p className="text-base font-semibold text-slate-900">{cls.activeAssignments}/{cls.totalAssignments}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-xs uppercase tracking-wide text-slate-400">Avg milestone progress</p>
+                              <p className="text-base font-semibold text-slate-900">{cls.avgMilestoneProgress !== null ? `${cls.avgMilestoneProgress}%` : '—'}</p>
                             </div>
                           </div>
-                        </div>
 
-                        <div className="mt-4">
-                          <div className="flex items-center justify-between text-xs text-slate-500">
-                            <span>Progress</span>
-                            <span className="font-semibold text-slate-700">{cls.progress}%</span>
+                          {cls.nextDeliverable && (
+                            <div className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                              <p className="font-semibold text-slate-800">Next deliverable</p>
+                              <div className="mt-2 flex flex-wrap items-center gap-2">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 font-medium text-slate-600">
+                                  <CalendarDaysIcon className="h-3 w-3" />
+                                  Due {formatDate(cls.nextDeliverable.dueDate)}
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 font-medium text-slate-600">
+                                  <ClipboardDocumentListIcon className="h-3 w-3" />
+                                  {cls.nextDeliverable.type}
+                                </span>
+                                {cls.nextDeliverable.teamName && (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 font-medium text-slate-600">
+                                    <UserGroupIcon className="h-3 w-3" />
+                                    {cls.nextDeliverable.teamName}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {assignmentsPreview.length > 0 && (
+                            <div className="mt-4 text-xs text-slate-500">
+                              <p className="font-semibold text-slate-700">Projects assigned</p>
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {assignmentsPreview.map((assignment) => (
+                                  <span
+                                    key={assignment.projectAssignmentId}
+                                    className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 font-medium text-indigo-600"
+                                  >
+                                    {assignment.projectName}
+                                    <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-indigo-500">
+                                      {PROJECT_ASSIGNMENT_STATUS[assignment.assignmentStatus]?.label || 'Unknown'}
+                                    </span>
+                                  </span>
+                                ))}
+                              </div>
+                              {cls.totalAssignments > assignmentsPreview.length && (
+                                <button
+                                  onClick={() => navigate(`/lecturer/classes/${cls.classId}/projects`)}
+                                  className="mt-2 inline-flex items-center gap-2 text-[11px] font-semibold text-indigo-600 transition hover:text-indigo-800"
+                                >
+                                  View all project assignments
+                                </button>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="mt-auto flex flex-col gap-2 pt-6 sm:flex-row">
+                            <button
+                              onClick={() => handleViewClass(cls.classId)}
+                              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                            >
+                              Open class workspace
+                            </button>
+                            <button
+                              onClick={() => navigate(`/lecturer/monitoring/${cls.classId}`)}
+                              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                            >
+                              Performance monitor
+                            </button>
                           </div>
-                          <div className="mt-2 h-2 w-full rounded-full bg-slate-100">
-                            <div className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500" style={{ width: `${cls.progress}%` }} />
-                          </div>
                         </div>
-
-                        <div className="mt-5 flex flex-wrap items-center gap-3 text-xs">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 font-medium text-slate-600">
-                            <CalendarDaysIcon className="h-3.5 w-3.5" />
-                            Next session: {cls.nextSession}
-                          </span>
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-medium ring-1 ${attentionStyles[cls.attentionLevel]}`}>
-                            <BellAlertIcon className="h-3.5 w-3.5" />
-                            {cls.attentionLevel === 'none' ? 'On track' : `${cls.attentionLevel} attention`}
-                          </span>
-                        </div>
-
-                        {cls.upcomingMilestone && (
-                          <div className="mt-4 rounded-xl bg-indigo-50 px-4 py-3 text-xs text-indigo-700">
-                            <p className="font-semibold">Upcoming: {cls.upcomingMilestone.title}</p>
-                            <p className="mt-1">Due {formatDate(cls.upcomingMilestone.dueDate)}</p>
-                          </div>
-                        )}
-
-                        <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-                          <button
-                            onClick={() => handleViewClass(cls.id)}
-                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                          >
-                            Manage class
-                          </button>
-                          <button
-                            onClick={() => navigate(`/lecturer/monitoring/${cls.id}`)}
-                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
-                          >
-                            Open monitoring
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900">Project health overview</h2>
+                    <p className="text-xs text-slate-500">Snapshot across all tracked class projects.</p>
+                  </div>
+                  <ChartBarIcon className="h-5 w-5 text-indigo-500" />
+                </div>
+                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  {projectHealthCards.map((card) => {
+                    const percentage = totalTrackedProjects > 0
+                      ? Math.round((card.count / totalTrackedProjects) * 100)
+                      : 0;
+
+                    return (
+                      <div
+                        key={card.key}
+                        className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4 text-sm text-slate-600"
+                      >
+                        <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                          <span>{card.label}</span>
+                          <span className={`rounded-full px-2 py-1 ${card.badgeClasses}`}>{percentage}%</span>
+                        </div>
+                        <p className={`mt-3 text-2xl font-semibold ${card.tone}`}>{card.count}</p>
+                        <p className="mt-1 text-xs text-slate-500">{card.description}</p>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -490,7 +916,7 @@ const ClassManagementDashboard = () => {
               </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-6 xl:col-span-4 2xl:col-span-3">
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="flex items-center gap-3">
                   <CalendarDaysIcon className="h-5 w-5 text-indigo-500" />
@@ -498,13 +924,20 @@ const ClassManagementDashboard = () => {
                 </div>
                 <p className="mt-1 text-xs text-slate-500">Keep track of the next major deliverables.</p>
                 <div className="mt-4 space-y-4">
-                  {upcomingEvents.map((event) => (
-                    <div key={event.id} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                      <p className="text-sm font-semibold text-slate-800">{event.title}</p>
-                      <p className="text-xs text-slate-500">{event.type} · {formatDate(event.dueDate)}</p>
-                      <p className="mt-1 text-xs font-medium text-indigo-500">{event.classId}</p>
+                  {upcomingDeliverables.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
+                      <p className="text-sm font-semibold text-slate-700">No upcoming deadlines</p>
+                      <p className="mt-1 text-xs text-slate-500">New milestones, checkpoints, and meetings will appear here.</p>
                     </div>
-                  ))}
+                  ) : (
+                    upcomingDeliverables.map((event) => (
+                      <div key={event.id} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <p className="text-sm font-semibold text-slate-800">{event.title}</p>
+                        <p className="text-xs text-slate-500">{event.type} · {formatDate(event.dueDate)}</p>
+                        <p className="mt-1 text-xs font-medium text-indigo-500">{event.classLabel}</p>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -535,6 +968,53 @@ const ClassManagementDashboard = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <UserGroupIcon className="h-5 w-5 text-indigo-500" />
+                  <h2 className="text-lg font-semibold text-slate-900">Team progress spotlight</h2>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">High-performing cohorts to recognise and model.</p>
+                <div className="mt-4 space-y-4">
+                  {topTeams.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
+                      <p className="text-sm font-semibold text-slate-700">No active teams yet</p>
+                      <p className="mt-1 text-xs text-slate-500">Teams will appear here once milestones begin.</p>
+                    </div>
+                  ) : (
+                    topTeams.map((team) => (
+                      <div key={team.id} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">{team.name}</p>
+                            <p className="text-xs text-slate-500">{team.className} · {team.classId}</p>
+                          </div>
+                          <span className="text-lg font-semibold text-indigo-600">{team.progress}%</span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-slate-600">
+                            <ArrowTrendingUpIcon className="h-3.5 w-3.5" />
+                            Velocity {team.velocity}/wk
+                          </span>
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-wide ${
+                            team.riskLevel === 'low'
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : team.riskLevel === 'medium'
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-rose-100 text-rose-700'
+                          }`}>
+                            Risk {team.riskLevel}
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 text-indigo-600">
+                            <CalendarDaysIcon className="h-3 w-3" />
+                            Next: {team.nextDeliverable}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 

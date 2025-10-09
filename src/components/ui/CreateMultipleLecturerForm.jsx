@@ -12,6 +12,7 @@ import {
   Building,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { importLecturerList } from '../../services/userService';
 
 const ImprovedLecturerCreation = () => {
   const [lecturers, setLecturers] = useState([]);
@@ -19,6 +20,7 @@ const ImprovedLecturerCreation = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
   const [errors, setErrors] = useState([]);
+  const [uploadedFile, setUploadedFile] = useState(null);
 
   // Download template function
   const downloadTemplate = () => {
@@ -26,9 +28,9 @@ const ImprovedLecturerCreation = () => {
       {
         Email: 'nguyenvana@university.edu.vn',
         Password: '12345',
-        Fullname: 'Nguyễn Văn A',
+        FullName: 'Nguyễn Văn A',
         Address: '123 Đường ABC, Quận 1, TP.HCM',
-        PhoneNumber: '0123456789',
+        PhoneNumber: '84123456789',
         YOB: 1980,
         School: 'FPT University',
         LecturerCode: 'SE184727',
@@ -42,7 +44,7 @@ const ImprovedLecturerCreation = () => {
     // Tạo thêm 1 sheet cho hướng dẫn
     const instructionData = [
       ['HƯỚNG DẪN:'],
-      ['- Fullname: Họ và tên đầy đủ (bắt buộc)'],
+      ['- FullName: Họ và tên đầy đủ (bắt buộc)'],
       ['- Address: Địa chỉ chi tiết (bắt buộc)'],
       ['- PhoneNumber: Số điện thoại (10-11 số)'],
       ['- Major: Ngành học (bắt buộc)'],
@@ -67,6 +69,7 @@ const ImprovedLecturerCreation = () => {
     const file = event.target.files[0];
     if (!file) return;
 
+    setUploadedFile(file);
     setUploadStatus('processing');
     const reader = new FileReader();
 
@@ -82,14 +85,14 @@ const ImprovedLecturerCreation = () => {
 
         // Lọc bỏ row trống
         const filteredData = jsonData.filter(
-          row => row.Fullname && row.Fullname.trim() !== ''
+          row => row.FullName && row.FullName.trim() !== ''
         );
 
         // Validate
         const validationErrors = [];
         filteredData.forEach((lecturer, index) => {
           const rowErrors = [];
-          if (!lecturer.Fullname?.trim()) rowErrors.push('Thiếu họ tên');
+          if (!lecturer.FullName?.trim()) rowErrors.push('Thiếu họ tên');
           if (!lecturer.Address?.trim()) rowErrors.push('Thiếu địa chỉ');
           if (!lecturer.PhoneNumber?.toString().trim())
             rowErrors.push('Thiếu số điện thoại');
@@ -107,7 +110,7 @@ const ImprovedLecturerCreation = () => {
           if (rowErrors.length > 0) {
             validationErrors.push({
               row: index + 2, // +2 vì excel có header ở dòng 1
-              name: lecturer.Fullname || 'Không có tên',
+              name: lecturer.FullName || 'Không có tên',
               errors: rowErrors,
             });
           }
@@ -142,12 +145,16 @@ const ImprovedLecturerCreation = () => {
       setIsSubmitting(true);
       setIsLoading(false);
 
-      // Reset after 3 seconds
-      setTimeout(() => {
-        setIsSubmitting(false);
-        setLecturers([]);
-        setUploadStatus('');
-      }, 3000);
+      const response = await importLecturerList(uploadedFile);
+      if (response.isSuccess === true) {
+        setIsSubmitting(true);
+        setIsLoading(false);
+        setTimeout(() => {
+          setIsSubmitting(false);
+          setLecturers([]);
+          setUploadStatus('');
+        }, 3000);
+      }
     } catch (error) {
       setIsLoading(false);
       alert('Có lỗi xảy ra khi tạo tài khoản');
@@ -276,7 +283,7 @@ const ImprovedLecturerCreation = () => {
             </h4>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-amber-800'>
               <div>
-                • <strong>Fullname:</strong> Full lecturer name (required)
+                • <strong>FullName:</strong> Full lecturer name (required)
               </div>
               <div>
                 • <strong>Address:</strong> Complete address (required)
@@ -354,7 +361,7 @@ const ImprovedLecturerCreation = () => {
                         </div>
                         <div>
                           <h4 className='font-semibold text-gray-900'>
-                            {lecturer.Fullname}
+                            {lecturer.FullName}
                           </h4>
                           <div className='flex items-center gap-4 text-sm text-gray-600 mt-1'>
                             <div className='flex items-center gap-1'>
