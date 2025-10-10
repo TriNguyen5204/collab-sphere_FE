@@ -28,7 +28,7 @@ const AuthInput = ({
   rightElement,
   variant = 'blue',
   autoComplete,
-  disabled = false,
+  disabled,
   children,
   inputMode,
 }) => {
