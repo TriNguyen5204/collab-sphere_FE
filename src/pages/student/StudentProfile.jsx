@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import Header from "../../components/layout/Header";
-import StudentSidebar from "../../components/layout/StudentSidebar";
 import ProfileInformation from "../../components/student/ProfileInformation";
 import AccountSettings from "../../components/student/AccountSettings";
 import AcademicInformation from "../../components/student/AcademicInformation";
 import { User, Settings, GraduationCap } from "lucide-react";
+import StudentLayout from "../../components/layout/StudentLayout";
 
 const StudentProfile = () => {
   const [activeTab, setActiveTab] = useState("profile");
@@ -29,19 +28,15 @@ const StudentProfile = () => {
   };
 
   return (
-    <>
-      <Header />
-      <div className="flex min-h-screen" style={{ backgroundColor: "#D5DADF" }}>
-        <StudentSidebar />
-
-        <main className="flex-1 p-6">
+    <StudentLayout>
+      <div className="space-y-6">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
             <p className="text-gray-600 mt-1">Manage your personal information and settings</p>
           </div>
 
           {/* Tabs */}
-          <div className="bg-white rounded-lg shadow-md mb-6">
+          <div className="bg-white rounded-lg shadow-md">
             <div className="border-b border-gray-200">
               <nav className="flex -mb-px">
                 {tabs.map((tab) => {
@@ -69,9 +64,8 @@ const StudentProfile = () => {
           <div className="bg-white rounded-lg shadow-md p-6">
             {renderContent()}
           </div>
-        </main>
       </div>
-    </>
+    </StudentLayout>
   );
 };
 

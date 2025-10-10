@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Download, LogOut, BookOpen, FileText, Users, Calendar } from 'lucide-react';
-import Header from '../../components/layout/Header';
-import StudentSidebar from '../../components/layout/StudentSidebar';
+import StudentLayout from '../../components/layout/StudentLayout';
 
 const StudentClassPage = () => {
   const [classes, setClasses] = useState([
@@ -54,12 +53,8 @@ const StudentClassPage = () => {
   };
 
   return (
-    <>
-      <Header />
-      <div className="flex min-h-screen" style={{ backgroundColor: "#D5DADF" }}>
-        <StudentSidebar />
-
-        <main className="flex-1 p-6">
+    <StudentLayout>
+      <div className="space-y-6">
           {/* Header */}
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-gray-900">My Classes</h1>
@@ -194,7 +189,6 @@ const StudentClassPage = () => {
               )}
             </div>
           </div>
-        </main>
       </div>
 
       {/* Leave Class Confirmation Modal */}
@@ -222,7 +216,7 @@ const StudentClassPage = () => {
           </div>
         </div>
       )}
-    </>
+    </StudentLayout>
   );
 };
 

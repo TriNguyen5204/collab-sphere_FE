@@ -6,24 +6,21 @@ import Router from './router/Router.jsx';
 import { Provider } from 'react-redux';
 import { store } from './store';
 import AuthProvider from './components/layout/AuthProvider.jsx';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { Toaster } from 'sonner';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <Provider store={store}>
       <AuthProvider>
         <Router />
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="colored"
+        <Toaster
+          position='top-right'
+          richColors
+          toastOptions={{
+            className: 'rounded-2xl shadow-xl border border-slate-200/70 bg-white/95 backdrop-blur',
+            style: { fontFamily: 'Inter, sans-serif', fontSize: '0.9rem' },
+            duration: 3200,
+          }}
         />
       </AuthProvider>
     </Provider>

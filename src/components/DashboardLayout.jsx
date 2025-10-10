@@ -1,235 +1,197 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import styles from './DashboardLayout.module.css';
-import { 
-  HomeIcon,
+import React, { useMemo } from 'react';
+import {
   AcademicCapIcon,
+  BellIcon,
   BookOpenIcon,
-  UserGroupIcon,
-  ClipboardDocumentListIcon,
   ChartBarIcon,
-  CalendarDaysIcon,
-  WrenchScrewdriverIcon,
+  ClipboardDocumentListIcon,
   MagnifyingGlassIcon,
   PlusIcon,
-  BellIcon,
-  Bars3Icon,
-  XMarkIcon
+  UserGroupIcon,
+  CalendarDaysIcon,
+  WrenchScrewdriverIcon,
+  ArrowRightOnRectangleIcon,
+  UserPlusIcon,
 } from '@heroicons/react/24/outline';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import AppShell from './layout/AppShell';
+import logo from '../assets/logov1.png';
+import { logout } from '../store/slices/userSlice';
+
+const navigationItems = [
+  { label: 'Classes', href: '/lecturer/classes', icon: AcademicCapIcon },
+  { label: 'Module Library', href: '/lecturer/modules', icon: BookOpenIcon },
+  { label: 'Projects', href: '/lecturer/projects', icon: UserGroupIcon },
+  { label: 'Grading', href: '/lecturer/grading', icon: ClipboardDocumentListIcon },
+  { label: 'Analytics', href: '/lecturer/analytics', icon: ChartBarIcon },
+  { label: 'Meetings', href: '/lecturer/meetings', icon: CalendarDaysIcon },
+  { label: 'Tools', href: '/lecturer/tools', icon: WrenchScrewdriverIcon },
+];
 
 const DashboardLayout = ({ children }) => {
-  const location = useLocation();
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const expandTimeoutRef = useRef(null);
-  const collapseTimeoutRef = useRef(null);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { accessToken, roleName } = useSelector(state => state.user);
+  const isAuthenticated = Boolean(accessToken);
 
-  const navigationItems = [
-    { name: 'Classes', href: '/lecturer/classes', icon: AcademicCapIcon },
-    { name: 'Module Library', href: '/lecturer/modules', icon: BookOpenIcon },
-    { name: 'Projects', href: '/lecturer/projects', icon: UserGroupIcon },
-    { name: 'Grading', href: '/lecturer/grading', icon: ClipboardDocumentListIcon },
-    { name: 'Analytics', href: '/lecturer/analytics', icon: ChartBarIcon },
-    { name: 'Meetings', href: '/lecturer/meetings', icon: CalendarDaysIcon },
-    { name: 'Tools', href: '/lecturer/tools', icon: WrenchScrewdriverIcon },
-  ];
+  const handleLogin = () => navigate('/login');
+  const handleSignup = () => navigate('/register');
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate('/login');
+  };
 
-  const isActive = (href) => location.pathname === href;
+  const userInitial = roleName ? roleName.charAt(0).toUpperCase() : 'U';
 
-  // Handle responsive behavior
-  useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-    };
+  const brand = {
+    title: 'CollabSphere',
+    subtitle: 'Lecturer workspace',
+    to: '/lecturer/classes',
+    logo,
+  };
+  const sidebarSections = useMemo(() => (
+    isAuthenticated
+      ? [
+          {
+            title: 'Workspace',
+            items: navigationItems,
+          },
+        ]
+      : []
+  ), [isAuthenticated]);
 
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Debounced sidebar handlers to prevent lag and rapid toggling
-  const handleSidebarMouseEnter = useCallback(() => {
-    if (!isMobile) {
-      // Clear any pending collapse timeout
-      if (collapseTimeoutRef.current) {
-        clearTimeout(collapseTimeoutRef.current);
-        collapseTimeoutRef.current = null;
-      }
-      
-      // Clear any pending expand timeout to prevent duplicates
-      if (expandTimeoutRef.current) {
-        clearTimeout(expandTimeoutRef.current);
-        expandTimeoutRef.current = null;
-      }
-      
-      // Add small delay to prevent accidental triggers
-      expandTimeoutRef.current = setTimeout(() => {
-        setSidebarExpanded(true);
-      }, 50);
-    }
-  }, [isMobile]);
-
-  const handleSidebarMouseLeave = useCallback(() => {
-    if (!isMobile) {
-      // Clear any pending expand timeout
-      if (expandTimeoutRef.current) {
-        clearTimeout(expandTimeoutRef.current);
-        expandTimeoutRef.current = null;
-      }
-      
-      // Clear any pending collapse timeout to prevent duplicates
-      if (collapseTimeoutRef.current) {
-        clearTimeout(collapseTimeoutRef.current);
-        collapseTimeoutRef.current = null;
-      }
-      
-      // Add delay to prevent accidental collapse when moving to child elements
-      collapseTimeoutRef.current = setTimeout(() => {
-        setSidebarExpanded(false);
-      }, 150);
-    }
-  }, [isMobile]);
-
-  const handleMobileToggle = useCallback(() => {
-    if (isMobile) {
-      setSidebarExpanded(!sidebarExpanded);
-    }
-  }, [isMobile, sidebarExpanded]);
-
-  const closeMobileSidebar = useCallback(() => {
-    if (isMobile) {
-      setSidebarExpanded(false);
-    }
-  }, [isMobile]);
-
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (expandTimeoutRef.current) clearTimeout(expandTimeoutRef.current);
-      if (collapseTimeoutRef.current) clearTimeout(collapseTimeoutRef.current);
-    };
-  }, []);
-
-  return (
-    <div className={styles.layout}>
-      {/* Sidebar Overlay for Mobile */}
-      {isMobile && sidebarExpanded && (
-        <div className={styles.sidebarOverlay} onClick={closeMobileSidebar} />
-      )}
-
-      {/* Sidebar */}
-      <div 
-        className={`${styles.sidebar} ${!sidebarExpanded ? styles.sidebarCollapsed : ''}`}
-        onMouseEnter={handleSidebarMouseEnter}
-        onMouseLeave={handleSidebarMouseLeave}
-      >
-
-        {/* Navigation */}
-        <nav className={styles.navigation}>
-          <div className={styles.navSection}>
-            <div className={styles.navList}>
-              {navigationItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className={`${styles.navItem} ${isActive(item.href) ? styles.active : ''}`}
-                    onClick={closeMobileSidebar}
-                    title={!sidebarExpanded ? item.name : ''}
-                  >
-                    <Icon className={styles.navIcon} />
-                    <span className={styles.navText}>{item.name}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </nav>
-      </div>
-
-      {/* Main Content */}
-      <div className={`${styles.main} ${!sidebarExpanded ? styles.mainExpanded : ''}`}>
-        {/* Top Header */}
-        <header className={styles.header}>
-          <div className={styles.headerBg}></div>
-          
-          <div className={styles.headerContent}>
-            {/* Logo and Mobile Menu Button */}
-            <div className={styles.headerLeft}>
-              {isMobile && (
-                <button 
-                  onClick={handleMobileToggle}
-                  className={styles.menuButton}
-                  aria-label={sidebarExpanded ? 'Close sidebar' : 'Open sidebar'}
-                >
-                  {sidebarExpanded ? (
-                    <XMarkIcon className={styles.menuIcon} />
-                  ) : (
-                    <Bars3Icon className={styles.menuIcon} />
-                  )}
-                </button>
-              )}
-              
-              <div className={styles.headerLogo}>
-                <div className={styles.headerLogoIcon}>
-                  <div className={styles.headerLogoIconInner}></div>
-                </div>
-                <span className={styles.headerLogoText}>CollabSphere</span>
-              </div>
-            </div>
-
-            {/* Search Bar */}
-            <div className={styles.searchSection}>
-              <div className={styles.searchWrapper}>
-                <div className={styles.searchBg}></div>
-                <div className="relative">
-                  <MagnifyingGlassIcon className={styles.searchIcon} />
-                  <input
-                    type="text"
-                    placeholder="Search anything..."
-                    className={styles.searchInput}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Right Actions */}
-            <div className={styles.actions}>
-              {/* Quick Add Button */}
-              <button className={styles.quickAddBtn}>
-                <div className={styles.quickAddContent}>
-                  <PlusIcon className={styles.quickAddIcon} />
-                  Quick Add
-                </div>
-              </button>
-              
-              {/* Notification Button */}
-              <div className="relative">
-                <button className={styles.notificationBtn}>
-                  <BellIcon className={styles.notificationIcon} />
-                  <span className={styles.notificationBadge}>3</span>
-                </button>
-              </div>
-
-              {/* Profile Avatar */}
-              <div className={styles.profileSection}>
-                <div className={styles.profileBorder}></div>
-                <button className={styles.profileBtn}>
-                  <div className={styles.profileAvatar}>L</div>
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Page Content */}
-        <main className={styles.content}>
-          {children}
-        </main>
+  const unauthSidebarPrompt = !isAuthenticated ? (
+    <div className='px-4 pt-6'>
+      <div className='rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center'>
+        <p className='text-sm font-medium text-slate-700'>Sign in to access lecturer tools</p>
+        <div className='mt-3 flex flex-col gap-2'>
+          <button
+            type='button'
+            onClick={handleLogin}
+            className='inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-blue-300 hover:text-blue-600'
+          >
+            <ArrowRightOnRectangleIcon className='h-4 w-4' />
+            Login
+          </button>
+          <button
+            type='button'
+            onClick={handleSignup}
+            className='inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-500'
+          >
+            <UserPlusIcon className='h-4 w-4' />
+            Sign up
+          </button>
+        </div>
       </div>
     </div>
+  ) : undefined;
+
+  const headerDesktopRightContent = isAuthenticated ? (
+    <div className='hidden items-center gap-3 md:flex'>
+      <div className='relative hidden lg:block'>
+        <MagnifyingGlassIcon className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400' />
+        <input
+          type='text'
+          placeholder='Search anything...'
+          className='w-64 rounded-full border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm text-slate-600 shadow-sm transition focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100'
+        />
+      </div>
+
+      <button className='inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-500'>
+        <PlusIcon className='h-4 w-4' />
+        Quick add
+      </button>
+
+      <button className='relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-blue-400 hover:text-blue-600 hover:shadow-md'>
+        <BellIcon className='h-5 w-5' />
+        <span className='absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-rose-500 px-1 text-xs font-semibold text-white'>
+          3
+        </span>
+      </button>
+
+      <button
+        type='button'
+        onClick={handleLogout}
+        className='inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 shadow-sm transition hover:border-rose-300 hover:text-rose-600 hover:shadow-md'
+        title='Log out'
+      >
+        {userInitial}
+      </button>
+    </div>
+  ) : (
+    <div className='hidden items-center gap-3 md:flex'>
+      <button
+        type='button'
+        onClick={handleLogin}
+        className='inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-blue-300 hover:text-blue-600'
+      >
+        <ArrowRightOnRectangleIcon className='h-4 w-4' />
+        Login
+      </button>
+      <button
+        type='button'
+        onClick={handleSignup}
+        className='inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-500'
+      >
+        <UserPlusIcon className='h-4 w-4' />
+        Sign up
+      </button>
+    </div>
+  );
+
+  const headerMobileMenuContent = isAuthenticated ? (
+    <div className='space-y-2 border-t border-slate-200 pt-3'>
+      <button className='flex w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-500'>
+        <PlusIcon className='h-4 w-4' />
+        Quick add
+      </button>
+      <button className='flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm'>
+        <BellIcon className='h-4 w-4' />
+        Notifications
+      </button>
+      <button
+        type='button'
+        onClick={handleLogout}
+        className='flex w-full items-center justify-center gap-2 rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-600 shadow-sm transition hover:bg-rose-50'
+      >
+        Log out
+      </button>
+    </div>
+  ) : (
+    <div className='space-y-2 border-t border-slate-200 pt-3'>
+      <button
+        type='button'
+        onClick={handleLogin}
+        className='flex w-full items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-blue-300 hover:text-blue-600'
+      >
+        <ArrowRightOnRectangleIcon className='h-4 w-4' />
+        Login
+      </button>
+      <button
+        type='button'
+        onClick={handleSignup}
+        className='flex w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-500'
+      >
+        <UserPlusIcon className='h-4 w-4' />
+        Sign up
+      </button>
+    </div>
+  );
+
+  return (
+    <AppShell
+      brand={brand}
+      sidebarSections={sidebarSections}
+      sidebarTop={unauthSidebarPrompt}
+      headerActions={[]}
+      headerDesktopRightContent={headerDesktopRightContent}
+      headerMobileMenuContent={headerMobileMenuContent}
+      initialSidebarExpanded
+      sidebarCollapsible={false}
+    >
+      {children}
+    </AppShell>
   );
 };
 

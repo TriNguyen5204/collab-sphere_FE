@@ -1,87 +1,116 @@
-import React, { useState } from 'react';
-import { LayoutDashboard, Users, FileText, Menu, X, ChevronRight, LogOut } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useMemo } from 'react';
+import { LayoutDashboard, Users, FileText, LogOut } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import AppSidebar from './AppSidebar';
+import { logout } from '../../store/slices/userSlice';
 
-export default function Sidebar() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const navigate = useNavigate();
+const AdminSidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { accessToken, roleName } = useSelector(state => state.user);
+  const isAuthenticated = Boolean(accessToken);
+  const userLabel = roleName || 'Admin user';
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
-    { id: 'accounts', label: 'Account Management', icon: Users, path: '/admin/account-management' },
-    { id: 'reports', label: 'System Report', icon: FileText, path: '/admin/reports' },
-  ];
+  const sections = useMemo(
+    () =>
+      isAuthenticated
+        ? [
+            {
+              title: 'Administration',
+              items: [
+                {
+                  label: 'Dashboard',
+                  href: '/admin',
+                  icon: LayoutDashboard,
+                  match: path => path === '/admin',
+                },
+                {
+                  label: 'Account management',
+                  href: '/admin/account-management',
+                  icon: Users,
+                  match: path => path.startsWith('/admin/account-management'),
+                },
+                {
+                  label: 'System reports',
+                  href: '/admin/reports',
+                  icon: FileText,
+                  match: path => path.startsWith('/admin/reports'),
+                },
+              ],
+            },
+          ]
+        : [],
+    [isAuthenticated],
+  );
 
-  return (
-    <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-slate-900 to-slate-800 shadow-2xl transition-all duration-300 flex flex-col h-screen`}>
-      {/* Header */}
-      <div className="p-6 border-b border-slate-700 flex items-center justify-between">
-        {sidebarOpen && (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-              <LayoutDashboard className="w-4 h-4 text-white" />
-            </div>
-            <h1 className="text-lg font-bold text-white">Admin Panel</h1>
-          </div>
-        )}
+  const footer = isAuthenticated ? (
+    <div className='mt-auto border-t border-slate-200 px-4 py-4'>
+      <div className='flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm'>
+        <div className='flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 text-sm font-semibold text-white'>
+          {userLabel.charAt(0).toUpperCase()}
+        </div>
+        <div className='flex-1 overflow-hidden'>
+          <p className='truncate text-sm font-semibold text-slate-800'>{userLabel}</p>
+          <p className='truncate text-xs text-slate-500'>Administrator</p>
+        </div>
         <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 rounded-lg hover:bg-slate-700 transition-colors text-gray-300 hover:text-white"
+          type='button'
+          onClick={() => {
+            dispatch(logout());
+            navigate('/login');
+          }}
+          className='inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-rose-300 hover:text-rose-500'
+          title='Sign out'
         >
-          {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          <LogOut className='h-4 w-4' />
         </button>
       </div>
+    </div>
+  ) : null;
 
-      {/* Navigation Menu */}
-      <nav className="flex-1 p-3 space-y-1">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location.pathname === item.path;
-          
-          return (
-            <button
-              key={item.id}
-              onClick={() => navigate(item.path)}
-              className={`w-full flex items-center ${sidebarOpen ? 'justify-between' : 'justify-center'} px-4 py-3 rounded-lg transition-all duration-200 group ${
-                isActive
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-900/50'
-                  : 'text-gray-300 hover:bg-slate-700 hover:text-white'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Icon className={`w-5 h-5 transition-transform duration-200 ${
-                  isActive ? 'scale-110' : 'group-hover:scale-105'
-                }`} />
-                {sidebarOpen && <span className="font-medium">{item.label}</span>}
-              </div>
-              {sidebarOpen && (
-                <ChevronRight className={`w-4 h-4 transition-all duration-200 ${
-                  isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                }`} />
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* User Profile Section */}
-      <div className="p-4 border-t border-slate-700">
-        <div className={`flex items-center gap-3 ${sidebarOpen ? '' : 'justify-center'} p-3 rounded-lg hover:bg-slate-700 transition-colors cursor-pointer group`}>
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
-            A
-          </div>
-          {sidebarOpen && (
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-white">Admin User</p>
-              <p className="text-xs text-gray-400">admin@example.com</p>
-            </div>
-          )}
-          {sidebarOpen && (
-            <LogOut className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-          )}
+  const unauthPrompt = !isAuthenticated ? (
+    <div className='px-4 pt-6'>
+      <div className='rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center'>
+        <p className='text-sm font-medium text-slate-700'>Sign in to manage the platform</p>
+        <div className='mt-3 flex flex-col gap-2'>
+          <button
+            type='button'
+            onClick={() => navigate('/login')}
+            className='inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-blue-300 hover:text-blue-600'
+          >
+            Login
+          </button>
+          <button
+            type='button'
+            onClick={() => navigate('/register')}
+            className='inline-flex items-center justify-center rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-500'
+          >
+            Sign up
+          </button>
         </div>
       </div>
-    </aside>
+    </div>
+  ) : undefined;
+
+  return (
+    <AppSidebar
+      brand={{ title: 'Admin console', subtitle: 'CollabSphere', to: '/admin' }}
+      sections={sections.map(section => ({
+        ...section,
+        items: section.items.map(item => ({
+          ...item,
+          match: path => (item.match ? item.match(path) : path === item.href),
+        })),
+      }))}
+      expanded
+      mode='inline'
+      className='h-full min-h-screen border-r border-slate-200 bg-white'
+      topSlot={unauthPrompt}
+      footerSlot={footer}
+    />
   );
-}
+};
+
+export default AdminSidebar;

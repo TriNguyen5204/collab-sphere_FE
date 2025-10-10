@@ -1,159 +1,122 @@
-import { useState } from 'react';
-import {
-  BookOpen,
-  FolderKanban,
-  ChevronRight,
-  LayoutDashboard,
-  Clock,
-  PanelLeftClose,
-  PanelRight ,
-} from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import Logo from '../../assets/logov1.png';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useMemo } from 'react';
+import { BookOpen, FolderKanban, LayoutDashboard, Clock, LogOut } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import AppSidebar from './AppSidebar';
+import logo from '../../assets/logov1.png';
+import { logout } from '../../store/slices/userSlice';
 
 const HeadDepartmentSidebar = () => {
-  const navigate = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { accessToken, roleName } = useSelector(state => state.user);
+  const isAuthenticated = Boolean(accessToken);
+  const userLabel = roleName || 'Head department';
 
-  const menuItems = [
-    {
-      id: 'dashboard',
-      name: 'Dashboard',
-      icon: LayoutDashboard,
-      description: 'Tổng quan',
-      path: '/head-department',
-    },
-    {
-      id: 'subject',
-      name: 'Subject',
-      icon: BookOpen,
-      description: 'Quản lý môn học',
-      path: '/head-department/subject-management',
-    },
-    {
-      id: 'project',
-      name: 'Project',
-      icon: FolderKanban,
-      description: 'Quản lý dự án',
-      path: '/head-department/project-management',
-    },
-    {
-      id: 'pending-projects',
-      name: 'Pending Projects',
-      icon: Clock,
-      description: 'Dự án chờ duyệt',
-      path: '/head-department/project-approvals',
-    },
-  ];
+  const sections = useMemo(
+    () =>
+      isAuthenticated
+        ? [
+            {
+              title: 'Department',
+              items: [
+                {
+                  label: 'Dashboard',
+                  href: '/head-department',
+                  icon: LayoutDashboard,
+                  match: path => path === '/head-department',
+                },
+                {
+                  label: 'Subject management',
+                  href: '/head-department/subject-management',
+                  icon: BookOpen,
+                  match: path => path.startsWith('/head-department/subject-management'),
+                },
+                {
+                  label: 'Project management',
+                  href: '/head-department/project-management',
+                  icon: FolderKanban,
+                  match: path => path.startsWith('/head-department/project-management'),
+                },
+                {
+                  label: 'Pending approvals',
+                  href: '/head-department/project-approvals',
+                  icon: Clock,
+                  match: path => path.startsWith('/head-department/project-approvals'),
+                },
+              ],
+            },
+          ]
+        : [],
+    [isAuthenticated],
+  );
 
-  return (
-    <aside
-      className={`${
-        collapsed ? 'w-20' : 'w-64'
-      } bg-gradient-to-b from-slate-50 to-white h-screen shadow-xl flex flex-col border-r border-gray-200 sticky top-0 transition-all duration-300`}
-    >
-      {/* Header */}
-      <div
-        className={`flex items-center justify-between px-5 py-4 border-b border-gray-200 transition-all duration-300 ${
-          collapsed ? 'flex-col gap-2' : ''
-        }`}
-      >
-        <div
-          className={`flex items-center ${
-            collapsed ? 'justify-center' : 'justify-start gap-3'
-          } w-full`}
-        >
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center shadow-md">
-            <img src={Logo} alt="Logo" className="w-6 h-6 object-contain" />
-          </div>
-          {!collapsed && (
-            <h1 className="text-lg font-bold text-gray-800 transition-opacity duration-300">
-              SmartEnroll
-            </h1>
-          )}
+  const footer = isAuthenticated ? (
+    <div className='mt-auto border-t border-slate-200 px-4 py-4'>
+      <div className='flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm'>
+        <div className='flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 text-sm font-semibold text-white'>
+          {userLabel.charAt(0).toUpperCase()}
         </div>
-
-        {/* Nút toggle */}
+        <div className='flex-1 overflow-hidden'>
+          <p className='truncate text-sm font-semibold text-slate-800'>{userLabel}</p>
+          <p className='truncate text-xs text-slate-500'>Department lead</p>
+        </div>
         <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="text-gray-600 hover:text-blue-600 transition-colors"
+          type='button'
+          onClick={() => {
+            dispatch(logout());
+            navigate('/login');
+          }}
+          className='inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-rose-300 hover:text-rose-500'
+          title='Sign out'
         >
-          {collapsed ? (
-            <PanelRight  size={22} />
-          ) : (
-            <PanelLeftClose size={22} />
-          )}
+          <LogOut className='h-4 w-4' />
         </button>
       </div>
+    </div>
+  ) : null;
 
-      {/* Menu */}
-      <nav
-        className={`flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent`}
-      >
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location.pathname === item.path;
-
-          return (
-            <motion.button
-              key={item.id}
-              whileHover={{ scale: 1.02 }}
-              onClick={() => navigate(item.path)}
-              className={`w-full flex items-center justify-between px-3 py-3 text-left transition-all duration-200 rounded-lg group ${
-                isActive
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
-                  : 'text-gray-700 hover:bg-gray-100 hover:shadow-sm'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Icon
-                  className={`w-5 h-5 transition-transform duration-200 ${
-                    isActive
-                      ? 'text-white scale-110'
-                      : 'text-gray-500 group-hover:text-blue-600 group-hover:scale-105'
-                  }`}
-                />
-                {!collapsed && (
-                  <span
-                    className={`font-medium ${
-                      isActive ? 'text-white' : ''
-                    } transition-opacity duration-300`}
-                  >
-                    {item.name}
-                  </span>
-                )}
-              </div>
-
-              {!collapsed && (
-                <ChevronRight
-                  className={`w-4 h-4 transition-all duration-200 ${
-                    isActive
-                      ? 'text-white opacity-100'
-                      : 'text-gray-400 opacity-0 group-hover:opacity-100'
-                  }`}
-                />
-              )}
-            </motion.button>
-          );
-        })}
-      </nav>
-
-      {/* Footer */}
-      <AnimatePresence>
-        {!collapsed && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="p-4 border-t border-gray-200 text-center text-xs text-gray-500 font-medium"
+  const unauthPrompt = !isAuthenticated ? (
+    <div className='px-4 pt-6'>
+      <div className='rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center'>
+        <p className='text-sm font-medium text-slate-700'>Sign in to oversee departments</p>
+        <div className='mt-3 flex flex-col gap-2'>
+          <button
+            type='button'
+            onClick={() => navigate('/login')}
+            className='inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-blue-300 hover:text-blue-600'
           >
-            © 2025 SmartEnroll
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </aside>
+            Login
+          </button>
+          <button
+            type='button'
+            onClick={() => navigate('/register')}
+            className='inline-flex items-center justify-center rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-500'
+          >
+            Sign up
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : undefined;
+
+  return (
+    <AppSidebar
+      brand={{ title: 'Head department', subtitle: 'SmartEnroll', to: '/head-department', logo }}
+      sections={sections.map(section => ({
+        ...section,
+        items: section.items.map(item => ({
+          ...item,
+          match: path => (item.match ? item.match(path) : path === item.href),
+        })),
+      }))}
+      expanded
+      mode='inline'
+      className='h-full min-h-screen border-r border-slate-200 bg-white'
+      topSlot={unauthPrompt}
+      footerSlot={footer}
+    />
   );
 };
 

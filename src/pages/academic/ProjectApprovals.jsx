@@ -6,7 +6,7 @@ import {
   approveProject,
   rejectProject,
 } from '../../services/userService';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 
 export default function ProjectApprovals() {
   const [projects, setProjects] = useState([]);

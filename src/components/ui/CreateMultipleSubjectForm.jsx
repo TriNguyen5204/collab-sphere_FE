@@ -11,7 +11,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 import { createMultipleSubjects } from '../../services/userService';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 
 const CreateMultipleSubjectForm = () => {
   const [subjects, setSubjects] = useState([]);

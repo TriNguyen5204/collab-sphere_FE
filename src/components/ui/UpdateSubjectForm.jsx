@@ -4,7 +4,7 @@ import {
   updateSubject,
   getSyllabusBySubjectId,
 } from '../../services/userService';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 
 const UpdateSubjectForm = ({ subject, onClose }) => {
   const [form, setForm] = useState({

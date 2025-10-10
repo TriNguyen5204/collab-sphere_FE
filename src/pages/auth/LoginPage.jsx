@@ -15,7 +15,7 @@ import { login } from '../../services/authService';
 import { useDispatch } from 'react-redux';
 import { setUserRedux } from '../../store/slices/userSlice';
 import Cookies from 'js-cookie';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 
 const LoginPage = () => {
   const navigate = useNavigate();
