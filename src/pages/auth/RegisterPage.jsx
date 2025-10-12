@@ -21,7 +21,7 @@ import { Mail, KeyRound, Loader2 } from 'lucide-react';
 import AuthInput from '../../components/ui/AuthInput';
 import logo from '../../assets/logov1.png';
 import { sendOtp, register } from '../../services/authService';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 
 const RegisterPage = () => {
   const navigate = useNavigate();

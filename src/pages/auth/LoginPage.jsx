@@ -73,7 +73,27 @@ const LoginPage = () => {
         dispatch(setUserRedux(response));
         Cookies.set('user', JSON.stringify(response), { expires: 7 });
         toast.success('Login successful!');
-        navigate('/');
+        const roleId = response.roleId;
+        switch(roleId) {
+          case 1:
+            navigate('/admin');
+            break;
+          case 2:
+            navigate('/head-department')
+            break;
+          case 3:
+            navigate('/staff')
+            break;
+          case 4:
+            navigate('/lecturer')
+            break;
+          case 5:
+            navigate('/')
+            break;
+          default:
+            navigate('/login')
+            break;          
+        }
       } else {
         toast.error('Login failed. Please try again.');
       }

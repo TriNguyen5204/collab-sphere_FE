@@ -22,7 +22,7 @@ import LoginPage from '../pages/auth/LoginPage';
 import RegisterPage from '../pages/auth/RegisterPage';
 import ConnectRoom from '../test/ConnectRoom';
 import VideoRoom from '../test/VideoRoom';
-import ProjectApprovals from '../pages/academic/ProjectApprovals';
+import ProjectApprovals from '../pages/headDepartment/ProjectApprovals';
 import AdminDashboard from '../pages/admin/AdminDashboard';
 import AccountManagement from '../pages/admin/AccountManagement';
 import SystemReport from '../pages/admin/SystemReport';
