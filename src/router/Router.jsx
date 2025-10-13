@@ -40,6 +40,8 @@ import StudentProfile from '../pages/student/StudentProfile';
 import StudentClassPage from '../pages/student/StudentClassPage';
 import TeamWorkspace from '../pages/student/project/TeamWorkspace';
 import ProjectManagement from '../pages/headDepartment/ProjectManagement';
+import StudentClassMembersPage from '../pages/student/StudentClassMembersPage';
+import StudentClassProjectsPage from '../pages/student/StudentClassProjectsPage';
 
 const router = createBrowserRouter([
   {
@@ -90,6 +92,14 @@ const router = createBrowserRouter([
   {
     path: '/student/project/:id/:projectName/team-workspace',
     element: <TeamWorkspace />,
+  },
+  {
+    path: '/student/:classSlug/members',
+    element: <StudentClassMembersPage />,
+  },
+  {
+    path: '/student/:classSlug/projects',
+    element: <StudentClassProjectsPage />,
   },
   {
     path: '/lecturer/classes',

@@ -1,22 +1,39 @@
 import axios from 'axios';
-import { store } from '../store/index';
+import { store } from '../store';
+import { toast } from 'sonner';
 
 const apiClient = axios.create({
-    baseURL: 'https://collabsphere.azurewebsites.net/api', // Replace with your API base URL
-    headers: { 'Content-Type': 'application/json' },
+    baseURL: import.meta.env.VITE_API_BASE_URL || 'https://collabsphere.azurewebsites.net/api',
+    withCredentials: Boolean(import.meta.env.VITE_AUTH_WITH_CREDENTIALS) || false,
+    timeout: 15000,
 });
 
-apiClient.interceptors.request.use(
-    (config) => {
-        const token = store.getState().user.token;
-        if (token) {
-            config.headers['Authorization'] = `Bearer ${token}`;
+apiClient.interceptors.request.use((config) => {
+    const state = store.getState();
+    const token =
+        state?.auth?.accessToken ||
+        state?.user?.accessToken ||
+        localStorage.getItem('accessToken') ||
+        sessionStorage.getItem('accessToken');
+
+    if (token) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+apiClient.interceptors.response.use(
+    (res) => res,
+    (err) => {
+        const status = err?.response?.status;
+        if (status === 401) {
+            toast.error('Please sign in again (401).');
+        } else if (status === 403) {
+            toast.warning('You are not a member of this class (403).');
         }
-        config.headers['Access-Control-Allow-Origin'] = '*';
-        config.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
-        config.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
-        return config;
-    },
-    (error) => Promise.reject(error)
-)
+        return Promise.reject(err);
+    }
+);
+
 export default apiClient;
