@@ -36,6 +36,15 @@
   width: 260px;
 }
 
+.sidebarInline {
+  position: relative;
+  top: auto;
+  left: auto;
+  height: auto;
+  min-height: 100%;
+  box-shadow: none;
+}
+
 
 
 /* Mobile behavior */
@@ -79,6 +88,15 @@
   gap: 12px;
 }
 
+.logoImage {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .logoIcon {
   width: 32px;
   height: 32px;
@@ -108,6 +126,28 @@
 }
 
 .sidebar:not(.sidebarCollapsed) .logoText {
+  opacity: 1;
+  width: auto;
+}
+
+.logoTextGroup {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.logoSubtitle {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar:not(.sidebarCollapsed) .logoSubtitle {
   opacity: 1;
   width: auto;
 }
@@ -229,6 +269,16 @@
   opacity: 1;
   width: auto;
   transition-delay: 0.05s;
+}
+
+.navBadge {
+  margin-left: auto;
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--accent-blue);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 999px;
 }
 
 

@@ -1,6 +1,15 @@
 import apiClient from './apiClient';
 
 //staff
+export const createClass = async (data) => {
+    try{
+        const response = await apiClient.post('/class', data);
+        return response.data;
+    }catch(error){
+        console.error('Error creating class:', error);
+        throw error;
+    }
+}
 export const createMultipleClasses = async (data) => {
     try{
         const formData = new FormData();
@@ -16,9 +25,39 @@ export const createMultipleClasses = async (data) => {
         throw error;
     }
 }
+export const importStudentList = async (data) => {
+    try{
+        const formData = new FormData();
+        formData.append('file', data);
+        const response = await apiClient.post('/student/import', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    }catch(error){
+        console.error('Error importing student list:', error);
+        throw error;
+    }
+}
+export const importLecturerList = async (data) => {
+    try{
+        const formData = new FormData();
+        formData.append('file', data);
+        const response = await apiClient.post('/lecturer/import', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    }catch(error){
+        console.error('Error importing lecturer list:', error);
+        throw error;
+    }
+}
 export const getAllLecturer = async () => {
     try{
-        const response = await apiClient.get('/Lecturer');
+        const response = await apiClient.get('/lecturer');
         return response.data;
     }catch(error){
         console.error('Error fetching all lecturers:', error);
@@ -55,7 +94,7 @@ export const getSyllabusBySubjectId = async (subjectId) => {
 //admin
 export const getAllAccount = async () => {
     try{
-        const response = await apiClient.get('/Admin/all-users');
+        const response = await apiClient.get('/admin/all-users');
         return response.data;
     }catch(error){
         console.error('Error fetching all accounts:', error);
@@ -67,7 +106,7 @@ export const createMultipleSubjects = async (data) => {
     try{
         const formData = new FormData();
         formData.append('file', data);
-        const response = await apiClient.post('/Subject/import', formData, {
+        const response = await apiClient.post('/subject/import', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
@@ -75,6 +114,77 @@ export const createMultipleSubjects = async (data) => {
         return response.data;
     }catch(error){
         console.error('Error creating multiple subjects:', error);
+        throw error;
+    }
+}
+export const deleteSubjectById = async (subjectId) => {
+    try{
+        const response = await apiClient.delete(`/subject/${subjectId}`);
+        return response.data;
+    }catch(error){
+        console.error(`Error deleting subject with ID ${subjectId}:`, error);
+        throw error;
+    }
+}
+export const updateSubject = async (data) => {
+    try{
+        const response = await apiClient.put(`/subject`, data);    
+        return response.data;
+    }catch(error){
+        console.error(`Error updating syllabus for subject}:`, error);
+        throw error;
+    }
+}
+export const getAllProject = async (params = {}) => {
+  try {
+    const response = await apiClient.get('/project', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching all projects:', error);
+    throw error;
+  }
+};
+
+export const getPendingProjects = async ({ descriptors, viewAll, pageNum, pageSize}) => {
+  try {
+    const response = await apiClient.get('/project/pending', {
+      params: {
+        Descriptors: descriptors,
+        ViewAll: viewAll,
+        PageNum: pageNum,
+        PageSize: pageSize,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching pending projects:', error);
+    if (error.response) {
+      return {
+        isSuccess: false,
+        status: error.response.status,
+        message: error.response.data?.message || 'Failed to fetch pending projects',
+        errorList: error.response.data?.errorList || [],
+      };
+    }
+
+    throw error;
+  }
+};
+export const approveProject = async (projectId) => {
+    try {
+        const response = await apiClient.patch(`/project/${projectId}/approve`);
+        return response.data;
+    } catch (error) {
+        console.error(`Error approving project with ID ${projectId}:`, error);
+        throw error;
+    }
+};
+export const rejectProject = async (projectId) => {
+    try {
+        const response = await apiClient.patch(`/project/${projectId}/deny`);
+        return response.data;
+    } catch (error) {
+        console.error(`Error rejecting project with ID ${projectId}:`, error);
         throw error;
     }
 }

@@ -1,10 +1,9 @@
-import React, { useState, useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "../../components/layout/Header";
-import StudentSidebar from "../../components/layout/StudentSidebar";
+import StudentLayout from "../../components/layout/StudentLayout";
 import ProjectFilters from "../../components/student/ProjectFilters";
 import ProjectSection from "../../components/student/ProjectSection";
-import { History, Star, BookOpen } from "lucide-react";
+import { History, Star } from "lucide-react";
 
 const sampleProjects = [
   { 
@@ -109,12 +108,8 @@ const StudentProjectPage = () => {
   }, [starred]);
 
   return (
-    <>
-      <Header />
-      <div className="flex min-h-screen" style={{ backgroundColor: "#D5DADF" }}>
-        <StudentSidebar />
-
-        <main className="flex-1 p-6 space-y-6">
+    <StudentLayout>
+      <div className="space-y-6">
           {/* Header */}
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-6">My Projects</h1>
@@ -156,9 +151,8 @@ const StudentProjectPage = () => {
               description: "Try adjusting your filters or search query"
             }}
           />
-        </main>
       </div>
-    </>
+    </StudentLayout>
   );
 };
 

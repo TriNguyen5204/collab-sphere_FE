@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "../../components/layout/Header";
-import StudentSidebar from "../../components/layout/StudentSidebar";
+import StudentLayout from "../../components/layout/StudentLayout";
 import { History, Star, Calendar, TrendingUp, Users, CheckCircle2, Clock, AlertCircle, Target } from "lucide-react";
 
 const sampleProjects = [
@@ -147,12 +146,8 @@ const StudentHomePage = () => {
   };
 
   return (
-    <>
-      <Header />
-      <div className="flex min-h-screen" style={{ backgroundColor: "#D5DADF" }}>
-        <StudentSidebar />
-
-        <main className="flex-1 p-6 space-y-6">
+    <StudentLayout>
+      <div className="space-y-6">
           {/* Dashboard Overview */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Active Projects Card */}
@@ -342,9 +337,8 @@ const StudentHomePage = () => {
               {sampleProjects.map(renderProjectCard)}
             </div>
           </div>
-        </main>
       </div>
-    </>
+    </StudentLayout>
   );
 };
 

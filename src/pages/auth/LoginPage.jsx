@@ -15,7 +15,7 @@ import { login } from '../../services/authService';
 import { useDispatch } from 'react-redux';
 import { setUserRedux } from '../../store/slices/userSlice';
 import Cookies from 'js-cookie';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -66,15 +66,21 @@ const LoginPage = () => {
     if (!validateForm()) return;
     
     setIsLoading(true);
-    
-    const response = await login(formData.email, formData.password);
-    if (response.userId) {
-      dispatch(setUserRedux(response));
-      Cookies.set("user", JSON.stringify(response), { expires: 7 });
-      toast.success("Login successful!");
-      navigate('/'); 
-    }else{
-      toast.error("Login failed. Please try again.");
+
+    try {
+      const response = await login(formData.email, formData.password);
+      if (response?.userId) {
+        dispatch(setUserRedux(response));
+        Cookies.set('user', JSON.stringify(response), { expires: 7 });
+        toast.success('Login successful!');
+        navigate('/');
+      } else {
+        toast.error('Login failed. Please try again.');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Unable to login. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 

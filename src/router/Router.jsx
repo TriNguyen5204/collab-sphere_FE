@@ -32,13 +32,14 @@ import MilestonePage from '../pages/student/project/MilestonePage';
 import CheckpointPage from '../pages/student/project/CheckpointPage';
 import PeerEvaluationPage from '../pages/student/project/PeerEvaluationPage';
 //Student role imports
-import StudentHomePage from '../pages/student/StudentHomepage';
+import StudentHomePage from '../pages/student/StudentHomePage';
 import StudentProjectPage from '../pages/student/StudentProjectPage';
 import ProjectBoard from '../pages/student/project/ProjectBoard';
 import TestKanbanBoard from '../pages/TestKanbanBoard';
 import StudentProfile from '../pages/student/StudentProfile';
 import StudentClassPage from '../pages/student/StudentClassPage';
 import TeamWorkspace from '../pages/student/project/TeamWorkspace';
+import ProjectManagement from '../pages/headDepartment/ProjectManagement';
 
 const router = createBrowserRouter([
   {
@@ -209,20 +210,18 @@ const router = createBrowserRouter([
     element: <SubjectManagement />,
   },
   {
-    path: '/head-department/syllabus-management',
-  },
-  {
     path: '/test/kanban',
     element: <TestKanbanBoard />,
   },
   {
-    path: '/test/kanban',
-    element: <TestKanbanBoard />,
-  },
-  {
-    path: '/academic/project-approvals',
+    path: '/head-department/project-approvals',
     element: <ProjectApprovals />,
   },
+  {
+    path: '/head-department/project-management',
+    element: <ProjectManagement />,
+  }
+
 ]);
 
 export const Router = () => {
