@@ -1,11 +1,9 @@
 import axios from 'axios';
-import { store } from '../store';
-import { toast } from 'sonner';
+import { store } from '../store/index';
 
 const apiClient = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || 'https://collabsphere.azurewebsites.net/api',
-    withCredentials: Boolean(import.meta.env.VITE_AUTH_WITH_CREDENTIALS) || false,
-    timeout: 15000,
+    baseURL,
+    headers: { 'Content-Type': 'application/json' },
 });
 
 apiClient.interceptors.request.use((config) => {
