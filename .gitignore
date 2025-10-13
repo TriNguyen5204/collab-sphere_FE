@@ -27,3 +27,5 @@ dist-ssr
 .github/instructions/*
 *.md
 *.tfvars
+
+.env*

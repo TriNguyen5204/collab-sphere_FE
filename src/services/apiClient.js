@@ -1,8 +1,14 @@
 import axios from 'axios';
 import { store } from '../store/index';
 
+const baseURL = import.meta.env.VITE_API_BASE_URL;
+
+if (!baseURL) {
+    throw new Error('VITE_API_BASE_URL is not defined.');
+}
+
 const apiClient = axios.create({
-    baseURL: 'https://collabsphere.azurewebsites.net/api', // Replace with your API base URL
+    baseURL,
     headers: { 'Content-Type': 'application/json' },
 });
 
