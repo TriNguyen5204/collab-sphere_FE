@@ -4,18 +4,16 @@ import {
   getClassDetail,
   getAllLecturer,
   getAllStudent,
-  // addStudentToClass,
-  // addLecturerToClass,
+  assignLecturerIntoClass,
+  addStudentIntoClass,
 } from '../../services/userService';
-import {
-  Calendar,
-  Users,
-  FileText,
-  Layers,
-  UserCircle,
-  PlusCircle,
-  X,
-} from 'lucide-react';
+import { Calendar, Users, FileText, Layers, UserCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
+import Modal from '../../components/ui/Modal';
+import Table from '../../components/ui/Table';
+import SectionCard from '../../components/ui/SectionCard';
+import Header from '../../components/layout/Header';
 
 export default function ImprovedClassDetail() {
   const { classId } = useParams();
@@ -26,333 +24,306 @@ export default function ImprovedClassDetail() {
   const [error, setError] = useState('');
   const [showStudentModal, setShowStudentModal] = useState(false);
   const [showLecturerModal, setShowLecturerModal] = useState(false);
+  const [selectedStudents, setSelectedStudents] = useState([]);
 
   useEffect(() => {
-    const fetchClassDetail = async () => {
+    const fetchAll = async () => {
       try {
         setLoading(true);
-        const response = await getClassDetail(classId);
-        if (response) setClassDetail(response);
+        const [cls, lecturers, students] = await Promise.all([
+          getClassDetail(classId),
+          getAllLecturer(),
+          getAllStudent(),
+        ]);
+        setClassDetail(cls);
+        setLecturerList(lecturers?.lecturerList ?? []);
+        setStudentList(students?.studentList ?? []);
       } catch (err) {
         setError('Failed to load class details');
       } finally {
         setLoading(false);
       }
     };
-
-    const fetchStudentList = async () => {
-      try {
-        const response = await getAllStudent();
-        if (response) setStudentList(response);
-      } catch (error) {
-        console.log('Fetch student failed', error);
-      }
-    };
-
-    const fetchLecturerList = async () => {
-      try {
-        const response = await getAllLecturer();
-        if (response) setLecturerList(response);
-      } catch (error) {
-        console.log('Fetch lecturer failed', error);
-      }
-    };
-
-    fetchClassDetail();
-    fetchLecturerList();
-    fetchStudentList();
+    fetchAll();
   }, [classId]);
 
-  const handleAddStudent = async (studentId) => {
-    // try {
-    //   await addStudentToClass(classId, studentId);
-    //   alert('Student added successfully!');
-    // } catch (error) {
-    //   alert('Failed to add student.');
-    // }
+  const handleAddStudent = async () => {
+    if (selectedStudents.length === 0) {
+      toast.warning('Please select at least one student!');
+      return;
+    }
+
+    try {
+      const res = await addStudentIntoClass(classId, selectedStudents);
+      if (res) {
+        toast.success('✅ Students added successfully!');
+        setSelectedStudents([]);
+        setShowStudentModal(false);
+      }
+    } catch {
+      toast.error('Failed to add students.');
+    }
   };
 
-  const handleAddLecturer = async (lecturerId) => {
-    // try {
-    //   await addLecturerToClass(classId, lecturerId);
-    //   alert('Lecturer added successfully!');
-    // } catch (error) {
-    //   alert('Failed to add lecturer.');
-    // }
+  const handleAddLecturer = async lecturerId => {
+    try {
+      const response = await assignLecturerIntoClass(classId, lecturerId);
+      if (response.isSuccess) {
+        toast.success(response.message);
+        setShowLecturerModal(false);
+      }
+    } catch {
+      toast.error('Failed to add lecturer.');
+    }
+  };
+
+  const handleCheckboxChange = (studentId, fullname) => {
+    setSelectedStudents(prev =>
+      prev.some(s => s.studentId === studentId)
+        ? prev.filter(s => s.studentId !== studentId)
+        : [...prev, { studentId, studentName: fullname }]
+    );
   };
 
   if (loading)
     return (
-      <div className="flex justify-center items-center h-[70vh]">
-        <p className="text-gray-500">Loading class details...</p>
+      <div className='flex justify-center items-center h-[70vh]'>
+        <p className='text-gray-500 animate-pulse'>Loading class details...</p>
       </div>
     );
 
   if (error)
     return (
-      <div className="flex justify-center items-center h-[70vh]">
-        <p className="text-red-500">{error}</p>
+      <div className='flex justify-center items-center h-[70vh]'>
+        <p className='text-red-500 font-medium'>{error}</p>
       </div>
     );
 
   if (!classDetail) return null;
 
   return (
-    <div className="p-8 space-y-8 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {classDetail.className}
-          </h1>
-          <p className="text-gray-600 text-sm">
-            {classDetail.subjectCode} – {classDetail.subjectName}
-          </p>
-        </div>
-        <div className="flex items-center gap-3 text-gray-700">
-          <Calendar size={18} />
-          <span>
-            Created on{' '}
-            {new Date(classDetail.createdDate).toLocaleDateString('en-GB')}
-          </span>
-        </div>
-      </div>
-
-      {/* Class Info */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <FileText size={20} /> Class Information
-        </h2>
-        <div className="grid md:grid-cols-2 gap-4 text-gray-700">
-          <p>
-            <strong>Lecturer:</strong> {classDetail.lecturerName} (
-            {classDetail.lecturerCode})
-          </p>
-          <p>
-            <strong>Members:</strong> {classDetail.memberCount}
-          </p>
-          <p>
-            <strong>Teams:</strong> {classDetail.teamCount}
-          </p>
-          <p>
-            <strong>Status:</strong>{' '}
-            <span
-              className={`font-medium ${
-                classDetail.isActive ? 'text-green-600' : 'text-red-500'
-              }`}
-            >
-              {classDetail.isActive ? 'Active' : 'Inactive'}
+    <>
+      <Header />
+      <div className='p-8 space-y-8 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen'>
+        {/* Header */}
+        <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-6'>
+          <div>
+            <h1 className='text-3xl font-bold text-gray-900 flex items-center gap-3'>
+              <UserCircle size={36} className='text-blue-600' />
+              {classDetail.className}
+            </h1>
+            <p className='text-gray-600 mt-1'>
+              {classDetail.subjectCode} — {classDetail.subjectName}
+            </p>
+          </div>
+          <div className='flex items-center gap-3 text-gray-700 text-sm bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200'>
+            <Calendar size={16} />
+            <span>
+              Created on{' '}
+              {new Date(classDetail.createdDate).toLocaleDateString('en-GB')}
             </span>
-          </p>
+          </div>
         </div>
-      </div>
 
-      {/* Members */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <Users size={20} /> Class Members
+        {/* Class Info */}
+        <motion.div
+          className='bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition'
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h2 className='text-xl font-semibold mb-4 flex items-center gap-2 text-blue-700'>
+            <FileText size={20} /> Class Information
           </h2>
-          <button
-            onClick={() => setShowStudentModal(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            <PlusCircle size={18} /> Add Student
-          </button>
-        </div>
-        {classDetail.classMembers.length === 0 ? (
-          <p className="text-gray-500">No members found.</p>
-        ) : (
-          <table className="min-w-full text-sm text-gray-700 border">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-3 text-left">Student Code</th>
-                <th className="p-3 text-left">Full Name</th>
-                <th className="p-3 text-left">Address</th>
-                <th className="p-3 text-left">Phone</th>
-                <th className="p-3 text-left">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {classDetail.classMembers.map((m) => (
-                <tr key={m.classMemberId} className="border-t hover:bg-gray-50">
-                  <td className="p-3">{m.studentCode}</td>
-                  <td className="p-3">{m.fullname}</td>
-                  <td className="p-3">{m.address}</td>
-                  <td className="p-3">{m.phoneNumber}</td>
-                  <td className="p-3">
-                    {m.status === 0 ? (
-                      <span className="text-yellow-600">Pending</span>
-                    ) : (
-                      <span className="text-green-600">Active</span>
-                    )}
-                  </td>
-                </tr>
+          <div className='grid md:grid-cols-2 gap-4 text-gray-700'>
+            <p>
+              <strong>Lecturer:</strong> {classDetail.lecturerName} (
+              {classDetail.lecturerCode})
+            </p>
+            <p>
+              <strong>Members:</strong> {classDetail.memberCount}
+            </p>
+            <p>
+              <strong>Teams:</strong> {classDetail.teamCount}
+            </p>
+            <p>
+              <strong>Status:</strong>{' '}
+              <span
+                className={`font-medium px-2 py-1 rounded ${
+                  classDetail.isActive
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-red-100 text-red-600'
+                }`}
+              >
+                {classDetail.isActive ? 'Active' : 'Inactive'}
+              </span>
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Members */}
+        <SectionCard
+          title='Class Members'
+          icon={<Users size={20} />}
+          buttonLabel='Add Student'
+          buttonColor='blue'
+          onButtonClick={() => setShowStudentModal(true)}
+        >
+          {classDetail.classMembers.length === 0 ? (
+            <EmptyState text='No members found.' />
+          ) : (
+            <Table
+              headers={[
+                'Student Code',
+                'Full Name',
+                'Address',
+                'Phone',
+                'Status',
+              ]}
+              rows={classDetail.classMembers.map(m => [
+                m.studentCode,
+                m.fullname,
+                m.address,
+                m.phoneNumber,
+                m.status === 0 ? (
+                  <span className='text-yellow-600 font-medium'>Pending</span>
+                ) : (
+                  <span className='text-green-600 font-medium'>Active</span>
+                ),
+              ])}
+            />
+          )}
+        </SectionCard>
+
+        {/* Projects */}
+        <SectionCard title='Project Assignments' icon={<Layers size={20} />}>
+          {classDetail.projectAssignments.length === 0 ? (
+            <EmptyState text='No projects assigned.' />
+          ) : (
+            <div className='grid md:grid-cols-2 gap-4'>
+              {classDetail.projectAssignments.map(p => (
+                <motion.div
+                  key={p.projectAssignmentId}
+                  className='border rounded-xl p-4 bg-gray-50 hover:bg-gray-100 transition'
+                  whileHover={{ scale: 1.02 }}
+                >
+                  <h3 className='font-semibold text-gray-900 mb-1'>
+                    {p.projectName}
+                  </h3>
+                  <p className='text-sm text-gray-600 mb-2'>{p.description}</p>
+                  <p className='text-xs text-gray-500'>
+                    Assigned:{' '}
+                    {new Date(p.assignedDate).toLocaleDateString('en-GB')}
+                  </p>
+                </motion.div>
               ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Projects */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <Layers size={20} /> Project Assignments
-        </h2>
-        {classDetail.projectAssignments.length === 0 ? (
-          <p className="text-gray-500">No projects assigned.</p>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-4">
-            {classDetail.projectAssignments.map((p) => (
-              <div
-                key={p.projectAssignmentId}
-                className="border rounded-lg p-4 hover:shadow transition bg-gray-50"
-              >
-                <h3 className="font-semibold text-gray-900 mb-1">
-                  {p.projectName}
-                </h3>
-                <p className="text-sm text-gray-600 mb-2">{p.description}</p>
-                <p className="text-xs text-gray-500">
-                  Assigned:{' '}
-                  {new Date(p.assignedDate).toLocaleDateString('en-GB')}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Teams + Add Lecturer */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <UserCircle size={20} /> Teams
-          </h2>
-          <button
-            onClick={() => setShowLecturerModal(true)}
-            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-          >
-            <PlusCircle size={18} /> Add Lecturer
-          </button>
-        </div>
-        {classDetail.teams.length === 0 ? (
-          <p className="text-gray-500">No teams created yet.</p>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {classDetail.teams.map((team) => (
-              <div
-                key={team.teamId}
-                className="border rounded-lg p-5 hover:shadow transition bg-gray-50"
-              >
-                <h3 className="font-semibold text-gray-900 mb-1">
-                  {team.teamName}
-                </h3>
-                <p className="text-sm text-gray-600 mb-2">
-                  Project: {team.projectName}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {new Date(team.createdDate).toLocaleDateString('en-GB')} →{' '}
-                  {new Date(team.endDate).toLocaleDateString('en-GB')}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Modal Student */}
-      {showStudentModal && (
-        <Modal
-          title="Add Student to Class"
-          onClose={() => setShowStudentModal(false)}
-        >
-          {studentList.length === 0 ? (
-            <p className="text-gray-500">No students available.</p>
-          ) : (
-            <table className="min-w-full text-sm text-gray-700 border">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="p-3 text-left">Student Code</th>
-                  <th className="p-3 text-left">Full Name</th>
-                  <th className="p-3 text-left">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {studentList.map((s) => (
-                  <tr key={s.studentId} className="border-t hover:bg-gray-50">
-                    <td className="p-3">{s.studentCode}</td>
-                    <td className="p-3">{s.fullname}</td>
-                    <td className="p-3">
-                      <button
-                        onClick={() => handleAddStudent(s.studentId)}
-                        className="text-blue-600 hover:underline"
-                      >
-                        Add
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            </div>
           )}
-        </Modal>
-      )}
+        </SectionCard>
 
-      {/* Modal Lecturer */}
-      {showLecturerModal && (
-        <Modal
-          title="Add Lecturer to Class"
-          onClose={() => setShowLecturerModal(false)}
+        {/* Teams + Add Lecturer */}
+        <SectionCard
+          title='Teams'
+          icon={<UserCircle size={20} />}
+          buttonLabel='Add Lecturer'
+          buttonColor='green'
+          onButtonClick={() => setShowLecturerModal(true)}
         >
-          {lecturerList.length === 0 ? (
-            <p className="text-gray-500">No lecturers available.</p>
+          {classDetail.teams.length === 0 ? (
+            <EmptyState text='No teams created yet.' />
           ) : (
-            <table className="min-w-full text-sm text-gray-700 border">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="p-3 text-left">Lecturer Code</th>
-                  <th className="p-3 text-left">Full Name</th>
-                  <th className="p-3 text-left">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lecturerList.map((l) => (
-                  <tr key={l.lecturerId} className="border-t hover:bg-gray-50">
-                    <td className="p-3">{l.lecturerCode}</td>
-                    <td className="p-3">{l.fullname}</td>
-                    <td className="p-3">
-                      <button
-                        onClick={() => handleAddLecturer(l.lecturerId)}
-                        className="text-green-600 hover:underline"
-                      >
-                        Add
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-4'>
+              {classDetail.teams.map(team => (
+                <motion.div
+                  key={team.teamId}
+                  className='border rounded-lg p-5 bg-gray-50 hover:bg-gray-100 transition'
+                  whileHover={{ scale: 1.02 }}
+                >
+                  <h3 className='font-semibold text-gray-900 mb-1'>
+                    {team.teamName}
+                  </h3>
+                  <p className='text-sm text-gray-600 mb-2'>
+                    Project: {team.projectName}
+                  </p>
+                  <p className='text-xs text-gray-500'>
+                    {new Date(team.createdDate).toLocaleDateString('en-GB')} →{' '}
+                    {new Date(team.endDate).toLocaleDateString('en-GB')}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
           )}
-        </Modal>
-      )}
-    </div>
+        </SectionCard>
+
+        {/* Modals */}
+        <AnimatePresence>
+          {showStudentModal && (
+            <Modal
+              title='Add Students to Class'
+              onClose={() => setShowStudentModal(false)}
+            >
+              {studentList.length === 0 ? (
+                <EmptyState text='No students available.' />
+              ) : (
+                <div className='space-y-4'>
+                  <Table
+                    headers={['Select', 'Student Code', 'Full Name']}
+                    rows={studentList.map(s => [
+                      <input
+                        type='checkbox'
+                        checked={selectedStudents.some(
+                          st => st.studentId === s.uId
+                        )}
+                        onChange={() => handleCheckboxChange(s.uId, s.fullname)}
+                      />,
+                      s.studentCode,
+                      s.fullname,
+                    ])}
+                  />
+                  <div className='flex justify-end'>
+                    <button
+                      onClick={handleAddStudent}
+                      className='bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition'
+                    >
+                      Add Selected Students
+                    </button>
+                  </div>
+                </div>
+              )}
+            </Modal>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showLecturerModal && (
+            <Modal
+              title='Add Lecturer to Class'
+              onClose={() => setShowLecturerModal(false)}
+            >
+              {lecturerList.length === 0 ? (
+                <EmptyState text='No lecturers available.' />
+              ) : (
+                <Table
+                  headers={['Lecturer Code', 'Full Name', 'Action']}
+                  rows={lecturerList.map(l => [
+                    l.lecturerCode,
+                    l.fullname,
+                    <button
+                      onClick={() => handleAddLecturer(l.uId)}
+                      className='text-green-600 hover:underline'
+                    >
+                      Add
+                    </button>,
+                  ])}
+                />
+              )}
+            </Modal>
+          )}
+        </AnimatePresence>
+      </div>
+    </>
   );
 }
 
-/* ---------- Reusable Modal Component ---------- */
-function Modal({ title, children, onClose }) {
-  return (
-    <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
-      <div className="bg-white rounded-xl shadow-lg w-11/12 max-w-2xl p-6 relative">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
-        >
-          <X size={20} />
-        </button>
-        <h2 className="text-xl font-semibold mb-4">{title}</h2>
-        <div className="overflow-y-auto max-h-[60vh]">{children}</div>
-      </div>
-    </div>
-  );
+function EmptyState({ text }) {
+  return <p className='text-gray-500 italic text-center py-6'>{text}</p>;
 }

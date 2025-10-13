@@ -103,9 +103,29 @@ export const importLecturerList = async data => {
     throw error;
   }
 };
-export const getAllLecturer = async () => {
+export const getAllLecturer = async (
+  email,
+  fullName,
+  yob,
+  lecturerCode,
+  major,
+  pageNumber,
+  pageSize,
+  isDesc
+) => {
   try {
-    const response = await apiClient.get('/lecturer');
+    const response = await apiClient.get('/lecturer', {
+      params: {
+        Email: email,
+        FullName: fullName,
+        Yob: yob,
+        LecturerCode: lecturerCode,
+        Major: major,
+        PageNumber: pageNumber,
+        PageSize: pageSize,
+        IsDesc: isDesc,
+      },
+    });
     return response.data;
   } catch (error) {
     console.error('Error fetching all lecturers:', error);
@@ -142,6 +162,41 @@ export const getSyllabusBySubjectId = async subjectId => {
     throw error;
   }
 };
+export const assignLecturerIntoClass = async (classId, lecturerId) => {
+  try {
+    const response = await apiClient.patch(
+      `/class/${classId}/assign-lecturer`,
+      {},
+      {
+        params: {
+          LecturerId: lecturerId,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Assign failed:', error.response?.data || error.message);
+    throw error;
+  }
+};
+export const addStudentIntoClass = async (classId, studentList) => {
+  const body = {
+    classId,
+    studentList, 
+  };
+
+  try {
+    const response = await apiClient.post(
+      `/class/${classId}/add-student`,
+      body
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Add failed:', error);
+    throw error;
+  }
+};
+
 //admin
 export const getAllAccount = async () => {
   try {

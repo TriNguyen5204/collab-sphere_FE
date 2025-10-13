@@ -13,7 +13,7 @@ apiClient.interceptors.request.use(
             config.headers['Authorization'] = `Bearer ${token}`;
         }
         config.headers['Access-Control-Allow-Origin'] = '*';
-        config.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+        config.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH';
         config.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
         return config;
     },
