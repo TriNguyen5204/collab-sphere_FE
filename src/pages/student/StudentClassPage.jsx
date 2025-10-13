@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Download, LogOut, BookOpen, FileText, Users, Calendar } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import StudentSidebar from '../../components/layout/StudentSidebar';
+import { Toaster, toast } from 'sonner'
 
 const StudentClassPage = () => {
   const [classes, setClasses] = useState([
@@ -34,28 +35,52 @@ const StudentClassPage = () => {
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [classToLeave, setClassToLeave] = useState(null);
 
+  // Simulate a download (replace with real API later)
+  const simulateDownload = (resource) =>
+    new Promise((resolve) => setTimeout(resolve, 900));
+
   const handleLeaveClass = (classItem) => {
     setClassToLeave(classItem);
     setShowLeaveModal(true);
   };
 
   const confirmLeaveClass = () => {
-    setClasses(classes.filter(c => c.id !== classToLeave.id));
+    const leaving = classToLeave; // keep a ref for toast action
+    setClasses(classes.filter(c => c.id !== leaving.id));
     setShowLeaveModal(false);
     setClassToLeave(null);
-    if (selectedClass?.id === classToLeave.id) {
+    if (selectedClass?.id === leaving.id) {
       setSelectedClass(null);
     }
+
+    // Toast with undo
+    toast.success(`Left ${leaving.code} — ${leaving.name}`, {
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          // Re-add class and restore selection
+          setClasses(prev => [...prev, leaving].sort((a, b) => a.id - b.id));
+          setSelectedClass(leaving);
+          toast.info('Rejoined the class');
+        }
+      }
+    });
   };
 
-  const handleDownloadResource = (resource) => {
-    // Implement download logic
-    console.log('Downloading:', resource.name);
+  const handleDownloadResource = async (resource) => {
+    // Replace with your real download logic
+    toast.promise(simulateDownload(resource), {
+      loading: `Downloading ${resource.name}...`,
+      success: `Download started: ${resource.name}`,
+      error: 'Failed to start download'
+    });
+    // console.log('Downloading:', resource.name);
   };
 
   return (
     <>
       <Header />
+      <Toaster richColors position="bottom-left" closeButton /> {/* ADD */}
       <div className="flex min-h-screen" style={{ backgroundColor: "#D5DADF" }}>
         <StudentSidebar />
 
