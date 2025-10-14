@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { getClassesByStudentId, getClassDetailsById } from '../../services/userService';
 import { EnrolledClassesSkeleton, ClassDetailsSkeleton } from '../../components/skeletons/StudentSkeletons';
 import { useSelector } from 'react-redux';
+import StudentLayout from '../../components/layout/StudentLayout';
 
 const StudentClassPage = () => {
   const [classes, setClasses] = useState([]);
@@ -111,12 +112,7 @@ const StudentClassPage = () => {
   }, [selectedClassId]);
 
   return (
-    <>
-      <Header />
-      <div className="flex min-h-screen" style={{ backgroundColor: '#D5DADF' }}>
-        <StudentSidebar />
-
-        <main className="flex-1 p-6">
+    <StudentLayout>
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-gray-900">My Classes</h1>
             <p className="text-gray-600 mt-1">View your assigned classes</p>
@@ -139,7 +135,7 @@ const StudentClassPage = () => {
                         error: 'Failed to refresh classes',
                       })
                     }
-                    className="text-sm text-blue-600 hover:underline disabled:opacity-50"
+                    className="text-sm text-blue-600 hover:text-blue-800 hover:underline disabled:opacity-50"
                     disabled={loadingList}
                   >
                     {loadingList ? 'Loading…' : 'Refresh'}
@@ -155,8 +151,8 @@ const StudentClassPage = () => {
                         key={c.classId}
                         className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
                           selectedClassId === c.classId
-                            ? 'border-green-500 bg-green-50'
-                            : 'border-gray-200 hover:border-green-300'
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-blue-300'
                         }`}
                         onClick={() => setSelectedClassId(c.classId)}
                       >
@@ -293,9 +289,7 @@ const StudentClassPage = () => {
               )}
             </div>
           </div>
-        </main>
-      </div>
-    </>
+    </StudentLayout>
   );
 };
 
