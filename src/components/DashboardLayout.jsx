@@ -21,7 +21,7 @@ import { logout } from '../store/slices/userSlice';
 
 const navigationItems = [
   { label: 'Classes', href: '/lecturer/classes', icon: AcademicCapIcon },
-  { label: 'Module Library', href: '/lecturer/modules', icon: BookOpenIcon },
+  { label: 'Project Library', href: '/lecturer/projects', icon: BookOpenIcon },
   { label: 'Projects', href: '/lecturer/projects', icon: UserGroupIcon },
   { label: 'Grading', href: '/lecturer/grading', icon: ClipboardDocumentListIcon },
   { label: 'Analytics', href: '/lecturer/analytics', icon: ChartBarIcon },

@@ -563,15 +563,15 @@
     gap: 1rem;
     align-items: stretch;
   }
-  
+
   .headerControls {
     justify-content: space-between;
   }
-  
+
   .subjectOutcomes {
     grid-template-columns: 1fr;
   }
-  
+
   .nodeActions {
     flex-direction: column;
     gap: 0.5rem;
@@ -583,54 +583,54 @@
   .wbsContainer {
     border-radius: 12px;
   }
-  
+
   .wbsHeader {
     padding: 1rem;
   }
-  
+
   .wbsContent {
     padding: 1rem;
     max-height: 60vh;
   }
-  
+
   .nodeContent {
     padding: 0.75rem 1rem;
   }
-  
+
   .nodeHeader {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
   }
-  
+
   .nodeActions {
     width: 100%;
     justify-content: space-between;
   }
-  
+
   .academicMetadata {
     flex-direction: column;
     gap: 0.5rem;
   }
-  
+
   .viewModeToggle {
     width: 100%;
   }
-  
+
   .toggleButton {
     flex: 1;
     text-align: center;
   }
-  
+
   .curriculumPanel {
     width: 95vw;
     max-height: 90vh;
   }
-  
+
   .panelHeader {
     padding: 1rem;
   }
-  
+
   .panelContent {
     padding: 1rem;
   }
@@ -646,7 +646,7 @@
   .coverageBar {
     transition: none;
   }
-  
+
   .nodeContent:hover {
     transform: none;
   }
@@ -658,12 +658,12 @@
     background: #ffffff;
     border: 2px solid #000000;
   }
-  
+
   .nodeContent {
     background: #ffffff;
     border: 1px solid #000000;
   }
-  
+
   .projectNode,
   .objectiveNode,
   .milestoneNode,
@@ -671,11 +671,11 @@
     background: #ffffff;
     border: 2px solid #000000;
   }
-  
+
   .titleText {
     color: #000000;
   }
-  
+
   .nodeDescription {
     color: #333333;
   }

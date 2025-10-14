@@ -26,9 +26,9 @@ import ClassDetailPage from '../pages/lecturer/ClassDetailPage';
 import ClassProjectOverview from '../pages/lecturer/ClassProjectOverview';
 import TeamProjectDetail from '../pages/lecturer/TeamProjectDetail';
 import CreateProject from '../pages/lecturer/CreateProject';
-import ModuleLibrary from '../pages/lecturer/ModuleLibrary';
-import ModuleDetail from '../pages/lecturer/ModuleDetail';
-import ModuleAnalysis from '../pages/lecturer/ModuleAnalysis';
+import ProjectLibrary from '../pages/lecturer/ProjectLibrary';
+import ProjectDetail from '../pages/lecturer/ProjectDetail';
+import ProjectAnalysis from '../pages/lecturer/ProjectAnalysis';
 import LecturerMonitoringDashboard from '../pages/lecturer/LecturerMonitoringDashboard';
 
 // academic services (staff) pages
@@ -91,12 +91,12 @@ const lecturerRoutes = [
   { path: '/lecturer/classes/:classId/projects/:projectId', element: protectRoute(['LECTURER'], <TeamProjectDetail />) },
   { path: '/lecturer/create-project', element: protectRoute(['LECTURER'], <CreateProject />) },
   { path: '/lecturer/classes/:classId/create-project', element: protectRoute(['LECTURER'], <CreateProject />) },
-  { path: '/lecturer/modules', element: protectRoute(['LECTURER'], <ModuleLibrary />) },
-  { path: '/lecturer/modules/create', element: protectRoute(['LECTURER'], <CreateProject />) },
-  { path: '/lecturer/modules/upload', element: protectRoute(['LECTURER'], <CreateProject />) },
-  { path: '/lecturer/modules/:moduleId', element: protectRoute(['LECTURER'], <ModuleDetail />) },
-  { path: '/lecturer/modules/:moduleId/edit', element: protectRoute(['LECTURER'], <ModuleDetail />) },
-  { path: '/lecturer/modules/:moduleId/analysis', element: protectRoute(['LECTURER'], <ModuleAnalysis />) },
+  { path: '/lecturer/projects', element: protectRoute(['LECTURER'], <ProjectLibrary />) },
+  { path: '/lecturer/projects/create', element: protectRoute(['LECTURER'], <CreateProject />) },
+  { path: '/lecturer/projects/upload', element: protectRoute(['LECTURER'], <CreateProject />) },
+  { path: '/lecturer/projects/:projectId', element: protectRoute(['LECTURER'], <ProjectDetail />) },
+  { path: '/lecturer/projects/:projectId/edit', element: protectRoute(['LECTURER'], <ProjectDetail />) },
+  { path: '/lecturer/projects/:projectId/analysis', element: protectRoute(['LECTURER'], <ProjectAnalysis />) },
   { path: '/lecturer/monitoring/:classId', element: protectRoute(['LECTURER'], <LecturerMonitoringDashboard />) },
   { path: '/lecturer/monitoring', element: protectRoute(['LECTURER'], <LecturerMonitoringDashboard />) },
 ];

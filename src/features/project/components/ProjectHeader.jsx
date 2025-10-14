@@ -1,25 +1,25 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ChevronLeftIcon, 
-  PencilIcon, 
+import {
+  ChevronLeftIcon,
+  PencilIcon,
   CalendarIcon,
   AcademicCapIcon,
   ClockIcon,
-  UserGroupIcon 
+  UserGroupIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
-import styles from './ModuleHeader.module.css';
+import styles from './ProjectHeader.module.css';
 
-const ModuleHeader = ({ moduleId, moduleData }) => {
+const ProjectHeader = ({ projectId, projectData }) => {
   const navigate = useNavigate();
 
   const handleBack = () => {
-    navigate('/lecturer/modules');
+    navigate('/lecturer/projects');
   };
 
   const handleEdit = () => {
-    navigate(`/lecturer/modules/${moduleId}/edit`);
+    navigate(`/lecturer/projects/${projectId}/edit`);
   };
 
   return (
@@ -28,45 +28,45 @@ const ModuleHeader = ({ moduleId, moduleData }) => {
         <div className={styles.breadcrumb}>
           <button onClick={handleBack} className={styles.backButton}>
             <ChevronLeftIcon className="w-4 h-4" />
-            Modules
+            Projects
           </button>
           <span className={styles.breadcrumbSeparator}>/</span>
-          <span className={styles.breadcrumbCurrent}>{moduleData.title}</span>
+          <span className={styles.breadcrumbCurrent}>{projectData.title}</span>
         </div>
       </div>
 
       <div className={styles.headerContent}>
         <div className={styles.moduleInfo}>
           <div className={styles.titleSection}>
-            <h1 className={styles.moduleTitle}>{moduleData.title}</h1>
+            <h1 className={styles.moduleTitle}>{projectData.title}</h1>
             <div className={styles.moduleRating}>
-              {[...Array(5)].map((_, i) => (
-                <StarIconSolid 
-                  key={i} 
-                  className={`w-5 h-5 ${i < moduleData.rating ? 'text-yellow-400' : 'text-gray-300'}`} 
+              {[...Array(5)].map((_, index) => (
+                <StarIconSolid
+                  key={index}
+                  className={`w-5 h-5 ${index < projectData.rating ? 'text-yellow-400' : 'text-gray-300'}`}
                 />
               ))}
-              <span className={styles.ratingText}>({moduleData.rating}/5)</span>
+              <span className={styles.ratingText}>({projectData.rating}/5)</span>
             </div>
           </div>
-          <p className={styles.moduleDescription}>{moduleData.description}</p>
-          
+          <p className={styles.moduleDescription}>{projectData.description}</p>
+
           <div className={styles.moduleStats}>
             <div className={styles.statItem}>
               <CalendarIcon className="w-4 h-4" />
-              <span>Duration: {moduleData.duration}</span>
+              <span>Duration: {projectData.duration}</span>
             </div>
             <div className={styles.statItem}>
               <AcademicCapIcon className="w-4 h-4" />
-              <span>Difficulty: {moduleData.difficulty}</span>
+              <span>Difficulty: {projectData.difficulty}</span>
             </div>
             <div className={styles.statItem}>
               <ClockIcon className="w-4 h-4" />
-              <span>Est. Hours: {moduleData.estimatedHours}</span>
+              <span>Est. Hours: {projectData.estimatedHours}</span>
             </div>
             <div className={styles.statItem}>
               <UserGroupIcon className="w-4 h-4" />
-              <span>Team Size: {moduleData.teamSize}</span>
+              <span>Team Size: {projectData.teamSize}</span>
             </div>
           </div>
         </div>
@@ -74,7 +74,7 @@ const ModuleHeader = ({ moduleId, moduleData }) => {
         <div className={styles.headerActions}>
           <button onClick={handleEdit} className={styles.editButton}>
             <PencilIcon className="w-4 h-4" />
-            Edit Module
+            Edit Project
           </button>
         </div>
       </div>
@@ -82,4 +82,4 @@ const ModuleHeader = ({ moduleId, moduleData }) => {
   );
 };
 
-export default ModuleHeader;
+export default ProjectHeader;

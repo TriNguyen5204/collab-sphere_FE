@@ -796,7 +796,7 @@ const ProjectDetail = () => {
 
   return (
     <DashboardLayout>
-      <div className={styles.moduleDetail}>
+  <div className={styles.projectDetail}>
         {/* Header */}
         <ProjectHeader projectId={projectId} projectData={projectData} />
 

@@ -561,10 +561,10 @@ const ClassDetailPage = () => {
   const renderModulesTab = () => (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-slate-900">Course Modules</h3>
+          <h3 className="text-lg font-semibold text-slate-900">Course Projects</h3>
         <button className={styles.btnPrimary}>
-          <PlusIcon className="w-4 h-4 mr-2" />
-          Add Module
+            <PlusIcon className="w-4 h-4 mr-2" />
+            Add Project
         </button>
       </div>
       
@@ -866,7 +866,7 @@ const ClassDetailPage = () => {
             </div>
             <div className={styles.statContent}>
               <div className={styles.statValue}>{classData.totalModules}</div>
-              <div className={styles.statLabel}>Modules</div>
+              <div className={styles.statLabel}>Projects</div>
             </div>
           </div>
           <div className={styles.statChip}>
@@ -893,7 +893,7 @@ const ClassDetailPage = () => {
         <div className={styles.md3Tabs}>
           {[
             { id: 'students', label: 'Students', icon: UserGroupIcon },
-            { id: 'modules', label: 'Modules', icon: BookOpenIcon },
+            { id: 'modules', label: 'Projects', icon: BookOpenIcon },
             { id: 'resources', label: 'Resources', icon: FolderIcon },
             { id: 'teams', label: 'Teams', icon: AcademicCapIcon },
             { id: 'analytics', label: 'Analytics', icon: ChartBarIcon },

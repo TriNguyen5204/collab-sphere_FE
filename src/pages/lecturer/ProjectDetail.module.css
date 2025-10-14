@@ -1,5 +1,5 @@
 /* Module Detail Styles */
-.moduleDetail {
+.projectDetail {
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
@@ -1029,7 +1029,7 @@
 }
 
 @media (max-width: 768px) {
-  .moduleDetail {
+  .projectDetail {
     padding: 0 16px 16px;
   }
 
