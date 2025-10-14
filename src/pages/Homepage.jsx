@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   BadgeCheck,
@@ -19,6 +19,9 @@ import {
 import logo from '../assets/logov1.png';
 import classImage from '../assets/class.png';
 import lecturerImage from '../assets/lecturer.png';
+import { useDispatch, useSelector } from 'react-redux';
+import { logout } from '../store/slices/userSlice';
+import { getRoleLandingRoute } from '../constants/roleRoutes';
 
 const heroHighlights = [
   'AI copilots transform module briefs into milestones, checkpoints, and evaluation rubrics in minutes.',
@@ -37,36 +40,26 @@ const workspaceCards = [
     icon: GraduationCap,
     title: 'Students',
     description: 'Personalised sprint plans, checkpoint submissions, and team analytics with Git-backed accountability.',
-    to: '/student',
-    cta: 'Launch student cockpit',
   },
   {
     icon: Users,
     title: 'Lecturers',
     description: 'Curate project templates, monitor cohort velocity, and approve AI-suggested refinements instantly.',
-    to: '/lecturer/classes',
-    cta: 'Enter lecturer centre',
   },
   {
     icon: ClipboardList,
     title: 'Academic Services',
     description: 'Track enrolment, manage subject approvals, and automate compliance tasks across programmes.',
-    to: '/academic',
-    cta: 'Open academic ops',
   },
   {
     icon: Building2,
     title: 'Heads of Department',
     description: 'Gain accreditation-ready insights on learning outcomes, workload balance, and programme health.',
-    to: '/head-department',
-    cta: 'View leadership suite',
   },
   {
     icon: Layers3,
     title: 'Administrators',
     description: 'Oversee platform governance, audit usage, and export evidence bundles for executive reporting.',
-    to: '/admin',
-    cta: 'Review admin console',
   },
 ];
 
@@ -131,6 +124,17 @@ const insightPills = [
 ];
 
 function Homepage() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const user = useSelector(state => state.user);
+  const isAuthenticated = Boolean(user?.accessToken);
+  const roleLandingRoute = getRoleLandingRoute(user?.roleName);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate('/', { replace: true });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-50">
       <header className="relative z-10 border-b border-white/5 bg-slate-950/80 backdrop-blur">
@@ -160,19 +164,39 @@ function Homepage() {
             </a>
           </nav>
           <div className="flex items-center gap-3">
-            <Link
-              to="/login"
-              className="rounded-full border border-slate-700 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-primary-400 hover:text-white"
-            >
-              Sign in
-            </Link>
-            <Link
-              to="/register"
-              className="inline-flex items-center gap-2 rounded-full bg-primary-500 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-primary-500/30 transition hover:bg-primary-400"
-            >
-              Create account
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link
+                  to={roleLandingRoute}
+                  className="rounded-full border border-slate-700 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-primary-400 hover:text-white"
+                >
+                  Open dashboard
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="inline-flex items-center gap-2 rounded-full bg-primary-500 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-primary-500/30 transition hover:bg-primary-400"
+                >
+                  Log out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="rounded-full border border-slate-700 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-primary-400 hover:text-white"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to="/register"
+                  className="inline-flex items-center gap-2 rounded-full bg-primary-500 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-primary-500/30 transition hover:bg-primary-400"
+                >
+                  Create account
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -265,7 +289,7 @@ function Homepage() {
             </p>
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {workspaceCards.map(({ icon: Icon, title, description, to, cta }) => (
+            {workspaceCards.map(({ icon: Icon, title, description }) => (
               <article
                 key={title}
                 className="group relative flex h-full flex-col rounded-[28px] border border-white/10 bg-white/5 p-6 shadow-[0_10px_35px_-20px_rgba(15,15,35,0.8)] transition hover:-translate-y-1 hover:border-primary-400/60 hover:bg-primary-400/10"
@@ -275,13 +299,6 @@ function Homepage() {
                 </span>
                 <h3 className="mt-5 text-lg font-semibold text-white">{title}</h3>
                 <p className="mt-3 flex-1 text-sm text-slate-300">{description}</p>
-                <Link
-                  to={to}
-                  className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-primary-200 transition group-hover:text-white"
-                >
-                  {cta}
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </Link>
               </article>
             ))}
           </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   EyeIcon,
@@ -12,14 +12,16 @@ import {
 import AuthInput from '../../components/ui/AuthInput';
 import logo from '../../assets/logov1.png';
 import { login } from '../../services/authService';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setUserRedux } from '../../store/slices/userSlice';
 import Cookies from 'js-cookie';
 import { toast } from 'sonner';
+import { getRoleLandingRoute } from '../../constants/roleRoutes';
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const roleName = useSelector(state => state.user.roleName);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -28,6 +30,13 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (roleName) {
+      const targetRoute = getRoleLandingRoute(roleName);
+      navigate(targetRoute, { replace: true });
+    }
+  }, [roleName, navigate]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -73,7 +82,8 @@ const LoginPage = () => {
         dispatch(setUserRedux(response));
         Cookies.set('user', JSON.stringify(response), { expires: 7 });
         toast.success('Login successful!');
-        navigate('/');
+        const targetRoute = getRoleLandingRoute(response.roleName);
+        navigate(targetRoute, { replace: true });
       } else {
         toast.error('Login failed. Please try again.');
       }
