@@ -39,12 +39,12 @@ import AcademicDetail from '../pages/academic/AcademicDetail';
 import LecturerListStaff from '../pages/staff/LecturerListStaff';
 import ClassListStaff from '../pages/staff/ClassListStaff';
 import ClassDetail from '../pages/staff/ClassDetail';
-import ProjectApprovals from '../pages/academic/ProjectApprovals';
 
 // head department pages
 import DepartmentDashboard from '../pages/headDepartment/Dashboard';
 import SubjectManagement from '../pages/headDepartment/SubjectAndSyllabusManagement';
 import ProjectManagement from '../pages/headDepartment/ProjectManagement';
+import ProjectApprovals from '../pages/headDepartment/ProjectApprovals';
 
 // admin pages
 import AdminDashboard from '../pages/admin/AdminDashboard';
