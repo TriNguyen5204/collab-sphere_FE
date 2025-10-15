@@ -15,11 +15,13 @@ const TimelineView = ({ kanbanTasks }) => {
             <div className={styles.phaseNumber}>{index + 1}</div>
             <div className={styles.phaseInfo}>
               <h4 className={styles.phaseTitle}>{task.title}</h4>
-              <p className={styles.phaseDuration}>{task.estimatedHours}h - {task.phase}</p>
+              <p className={styles.phaseDuration}>
+                {task.estimatedHours}h - {task.phase}
+              </p>
             </div>
             <div className={styles.phaseProgress}>
               <div className={styles.progressBar}>
-                <div 
+                <div
                   className={styles.progressFill}
                   style={{ width: `${task.progress}%` }}
                 />

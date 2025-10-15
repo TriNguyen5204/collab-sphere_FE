@@ -292,7 +292,7 @@ const LecturerMonitoringDashboard = () => {
                 <div 
                   key={project.id} 
                   className={styles.projectCard}
-                  onClick={() => navigate(`/lecturer/project/${project.id}`)}
+                  onClick={() => navigate(`/lecturer/projects/${project.id}`)}
                 >
                   <div className={styles.projectHeader}>
                     <h3 className={styles.projectName}>{project.name}</h3>
@@ -585,10 +585,10 @@ const LecturerMonitoringDashboard = () => {
             </button>
             <button 
               className={styles.supervisoryButton}
-              onClick={() => navigate('/lecturer/modules')}
+              onClick={() => navigate('/lecturer/projects')}
             >
               <BookOpenIcon className={styles.supervisoryIcon} />
-              Module Library
+              Project Library
             </button>
           </div>
         </div>

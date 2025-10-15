@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
-import styles from './ModuleLibrary.module.css';
+import styles from './ProjectLibrary.module.css';
 import {
   MagnifyingGlassIcon,
   PlusIcon,
@@ -15,7 +15,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 
-const MODULES_DATA = [
+const PROJECTS_DATA = [
   {
     id: 1,
     title: 'E-commerce Platform Development',
@@ -229,7 +229,7 @@ const formatDate = (value) =>
     year: 'numeric',
   }).format(new Date(value));
 
-const ModuleLibrary = () => {
+const ProjectLibrary = () => {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('grid');
   const [searchTerm, setSearchTerm] = useState('');
@@ -237,31 +237,31 @@ const ModuleLibrary = () => {
   const [selectedDifficulty, setSelectedDifficulty] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [sortBy, setSortBy] = useState('recent');
-  const [selectedModules, setSelectedModules] = useState(new Set());
-  const [favoriteModules, setFavoriteModules] = useState(
-    () => new Set(MODULES_DATA.filter((module) => module.isFavorite).map((module) => module.id))
+  const [selectedProjects, setSelectedProjects] = useState(new Set());
+  const [favoriteProjects, setFavoriteProjects] = useState(
+    () => new Set(PROJECTS_DATA.filter((module) => module.isFavorite).map((module) => module.id))
   );
   const [isLoading] = useState(false);
 
   const categories = useMemo(
-    () => ['all', ...new Set(MODULES_DATA.map((module) => module.category))],
+  () => ['all', ...new Set(PROJECTS_DATA.map((module) => module.category))],
     []
   );
 
   const difficulties = useMemo(
-    () => ['all', ...new Set(MODULES_DATA.map((module) => module.difficulty))],
+  () => ['all', ...new Set(PROJECTS_DATA.map((module) => module.difficulty))],
     []
   );
 
   const statuses = useMemo(
-    () => ['all', ...new Set(MODULES_DATA.map((module) => module.status))],
+  () => ['all', ...new Set(PROJECTS_DATA.map((module) => module.status))],
     []
   );
 
-  const filteredModules = useMemo(() => {
+  const filteredProjects = useMemo(() => {
     const lowerSearch = searchTerm.trim().toLowerCase();
 
-    return MODULES_DATA.filter((module) => {
+  return PROJECTS_DATA.filter((module) => {
       const matchesSearch =
         !lowerSearch ||
         module.title.toLowerCase().includes(lowerSearch) ||
@@ -277,32 +277,32 @@ const ModuleLibrary = () => {
     });
   }, [searchTerm, selectedCategory, selectedDifficulty, selectedStatus]);
 
-  const sortedModules = useMemo(() => {
-    const modules = [...filteredModules];
+  const sortedProjects = useMemo(() => {
+    const projects = [...filteredProjects];
 
     switch (sortBy) {
       case 'recent':
-        return modules.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
+        return projects.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
       case 'name':
-        return modules.sort((a, b) => a.title.localeCompare(b.title));
+        return projects.sort((a, b) => a.title.localeCompare(b.title));
       case 'popularity':
-        return modules.sort((a, b) => b.totalTeams - a.totalTeams);
+        return projects.sort((a, b) => b.totalTeams - a.totalTeams);
       case 'score':
-        return modules.sort((a, b) => b.averageScore - a.averageScore);
+        return projects.sort((a, b) => b.averageScore - a.averageScore);
       default:
-        return modules;
+        return projects;
     }
-  }, [filteredModules, sortBy]);
+  }, [filteredProjects, sortBy]);
 
   const statistics = useMemo(() => {
-    const total = MODULES_DATA.length;
-    const published = MODULES_DATA.filter((module) => module.status === 'published').length;
-    const draft = MODULES_DATA.filter((module) => module.status === 'draft').length;
-    const review = MODULES_DATA.filter((module) => module.status === 'review').length;
-    const totalTeams = MODULES_DATA.reduce((sum, module) => sum + module.totalTeams, 0);
-    const activeTeams = MODULES_DATA.reduce((sum, module) => sum + module.activeTeams, 0);
-    const aiReady = MODULES_DATA.filter((module) => module.hasAIAnalysis).length;
-    const alignmentCandidates = MODULES_DATA.filter((module) => module.syllabusAlignment > 0);
+  const total = PROJECTS_DATA.length;
+  const published = PROJECTS_DATA.filter((module) => module.status === 'published').length;
+  const draft = PROJECTS_DATA.filter((module) => module.status === 'draft').length;
+  const review = PROJECTS_DATA.filter((module) => module.status === 'review').length;
+  const totalTeams = PROJECTS_DATA.reduce((sum, module) => sum + module.totalTeams, 0);
+  const activeTeams = PROJECTS_DATA.reduce((sum, module) => sum + module.activeTeams, 0);
+  const aiReady = PROJECTS_DATA.filter((module) => module.hasAIAnalysis).length;
+  const alignmentCandidates = PROJECTS_DATA.filter((module) => module.syllabusAlignment > 0);
     const averageAlignment = alignmentCandidates.length
       ? Math.round(
           alignmentCandidates.reduce((sum, module) => sum + module.syllabusAlignment, 0) /
@@ -325,11 +325,11 @@ const ModuleLibrary = () => {
   const heroMetrics = useMemo(
     () => [
       {
-        label: 'Published Modules',
+        label: 'Published Projects',
         value: statistics.published,
         delta: statistics.total
           ? `${Math.round((statistics.published / statistics.total) * 100)}% of library`
-          : 'No modules yet',
+          : 'No projects yet',
         positive: true,
       },
       {
@@ -341,7 +341,7 @@ const ModuleLibrary = () => {
       {
         label: 'Average Alignment',
         value: `${statistics.averageAlignment}%`,
-        delta: `${statistics.aiReady} modules AI-ready`,
+        delta: `${statistics.aiReady} projects AI-ready`,
         positive: true,
       },
       {
@@ -366,25 +366,25 @@ const ModuleLibrary = () => {
     Advanced: styles.badgeAccent,
   };
 
-  const toggleFavorite = (moduleId) => {
-    setFavoriteModules((prev) => {
+  const toggleFavoriteProject = (projectId) => {
+    setFavoriteProjects((prev) => {
       const updated = new Set(prev);
-      if (updated.has(moduleId)) {
-        updated.delete(moduleId);
+      if (updated.has(projectId)) {
+        updated.delete(projectId);
       } else {
-        updated.add(moduleId);
+        updated.add(projectId);
       }
       return updated;
     });
   };
 
-  const toggleModuleSelection = (moduleId) => {
-    setSelectedModules((prev) => {
+  const toggleProjectSelection = (projectId) => {
+    setSelectedProjects((prev) => {
       const updated = new Set(prev);
-      if (updated.has(moduleId)) {
-        updated.delete(moduleId);
+      if (updated.has(projectId)) {
+        updated.delete(projectId);
       } else {
-        updated.add(moduleId);
+        updated.add(projectId);
       }
       return updated;
     });
@@ -392,47 +392,47 @@ const ModuleLibrary = () => {
 
   const handleSelectAll = (checked) => {
     if (checked) {
-      setSelectedModules(new Set(sortedModules.map((module) => module.id)));
+  setSelectedProjects(new Set(sortedProjects.map((module) => module.id)));
     } else {
-      setSelectedModules(new Set());
+      setSelectedProjects(new Set());
     }
   };
 
-  const handleCreateModule = () => {
-    navigate('/lecturer/modules/create');
+  const handleCreateProject = () => {
+    navigate('/lecturer/projects/create');
   };
 
   const handleUploadDocument = () => {
-    navigate('/lecturer/modules/upload');
+    navigate('/lecturer/projects/upload');
   };
 
-  const handleModuleClick = (moduleId) => {
-    navigate(`/lecturer/modules/${moduleId}`);
+  const handleProjectClick = (projectId) => {
+    navigate(`/lecturer/projects/${projectId}`);
   };
 
-  const handleAnalyzeWithAI = (moduleId) => {
-    navigate(`/lecturer/modules/${moduleId}/analysis`);
+  const handleAnalyzeProject = (projectId) => {
+    navigate(`/lecturer/projects/${projectId}/analysis`);
   };
 
-  const handleDuplicateModule = (moduleId) => {
-    navigate(`/lecturer/modules/${moduleId}/duplicate`);
+  const handleDuplicateProject = (projectId) => {
+    navigate(`/lecturer/projects/${projectId}/duplicate`);
   };
 
-  const handleShareModule = (moduleId) => {
-    console.log('Share module', moduleId);
+  const handleShareProject = (projectId) => {
+    console.log('Share project', projectId);
   };
 
   const renderGridView = () => (
     <div className={styles.moduleGrid}>
-      {sortedModules.map((module) => {
+      {sortedProjects.map((module) => {
         const cardClasses = [styles.moduleCard];
-        if (selectedModules.has(module.id)) {
+        if (selectedProjects.has(module.id)) {
           cardClasses.push(styles.moduleCardSelected);
         }
 
-        const statusClass = statusClassMap[module.status] || styles.badgeMuted;
-        const difficultyClass = difficultyClassMap[module.difficulty] || styles.badgeMuted;
-        const isFavorite = favoriteModules.has(module.id);
+    const statusClass = statusClassMap[module.status] || styles.badgeMuted;
+    const difficultyClass = difficultyClassMap[module.difficulty] || styles.badgeMuted;
+    const isFavorite = favoriteProjects.has(module.id);
 
         return (
           <article key={module.id} className={cardClasses.join(' ')}>
@@ -442,8 +442,8 @@ const ModuleLibrary = () => {
                   <label className={styles.selectionCheckbox}>
                     <input
                       type="checkbox"
-                      checked={selectedModules.has(module.id)}
-                      onChange={() => toggleModuleSelection(module.id)}
+                      checked={selectedProjects.has(module.id)}
+                      onChange={() => toggleProjectSelection(module.id)}
                     />
                   </label>
                   <span className={`${styles.tag} ${statusClass}`}>
@@ -459,7 +459,7 @@ const ModuleLibrary = () => {
                   </span>
                 </div>
 
-                <h3 className={styles.moduleTitle} onClick={() => handleModuleClick(module.id)}>
+                <h3 className={styles.moduleTitle} onClick={() => handleProjectClick(module.id)}>
                   {module.title}
                 </h3>
                 <p className={styles.moduleSubtitle}>{module.description}</p>
@@ -481,7 +481,7 @@ const ModuleLibrary = () => {
               <button
                 type="button"
                 className={`${styles.favoriteBtn} ${isFavorite ? styles.favoriteBtnActive : ''}`}
-                onClick={() => toggleFavorite(module.id)}
+                onClick={() => toggleFavoriteProject(module.id)}
                 aria-label={isFavorite ? 'Remove from favourites' : 'Add to favourites'}
               >
                 <StarIconSolid className="w-4 h-4" />
@@ -528,21 +528,21 @@ const ModuleLibrary = () => {
                   <button
                     type="button"
                     className={styles.actionBtn}
-                    onClick={() => handleModuleClick(module.id)}
+                    onClick={() => handleProjectClick(module.id)}
                   >
-                    Open module
+                    Open project
                   </button>
                   <button
                     type="button"
                     className={styles.secondaryBtn}
-                    onClick={() => handleAnalyzeWithAI(module.id)}
+                    onClick={() => handleAnalyzeProject(module.id)}
                   >
                     AI insights
                   </button>
                   <button
                     type="button"
                     className={styles.secondaryBtn}
-                    onClick={() => handleDuplicateModule(module.id)}
+                    onClick={() => handleDuplicateProject(module.id)}
                   >
                     Duplicate
                   </button>
@@ -564,12 +564,12 @@ const ModuleLibrary = () => {
               <input
                 type="checkbox"
                 onChange={(event) => handleSelectAll(event.target.checked)}
-                checked={sortedModules.length > 0 && selectedModules.size === sortedModules.length}
-                aria-label="Select all modules"
+                checked={sortedProjects.length > 0 && selectedProjects.size === sortedProjects.length}
+                aria-label="Select all projects"
               />
             </label>
           </div>
-          <div className={styles.listCell}>Module</div>
+          <div className={styles.listCell}>Project</div>
           <div className={styles.listCell}>Category</div>
           <div className={styles.listCell}>Status</div>
           <div className={styles.listCell}>Difficulty</div>
@@ -581,24 +581,24 @@ const ModuleLibrary = () => {
       </div>
 
       <div className={styles.listBody}>
-        {sortedModules.map((module) => {
+        {sortedProjects.map((module) => {
           const statusClass = statusClassMap[module.status] || styles.badgeMuted;
           const difficultyClass = difficultyClassMap[module.difficulty] || styles.badgeMuted;
-          const isFavorite = favoriteModules.has(module.id);
+          const isFavorite = favoriteProjects.has(module.id);
 
           return (
             <div
               key={module.id}
               className={`${styles.listRow} ${
-                selectedModules.has(module.id) ? styles.listRowSelected : ''
+                selectedProjects.has(module.id) ? styles.listRowSelected : ''
               }`}
             >
               <div className={styles.listCell}>
                 <label className={styles.selectionCheckbox}>
                   <input
                     type="checkbox"
-                    checked={selectedModules.has(module.id)}
-                    onChange={() => toggleModuleSelection(module.id)}
+                    checked={selectedProjects.has(module.id)}
+                    onChange={() => toggleProjectSelection(module.id)}
                     aria-label={`Select ${module.title}`}
                   />
                 </label>
@@ -606,7 +606,7 @@ const ModuleLibrary = () => {
               <div className={styles.listCell}>
                 <div className={styles.listModuleInfo}>
                   <div className={styles.listModuleTitle}>
-                    <Link to={`/lecturer/modules/${module.id}`}>{module.title}</Link>
+                    <Link to={`/lecturer/projects/${module.id}`}>{module.title}</Link>
                     {isFavorite && <StarIconSolid className="w-4 h-4 text-yellow-400" />}
                   </div>
                   <div className={styles.listModuleDescription}>{module.description}</div>
@@ -645,22 +645,22 @@ const ModuleLibrary = () => {
                 <div className={styles.listActions}>
                   <button
                     type="button"
-                    onClick={() => handleModuleClick(module.id)}
-                    title="Open module"
+                    onClick={() => handleProjectClick(module.id)}
+                    title="Open project"
                   >
                     <EyeIcon className="w-4 h-4" />
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleAnalyzeWithAI(module.id)}
+                    onClick={() => handleAnalyzeProject(module.id)}
                     title="Run AI analysis"
                   >
                     <ArrowPathIcon className="w-4 h-4" />
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleShareModule(module.id)}
-                    title="Share module"
+                    onClick={() => handleShareProject(module.id)}
+                    title="Share project"
                   >
                     <ShareIcon className="w-4 h-4" />
                   </button>
@@ -682,18 +682,18 @@ const ModuleLibrary = () => {
               <div className="flex items-center gap-3">
                 <BookOpenIcon className="w-9 h-9 text-slate-100" />
                 <div>
-                  <h1 className={styles.heroTitle}>Module Library</h1>
+                  <h1 className={styles.heroTitle}>Project Library</h1>
                   <p className={styles.heroSubtitle}>
-                    Curate, launch, and monitor project modules with AI insights and streamlined oversight for every class you guide.
+                    Curate, launch, and monitor projects with AI insights and streamlined oversight for every class you guide.
                   </p>
                 </div>
               </div>
             </div>
 
             <div className={styles.heroActions}>
-              <button type="button" className={styles.primaryAction} onClick={handleCreateModule}>
+              <button type="button" className={styles.primaryAction} onClick={handleCreateProject}>
                 <PlusIcon className="w-5 h-5" />
-                Create module
+                Create project
               </button>
               <button type="button" className={styles.secondaryAction} onClick={handleUploadDocument}>
                 <DocumentArrowUpIcon className="w-5 h-5" />
@@ -729,7 +729,7 @@ const ModuleLibrary = () => {
               <input
                 type="text"
                 className={styles.searchInput}
-                placeholder="Search modules, descriptions, or tags"
+                placeholder="Search projects, descriptions, or tags"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
@@ -806,10 +806,10 @@ const ModuleLibrary = () => {
             ))}
           </div>
 
-          {selectedModules.size > 0 && (
+          {selectedProjects.size > 0 && (
             <div className={styles.bulkBar}>
               <span>
-                {selectedModules.size} module{selectedModules.size > 1 ? 's' : ''} selected
+                {selectedProjects.size} project{selectedProjects.size > 1 ? 's' : ''} selected
               </span>
               <div className={styles.bulkActions}>
                 <button type="button" className={`${styles.bulkButton} ${styles.bulkButtonPrimary}`}>
@@ -830,23 +830,23 @@ const ModuleLibrary = () => {
           <div className={styles.sectionHeading}>
             <h2 className={styles.sectionTitle}>Library overview</h2>
             <span className={styles.sectionCaption}>
-              Showing {sortedModules.length} of {MODULES_DATA.length} modules
+              Showing {sortedProjects.length} of {PROJECTS_DATA.length} projects
             </span>
           </div>
 
           {isLoading ? (
             <div className={styles.loadingState}>
               <ArrowPathIcon className="w-8 h-8 animate-spin" />
-              <p>Loading modules…</p>
+              <p>Loading projects…</p>
             </div>
-          ) : sortedModules.length === 0 ? (
+          ) : sortedProjects.length === 0 ? (
             <div className={styles.emptyState}>
-              <strong>No modules match your query</strong>
-              <p>Adjust your filters or create a new module to populate the library.</p>
+              <strong>No projects match your query</strong>
+              <p>Adjust your filters or create a new project to populate the library.</p>
               <div className={styles.emptyActions}>
-                <button type="button" className={styles.primaryAction} onClick={handleCreateModule}>
+                <button type="button" className={styles.primaryAction} onClick={handleCreateProject}>
                   <PlusIcon className="w-5 h-5" />
-                  Create module
+                  Create project
                 </button>
                 <button type="button" className={styles.secondaryAction} onClick={handleUploadDocument}>
                   <DocumentArrowUpIcon className="w-5 h-5" />
@@ -865,4 +865,4 @@ const ModuleLibrary = () => {
   );
 };
 
-export default ModuleLibrary;
+export default ProjectLibrary;

@@ -1,727 +1,329 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import {
-  ArrowLeft,
-  Plus,
-  Search,
-  Filter,
-  Users,
-  Calendar,
-  BookOpen,
-  GraduationCap,
-  Mail,
-  Phone,
-  Edit3,
-  Trash2,
-  Eye,
-  MoreVertical,
-  UserPlus,
-  Download,
-  Upload,
-} from 'lucide-react';
+  getClassDetail,
+  getAllLecturer,
+  getAllStudent,
+  assignLecturerIntoClass,
+  addStudentIntoClass,
+} from '../../services/userService';
+import { Calendar, Users, FileText, Layers, UserCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
+import Modal from '../../components/ui/Modal';
+import Table from '../../components/ui/Table';
+import SectionCard from '../../components/ui/SectionCard';
+import Header from '../../components/layout/Header';
 
 export default function ImprovedClassDetail() {
-  const [lecturers] = useState([
-    { id: 1, name: 'Prof. John Doe', email: 'john.d@university.edu' },
-    { id: 2, name: 'Prof. Emily Carter', email: 'emily.c@university.edu' },
-    { id: 3, name: 'Prof. Michael Smith', email: 'michael.s@university.edu' },
-  ]);
-  const additionalStudents = [
-    {
-      id: 6,
-      name: 'Jane Cooper',
-      studentId: 'SE302145',
-      birth: '07 March, 2002',
-      email: 'jane.c@university.edu',
-      phone: '+1 (555) 678-9012',
-      avatar: 'https://i.pravatar.cc/40?img=6',
-      status: 'active',
-      gpa: 3.4,
-      attendance: 85,
-    },
-    {
-      id: 7,
-      name: 'Robert Fox',
-      studentId: 'SE402836',
-      birth: '08 March, 2002',
-      email: 'robert.f@university.edu',
-      phone: '+1 (555) 789-0123',
-      avatar: 'https://i.pravatar.cc/40?img=7',
-      status: 'active',
-      gpa: 3.9,
-      attendance: 97,
-    },
-    {
-      id: 8,
-      name: 'Courtney Henry',
-      studentId: 'SE509284',
-      birth: '09 March, 2002',
-      email: 'courtney.h@university.edu',
-      phone: '+1 (555) 890-1234',
-      avatar: 'https://i.pravatar.cc/40?img=8',
-      status: 'inactive',
-      gpa: 2.9,
-      attendance: 70,
-    },
-    {
-      id: 9,
-      name: 'Devon Lane',
-      studentId: 'SE682390',
-      birth: '10 March, 2002',
-      email: 'devon.l@university.edu',
-      phone: '+1 (555) 901-2345',
-      avatar: 'https://i.pravatar.cc/40?img=9',
-      status: 'active',
-      gpa: 3.5,
-      attendance: 89,
-    },
-    {
-      id: 10,
-      name: 'Eleanor Pena',
-      studentId: 'SE782341',
-      birth: '11 March, 2002',
-      email: 'eleanor.p@university.edu',
-      phone: '+1 (555) 012-3456',
-      avatar: 'https://i.pravatar.cc/40?img=10',
-      status: 'active',
-      gpa: 3.6,
-      attendance: 93,
-    },
-  ];
-
-  const [selectedLecturer, setSelectedLecturer] = useState(null);
-  const [students, setStudents] = useState([
-    {
-      id: 1,
-      name: 'Cameron Williamson',
-      studentId: 'SE11111',
-      birth: '01 March, 2002',
-      email: 'cameron.w@university.edu',
-      phone: '+1 (555) 123-4567',
-      avatar: 'https://i.pravatar.cc/40?img=1',
-      status: 'active',
-      gpa: 3.8,
-      attendance: 95,
-    },
-    {
-      id: 2,
-      name: 'Darlene Robertson',
-      studentId: 'SE184727',
-      birth: '03 March, 2002',
-      email: 'darlene.r@university.edu',
-      phone: '+1 (555) 234-5678',
-      avatar: 'https://i.pravatar.cc/40?img=2',
-      status: 'active',
-      gpa: 3.6,
-      attendance: 88,
-    },
-    {
-      id: 3,
-      name: 'Leslie Alexander',
-      studentId: 'SE252322',
-      birth: '04 March, 2002',
-      email: 'leslie.a@university.edu',
-      phone: '+1 (555) 345-6789',
-      avatar: 'https://i.pravatar.cc/40?img=3',
-      status: 'active',
-      gpa: 3.9,
-      attendance: 92,
-    },
-    {
-      id: 4,
-      name: 'Albert Flores',
-      studentId: 'SE105823',
-      birth: '05 March, 2002',
-      email: 'albert.f@university.edu',
-      phone: '+1 (555) 456-7890',
-      avatar: 'https://i.pravatar.cc/40?img=4',
-      status: 'inactive',
-      gpa: 3.2,
-      attendance: 75,
-    },
-    {
-      id: 5,
-      name: 'Dianne Russell',
-      studentId: 'SE201253',
-      birth: '06 March, 2002',
-      email: 'dianne.r@university.edu',
-      phone: '+1 (555) 567-8901',
-      avatar: 'https://i.pravatar.cc/40?img=5',
-      status: 'active',
-      gpa: 3.7,
-      attendance: 90,
-    },
-  ]);
-
-  const [selectedStudents, setSelectedStudents] = useState(new Set());
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showLecturerModal, setShowLecturerModal] = useState(false);
+  const { classId } = useParams();
+  const [classDetail, setClassDetail] = useState(null);
+  const [studentList, setStudentList] = useState([]);
+  const [lecturerList, setLecturerList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showStudentModal, setShowStudentModal] = useState(false);
-  const [studentToDelete, setStudentToDelete] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [showLecturerModal, setShowLecturerModal] = useState(false);
+  const [selectedStudents, setSelectedStudents] = useState([]);
 
-  // Class information
-  const classInfo = {
-    name: 'Advanced Programming Concepts',
-    code: 'CS-301',
-    semester: 'Fall 2024',
-    lecturer: 'Prof. Sarah Johnson',
-    schedule: 'Mon, Wed, Fri 10:00 AM - 11:30 AM',
-    room: 'Computer Lab A-201',
-    credits: 3,
-    description:
-      'An advanced course covering object-oriented programming, data structures, and algorithm design patterns.',
-  };
-  const handleAddLecturer = lecturer => {
-    setSelectedLecturer(lecturer);
-    setShowLecturerModal(false);
-  };
-
-  const handleSelectAll = () => {
-    if (selectedStudents.size === students.length) {
-      setSelectedStudents(new Set());
-    } else {
-      setSelectedStudents(new Set(students.map(student => student.id)));
-    }
-  };
-
-  const handleSelectStudent = id => {
-    const newSelected = new Set(selectedStudents);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedStudents(newSelected);
-  };
-
-  const handleDeleteClick = student => {
-    setStudentToDelete(student);
-    setShowDeleteModal(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!studentToDelete) return;
-
-    setIsDeleting(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      setStudents(students.filter(s => s.id !== studentToDelete.id));
-      setIsDeleting(false);
-      setShowDeleteModal(false);
-      setStudentToDelete(null);
-    }, 1500);
-  };
-
-  const handleCancelDelete = () => {
-    setShowDeleteModal(false);
-    setStudentToDelete(null);
-    setIsDeleting(false);
-  };
-
-  const getStatusBadge = status => {
-    const statusConfig = {
-      active: {
-        bg: 'bg-green-100',
-        text: 'text-green-700',
-        dot: 'bg-green-500',
-      },
-      inactive: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        setLoading(true);
+        const [cls, lecturers, students] = await Promise.all([
+          getClassDetail(classId),
+          getAllLecturer(),
+          getAllStudent(),
+        ]);
+        setClassDetail(cls);
+        setLecturerList(lecturers?.lecturerList ?? []);
+        setStudentList(students?.studentList ?? []);
+      } catch (err) {
+        setError('Failed to load class details');
+      } finally {
+        setLoading(false);
+      }
     };
-    const config = statusConfig[status];
+    fetchAll();
+  }, [classId]);
 
-    return (
-      <div
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
-      >
-        <div className={`w-2 h-2 rounded-full ${config.dot}`}></div>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </div>
+  const handleAddStudent = async () => {
+    if (selectedStudents.length === 0) {
+      toast.warning('Please select at least one student!');
+      return;
+    }
+
+    try {
+      const res = await addStudentIntoClass(classId, selectedStudents);
+      if (res) {
+        toast.success('✅ Students added successfully!');
+        setSelectedStudents([]);
+        setShowStudentModal(false);
+      }
+    } catch {
+      toast.error('Failed to add students.');
+    }
+  };
+
+  const handleAddLecturer = async lecturerId => {
+    try {
+      const response = await assignLecturerIntoClass(classId, lecturerId);
+      if (response.isSuccess) {
+        toast.success(response.message);
+        setShowLecturerModal(false);
+      }
+    } catch {
+      toast.error('Failed to add lecturer.');
+    }
+  };
+
+  const handleCheckboxChange = (studentId, fullname) => {
+    setSelectedStudents(prev =>
+      prev.some(s => s.studentId === studentId)
+        ? prev.filter(s => s.studentId !== studentId)
+        : [...prev, { studentId, studentName: fullname }]
     );
   };
 
-  const getGpaColor = gpa => {
-    if (gpa >= 3.5) return 'text-green-600';
-    if (gpa >= 3.0) return 'text-yellow-600';
-    return 'text-red-600';
-  };
+  if (loading)
+    return (
+      <div className='flex justify-center items-center h-[70vh]'>
+        <p className='text-gray-500 animate-pulse'>Loading class details...</p>
+      </div>
+    );
 
-  const filteredStudents = students.filter(student => {
-    const matchesSearch =
-      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === 'all' || student.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  if (error)
+    return (
+      <div className='flex justify-center items-center h-[70vh]'>
+        <p className='text-red-500 font-medium'>{error}</p>
+      </div>
+    );
 
-  const avgGPA = (
-    students.reduce((sum, student) => sum + student.gpa, 0) / students.length
-  ).toFixed(2);
-  const avgAttendance = Math.round(
-    students.reduce((sum, student) => sum + student.attendance, 0) /
-      students.length
-  );
-
-  const navigate = direction => {
-    console.log(`Navigate ${direction}`);
-  };
+  if (!classDetail) return null;
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-slate-50 to-blue-50'>
-      {/* Header */}
-      <div className='bg-white border-b border-gray-200 sticky top-0 z-10'>
-        <div className='max-w-7xl mx-auto px-6 py-4'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-4'>
-              <button
-                onClick={() => navigate(-1)}
-                className='flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all'
-              >
-                <ArrowLeft className='w-4 h-4' />
-                <span className='font-medium'>Back</span>
-              </button>
+    <>
+      <Header />
+      <div className='p-8 space-y-8 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen'>
+        {/* Header */}
+        <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-6'>
+          <div>
+            <h1 className='text-3xl font-bold text-gray-900 flex items-center gap-3'>
+              <UserCircle size={36} className='text-blue-600' />
+              {classDetail.className}
+            </h1>
+            <p className='text-gray-600 mt-1'>
+              {classDetail.subjectCode} — {classDetail.subjectName}
+            </p>
+          </div>
+          <div className='flex items-center gap-3 text-gray-700 text-sm bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200'>
+            <Calendar size={16} />
+            <span>
+              Created on{' '}
+              {new Date(classDetail.createdDate).toLocaleDateString('en-GB')}
+            </span>
+          </div>
+        </div>
 
-              <div className='flex items-center gap-3'>
-                <div className='w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center'>
-                  <BookOpen className='w-5 h-5 text-white' />
-                </div>
-                <div>
-                  <h1 className='text-xl font-bold text-gray-900'>
-                    {classInfo.name}
-                  </h1>
-                  <p className='text-sm text-gray-600'>
-                    {classInfo.code} • {classInfo.semester}
+        {/* Class Info */}
+        <motion.div
+          className='bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition'
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h2 className='text-xl font-semibold mb-4 flex items-center gap-2 text-blue-700'>
+            <FileText size={20} /> Class Information
+          </h2>
+          <div className='grid md:grid-cols-2 gap-4 text-gray-700'>
+            <p>
+              <strong>Lecturer:</strong> {classDetail.lecturerName} (
+              {classDetail.lecturerCode})
+            </p>
+            <p>
+              <strong>Members:</strong> {classDetail.memberCount}
+            </p>
+            <p>
+              <strong>Teams:</strong> {classDetail.teamCount}
+            </p>
+            <p>
+              <strong>Status:</strong>{' '}
+              <span
+                className={`font-medium px-2 py-1 rounded ${
+                  classDetail.isActive
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-red-100 text-red-600'
+                }`}
+              >
+                {classDetail.isActive ? 'Active' : 'Inactive'}
+              </span>
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Members */}
+        <SectionCard
+          title='Class Members'
+          icon={<Users size={20} />}
+          buttonLabel='Add Student'
+          buttonColor='blue'
+          onButtonClick={() => setShowStudentModal(true)}
+        >
+          {classDetail.classMembers.length === 0 ? (
+            <EmptyState text='No members found.' />
+          ) : (
+            <Table
+              headers={[
+                'Student Code',
+                'Full Name',
+                'Address',
+                'Phone',
+                'Status',
+              ]}
+              rows={classDetail.classMembers.map(m => [
+                m.studentCode,
+                m.fullname,
+                m.address,
+                m.phoneNumber,
+                m.status === 0 ? (
+                  <span className='text-yellow-600 font-medium'>Pending</span>
+                ) : (
+                  <span className='text-green-600 font-medium'>Active</span>
+                ),
+              ])}
+            />
+          )}
+        </SectionCard>
+
+        {/* Projects */}
+        <SectionCard title='Project Assignments' icon={<Layers size={20} />}>
+          {classDetail.projectAssignments.length === 0 ? (
+            <EmptyState text='No projects assigned.' />
+          ) : (
+            <div className='grid md:grid-cols-2 gap-4'>
+              {classDetail.projectAssignments.map(p => (
+                <motion.div
+                  key={p.projectAssignmentId}
+                  className='border rounded-xl p-4 bg-gray-50 hover:bg-gray-100 transition'
+                  whileHover={{ scale: 1.02 }}
+                >
+                  <h3 className='font-semibold text-gray-900 mb-1'>
+                    {p.projectName}
+                  </h3>
+                  <p className='text-sm text-gray-600 mb-2'>{p.description}</p>
+                  <p className='text-xs text-gray-500'>
+                    Assigned:{' '}
+                    {new Date(p.assignedDate).toLocaleDateString('en-GB')}
                   </p>
-                </div>
-              </div>
-            </div>
-
-            <div className='flex items-center gap-3'>
-              <button className='flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all'>
-                <Download className='w-4 h-4' />
-                <span className='hidden sm:inline'>Export</span>
-              </button>
-              <button 
-              onClick={() => setShowStudentModal(true)}
-              className='flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-all'>
-                <UserPlus className='w-4 h-4' />
-                <span className='hidden sm:inline'>Add Student</span>
-              </button>
-              <button
-                onClick={() => setShowLecturerModal(true)}
-                className='flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all'
-              >
-                <UserPlus className='w-4 h-4' />
-                <span className='hidden sm:inline'>Add Lecturer</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className='max-w-7xl mx-auto p-6'>
-        {/* Class Info Cards */}
-        <div className='grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8'>
-          {/* Class Details */}
-          <div className='lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6'>
-            <div className='flex items-center gap-3 mb-4'>
-              <div className='w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center'>
-                <BookOpen className='w-4 h-4 text-indigo-600' />
-              </div>
-              <h3 className='font-semibold text-gray-900'>Class Information</h3>
-            </div>
-
-            <div className='space-y-3'>
-              <div className='flex items-center gap-3'>
-                <Users className='w-4 h-4 text-gray-400' />
-                <span className='text-sm text-gray-600'>Lecturer:</span>
-                <span className='text-sm font-medium text-gray-900'>
-                  {classInfo.lecturer}
-                </span>
-              </div>
-              <div className='flex items-center gap-3'>
-                <Calendar className='w-4 h-4 text-gray-400' />
-                <span className='text-sm text-gray-600'>Schedule:</span>
-                <span className='text-sm font-medium text-gray-900'>
-                  {classInfo.schedule}
-                </span>
-              </div>
-              <div className='flex items-center gap-3'>
-                <GraduationCap className='w-4 h-4 text-gray-400' />
-                <span className='text-sm text-gray-600'>Room:</span>
-                <span className='text-sm font-medium text-gray-900'>
-                  {classInfo.room}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-6'>
-            <div className='text-center'>
-              <div className='w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-3'>
-                <Users className='w-6 h-6 text-blue-600' />
-              </div>
-              <p className='text-2xl font-bold text-gray-900'>
-                {students.length}
-              </p>
-              <p className='text-sm text-gray-600'>Total Students</p>
-            </div>
-          </div>
-
-          <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-6'>
-            <div className='text-center'>
-              <div className='w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-3'>
-                <GraduationCap className='w-6 h-6 text-green-600' />
-              </div>
-              <p className='text-2xl font-bold text-gray-900'>{avgGPA}</p>
-              <p className='text-sm text-gray-600'>Average GPA</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6'>
-          <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4'>
-            <div className='flex items-center gap-4 flex-1'>
-              <div className='relative flex-1 max-w-md'>
-                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5' />
-                <input
-                  type='text'
-                  placeholder='Search students...'
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  className='w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all'
-                />
-              </div>
-
-              <select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className='px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 transition-all'
-              >
-                <option value='all'>All Status</option>
-                <option value='active'>Active</option>
-                <option value='inactive'>Inactive</option>
-              </select>
-            </div>
-
-            {selectedStudents.size > 0 && (
-              <div className='flex items-center gap-3'>
-                <span className='text-sm text-gray-600'>
-                  {selectedStudents.size} selected
-                </span>
-                <button className='px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors'>
-                  Remove Selected
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Students Table */}
-        <div className='bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden'>
-          <div className='overflow-x-auto'>
-            <table className='min-w-full'>
-              <thead className='bg-gray-50 border-b border-gray-200'>
-                <tr>
-                  <th className='px-6 py-4 text-left'>
-                    <input
-                      type='checkbox'
-                      checked={selectedStudents.size === students.length}
-                      onChange={handleSelectAll}
-                      className='w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500'
-                    />
-                  </th>
-                  <th className='px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider'>
-                    Student
-                  </th>
-                  <th className='px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider'>
-                    Student ID
-                  </th>
-                  <th className='px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider'>
-                    Contact
-                  </th>
-                  <th className='px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider'>
-                    Performance
-                  </th>
-                  <th className='px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider'>
-                    Status
-                  </th>
-                  <th className='px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider'>
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className='bg-white divide-y divide-gray-200'>
-                {filteredStudents.map(student => (
-                  <tr
-                    key={student.id}
-                    className='hover:bg-gray-50 transition-colors group'
-                  >
-                    <td className='px-6 py-4'>
-                      <input
-                        type='checkbox'
-                        checked={selectedStudents.has(student.id)}
-                        onChange={() => handleSelectStudent(student.id)}
-                        className='w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500'
-                      />
-                    </td>
-
-                    <td className='px-6 py-4'>
-                      <div className='flex items-center gap-4'>
-                        <div className='relative'>
-                          <img
-                            src={student.avatar}
-                            alt={student.name}
-                            className='w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm'
-                          />
-                        </div>
-                        <div>
-                          <div className='font-semibold text-gray-900'>
-                            {student.name}
-                          </div>
-                          <div className='text-sm text-gray-600'>
-                            Born: {student.birth}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className='px-6 py-4'>
-                      <div className='font-mono text-sm font-semibold text-gray-900'>
-                        {student.studentId}
-                      </div>
-                    </td>
-
-                    <td className='px-6 py-4'>
-                      <div className='text-sm'>
-                        <div className='flex items-center gap-2 mb-1'>
-                          <Mail className='w-3 h-3 text-gray-400' />
-                          <span className='text-gray-600'>{student.email}</span>
-                        </div>
-                        <div className='flex items-center gap-2'>
-                          <Phone className='w-3 h-3 text-gray-400' />
-                          <span className='text-gray-600'>{student.phone}</span>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className='px-6 py-4'>
-                      <div className='text-sm'>
-                        <div className='flex items-center gap-2 mb-1'>
-                          <span className='text-gray-600'>GPA:</span>
-                          <span
-                            className={`font-semibold ${getGpaColor(student.gpa)}`}
-                          >
-                            {student.gpa.toFixed(1)}
-                          </span>
-                        </div>
-                        <div className='flex items-center gap-2'>
-                          <span className='text-gray-600'>Attendance:</span>
-                          <span className='font-semibold text-gray-900'>
-                            {student.attendance}%
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className='px-6 py-4'>
-                      {getStatusBadge(student.status)}
-                    </td>
-
-                    <td className='px-6 py-4 text-right'>
-                      <div className='flex items-center justify-end gap-2'>
-                        <button className='p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all'>
-                          <Eye className='w-4 h-4' />
-                        </button>
-                        <button className='p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all'>
-                          <Edit3 className='w-4 h-4' />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(student)}
-                          className='p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all'
-                        >
-                          <Trash2 className='w-4 h-4' />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {filteredStudents.length === 0 && (
-            <div className='text-center py-12'>
-              <Users className='w-12 h-12 text-gray-400 mx-auto mb-4' />
-              <h3 className='text-lg font-medium text-gray-900 mb-2'>
-                No students found
-              </h3>
-              <p className='text-gray-600'>
-                Try adjusting your search or filter criteria
-              </p>
+                </motion.div>
+              ))}
             </div>
           )}
-        </div>
-      </div>
+        </SectionCard>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && studentToDelete && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50'>
-          <div className='bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden'>
-            {/* Modal Header */}
-            <div className='px-6 py-4 border-b border-gray-200'>
-              <div className='flex items-center gap-3'>
-                <div className='w-10 h-10 bg-red-100 rounded-full flex items-center justify-center'>
-                  <Trash2 className='w-5 h-5 text-red-600' />
-                </div>
-                <div>
-                  <h3 className='text-lg font-semibold text-gray-900'>
-                    Remove Student
+        {/* Teams + Add Lecturer */}
+        <SectionCard
+          title='Teams'
+          icon={<UserCircle size={20} />}
+          buttonLabel='Add Lecturer'
+          buttonColor='green'
+          onButtonClick={() => setShowLecturerModal(true)}
+        >
+          {classDetail.teams.length === 0 ? (
+            <EmptyState text='No teams created yet.' />
+          ) : (
+            <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-4'>
+              {classDetail.teams.map(team => (
+                <motion.div
+                  key={team.teamId}
+                  className='border rounded-lg p-5 bg-gray-50 hover:bg-gray-100 transition'
+                  whileHover={{ scale: 1.02 }}
+                >
+                  <h3 className='font-semibold text-gray-900 mb-1'>
+                    {team.teamName}
                   </h3>
-                  <p className='text-sm text-gray-600'>
-                    Remove student from class
+                  <p className='text-sm text-gray-600 mb-2'>
+                    Project: {team.projectName}
                   </p>
-                </div>
-              </div>
+                  <p className='text-xs text-gray-500'>
+                    {new Date(team.createdDate).toLocaleDateString('en-GB')} →{' '}
+                    {new Date(team.endDate).toLocaleDateString('en-GB')}
+                  </p>
+                </motion.div>
+              ))}
             </div>
+          )}
+        </SectionCard>
 
-            {/* Modal Body */}
-            <div className='px-6 py-6'>
-              <div className='text-center'>
-                <img
-                  src={studentToDelete.avatar}
-                  alt={studentToDelete.name}
-                  className='w-16 h-16 rounded-full mx-auto mb-4'
+        {/* Modals */}
+        <AnimatePresence>
+          {showStudentModal && (
+            <Modal
+              title='Add Students to Class'
+              onClose={() => setShowStudentModal(false)}
+            >
+              {studentList.length === 0 ? (
+                <EmptyState text='No students available.' />
+              ) : (
+                <div className='space-y-4'>
+                  <Table
+                    headers={['Select', 'Student Code', 'Full Name']}
+                    rows={studentList.map(s => [
+                      <input
+                        type='checkbox'
+                        checked={selectedStudents.some(
+                          st => st.studentId === s.uId
+                        )}
+                        onChange={() => handleCheckboxChange(s.uId, s.fullname)}
+                      />,
+                      s.studentCode,
+                      s.fullname,
+                    ])}
+                  />
+                  <div className='flex justify-end'>
+                    <button
+                      onClick={handleAddStudent}
+                      className='bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition'
+                    >
+                      Add Selected Students
+                    </button>
+                  </div>
+                </div>
+              )}
+            </Modal>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showLecturerModal && (
+            <Modal
+              title='Add Lecturer to Class'
+              onClose={() => setShowLecturerModal(false)}
+            >
+              {lecturerList.length === 0 ? (
+                <EmptyState text='No lecturers available.' />
+              ) : (
+                <Table
+                  headers={['Lecturer Code', 'Full Name', 'Action']}
+                  rows={lecturerList.map(l => [
+                    l.lecturerCode,
+                    l.fullname,
+                    <button
+                      onClick={() => handleAddLecturer(l.uId)}
+                      className='text-green-600 hover:underline'
+                    >
+                      Add
+                    </button>,
+                  ])}
                 />
-                <h4 className='text-xl font-bold text-gray-900 mb-2'>
-                  {studentToDelete.name}
-                </h4>
-                <p className='text-gray-600 mb-4'>
-                  ID: {studentToDelete.studentId}
-                </p>
-
-                <div className='bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6'>
-                  <p className='text-yellow-800 text-sm'>
-                    This will remove the student from the class. Their progress
-                    and grades will be preserved.
-                  </p>
-                </div>
-
-                <p className='text-gray-600 text-sm'>
-                  Are you sure you want to remove{' '}
-                  <strong>{studentToDelete.name}</strong> from this class?
-                </p>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className='px-6 py-4 bg-gray-50 border-t border-gray-200'>
-              <div className='flex items-center gap-3 justify-end'>
-                <button
-                  onClick={handleCancelDelete}
-                  disabled={isDeleting}
-                  className='px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all disabled:opacity-50'
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmDelete}
-                  disabled={isDeleting}
-                  className={`px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${
-                    isDeleting
-                      ? 'bg-red-400 text-white cursor-not-allowed'
-                      : 'bg-red-600 text-white hover:bg-red-700'
-                  }`}
-                >
-                  {isDeleting ? (
-                    <>
-                      <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin' />
-                      Removing...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className='w-4 h-4' />
-                      Remove Student
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {showLecturerModal && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-          <div className='bg-white rounded-xl shadow-lg p-6 w-full max-w-md'>
-            <h2 className='text-lg font-bold mb-4'>Select Lecturer</h2>
-            <ul className='space-y-2'>
-              {lecturers.map(lec => (
-                <li
-                  key={lec.id}
-                  className='flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50'
-                >
-                  <div>
-                    <p className='font-medium'>{lec.name}</p>
-                    <p className='text-sm text-gray-500'>{lec.email}</p>
-                  </div>
-                  <button
-                    onClick={() => handleAddLecturer(lec)}
-                    className='px-3 py-1 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700'
-                  >
-                    Add
-                  </button>
-                </li>
-              ))}
-            </ul>
-
-            <button
-              onClick={() => setShowLecturerModal(false)}
-              className='mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg'
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-      {showStudentModal && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-          <div className='bg-white rounded-xl shadow-lg p-6 w-full max-w-md'>
-            <h2 className='text-lg font-bold mb-4'>Select Lecturer</h2>
-            <ul className='space-y-2'>
-              {additionalStudents.map(student => (
-                <li
-                  key={student.id}
-                  className='flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50'
-                >
-                  <div>
-                    <p className='font-medium'>{student.name}</p>
-                    <p className='text-sm text-gray-500'>{student.email}</p>
-                  </div>
-                  <button
-                    onClick={() => handleAddLecturer(student)}
-                    className='px-3 py-1 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700'
-                  >
-                    Add
-                  </button>
-                </li>
-              ))}
-            </ul>
-
-            <button
-              onClick={() => setShowStudentModal(false)}
-              className='mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg'
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+              )}
+            </Modal>
+          )}
+        </AnimatePresence>
+      </div>
+    </>
   );
+}
+
+function EmptyState({ text }) {
+  return <p className='text-gray-500 italic text-center py-6'>{text}</p>;
 }

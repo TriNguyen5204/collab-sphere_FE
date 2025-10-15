@@ -20,3 +20,6 @@ Jenkinsfile
 # Exclude logs
 *.log
 npm-debug.log*
+
+.github/instructions/*
+*.md

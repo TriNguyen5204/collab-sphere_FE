@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
-import styles from './ModuleAnalysis.module.css';
+import styles from './ProjectAnalysis.module.css';
 import {
   DocumentTextIcon,
   SparklesIcon,
@@ -36,8 +36,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid';
 
-const ModuleAnalysis = () => {
-  const { moduleId } = useParams();
+const ProjectAnalysis = () => {
+  const { projectId } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [analysisProgress, setAnalysisProgress] = useState(100); // Simulated completed analysis
@@ -45,8 +45,8 @@ const ModuleAnalysis = () => {
   const [viewMode, setViewMode] = useState('split'); // 'split', 'document', 'analysis'
 
   // Mock data for AI analysis results
-  const moduleData = {
-    id: moduleId,
+  const projectData = {
+    id: projectId,
     title: 'E-commerce Platform Development',
     description: 'Build a complete e-commerce platform with user authentication, product catalog, shopping cart, and payment integration.',
     originalDocument: {
@@ -581,12 +581,12 @@ const ModuleAnalysis = () => {
     }, 500);
   };
 
-  const handleApproveModule = () => {
-    navigate(`/lecturer/modules/${moduleId}/assign`);
+  const handleApproveProject = () => {
+    navigate(`/lecturer/projects/${projectId}/assign`);
   };
 
-  const handleEditModule = () => {
-    navigate(`/lecturer/modules/${moduleId}/edit`);
+  const handleEditProject = () => {
+    navigate(`/lecturer/projects/${projectId}/edit`);
   };
 
   const getStatusIcon = (status) => {
@@ -622,13 +622,13 @@ const ModuleAnalysis = () => {
     <div className={styles.overviewContent}>
       {/* Analysis Summary Cards */}
       <div className={styles.summaryGrid}>
-        <div className={`${styles.summaryCard} ${getScoreBackground(moduleData.aiAnalysis.syllabusAlignment)}`}>
+        <div className={`${styles.summaryCard} ${getScoreBackground(projectData.aiAnalysis.syllabusAlignment)}`}>
           <div className={styles.summaryIcon}>
             <AcademicCapIcon className="w-6 h-6" />
           </div>
           <div className={styles.summaryContent}>
-            <div className={`${styles.summaryValue} ${getScoreColor(moduleData.aiAnalysis.syllabusAlignment)}`}>
-              {moduleData.aiAnalysis.syllabusAlignment}%
+            <div className={`${styles.summaryValue} ${getScoreColor(projectData.aiAnalysis.syllabusAlignment)}`}>
+              {projectData.aiAnalysis.syllabusAlignment}%
             </div>
             <div className={styles.summaryLabel}>Syllabus Alignment</div>
             <div className={styles.summaryDescription}>
@@ -637,13 +637,13 @@ const ModuleAnalysis = () => {
           </div>
         </div>
 
-        <div className={`${styles.summaryCard} ${getScoreBackground(moduleData.aiAnalysis.curriculumCoverage)}`}>
+        <div className={`${styles.summaryCard} ${getScoreBackground(projectData.aiAnalysis.curriculumCoverage)}`}>
           <div className={styles.summaryIcon}>
             <BookOpenIcon className="w-6 h-6" />
           </div>
           <div className={styles.summaryContent}>
-            <div className={`${styles.summaryValue} ${getScoreColor(moduleData.aiAnalysis.curriculumCoverage)}`}>
-              {moduleData.aiAnalysis.curriculumCoverage}%
+            <div className={`${styles.summaryValue} ${getScoreColor(projectData.aiAnalysis.curriculumCoverage)}`}>
+              {projectData.aiAnalysis.curriculumCoverage}%
             </div>
             <div className={styles.summaryLabel}>Curriculum Coverage</div>
             <div className={styles.summaryDescription}>
@@ -652,28 +652,28 @@ const ModuleAnalysis = () => {
           </div>
         </div>
 
-        <div className={`${styles.summaryCard} ${getScoreBackground(Math.round(moduleData.aiAnalysis.complexityScore * 10))}`}>
+        <div className={`${styles.summaryCard} ${getScoreBackground(Math.round(projectData.aiAnalysis.complexityScore * 10))}`}>
           <div className={styles.summaryIcon}>
             <CpuChipIcon className="w-6 h-6" />
           </div>
           <div className={styles.summaryContent}>
-            <div className={`${styles.summaryValue} ${getScoreColor(Math.round(moduleData.aiAnalysis.complexityScore * 10))}`}>
-              {moduleData.aiAnalysis.complexityScore}/10
+            <div className={`${styles.summaryValue} ${getScoreColor(Math.round(projectData.aiAnalysis.complexityScore * 10))}`}>
+              {projectData.aiAnalysis.complexityScore}/10
             </div>
             <div className={styles.summaryLabel}>Complexity Score</div>
             <div className={styles.summaryDescription}>
-              {moduleData.aiAnalysis.estimatedDuration} estimated
+              {projectData.aiAnalysis.estimatedDuration} estimated
             </div>
           </div>
         </div>
 
-        <div className={`${styles.summaryCard} ${getScoreBackground(moduleData.aiAnalysis.confidence)}`}>
+        <div className={`${styles.summaryCard} ${getScoreBackground(projectData.aiAnalysis.confidence)}`}>
           <div className={styles.summaryIcon}>
             <SparklesIcon className="w-6 h-6" />
           </div>
           <div className={styles.summaryContent}>
-            <div className={`${styles.summaryValue} ${getScoreColor(moduleData.aiAnalysis.confidence)}`}>
-              {moduleData.aiAnalysis.confidence}%
+            <div className={`${styles.summaryValue} ${getScoreColor(projectData.aiAnalysis.confidence)}`}>
+              {projectData.aiAnalysis.confidence}%
             </div>
             <div className={styles.summaryLabel}>Analysis Confidence</div>
             <div className={styles.summaryDescription}>
@@ -694,7 +694,7 @@ const ModuleAnalysis = () => {
           <div className={styles.insightItem}>
             <CheckCircleIconSolid className="w-5 h-5 text-green-500" />
             <div>
-              <strong>Excellent Technical Alignment:</strong> The module perfectly matches course technical requirements with modern full-stack development practices.
+              <strong>Excellent Technical Alignment:</strong> The project perfectly matches course technical requirements with modern full-stack development practices.
             </div>
           </div>
           
@@ -1218,13 +1218,13 @@ const ModuleAnalysis = () => {
 
   return (
     <DashboardLayout>
-      <div className={styles.moduleAnalysis}>
+      <div className={styles.projectAnalysis}>
         {/* Header */}
         <div className={styles.header}>
           <div className={styles.headerNav}>
-            <Link to="/lecturer/modules" className={styles.backButton}>
+            <Link to="/lecturer/projects" className={styles.backButton}>
               <ArrowLeftIcon className="w-4 h-4" />
-              Back to Module Library
+              Back to Project Library
             </Link>
             <span className="text-gray-300">•</span>
             <span className="font-medium text-gray-600">AI Analysis</span>
@@ -1234,8 +1234,8 @@ const ModuleAnalysis = () => {
             <div className={styles.headerTitle}>
               <SparklesIcon className="w-8 h-8 text-blue-500" />
               <div>
-                <h1>AI Module Analysis Results</h1>
-                <p>{moduleData.title}</p>
+                <h1>AI Project Analysis Results</h1>
+                <p>{projectData.title}</p>
               </div>
             </div>
             
@@ -1259,15 +1259,15 @@ const ModuleAnalysis = () => {
               </button>
               
               <button 
-                onClick={handleEditModule}
+                onClick={handleEditProject}
                 className={styles.editBtn}
               >
                 <PencilIcon className="w-5 h-5" />
-                Edit Module
+                Edit Project
               </button>
               
               <button 
-                onClick={handleApproveModule}
+                onClick={handleApproveProject}
                 className={styles.approveBtn}
               >
                 <CheckBadgeIcon className="w-5 h-5" />
@@ -1286,7 +1286,7 @@ const ModuleAnalysis = () => {
                 />
               </div>
               <div className={styles.progressText}>
-                Analyzing module content... {analysisProgress}%
+                Analyzing project content... {analysisProgress}%
               </div>
             </div>
           )}
@@ -1325,8 +1325,8 @@ const ModuleAnalysis = () => {
                 <div className={styles.documentInfo}>
                   <DocumentTextIcon className="w-6 h-6" />
                   <div>
-                    <h3>{moduleData.originalDocument.name}</h3>
-                    <p>{moduleData.originalDocument.size} • {moduleData.originalDocument.pages} pages</p>
+                    <h3>{projectData.originalDocument.name}</h3>
+                    <p>{projectData.originalDocument.size} • {projectData.originalDocument.pages} pages</p>
                   </div>
                 </div>
                 <div className={styles.documentActions}>
@@ -1394,4 +1394,4 @@ const ModuleAnalysis = () => {
   );
 };
 
-export default ModuleAnalysis;
+export default ProjectAnalysis;

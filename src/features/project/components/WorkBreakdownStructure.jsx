@@ -17,20 +17,20 @@ import {
   ArrowTrendingUpIcon,
   CpuChipIcon,
   BeakerIcon,
-  GlobeAltIcon
+  GlobeAltIcon,
 } from '@heroicons/react/24/outline';
 import {
   CheckCircleIcon as CheckCircleIconSolid,
-  StarIcon as StarIconSolid
+  StarIcon as StarIconSolid,
 } from '@heroicons/react/24/solid';
 
-const WorkBreakdownStructure = ({ 
-  projectData, 
-  onObjectiveClick, 
-  onMilestoneClick, 
+const WorkBreakdownStructure = ({
+  projectData,
+  onObjectiveClick,
+  onMilestoneClick,
   onCheckpointClick,
   showTeamProgress = true,
-  academicMode = true 
+  academicMode = true,
 }) => {
   // State Management
   const [expandedNodes, setExpandedNodes] = useState(new Set(['project-root']));
@@ -49,7 +49,7 @@ const WorkBreakdownStructure = ({
       { id: 'so-1', title: 'Full-stack Development', coverage: 95, status: 'excellent' },
       { id: 'so-2', title: 'Database Design', coverage: 88, status: 'good' },
       { id: 'so-3', title: 'API Development', coverage: 92, status: 'excellent' },
-      { id: 'so-4', title: 'Testing & QA', coverage: 76, status: 'needs-attention' }
+      { id: 'so-4', title: 'Testing & QA', coverage: 76, status: 'needs-attention' },
     ],
     objectives: [
       {
@@ -77,7 +77,7 @@ const WorkBreakdownStructure = ({
                 competencyIndicators: ['Analysis & Design', 'Technical Communication'],
                 teamsStatus: { completed: 6, inProgress: 2, blocked: 1 },
                 assessmentWeight: 0.3,
-                learningOutcome: 'LO-1'
+                learningOutcome: 'LO-1',
               },
               {
                 id: 'cp-1-1-2',
@@ -86,9 +86,9 @@ const WorkBreakdownStructure = ({
                 competencyIndicators: ['Database Design', 'Data Modeling'],
                 teamsStatus: { completed: 7, inProgress: 2, blocked: 0 },
                 assessmentWeight: 0.25,
-                learningOutcome: 'LO-2'
-              }
-            ]
+                learningOutcome: 'LO-2',
+              },
+            ],
           },
           {
             id: 'ms-1-2',
@@ -106,11 +106,11 @@ const WorkBreakdownStructure = ({
                 competencyIndicators: ['Technology Evaluation', 'Decision Making'],
                 teamsStatus: { completed: 9, inProgress: 0, blocked: 0 },
                 assessmentWeight: 0.2,
-                learningOutcome: 'LO-5'
-              }
-            ]
-          }
-        ]
+                learningOutcome: 'LO-5',
+              },
+            ],
+          },
+        ],
       },
       {
         id: 'obj-2',
@@ -137,13 +137,13 @@ const WorkBreakdownStructure = ({
                 competencyIndicators: ['Frontend Development', 'Responsive Design'],
                 teamsStatus: { completed: 4, inProgress: 4, blocked: 1 },
                 assessmentWeight: 0.35,
-                learningOutcome: 'LO-3'
-              }
-            ]
-          }
-        ]
-      }
-    ]
+                learningOutcome: 'LO-3',
+              },
+            ],
+          },
+        ],
+      },
+    ],
   };
 
   const data = projectData || mockProjectData;
@@ -161,7 +161,7 @@ const WorkBreakdownStructure = ({
 
   const handleNodeClick = (node, type) => {
     setSelectedNode({ ...node, type });
-    
+
     switch (type) {
       case 'objective':
         onObjectiveClick?.(node);
@@ -172,26 +172,37 @@ const WorkBreakdownStructure = ({
       case 'checkpoint':
         onCheckpointClick?.(node);
         break;
+      default:
+        break;
     }
   };
 
   // Academic status colors
   const getAcademicStatusColor = (status) => {
     switch (status) {
-      case 'excellent': return '#10b981';
-      case 'good': return '#3b82f6';
-      case 'needs-attention': return '#f59e0b';
-      case 'critical': return '#ef4444';
-      default: return '#6b7280';
+      case 'excellent':
+        return '#10b981';
+      case 'good':
+        return '#3b82f6';
+      case 'needs-attention':
+        return '#f59e0b';
+      case 'critical':
+        return '#ef4444';
+      default:
+        return '#6b7280';
     }
   };
 
   const getCompetencyIcon = (level) => {
     switch (level) {
-      case 'advanced': return <StarIconSolid className={styles.competencyIcon} />;
-      case 'intermediate': return <AcademicCapIcon className={styles.competencyIcon} />;
-      case 'beginner': return <BookOpenIcon className={styles.competencyIcon} />;
-      default: return <ClipboardDocumentListIcon className={styles.competencyIcon} />;
+      case 'advanced':
+        return <StarIconSolid className={styles.competencyIcon} />;
+      case 'intermediate':
+        return <AcademicCapIcon className={styles.competencyIcon} />;
+      case 'beginner':
+        return <BookOpenIcon className={styles.competencyIcon} />;
+      default:
+        return <ClipboardDocumentListIcon className={styles.competencyIcon} />;
     }
   };
 
@@ -200,10 +211,7 @@ const WorkBreakdownStructure = ({
     return (
       <div className={styles.progressContainer}>
         <div className={styles.progressBar}>
-          <div 
-            className={styles.progressFill}
-            style={{ width: `${percentage}%` }}
-          ></div>
+          <div className={styles.progressFill} style={{ width: `${percentage}%` }}></div>
         </div>
         <span className={styles.progressText}>
           {progress}/{total} {type}
@@ -215,11 +223,12 @@ const WorkBreakdownStructure = ({
   const renderCurriculumAlignment = (alignment) => (
     <div className={styles.curriculumAlignment}>
       <div className={styles.alignmentBar}>
-        <div 
+        <div
           className={styles.alignmentFill}
-          style={{ 
+          style={{
             width: `${alignment}%`,
-            backgroundColor: alignment >= 90 ? '#10b981' : alignment >= 75 ? '#3b82f6' : '#f59e0b'
+            backgroundColor:
+              alignment >= 90 ? '#10b981' : alignment >= 75 ? '#3b82f6' : '#f59e0b',
           }}
         ></div>
       </div>
@@ -228,7 +237,10 @@ const WorkBreakdownStructure = ({
   );
 
   const renderTeamStatus = (teamsStatus) => {
-    const total = teamsStatus.completed + teamsStatus.inProgress + (teamsStatus.blocked || teamsStatus.notStarted || 0);
+    const total =
+      teamsStatus.completed +
+      teamsStatus.inProgress +
+      (teamsStatus.blocked || teamsStatus.notStarted || 0);
     return (
       <div className={styles.teamStatusGrid}>
         <div className={styles.statusItem}>
@@ -255,8 +267,12 @@ const WorkBreakdownStructure = ({
     const isSelected = selectedNode?.id === checkpoint.id;
 
     return (
-      <div key={checkpoint.id} className={styles.treeNode} style={{ marginLeft: `${level * 1.5}rem` }}>
-        <div 
+      <div
+        key={checkpoint.id}
+        className={styles.treeNode}
+        style={{ marginLeft: `${level * 1.5}rem` }}
+      >
+        <div
           className={`${styles.nodeContent} ${isSelected ? styles.selected : ''} ${styles.checkpointNode}`}
           onClick={() => handleNodeClick(checkpoint, 'checkpoint')}
         >
@@ -279,10 +295,8 @@ const WorkBreakdownStructure = ({
               {showTeamProgress && renderTeamStatus(checkpoint.teamsStatus)}
             </div>
           </div>
-          
-          <div className={styles.nodeDescription}>
-            {checkpoint.description}
-          </div>
+
+          <div className={styles.nodeDescription}>{checkpoint.description}</div>
 
           <div className={styles.academicMetadata}>
             <div className={styles.learningOutcome}>
@@ -301,16 +315,20 @@ const WorkBreakdownStructure = ({
     const isSelected = selectedNode?.id === milestone.id;
 
     return (
-      <div key={milestone.id} className={styles.treeNode} style={{ marginLeft: `${level * 1.5}rem` }}>
-        <div 
+      <div
+        key={milestone.id}
+        className={styles.treeNode}
+        style={{ marginLeft: `${level * 1.5}rem` }}
+      >
+        <div
           className={`${styles.nodeContent} ${isSelected ? styles.selected : ''} ${styles.milestoneNode}`}
           onClick={() => handleNodeClick(milestone, 'milestone')}
         >
           <div className={styles.nodeHeader}>
-            <button 
+            <button
               className={styles.expandButton}
-              onClick={(e) => {
-                e.stopPropagation();
+              onClick={(event) => {
+                event.stopPropagation();
                 toggleNode(nodeId);
               }}
             >
@@ -320,22 +338,20 @@ const WorkBreakdownStructure = ({
                 <ChevronRightIcon className={styles.chevronIcon} />
               )}
             </button>
-            
+
             <div className={styles.nodeTitle}>
               <GlobeAltIcon className={styles.nodeIcon} />
               <span className={styles.titleText}>{milestone.title}</span>
               {getCompetencyIcon(milestone.competencyLevel)}
             </div>
-            
+
             <div className={styles.nodeActions}>
               {renderCurriculumAlignment(milestone.curriculumAlignment)}
               {showTeamProgress && renderTeamStatus(milestone.teamsProgress)}
             </div>
           </div>
-          
-          <div className={styles.nodeDescription}>
-            {milestone.description}
-          </div>
+
+          <div className={styles.nodeDescription}>{milestone.description}</div>
 
           <div className={styles.academicMetadata}>
             <div className={styles.assessmentCriteria}>
@@ -347,8 +363,8 @@ const WorkBreakdownStructure = ({
 
         {isExpanded && (
           <div className={styles.childrenContainer}>
-            {milestone.checkpoints?.map(checkpoint => 
-              renderCheckpoint(checkpoint, level + 1)
+            {milestone.checkpoints?.map((checkpoint) =>
+              renderCheckpoint(checkpoint, level + 1),
             )}
           </div>
         )}
@@ -362,16 +378,20 @@ const WorkBreakdownStructure = ({
     const isSelected = selectedNode?.id === objective.id;
 
     return (
-      <div key={objective.id} className={styles.treeNode} style={{ marginLeft: `${level * 1.5}rem` }}>
-        <div 
+      <div
+        key={objective.id}
+        className={styles.treeNode}
+        style={{ marginLeft: `${level * 1.5}rem` }}
+      >
+        <div
           className={`${styles.nodeContent} ${isSelected ? styles.selected : ''} ${styles.objectiveNode}`}
           onClick={() => handleNodeClick(objective, 'objective')}
         >
           <div className={styles.nodeHeader}>
-            <button 
+            <button
               className={styles.expandButton}
-              onClick={(e) => {
-                e.stopPropagation();
+              onClick={(event) => {
+                event.stopPropagation();
                 toggleNode(nodeId);
               }}
             >
@@ -381,25 +401,23 @@ const WorkBreakdownStructure = ({
                 <ChevronRightIcon className={styles.chevronIcon} />
               )}
             </button>
-            
+
             <div className={styles.nodeTitle}>
               <CpuChipIcon className={styles.nodeIcon} />
               <span className={styles.titleText}>{objective.title}</span>
-              <div 
+              <div
                 className={styles.academicStatusIndicator}
                 style={{ backgroundColor: getAcademicStatusColor(objective.academicStatus) }}
               ></div>
             </div>
-            
+
             <div className={styles.nodeActions}>
               {renderCurriculumAlignment(objective.curriculumAlignment)}
               {showTeamProgress && renderTeamStatus(objective.teamsProgress)}
             </div>
           </div>
-          
-          <div className={styles.nodeDescription}>
-            {objective.description}
-          </div>
+
+          <div className={styles.nodeDescription}>{objective.description}</div>
 
           <div className={styles.academicMetadata}>
             <div className={styles.learningOutcomes}>
@@ -411,8 +429,8 @@ const WorkBreakdownStructure = ({
 
         {isExpanded && (
           <div className={styles.childrenContainer}>
-            {objective.milestones?.map(milestone => 
-              renderMilestone(milestone, level + 1)
+            {objective.milestones?.map((milestone) =>
+              renderMilestone(milestone, level + 1),
             )}
           </div>
         )}
@@ -428,22 +446,19 @@ const WorkBreakdownStructure = ({
       <div className={styles.treeNode}>
         <div className={`${styles.nodeContent} ${styles.projectNode}`}>
           <div className={styles.nodeHeader}>
-            <button 
-              className={styles.expandButton}
-              onClick={() => toggleNode(nodeId)}
-            >
+            <button className={styles.expandButton} onClick={() => toggleNode(nodeId)}>
               {isExpanded ? (
                 <ChevronDownIcon className={styles.chevronIcon} />
               ) : (
                 <ChevronRightIcon className={styles.chevronIcon} />
               )}
             </button>
-            
+
             <div className={styles.nodeTitle}>
               <BookOpenIcon className={styles.nodeIcon} />
               <span className={styles.titleText}>{data.title}</span>
             </div>
-            
+
             <div className={styles.nodeActions}>
               {renderCurriculumAlignment(data.curriculumAlignment)}
               <div className={styles.teamCount}>
@@ -454,15 +469,15 @@ const WorkBreakdownStructure = ({
           </div>
 
           <div className={styles.subjectOutcomes}>
-            {data.subjectOutcomes?.map(outcome => (
+            {data.subjectOutcomes?.map((outcome) => (
               <div key={outcome.id} className={styles.outcomeItem}>
                 <span className={styles.outcomeTitle}>{outcome.title}</span>
                 <div className={styles.outcomeCoverage}>
-                  <div 
+                  <div
                     className={styles.coverageBar}
-                    style={{ 
+                    style={{
                       width: `${outcome.coverage}%`,
-                      backgroundColor: getAcademicStatusColor(outcome.status)
+                      backgroundColor: getAcademicStatusColor(outcome.status),
                     }}
                   ></div>
                   <span>{outcome.coverage}%</span>
@@ -474,9 +489,7 @@ const WorkBreakdownStructure = ({
 
         {isExpanded && (
           <div className={styles.childrenContainer}>
-            {data.objectives?.map(objective => 
-              renderObjective(objective, 1)
-            )}
+            {data.objectives?.map((objective) => renderObjective(objective, 1))}
           </div>
         )}
       </div>
@@ -490,30 +503,30 @@ const WorkBreakdownStructure = ({
           <PresentationChartLineIcon className={styles.headerIcon} />
           <h3>Academic Work Breakdown Structure</h3>
         </div>
-        
+
         <div className={styles.headerControls}>
           <div className={styles.viewModeToggle}>
-            <button 
+            <button
               className={`${styles.toggleButton} ${viewMode === 'tree' ? styles.active : ''}`}
               onClick={() => setViewMode('tree')}
             >
               Tree View
             </button>
-            <button 
+            <button
               className={`${styles.toggleButton} ${viewMode === 'timeline' ? styles.active : ''}`}
               onClick={() => setViewMode('timeline')}
             >
               Timeline
             </button>
-            <button 
+            <button
               className={`${styles.toggleButton} ${viewMode === 'assessment' ? styles.active : ''}`}
               onClick={() => setViewMode('assessment')}
             >
               Assessment
             </button>
           </div>
-          
-          <button 
+
+          <button
             className={`${styles.curriculumButton} ${curriculumView ? styles.active : ''}`}
             onClick={() => setCurriculumView(!curriculumView)}
           >
@@ -524,12 +537,8 @@ const WorkBreakdownStructure = ({
       </div>
 
       <div className={styles.wbsContent}>
-        {viewMode === 'tree' && (
-          <div className={styles.treeView}>
-            {renderProjectRoot()}
-          </div>
-        )}
-        
+        {viewMode === 'tree' && <div className={styles.treeView}>{renderProjectRoot()}</div>}
+
         {viewMode === 'timeline' && (
           <div className={styles.timelineView}>
             <div className={styles.timelinePlaceholder}>
@@ -539,7 +548,7 @@ const WorkBreakdownStructure = ({
             </div>
           </div>
         )}
-        
+
         {viewMode === 'assessment' && (
           <div className={styles.assessmentView}>
             <div className={styles.assessmentPlaceholder}>
@@ -555,10 +564,7 @@ const WorkBreakdownStructure = ({
         <div className={styles.curriculumPanel}>
           <div className={styles.panelHeader}>
             <h4>Curriculum Mapping Analysis</h4>
-            <button 
-              className={styles.closeButton}
-              onClick={() => setCurriculumView(false)}
-            >
+            <button className={styles.closeButton} onClick={() => setCurriculumView(false)}>
               ×
             </button>
           </div>

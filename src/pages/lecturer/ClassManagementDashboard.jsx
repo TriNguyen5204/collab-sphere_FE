@@ -217,7 +217,7 @@ const ClassManagementDashboard = () => {
     {
       id: 'ann-2',
       title: 'Curriculum Alignment Review',
-      body: 'Submit updated module syllabi to Head of Department by Oct 7.',
+  body: 'Submit updated project syllabi to Head of Department by Oct 7.',
       timestamp: '2025-09-20T08:20:00Z'
     }
   ]);
