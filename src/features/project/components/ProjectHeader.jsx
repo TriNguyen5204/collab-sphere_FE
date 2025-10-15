@@ -22,6 +22,12 @@ const ProjectHeader = ({ projectId, projectData }) => {
     navigate(`/lecturer/projects/${projectId}/edit`);
   };
 
+  const duration = projectData.duration || projectData.estimatedDuration || '—';
+  const difficulty = projectData.difficulty || '—';
+  const estimatedHours = projectData.estimatedHours || projectData.estHours || '—';
+  const teamSize = projectData.teamSize || `${projectData.minTeamSize || '—'}-${projectData.maxTeamSize || '—'} members`;
+  const ratingValue = Number(projectData.rating) || 0;
+
   return (
     <div className={styles.header}>
       <div className={styles.headerTop}>
@@ -39,34 +45,36 @@ const ProjectHeader = ({ projectId, projectData }) => {
         <div className={styles.moduleInfo}>
           <div className={styles.titleSection}>
             <h1 className={styles.moduleTitle}>{projectData.title}</h1>
-            <div className={styles.moduleRating}>
-              {[...Array(5)].map((_, index) => (
-                <StarIconSolid
-                  key={index}
-                  className={`w-5 h-5 ${index < projectData.rating ? 'text-yellow-400' : 'text-gray-300'}`}
-                />
-              ))}
-              <span className={styles.ratingText}>({projectData.rating}/5)</span>
-            </div>
+            {ratingValue > 0 && (
+              <div className={styles.moduleRating}>
+                {[...Array(5)].map((_, index) => (
+                  <StarIconSolid
+                    key={index}
+                    className={`w-5 h-5 ${index < ratingValue ? 'text-yellow-400' : 'text-gray-300'}`}
+                  />
+                ))}
+                <span className={styles.ratingText}>({ratingValue}/5)</span>
+              </div>
+            )}
           </div>
           <p className={styles.moduleDescription}>{projectData.description}</p>
 
           <div className={styles.moduleStats}>
             <div className={styles.statItem}>
               <CalendarIcon className="w-4 h-4" />
-              <span>Duration: {projectData.duration}</span>
+              <span>Duration: {duration}</span>
             </div>
             <div className={styles.statItem}>
               <AcademicCapIcon className="w-4 h-4" />
-              <span>Difficulty: {projectData.difficulty}</span>
+              <span>Difficulty: {difficulty}</span>
             </div>
             <div className={styles.statItem}>
               <ClockIcon className="w-4 h-4" />
-              <span>Est. Hours: {projectData.estimatedHours}</span>
+              <span>Est. Hours: {estimatedHours}</span>
             </div>
             <div className={styles.statItem}>
               <UserGroupIcon className="w-4 h-4" />
-              <span>Team Size: {projectData.teamSize}</span>
+              <span>Team Size: {teamSize}</span>
             </div>
           </div>
         </div>
