@@ -138,16 +138,7 @@ const PeerEvaluationPage = () => {
       <ProjectBoardHeader />
       
       <main className="p-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <ClipboardList size={32} />
-            Peer Evaluation System
-          </h1>
-          <p className="text-gray-600 mt-1">Evaluate your teammates and view feedback from lecturers</p>
-        </div>
-
         <EvaluationTabs activeTab={activeTab} onChangeTab={setActiveTab} />
-
         <div className="mt-6">
           {activeTab === 'evaluate' && (
             <PeerEvaluationForm teamMembers={teamMembers} />

@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useImperativeHandle, forwardRef } from "react";
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCorners } from "@dnd-kit/core";
 import { SortableContext, arrayMove, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 
 import BoardList from "./BoardList";
 import CardModal from "./CardModal";
+import UndoNotification from "./UndoNotification";
 
 // ────────────────────────────────────────────────────────────────────────────────
 // Fake members (re‑use across cards)
@@ -28,10 +29,14 @@ const initialLists = [
         id: "card-1",
         title: "Design homepage",
         description: "Create wireframes + hero section mockups",
-        assignedMemberIds: [1, 4],
+        assignedMembers: [
+          { id: 1, name: "Alice", role: "Leader", avatar: "https://i.pravatar.cc/40?u=1", tags: ["Frontend", "UI/UX"] },
+          { id: 4, name: "Diana", role: "Member", avatar: "https://i.pravatar.cc/40?u=4", tags: ["UI/UX"] }
+        ],
         dueDate: "2025-10-10",
         isCompleted: false,
         attachments: [],
+        riskLevel: "medium",
         milestones: [
           {
             id: "ms-1",
@@ -53,10 +58,14 @@ const initialLists = [
         id: "card-2",
         title: "Implement auth API",
         description: "Login / Register / Refresh token endpoints",
-        assignedMemberIds: [2, 6],
+        assignedMembers: [
+          { id: 2, name: "Bob", role: "Member", avatar: "https://i.pravatar.cc/40?u=2", tags: ["Backend"] },
+          { id: 6, name: "Frank", role: "Member", avatar: "https://i.pravatar.cc/40?u=6", tags: ["Backend", "DevOps"] }
+        ],
         dueDate: "2025-10-08",
         isCompleted: false,
         attachments: [],
+        riskLevel: "high",
         milestones: [
           {
             id: "ms-2",
@@ -72,10 +81,14 @@ const initialLists = [
         id: "card-3",
         title: "Kanban DnD",
         description: "Drag & drop lists + cards with dnd-kit",
-        assignedMemberIds: [1, 3],
+        assignedMembers: [
+          { id: 1, name: "Alice", role: "Leader", avatar: "https://i.pravatar.cc/40?u=1", tags: ["Frontend", "UI/UX"] },
+          { id: 3, name: "Charlie", role: "Member", avatar: "https://i.pravatar.cc/40?u=3", tags: ["Frontend"] }
+        ],
         dueDate: "2025-10-12",
         isCompleted: false,
         attachments: [],
+        riskLevel: "low",
         milestones: [],
       },
     ],
@@ -84,17 +97,39 @@ const initialLists = [
   { id: "list-4", title: "Done", cards: [] },
 ];
 
-export default function TrelloBoard() {
+const TrelloBoard = forwardRef(function TrelloBoard({ selectedRole, onUpdateArchived }, ref) {
   const [lists, setLists] = useState(initialLists);
+  const [archivedItems, setArchivedItems] = useState({ cards: [], lists: [] });
   const [activeCard, setActiveCard] = useState(null);
   const [activeList, setActiveList] = useState(null);
   const [editingCard, setEditingCard] = useState(null);
   const [isAddingList, setIsAddingList] = useState(false);
   const [newListTitle, setNewListTitle] = useState("");
+  const [undoAction, setUndoAction] = useState(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
+
+  React.useEffect(() => {
+    if (onUpdateArchived) {
+      onUpdateArchived(archivedItems);
+    }
+  }, [archivedItems, onUpdateArchived]);
+
+  // Filter lists based on selected role
+  const filteredLists = useMemo(() => {
+    if (selectedRole === 'all') return lists;
+    
+    return lists.map(list => ({
+      ...list,
+      cards: list.cards.filter(card => 
+        card.assignedMembers?.some(member => 
+          member.tags?.includes(selectedRole)
+        )
+      )
+    }));
+  }, [lists, selectedRole]);
 
   // Custom collision detection
   const collisionDetectionStrategy = (args) => {
@@ -178,10 +213,8 @@ export default function TrelloBoard() {
     const activeData = active.data?.current;
     const overData = over.data?.current;
 
-    // Ignore if hovering over add-card button
     if (over.data?.current?.type === "add-card") return;
 
-    // Card → Card movement
     if (activeData?.type === "card" && overData?.type === "card") {
       const from = findCard(active.id);
       const to = findCard(over.id);
@@ -191,7 +224,6 @@ export default function TrelloBoard() {
       }
     }
 
-    // Card → empty list or cards container
     if (activeData?.type === "card" && overData?.type === "cards") {
       const from = findCard(active.id);
       const toListId = overData.listId;
@@ -215,16 +247,13 @@ export default function TrelloBoard() {
 
     if (active.id === over.id) return;
 
-    // Ignore if dropping on add-card button
     if (overData?.type === "add-card") return;
 
-    // List reordering
     if (activeData?.type === "list" && overData?.type === "list") {
       reorderList(active.id, over.id);
       return;
     }
 
-    // Card reordering within same list or moving to another card position
     if (activeData?.type === "card" && overData?.type === "card") {
       const from = findCard(active.id);
       const to = findCard(over.id);
@@ -242,7 +271,6 @@ export default function TrelloBoard() {
       return;
     }
 
-    // Card dropped on empty list or cards container
     if (activeData?.type === "card" && overData?.type === "cards") {
       const from = findCard(active.id);
       const toListId = overData.listId;
@@ -260,7 +288,7 @@ export default function TrelloBoard() {
     }
   }
 
-  // ────────────────────────────── CRUD ──────────────────────────────
+  // CRUD operations
   const addList = () => {
     const title = newListTitle.trim();
     if (!title) return;
@@ -269,30 +297,27 @@ export default function TrelloBoard() {
     setIsAddingList(false);
   };
 
-  const addCard = (listId, rawTitle) => {
-    const title = rawTitle.trim();
-    if (!title) return;
-    setLists((prev) =>
-      prev.map((l) =>
-        l.id === listId
-          ? {
-              ...l,
-              cards: [
-                ...l.cards,
-                {
-                  id: `card-${Date.now()}`,
-                  title,
-                  description: "",
-                  assignedMemberIds: [],
-                  dueDate: "",
-                  isCompleted: false,
-                  attachments: [],
-                  milestones: [],
-                },
-              ],
-            }
-          : l
-      )
+  // Ensure addCard takes (listId, title) in this order
+  const addCard = (listId, title) => {
+    const safeTitle = (title ?? '').toString().trim();
+    if (!safeTitle) return;
+    setLists(prev =>
+      prev.map(l => {
+        if (l.id !== listId) return l;
+        const newCard = {
+          id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          title: safeTitle,
+          description: '',
+          isCompleted: false,
+          archived: false,
+          createdAt: new Date().toISOString(),
+          assignedMembers: [],
+          attachments: [],
+          labels: [],
+          riskLevel: 'low',
+        };
+        return { ...l, cards: [...l.cards, newCard] };
+      })
     );
   };
 
@@ -309,11 +334,117 @@ export default function TrelloBoard() {
     );
   };
 
+  const archiveCard = (listId, cardId) => {
+    const from = findCard(cardId);
+    if (!from) return;
+    const archivedCard = { ...from.card, listId, archivedAt: new Date().toISOString() };
+
+    setArchivedItems(prev => ({
+      ...prev,
+      cards: [...prev.cards, archivedCard]
+    }));
+
+    setLists((prev) =>
+      prev.map((l) => (l.id === listId ? { ...l, cards: l.cards.filter((c) => c.id !== cardId) } : l))
+    );
+
+    setUndoAction({
+      type: 'card',
+      item: archivedCard,
+      listId,
+      message: `Card "${archivedCard.title}" archived`
+    });
+  };
+
   const deleteCard = (listId, cardId) => {
     setLists((prev) =>
       prev.map((l) => (l.id === listId ? { ...l, cards: l.cards.filter((c) => c.id !== cardId) } : l))
     );
   };
+
+  const archiveList = (listId) => {
+    const list = lists.find(l => l.id === listId);
+    if (!list) return;
+
+    const archivedList = { ...list, archivedAt: new Date().toISOString() };
+    
+    setArchivedItems(prev => ({
+      ...prev,
+      lists: [...prev.lists, archivedList]
+    }));
+
+    setLists((prev) => prev.filter((l) => l.id !== listId));
+
+    setUndoAction({
+      type: 'list',
+      item: archivedList,
+      message: `List "${archivedList.title}" archived`
+    });
+  };
+
+  const restoreCard = (cardId, listId) => {
+    const archivedCard = archivedItems.cards.find(c => c.id === cardId);
+    if (!archivedCard) return;
+
+    setLists((prev) =>
+      prev.map((l) =>
+        l.id === listId
+          ? { ...l, cards: [...l.cards, { ...archivedCard, archivedAt: undefined }] }
+          : l
+      )
+    );
+
+    setArchivedItems(prev => ({
+      ...prev,
+      cards: prev.cards.filter(c => c.id !== cardId)
+    }));
+  };
+
+  const restoreList = (listId) => {
+    const archivedList = archivedItems.lists.find(l => l.id === listId);
+    if (!archivedList) return;
+
+    setLists((prev) => [...prev, { ...archivedList, archivedAt: undefined }]);
+
+    setArchivedItems(prev => ({
+      ...prev,
+      lists: prev.lists.filter(l => l.id !== listId)
+    }));
+  };
+
+  const permanentlyDeleteCard = (cardId) => {
+    setArchivedItems(prev => ({
+      ...prev,
+      cards: prev.cards.filter(c => c.id !== cardId)
+    }));
+  };
+
+  const permanentlyDeleteList = (listId) => {
+    setArchivedItems(prev => ({
+      ...prev,
+      lists: prev.lists.filter(l => l.id !== listId)
+    }));
+  };
+
+  const handleUndo = () => {
+    if (!undoAction) return;
+
+    if (undoAction.type === 'card') {
+      restoreCard(undoAction.item.id, undoAction.listId);
+    } else if (undoAction.type === 'list') {
+      restoreList(undoAction.item.id);
+    }
+
+    setUndoAction(null);
+  };
+
+  // Expose imperative API for settings modal actions
+  useImperativeHandle(ref, () => ({
+    restoreCard: (cardId, listId) => restoreCard(cardId, listId),
+    restoreList: (listId) => restoreList(listId),
+    permanentlyDeleteCard: (cardId) => permanentlyDeleteCard(cardId),
+    permanentlyDeleteList: (listId) => permanentlyDeleteList(listId),
+  }));
 
   return (
     <>
@@ -326,14 +457,15 @@ export default function TrelloBoard() {
       >
         <div className="flex items-start gap-4 pb-6">
           <SortableContext items={listIds} strategy={horizontalListSortingStrategy}>
-            {lists.map((list) => (
+            {filteredLists.map((list) => (
               <BoardList
                 key={list.id}
                 list={list}
                 members={members}
-                onAddCard={(title) => addCard(list.id, title)}
-                onCardClick={(card) => setEditingCard({ listId: list.id, card })}
+                onAddCard={(listId, cardTitle) => addCard(listId, cardTitle)}
+                onCardClick={(card) => setEditingCard({ listId: list.id, listTitle: list.title, card })}
                 onUpdateCard={updateCard}
+                onArchiveList={() => archiveList(list.id)}
               />
             ))}
 
@@ -420,6 +552,7 @@ export default function TrelloBoard() {
       {editingCard && (
         <CardModal
           listId={editingCard.listId}
+          listTitle={editingCard.listTitle}
           card={editingCard.card}
           members={members}
           onClose={() => setEditingCard(null)}
@@ -428,8 +561,23 @@ export default function TrelloBoard() {
             deleteCard(listId, cardId);
             setEditingCard(null);
           }}
+          onArchive={(listId, cardId) => {
+            archiveCard(listId, cardId);
+            setEditingCard(null);
+          }}
+        />
+      )}
+
+      {/* Undo Notification */}
+      {undoAction && (
+        <UndoNotification
+          message={undoAction.message}
+          onUndo={handleUndo}
+          onClose={() => setUndoAction(null)}
         />
       )}
     </>
   );
-}
+});
+
+export default TrelloBoard;

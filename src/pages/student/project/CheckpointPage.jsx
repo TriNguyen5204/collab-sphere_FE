@@ -221,10 +221,6 @@ const CheckpointPage = () => {
       
       <main className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Checkpoints</h1>
-            <p className="text-gray-600 mt-1">Manage team checkpoints and submissions</p>
-          </div>
           {isLeader && (
             <button
               onClick={() => setShowCreateModal(true)}

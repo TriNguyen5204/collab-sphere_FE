@@ -1,221 +1,287 @@
-import React, { useState } from 'react';
-import { Download, LogOut, BookOpen, FileText, Users, Calendar } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { BookOpen, Users, Calendar } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'; // ADD
+import Header from '../../components/layout/Header';
+import StudentSidebar from '../../components/layout/StudentSidebar';
+import { toast } from 'sonner';
+import { getClassesByStudentId, getClassDetailsById } from '../../services/userService';
+import { EnrolledClassesSkeleton, ClassDetailsSkeleton } from '../../components/skeletons/StudentSkeletons';
+import { useSelector } from 'react-redux';
 import StudentLayout from '../../components/layout/StudentLayout';
 
 const StudentClassPage = () => {
-  const [classes, setClasses] = useState([
-    {
-      id: 1,
-      code: 'CS301',
-      name: 'Software Engineering',
-      lecturer: 'Dr. Smith',
-      semester: 'Fall 2025',
-      studentCount: 45,
-      resources: [
-        { id: 1, name: 'Lecture 1 - Introduction.pdf', size: '2.5 MB', uploadDate: '2025-09-15' },
-        { id: 2, name: 'Assignment 1.docx', size: '1.2 MB', uploadDate: '2025-09-20' },
-      ]
-    },
-    {
-      id: 2,
-      code: 'CS402',
-      name: 'Database Systems',
-      lecturer: 'Prof. Johnson',
-      semester: 'Fall 2025',
-      studentCount: 38,
-      resources: [
-        { id: 3, name: 'SQL Basics.pdf', size: '3.1 MB', uploadDate: '2025-09-16' },
-      ]
-    },
-  ]);
+  const [classes, setClasses] = useState([]);
+  const [selectedClassId, setSelectedClassId] = useState(null);
 
-  const [selectedClass, setSelectedClass] = useState(null);
-  const [showLeaveModal, setShowLeaveModal] = useState(false);
-  const [classToLeave, setClassToLeave] = useState(null);
+  const [loadingList, setLoadingList] = useState(false);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
-  const handleLeaveClass = (classItem) => {
-    setClassToLeave(classItem);
-    setShowLeaveModal(true);
+  // cache class details by id
+  const [detailsById, setDetailsById] = useState({});
+
+  const studentId = useSelector(state => state.user.userId);
+
+  const auth = useSelector(state => state.user);
+  useEffect(() => {
+    console.log('Auth state:', auth);
+  }, [auth]);
+
+  const selectedClass = useMemo(
+    () => classes.find((c) => c.classId === selectedClassId) || null,
+    [classes, selectedClassId]
+  );
+  const selectedDetails = detailsById[selectedClassId] || null;
+
+  // Slugify for route paths: /student/theclassname/...
+  const slugify = (str = '') =>
+    String(str)
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+
+  const navigate = useNavigate(); // ADD
+
+  const handleViewMembers = () => {
+    if (!selectedClass) return;
+    const slug = slugify(selectedClass.className);
+    navigate(`/student/${slug}/members`, { state: { details: selectedDetails } });
   };
 
-  const confirmLeaveClass = () => {
-    setClasses(classes.filter(c => c.id !== classToLeave.id));
-    setShowLeaveModal(false);
-    setClassToLeave(null);
-    if (selectedClass?.id === classToLeave.id) {
-      setSelectedClass(null);
+  const handleViewProjects = () => {
+    if (!selectedClass) return;
+    const slug = slugify(selectedClass.className);
+    navigate(`/student/${slug}/projects`, { state: { details: selectedDetails } });
+  };
+
+  const formatDate = (iso) => {
+    try {
+      return new Date(iso).toLocaleDateString();
+    } catch {
+      return iso ?? '';
     }
   };
 
-  const handleDownloadResource = (resource) => {
-    // Implement download logic
-    console.log('Downloading:', resource.name);
+  const fetchClasses = async () => {
+    if (!studentId) {
+      toast.error('Missing student id');
+      return [];
+    }
+    try {
+      setLoadingList(true);
+      const list = await getClassesByStudentId(studentId);
+      setClasses(list);
+      const ids = list.map((c) => c.classId);
+      console.log('Class IDs:', ids);
+      if (!ids.includes(selectedClassId) && ids.length) {
+        setSelectedClassId(ids[0]);
+      }
+      return list;
+    } finally {
+      setLoadingList(false);
+    }
   };
+
+  const fetchDetails = async (classId) => {
+    if (!classId) return;
+    // use cache
+    if (detailsById[classId]) return detailsById[classId];
+    try {
+      setLoadingDetails(true);
+      const details = await getClassDetailsById(classId);
+      console.log('Fetched details for classId', classId, details);
+      setDetailsById((prev) => ({ ...prev, [classId]: details }));
+      return details;
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  useEffect(() => {
+    (async () => {
+      const list = await fetchClasses();
+      if (list.length) {
+        fetchDetails(list[0].classId);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (selectedClassId) fetchDetails(selectedClassId);
+
+  }, [selectedClassId]);
 
   return (
     <StudentLayout>
-      <div className="space-y-6">
-          {/* Header */}
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-gray-900">My Classes</h1>
-            <p className="text-gray-600 mt-1">View your enrolled classes and access course resources</p>
+            <p className="text-gray-600 mt-1">View your assigned classes</p>
           </div>
 
-          {/* Main Content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Class List */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow-md p-4">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <BookOpen className="w-5 h-5" />
-                  Enrolled Classes ({classes.length})
-                </h2>
-                <div className="space-y-3">
-                  {classes.map((classItem) => (
-                    <div
-                      key={classItem.id}
-                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                        selectedClass?.id === classItem.id
-                          ? 'border-brand-500 bg-brand-50'
-                          : 'border-gray-200 hover:border-brand-300'
-                      }`}
-                      onClick={() => setSelectedClass(classItem)}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h3 className="font-semibold text-gray-900">{classItem.code}</h3>
-                          <p className="text-sm text-gray-600">{classItem.name}</p>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <BookOpen className="w-5 h-5" />
+                    Assigned Classes ({classes.length})
+                  </h2>
+                  <button
+                    onClick={() =>
+                      toast.promise(fetchClasses(), {
+                        loading: 'Refreshing classes...',
+                        success: (list) => `Loaded ${list?.length ?? 0} classes`,
+                        error: 'Failed to refresh classes',
+                      })
+                    }
+                    className="text-sm text-blue-600 hover:text-blue-800 hover:underline disabled:opacity-50"
+                    disabled={loadingList}
+                  >
+                    {loadingList ? 'Loading…' : 'Refresh'}
+                  </button>
+                </div>
+
+                {loadingList ? (
+                  <EnrolledClassesSkeleton count={3} />
+                ) : (
+                  <div className="space-y-3">
+                    {classes.map((c) => (
+                      <div
+                        key={c.classId}
+                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          selectedClassId === c.classId
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-blue-300'
+                        }`}
+                        onClick={() => setSelectedClassId(c.classId)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="font-semibold text-gray-900">{c.subjectCode}</h3>
+                            <p className="text-sm text-gray-600">{c.className}</p>
+                          </div>
+                          <span
+                            className={`text-xs px-2 py-1 rounded border font-semibold ${
+                              c.isActive
+                                ? 'text-green-900 bg-green-100 border-green-300'
+                                : 'text-gray-700 bg-gray-100 border-gray-300'
+                            }`}
+                          >
+                            {c.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
+                          <Users className="w-3 h-3" />
+                          <span>{c.memberCount ?? 0} members</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <Users className="w-3 h-3" />
-                        <span>{classItem.studentCount} students</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                    {!classes.length && !loadingList && (
+                      <div className="text-sm text-gray-500">No classes found.</div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Class Details & Resources */}
+            {/* Right: Class details */}
             <div className="lg:col-span-2">
               {selectedClass ? (
-                <div className="space-y-6">
-                  {/* Class Info Card */}
+                loadingDetails && !selectedDetails ? (
+                  <ClassDetailsSkeleton />
+                ) : selectedDetails ? (
                   <div className="bg-white rounded-lg shadow-md p-6">
-                    <div className="flex justify-between items-start mb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
                       <div>
-                        <h2 className="text-2xl font-bold text-gray-900">{selectedClass.name}</h2>
-                        <p className="text-gray-600">{selectedClass.code}</p>
+                        <h2 className="text-2xl font-bold text-gray-900">{selectedDetails.className}</h2>
+                        <p className="text-gray-600">
+                          {selectedDetails.subjectCode} — {selectedDetails.subjectName}
+                        </p>
                       </div>
-                      <button
-                        onClick={() => handleLeaveClass(selectedClass)}
-                        className="flex items-center gap-2 px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Leave Class
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleViewMembers}
+                          disabled={(selectedDetails?.classMembers?.length ?? 0) === 0}
+                          className="px-3 py-2 text-sm rounded-md border bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="View members"
+                        >
+                          <span className="inline-flex items-center gap-2">
+                            <Users className="w-4 h-4" />
+                            Members ({selectedDetails?.classMembers?.length ?? 0})
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleViewProjects}
+                          disabled={(selectedDetails?.projectAssignments?.length ?? 0) === 0}
+                          className="px-3 py-2 text-sm rounded-md border bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="View projects"
+                        >
+                          <span className="inline-flex items-center gap-2">
+                            <BookOpen className="w-4 h-4" />
+                            Projects ({selectedDetails?.projectAssignments?.length ?? 0})
+                          </span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 py-4 border-t border-gray-200">
+                      {/* Lecturer */}
                       <div>
                         <p className="text-sm text-gray-500">Lecturer</p>
-                        <p className="font-medium text-gray-900">{selectedClass.lecturer}</p>
+                        <p className="font-medium text-gray-900">{selectedDetails.lecturerName} - {selectedDetails.lecturerCode}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Semester</p>
-                        <p className="font-medium text-gray-900">{selectedClass.semester}</p>
+                        <p className="text-sm text-gray-500">Status</p>
+                        <p className="font-medium text-gray-900">
+                          {selectedDetails.isActive ? 'Active' : 'Inactive'}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Students Enrolled</p>
-                        <p className="font-medium text-gray-900">{selectedClass.studentCount}</p>
+                        <p className="text-sm text-gray-500">Members</p>
+                        <p className="font-medium text-gray-900">
+                          {selectedDetails?.classMembers?.length ?? 0}
+                        </p>
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Resources Available</p>
-                        <p className="font-medium text-gray-900">{selectedClass.resources.length}</p>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Resources Library */}
-                  <div className="bg-white rounded-lg shadow-md p-6">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <FileText className="w-5 h-5" />
-                      Course Resources
-                    </h3>
-                    <div className="space-y-3">
-                      {selectedClass.resources.map((resource) => (
-                        <div
-                          key={resource.id}
-                          className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            <FileText className="w-8 h-8 text-brand-500" />
-                            <div>
-                              <p className="font-medium text-gray-900">{resource.name}</p>
-                              <div className="flex items-center gap-3 text-sm text-gray-500">
-                                <span>{resource.size}</span>
-                                <span>•</span>
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
-                                  {new Date(resource.uploadDate).toLocaleDateString()}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => handleDownloadResource(resource)}
-                            className="flex items-center gap-2 px-4 py-2 text-brand-600 border border-brand-300 rounded-lg hover:bg-brand-50 transition-colors"
-                          >
-                            <Download className="w-4 h-4" />
-                            Download
-                          </button>
-                        </div>
-                      ))}
-                      {selectedClass.resources.length === 0 && (
-                        <div className="text-center py-8 text-gray-500">
-                          No resources available yet
-                        </div>
-                      )}
+                      {/* Teams */}
+                      <div>
+                        <p className="text-sm text-gray-500">Teams</p>
+                        <p className="font-medium text-gray-900">{selectedDetails.teams?.length ?? 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Projects</p>
+                        <p className="font-medium text-gray-900">
+                          {selectedDetails?.projectAssignments?.length ?? 0}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-gray-500">Created</p>
+                        <p className="font-medium text-gray-900">
+                          <span className="inline-flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            {formatDate(selectedDetails.createdDate)}
+                          </span>
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-white rounded-lg shadow-md p-6">
+                    <p className="text-gray-600">No details found for this class.</p>
+                  </div>
+                )
               ) : (
                 <div className="bg-white rounded-lg shadow-md p-12 text-center">
                   <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-xl font-medium text-gray-900 mb-2">Select a Class</h3>
-                  <p className="text-gray-600">Choose a class from the list to view details and resources</p>
+                  <p className="text-gray-600">Choose a class from the list to view details</p>
                 </div>
               )}
             </div>
           </div>
-      </div>
-
-      {/* Leave Class Confirmation Modal */}
-      {showLeaveModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Leave Class</h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to leave <strong>{classToLeave?.name}</strong>? You will lose access to all course resources and materials.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowLeaveModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmLeaveClass}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Leave Class
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </StudentLayout>
   );
 };

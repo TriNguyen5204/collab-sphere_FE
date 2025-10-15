@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { Kanban, Flag, CheckSquare, Users, MessageSquare, Folder, BarChart2, ClipboardList, ChevronDown, UsersRound } from 'lucide-react';
+import { Kanban, Flag, CheckSquare, MessageSquare, ClipboardList, ChevronDown, UsersRound } from 'lucide-react';
 import useClickOutside from '../../hooks/useClickOutside';
 
 const ProjectBoardViewMenu = () => {
@@ -9,20 +9,33 @@ const ProjectBoardViewMenu = () => {
   const { id, projectName } = useParams();
   const location = useLocation();
 
+  // Ensure paths use the encoded project name to match location.pathname
+  const encodedProjectName = encodeURIComponent(projectName ?? '');
+
   const menuItems = [
-    { name: 'Board', icon: Kanban, path: `/student/project/${id}/${projectName}` },
-    { name: 'Team Workspace', icon: UsersRound, path: `/student/project/${id}/${projectName}/team-workspace` },
-    { name: 'Milestones', icon: Flag, path: `/student/project/${id}/${projectName}/milestones` },
-    { name: 'Checkpoints', icon: CheckSquare, path: `/student/project/${id}/${projectName}/checkpoints` },
-    { name: 'Communication', icon: MessageSquare, path: `/student/project/${id}/${projectName}/communication` },
-    { name: 'Peer Evaluation', icon: ClipboardList, path: `/student/project/${id}/${projectName}/peer-evaluation` },
+    { name: 'Board', icon: Kanban, path: `/student/project/${id}/${encodedProjectName}` },
+    { name: 'Team Workspace', icon: UsersRound, path: `/student/project/${id}/${encodedProjectName}/team-workspace` },
+    { name: 'Milestones', icon: Flag, path: `/student/project/${id}/${encodedProjectName}/milestones` },
+    { name: 'Checkpoints', icon: CheckSquare, path: `/student/project/${id}/${encodedProjectName}/checkpoints` },
+    { name: 'Communication', icon: MessageSquare, path: `/student/project/${id}/${encodedProjectName}/communication` },
+    { name: 'Peer Evaluation', icon: ClipboardList, path: `/student/project/${id}/${encodedProjectName}/peer-evaluation` },
   ];
 
-  // Find current active menu item based on current path
-  const activeItem = menuItems.find(item => item.path === location.pathname) || menuItems[0];
-  const ActiveIcon = activeItem.icon;
+  // Helpers for robust matching
+  const normalizePath = (p) => (p || '').replace(/\/+$/, '');
+  const currentPath = normalizePath(location.pathname);
 
-  // Close the menu when a click is detected outside
+  // Pick the most specific (longest) matching item so "Board" doesn't win on subpaths
+  const activeItem =
+    [...menuItems]
+      .map(i => ({ ...i, path: normalizePath(i.path) }))
+      .filter(i => currentPath === i.path || currentPath.startsWith(i.path + '/'))
+      .sort((a, b) => b.path.length - a.path.length)[0]
+    || menuItems[0];
+
+  const ActiveIcon = activeItem.icon;
+  const activePath = normalizePath(activeItem.path);
+
   useClickOutside(menuRef, () => setOpen(false));
 
   return (
@@ -41,8 +54,9 @@ const ProjectBoardViewMenu = () => {
       {open && (
         <ul className="absolute mt-2 w-56 bg-gray-800 text-white shadow-lg rounded-lg border border-gray-700 text-sm z-10">
           {menuItems.map(({ name, icon: Icon, path }) => {
-            const isActive = location.pathname === path;
-            
+            const normalizedPath = normalizePath(path);
+            const isActive = normalizedPath === activePath; // <-- only highlight the computed active item
+
             return (
               <li key={name}>
                 <Link
@@ -54,9 +68,7 @@ const ProjectBoardViewMenu = () => {
                 >
                   <Icon className="w-4 h-4 mr-3" />
                   <span className="flex-1">{name}</span>
-                  {isActive && (
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  )}
+                  {isActive && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
                 </Link>
               </li>
             );
