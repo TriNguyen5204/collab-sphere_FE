@@ -294,21 +294,19 @@ export const getPendingProjects = async ({
     throw error;
   }
 };
-export const approveProject = async projectId => {
+export const handleProject = async (projectId, status) => {
   try {
-    const response = await apiClient.patch(`/project/${projectId}/approve`);
+    const response = await apiClient.patch(
+      `/project/${projectId}/approve`,
+      null, 
+      {
+        params: { Approve: status } 
+      }
+    );
     return response.data;
   } catch (error) {
     console.error(`Error approving project with ID ${projectId}:`, error);
     throw error;
   }
 };
-export const rejectProject = async projectId => {
-  try {
-    const response = await apiClient.patch(`/project/${projectId}/deny`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error rejecting project with ID ${projectId}:`, error);
-    throw error;
-  }
-};
+
