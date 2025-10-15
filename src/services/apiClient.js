@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { store } from '../store/index';
-import { toast } from 'sonner';
 const baseURL = import.meta.env.VITE_API_BASE_URL;
 
 const apiClient = axios.create({
