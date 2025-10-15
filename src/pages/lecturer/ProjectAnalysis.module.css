@@ -1,4 +1,4 @@
-/* Module Analysis - GitLab Merge Request with Enhanced Code Quality Analysis Aesthetic */
+/* Project Analysis - GitLab Merge Request with Enhanced Code Quality Analysis Aesthetic */
 
 :root {
   --color-primary: #1f2937;
@@ -23,7 +23,7 @@
   --transition: all 0.2s ease-in-out;
 }
 
-.moduleAnalysis {
+.projectAnalysis {
   max-width: 1600px;
   margin: 0 auto;
   padding: 20px;
@@ -1491,7 +1491,7 @@
 }
 
 @media (max-width: 768px) {
-  .moduleAnalysis {
+  .projectAnalysis {
     padding: 16px;
   }
   
