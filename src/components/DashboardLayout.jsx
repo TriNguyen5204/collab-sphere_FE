@@ -7,7 +7,6 @@ import {
   ClipboardDocumentListIcon,
   MagnifyingGlassIcon,
   PlusIcon,
-  UserGroupIcon,
   CalendarDaysIcon,
   WrenchScrewdriverIcon,
   ArrowRightOnRectangleIcon,
@@ -22,7 +21,6 @@ import { logout } from '../store/slices/userSlice';
 const navigationItems = [
   { label: 'Classes', href: '/lecturer/classes', icon: AcademicCapIcon },
   { label: 'Project Library', href: '/lecturer/projects', icon: BookOpenIcon },
-  { label: 'Projects', href: '/lecturer/projects', icon: UserGroupIcon },
   { label: 'Grading', href: '/lecturer/grading', icon: ClipboardDocumentListIcon },
   { label: 'Analytics', href: '/lecturer/analytics', icon: ChartBarIcon },
   { label: 'Meetings', href: '/lecturer/meetings', icon: CalendarDaysIcon },

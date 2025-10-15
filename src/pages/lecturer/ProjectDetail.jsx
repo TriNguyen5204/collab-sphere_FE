@@ -93,6 +93,10 @@ const ProjectDetail = () => {
     difficulty: 'Advanced',
     status: 'published',
     estimatedDuration: '8-10 weeks',
+  duration: '8-10 weeks',
+  estimatedHours: '120-160 hrs',
+  teamSize: '2-4 members',
+  rating: 4,
     maxTeamSize: 4,
     minTeamSize: 2,
     totalStudents: 156,
@@ -904,112 +908,139 @@ const ProjectDetail = () => {
               </button>
             </header>
             <form className={styles.editForm} onSubmit={handleEditSave}>
-              <div className={styles.formGrid}>
+              <div className={styles.formSection}>
+                <div className={styles.sectionHeaderRow}>
+                  <span className={styles.sectionTitle}>Project basics</span>
+                  <span className={styles.sectionHint}>Update the core details shared with students.</span>
+                </div>
+                <div className={styles.formGrid}>
+                  <label className={styles.formField}>
+                    <span>Project title</span>
+                    <input
+                      type="text"
+                      value={editForm.title}
+                      onChange={(event) => handleEditFieldChange('title', event.target.value)}
+                      required
+                    />
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Category</span>
+                    <input
+                      type="text"
+                      value={editForm.category}
+                      onChange={(event) => handleEditFieldChange('category', event.target.value)}
+                      required
+                    />
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Difficulty</span>
+                    <select
+                      value={editForm.difficulty}
+                      onChange={(event) => handleEditFieldChange('difficulty', event.target.value)}
+                    >
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Advanced">Advanced</option>
+                    </select>
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Estimated duration</span>
+                    <input
+                      type="text"
+                      value={editForm.estimatedDuration}
+                      onChange={(event) => handleEditFieldChange('estimatedDuration', event.target.value)}
+                    />
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Minimum team size</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={editForm.minTeamSize}
+                      onChange={(event) => handleEditFieldChange('minTeamSize', event.target.value)}
+                    />
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Maximum team size</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={editForm.maxTeamSize}
+                      onChange={(event) => handleEditFieldChange('maxTeamSize', event.target.value)}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className={styles.formSection}>
+                <div className={styles.sectionHeaderRow}>
+                  <span className={styles.sectionTitle}>Executive summary</span>
+                  <span className={styles.sectionHint}>Craft a compelling brief for lecturers and students.</span>
+                </div>
                 <label className={styles.formField}>
-                  <span>Project title</span>
-                  <input
-                    type="text"
-                    value={editForm.title}
-                    onChange={(event) => handleEditFieldChange('title', event.target.value)}
-                    required
-                  />
-                </label>
-                <label className={styles.formField}>
-                  <span>Category</span>
-                  <input
-                    type="text"
-                    value={editForm.category}
-                    onChange={(event) => handleEditFieldChange('category', event.target.value)}
-                    required
-                  />
-                </label>
-                <label className={styles.formField}>
-                  <span>Difficulty</span>
-                  <select
-                    value={editForm.difficulty}
-                    onChange={(event) => handleEditFieldChange('difficulty', event.target.value)}
-                  >
-                    <option value="Beginner">Beginner</option>
-                    <option value="Intermediate">Intermediate</option>
-                    <option value="Advanced">Advanced</option>
-                  </select>
-                </label>
-                <label className={styles.formField}>
-                  <span>Estimated duration</span>
-                  <input
-                    type="text"
-                    value={editForm.estimatedDuration}
-                    onChange={(event) => handleEditFieldChange('estimatedDuration', event.target.value)}
-                  />
-                </label>
-                <label className={styles.formField}>
-                  <span>Minimum team size</span>
-                  <input
-                    type="number"
-                    min="1"
-                    value={editForm.minTeamSize}
-                    onChange={(event) => handleEditFieldChange('minTeamSize', event.target.value)}
-                  />
-                </label>
-                <label className={styles.formField}>
-                  <span>Maximum team size</span>
-                  <input
-                    type="number"
-                    min="1"
-                    value={editForm.maxTeamSize}
-                    onChange={(event) => handleEditFieldChange('maxTeamSize', event.target.value)}
+                  <span>Summary</span>
+                  <textarea
+                    rows={4}
+                    value={editForm.description}
+                    onChange={(event) => handleEditFieldChange('description', event.target.value)}
                   />
                 </label>
               </div>
-              <label className={styles.formField}>
-                <span>Executive summary</span>
-                <textarea
-                  rows={4}
-                  value={editForm.description}
-                  onChange={(event) => handleEditFieldChange('description', event.target.value)}
-                />
-              </label>
-              <div className={styles.dualFieldRow}>
-                <label className={styles.formField}>
-                  <span>Primary tags</span>
-                  <input
-                    type="text"
-                    value={editForm.tags}
-                    onChange={(event) => handleEditFieldChange('tags', event.target.value)}
-                    placeholder="React, AI, API"
-                  />
-                  <small>Separate tags with commas.</small>
-                </label>
-                <label className={styles.formField}>
-                  <span>Required skill set</span>
-                  <input
-                    type="text"
-                    value={editForm.skillsRequired}
-                    onChange={(event) => handleEditFieldChange('skillsRequired', event.target.value)}
-                    placeholder="JavaScript, UX, Testing"
-                  />
-                  <small>Separate skills with commas.</small>
-                </label>
+
+              <div className={styles.formSection}>
+                <div className={styles.sectionHeaderRow}>
+                  <span className={styles.sectionTitle}>Scope & requirements</span>
+                  <span className={styles.sectionHint}>Highlight the skills and tags students should prepare for.</span>
+                </div>
+                <div className={styles.dualFieldRow}>
+                  <label className={styles.formField}>
+                    <span>Primary tags</span>
+                    <input
+                      type="text"
+                      value={editForm.tags}
+                      onChange={(event) => handleEditFieldChange('tags', event.target.value)}
+                      placeholder="React, AI, API"
+                    />
+                    <small>Separate tags with commas.</small>
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Required skill set</span>
+                    <input
+                      type="text"
+                      value={editForm.skillsRequired}
+                      onChange={(event) => handleEditFieldChange('skillsRequired', event.target.value)}
+                      placeholder="JavaScript, UX, Testing"
+                    />
+                    <small>Separate skills with commas.</small>
+                  </label>
+                </div>
               </div>
-              <div className={styles.dualFieldRow}>
-                <label className={styles.formField}>
-                  <span>Learning outcomes</span>
-                  <textarea
-                    rows={4}
-                    value={editForm.learningOutcomes}
-                    onChange={(event) => handleEditFieldChange('learningOutcomes', event.target.value)}
-                    placeholder="One outcome per line"
-                  />
-                </label>
-                <label className={styles.formField}>
-                  <span>Pre-requisites</span>
-                  <textarea
-                    rows={4}
-                    value={editForm.prerequisites}
-                    onChange={(event) => handleEditFieldChange('prerequisites', event.target.value)}
-                    placeholder="One prerequisite per line"
-                  />
-                </label>
+
+              <div className={styles.formSection}>
+                <div className={styles.sectionHeaderRow}>
+                  <span className={styles.sectionTitle}>Learning blueprint</span>
+                  <span className={styles.sectionHint}>Clarify the outcomes and prerequisites for the cohort.</span>
+                </div>
+                <div className={styles.dualFieldRow}>
+                  <label className={styles.formField}>
+                    <span>Learning outcomes</span>
+                    <textarea
+                      rows={4}
+                      value={editForm.learningOutcomes}
+                      onChange={(event) => handleEditFieldChange('learningOutcomes', event.target.value)}
+                      placeholder="One outcome per line"
+                    />
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Pre-requisites</span>
+                    <textarea
+                      rows={4}
+                      value={editForm.prerequisites}
+                      onChange={(event) => handleEditFieldChange('prerequisites', event.target.value)}
+                      placeholder="One prerequisite per line"
+                    />
+                  </label>
+                </div>
               </div>
               <footer className={styles.editFooter}>
                 <button type="button" className={styles.secondaryBtn} onClick={closeEditPanel}>

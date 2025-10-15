@@ -43,15 +43,16 @@ const LecturerMonitoringDashboard = () => {
   // Mock Data - Replace with actual API calls
   const [classes] = useState([
     {
-      id: 'SE109-2025',
-      name: 'SE109 - Software Engineering',
+      id: '201',
+      code: 'SE109',
+      name: 'SE109 - Software Engineering Fundamentals',
       enrollmentCount: 42,
       qrStatus: 'active',
       projectHealth: 'good', // good, warning, critical
       projects: [
         {
           id: 'proj-1',
-          name: 'E-commerce Platform',
+          name: 'AI Study Companion',
           teams: 3,
           completion: 75,
           riskLevel: 'low',
@@ -59,7 +60,7 @@ const LecturerMonitoringDashboard = () => {
         },
         {
           id: 'proj-2',
-          name: 'Social Media Dashboard',
+          name: 'Code Quality Toolkit',
           teams: 3,
           completion: 45,
           riskLevel: 'medium',
@@ -67,11 +68,63 @@ const LecturerMonitoringDashboard = () => {
         },
         {
           id: 'proj-3',
-          name: 'Learning Management System',
+          name: 'Automated Testing Coach',
           teams: 3,
-          completion: 90,
+          completion: 88,
           riskLevel: 'low',
           status: 'ahead'
+        }
+      ]
+    },
+    {
+      id: '202',
+      code: 'SE203',
+      name: 'SE203 - Advanced Database Systems',
+      enrollmentCount: 36,
+      qrStatus: 'active',
+      projectHealth: 'warning',
+      projects: [
+        {
+          id: 'proj-4',
+          name: 'Intelligent Query Assistant',
+          teams: 3,
+          completion: 62,
+          riskLevel: 'medium',
+          status: 'on-track'
+        },
+        {
+          id: 'proj-5',
+          name: 'Distributed Caching Dashboard',
+          teams: 3,
+          completion: 48,
+          riskLevel: 'medium',
+          status: 'at-risk'
+        },
+        {
+          id: 'proj-6',
+          name: 'Database Observability Hub',
+          teams: 2,
+          completion: 30,
+          riskLevel: 'high',
+          status: 'behind'
+        }
+      ]
+    },
+    {
+      id: '203',
+      code: 'SE301',
+      name: 'SE301 - Software Architecture & Design',
+      enrollmentCount: 0,
+      qrStatus: 'inactive',
+      projectHealth: 'critical',
+      projects: [
+        {
+          id: 'proj-7',
+          name: 'Microservices Reference Architecture',
+          teams: 0,
+          completion: 10,
+          riskLevel: 'high',
+          status: 'draft'
         }
       ]
     }

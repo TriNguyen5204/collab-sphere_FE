@@ -309,4 +309,55 @@ export const handleProject = async (projectId, status) => {
     throw error;
   }
 };
+export const rejectProject = async projectId => {
+  try {
+    const response = await apiClient.patch(`/project/${projectId}/deny`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error rejecting project with ID ${projectId}:`, error);
+    throw error;
+  }
+}
 
+//Student
+export const getClassesByStudentId = async (studentId) => {
+  try {
+    const response = await apiClient.get(`/class/student/${studentId}`);
+    const data = response.data;
+    return data?.list ?? [];
+  } catch (error) {
+    console.error('Error fetching classes by student id:', error);
+    throw error;
+  }
+};
+
+export const getClassDetailsById = async (classId) => {
+    try {
+        const response = await apiClient.get(`/class/${classId}`);
+        return response.data;
+    } catch (error) {
+        console.error(`Error fetching class details for class ID ${classId}:`, error);
+        throw error;
+    }
+};
+
+export const getListOfTeamsByStudentId = async (studentId) => {
+  try {
+    const response = await apiClient.get(`/team/student/${studentId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching teams for student ID ${studentId}:`, error);
+    throw error;
+  }
+};
+
+export const getDetailOfProjectByProjectId = async (projectId) => {
+  try {
+    const response = await apiClient.get(`/project/${projectId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching project details for project ID ${projectId}:`, error);
+    throw error;
+  }
+};
+;

@@ -1,156 +1,194 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import StudentLayout from "../../components/layout/StudentLayout";
 import ProjectFilters from "../../components/student/ProjectFilters";
 import ProjectSection from "../../components/student/ProjectSection";
 import { History, Star } from "lucide-react";
-
-const sampleProjects = [
-  { 
-    ProjectId: 1, 
-    ProjectName: "CollabSphere", 
-    Description: "A collaborative platform for students.", 
-    Status: "Processing",
-    ClassCode: "CS301",
-    ClassName: "Software Engineering",
-    TeamName: "Team Alpha",
-    TeamMembers: 4,
-    AssignedDate: "2025-09-01",
-    DueDate: "2025-10-15",
-    Progress: 65
-  },
-  { 
-    ProjectId: 2, 
-    ProjectName: "Glamping", 
-    Description: "A luxurious camping experience.", 
-    Status: "Completed",
-    ClassCode: "CS301",
-    ClassName: "Software Engineering",
-    TeamName: "Team Beta",
-    TeamMembers: 5,
-    AssignedDate: "2025-08-15",
-    DueDate: "2025-09-30",
-    Progress: 100
-  },
-  { 
-    ProjectId: 3, 
-    ProjectName: "Diamond", 
-    Description: "A precious gemstone project.", 
-    Status: "Completed",
-    ClassCode: "CS402",
-    ClassName: "Database Systems",
-    TeamName: "Team Gamma",
-    TeamMembers: 4,
-    AssignedDate: "2025-08-20",
-    DueDate: "2025-09-25",
-    Progress: 100
-  },
-  { 
-    ProjectId: 4, 
-    ProjectName: "EcoTracker", 
-    Description: "Environmental monitoring system.", 
-    Status: "Processing",
-    ClassCode: "CS402",
-    ClassName: "Database Systems",
-    TeamName: "Team Delta",
-    TeamMembers: 5,
-    AssignedDate: "2025-09-10",
-    DueDate: "2025-10-20",
-    Progress: 40
-  },
-];
+import { getListOfTeamsByStudentId } from "../../services/userService";
 
 const StudentProjectPage = () => {
+  const navigate = useNavigate();
+  const studentId = useSelector((state) => state.user.userId);
+
+  // Cards state
   const [starred, setStarred] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Data
+  const [teams, setTeams] = useState([]);
+
+  // Filters state
   const [selectedClass, setSelectedClass] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const navigate = useNavigate();
 
-  const handleCardClick = (project) => {
-    navigate(`/student/project/${project.ProjectId}/${encodeURIComponent(project.ProjectName)}`);
+  const STAR_KEY = "studentProjectStarred";
+
+  // Safe key for any project item 
+  const getProjectKey = useCallback((p) => {
+    const a = p?.projectId ?? "x";
+    const b = p?.teamId ?? "x";
+    const c = p?.classId ?? "x";
+    return String(`${c}-${b}-${a}`);
+  }, []);
+
+  // Load persisted starred
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STAR_KEY) || "[]");
+      setStarred(Array.isArray(saved) ? saved.map(String) : []);
+    } catch {
+      setStarred([]);
+    }
+  }, []);
+
+  // Persist starred changes
+  useEffect(() => {
+    localStorage.setItem(STAR_KEY, JSON.stringify(starred));
+  }, [starred]);
+
+  const fetchTeams = async () => {
+    if (!studentId) return;
+    setLoading(true);
+
+    try {
+      const response = await getListOfTeamsByStudentId(studentId);
+      const list = response?.paginatedTeams?.list ?? [];
+      setTeams(list);
+      console.log("Fetched teams:", list);
+    } catch (e) {
+      console.error("Error fetching teams:", e);
+      setTeams([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const toggleStar = (e, projectId) => {
-    e.stopPropagation();
+  useEffect(() => {
+    fetchTeams();
+  }, [studentId]);
+
+  const handleCardClick = (team) => {
+    const safeId = team?.projectId;
+    const safeName = team?.projectName;
+    if (!safeId) return;
+    navigate(`/student/project/${safeId}/${encodeURIComponent(safeName)}`);
+  };
+
+  const toggleStar = (e, keyOrId) => {
+    e?.stopPropagation?.();
+    const key = String(keyOrId);
     setStarred((prev) =>
-      prev.includes(projectId)
-        ? prev.filter((id) => id !== projectId)
-        : [...prev, projectId]
+      prev.includes(key) ? prev.filter((id) => id !== key) : [...prev, key]
     );
   };
 
-  // Get unique classes using useMemo
   const classes = useMemo(() => {
-    const uniqueClasses = new Map();
-    sampleProjects.forEach(p => {
-      if (!uniqueClasses.has(p.ClassCode)) {
-        uniqueClasses.set(p.ClassCode, { code: p.ClassCode, name: p.ClassName });
+    const map = new Map();
+    teams.forEach((t) => {
+      const id = t?.classId;
+      const name = t?.className ?? "Unknown Class";
+      if (id == null) return;
+      const key = String(id);
+      if (!map.has(key)) {
+        map.set(key, { code: key, name });
       }
     });
-    return Array.from(uniqueClasses.values());
-  }, []);
+    return Array.from(map.values());
+  }, [teams]);
 
-  // Filter projects using useMemo
-  const filteredProjects = useMemo(() => {
-    return sampleProjects.filter(project => {
-      const matchesClass = selectedClass === "all" || project.ClassCode === selectedClass;
-      const matchesSearch = project.ProjectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            project.Description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = statusFilter === "all" || project.Status === statusFilter;
-      return matchesClass && matchesSearch && matchesStatus;
+  // Filter teams (search only on available fields)
+  const filteredTeams = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return teams.filter((team) => {
+      const matchesClass =
+        selectedClass === "all" ||
+        (team.classId != null && String(team.classId) === String(selectedClass));
+      const matchesSearch =
+        q.length === 0 ||
+        team.projectName?.toLowerCase().includes(q) ||
+        team.teamName?.toLowerCase().includes(q) ||
+        team.className?.toLowerCase().includes(q) ||
+        team.lecturerName?.toLowerCase().includes(q);
+
+      // No Status in API, so status filter is ignored
+      return matchesClass && matchesSearch;
     });
-  }, [selectedClass, searchQuery, statusFilter]);
+  }, [teams, selectedClass, searchQuery, statusFilter]);
 
-  // Get starred projects
-  const starredProjects = useMemo(() => {
-    return sampleProjects.filter(p => starred.includes(p.ProjectId));
-  }, [starred]);
+  // Starred teams (support both old stored projectId values and new composite keys)
+  const starredTeams = useMemo(() => {
+    if (!starred?.length) return [];
+    const starredSet = new Set(starred.map(String));
+    return teams.filter((t) => {
+      const key = getProjectKey(t);
+      const legacyId = t?.projectId != null ? String(t.projectId) : null;
+      return starredSet.has(key) || (legacyId && starredSet.has(legacyId));
+    });
+  }, [teams, starred, getProjectKey]);
 
   return (
     <StudentLayout>
       <div className="space-y-6">
-          {/* Header */}
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-6">My Projects</h1>
-            
-            {/* Filters */}
-            <ProjectFilters
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              selectedClass={selectedClass}
-              onClassChange={setSelectedClass}
-              statusFilter={statusFilter}
-              onStatusChange={setStatusFilter}
-              classes={classes}
-            />
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-6">My Projects</h1>
+
+          {/* Filters */}
+          <ProjectFilters
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            selectedClass={selectedClass}
+            onClassChange={setSelectedClass}
+            statusFilter={statusFilter}
+            onStatusChange={setStatusFilter}
+            classes={classes}
+          />
+        </div>
+
+        {/* Loading */}
+        {loading && (
+          <div className="rounded-md border p-6 animate-pulse text-sm text-gray-500">
+            Loading projects...
           </div>
+        )}
 
-          {/* Starred Projects Section */}
-          {starredProjects.length > 0 && (
-            <ProjectSection
-              title="Starred Projects"
-              icon={Star}
-              projects={starredProjects}
-              starred={starred}
-              onToggleStar={toggleStar}
-              onCardClick={handleCardClick}
-            />
-          )}
-
-          {/* All Projects */}
+        {/* Starred Projects Section */}
+        {!loading && starredTeams.length > 0 && (
           <ProjectSection
-            title={selectedClass === "all" ? "All Projects" : `${selectedClass} Projects`}
-            icon={History}
-            projects={filteredProjects}
+            title="Starred Projects"
+            icon={Star}
+            projects={starredTeams}
             starred={starred}
             onToggleStar={toggleStar}
             onCardClick={handleCardClick}
-            emptyMessage={{
-              title: "No Projects Found",
-              description: "Try adjusting your filters or search query"
-            }}
           />
+        )}
+
+        {/* All Projects */}
+        {!loading && (
+          <ProjectSection
+            title={
+              selectedClass === "all"
+                ? "All Projects"
+                : `${classes.find((c) => c.code === selectedClass)?.name || "Class"} Projects`
+            }
+            icon={History}
+            projects={filteredTeams}
+            starred={starred}
+            onToggleStar={toggleStar}
+            onCardClick={handleCardClick}
+            emptyMessage={
+              filteredTeams.length === 0
+                ? {
+                    title: "No Projects Found",
+                    description: "Try adjusting your filters or search query.",
+                  }
+                : null
+            }
+          />
+        )}
       </div>
     </StudentLayout>
   );

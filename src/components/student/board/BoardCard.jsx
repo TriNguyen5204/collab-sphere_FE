@@ -1,8 +1,8 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
-import { useDndContext } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { Clock, AlignLeft, Paperclip, CheckCircle2, Circle } from 'lucide-react';
+import { useDndContext } from '@dnd-kit/core';
+import { Clock, AlignLeft, CheckCircle2, Circle } from 'lucide-react';
 
 const BoardCard = ({ card, listId, onClick, onUpdate }) => {
   const {
@@ -28,11 +28,22 @@ const BoardCard = ({ card, listId, onClick, onUpdate }) => {
   const handleCheckboxClick = (e) => {
     e.stopPropagation();
     const updatedCard = { ...card, isCompleted: !card.isCompleted };
-    onUpdate(updatedCard);
+    onUpdate(updatedCard); // pass only the updated card
   };
 
   const { over, active } = useDndContext();
   const isOverThisCard = over?.id === card.id && active?.id !== card.id;
+
+  // Get risk color
+  const getRiskColor = () => {
+    if (!card.riskLevel) return 'bg-gray-200';
+    switch (card.riskLevel) {
+      case 'high': return 'bg-red-500';
+      case 'medium': return 'bg-yellow-500';
+      case 'low': return 'bg-green-500';
+      default: return 'bg-gray-200';
+    }
+  };
 
   return (
     <div
@@ -41,96 +52,81 @@ const BoardCard = ({ card, listId, onClick, onUpdate }) => {
       {...attributes}
       {...listeners}
       onClick={onClick}
-      className={`bg-white rounded-xl p-4 cursor-pointer shadow-md hover:shadow-xl transition-all duration-200 border border-gray-200
-        ${isDragging ? 'opacity-30 rotate-3 scale-105' : 'opacity-100'}
-        ${isOverThisCard ? 'ring-2 ring-blue-400 shadow-2xl' : ''}
-        ${card.isCompleted ? 'bg-gray-50' : ''}
-      `}
+      className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 overflow-hidden ${
+        isDragging ? 'shadow-xl rotate-3 scale-105' : ''
+      } ${isOverThisCard ? 'ring-2 ring-blue-400 scale-105' : ''} ${
+        card.isCompleted ? 'opacity-60' : ''
+      }`}
     >
-      {/* Checkbox and Title */}
-      <div className="flex items-start gap-3 mb-3">
-        <button
-          onClick={handleCheckboxClick}
-          className="mt-0.5 flex-shrink-0 transition-all duration-200 hover:scale-110"
-        >
-          {card.isCompleted ? (
-            <CheckCircle2 size={20} className="text-green-500" />
-          ) : (
-            <Circle size={20} className="text-gray-400 hover:text-blue-500" />
-          )}
-        </button>
-        <h4 className={`font-semibold flex-1 text-gray-800 leading-snug ${
-          card.isCompleted ? 'line-through text-gray-400' : ''
-        }`}>
-          {card.title}
-        </h4>
-      </div>
+      {/* 1st line: Risk label color */}
+      <div className={`h-2 ${getRiskColor()}`}></div>
 
-      {/* Description Preview */}
-      {card.description && (
-        <div className="flex items-start gap-2 text-sm text-gray-600 mb-3 pl-8">
-          <AlignLeft size={14} className="mt-0.5 flex-shrink-0" />
-          <p className="line-clamp-2">{card.description}</p>
+      <div className="p-3">
+        {/* 2nd line: Checkbox and Title */}
+        <div className="flex items-start gap-2 mb-2">
+          <button
+            onClick={handleCheckboxClick}
+            onPointerDownCapture={(e) => e.stopPropagation()} // avoid DnD grabbing the event
+            className="mt-0.5 flex-shrink-0 transition-all duration-200 hover:scale-110"
+            type="button"
+          >
+            {card.isCompleted ? (
+              <CheckCircle2 size={20} className="text-green-600" />
+            ) : (
+              <Circle size={20} className="text-gray-400 hover:text-gray-600" />
+            )}
+          </button>
+          
+          <h3 className={`font-semibold text-gray-800 flex-1 ${
+            card.isCompleted ? 'line-through opacity-70' : ''
+          }`}>
+            {card.title}
+          </h3>
         </div>
-      )}
 
-      {/* Project Role Tags */}
-      {card.assignedMembers && card.assignedMembers.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3 pl-8">
-          {[...new Set(card.assignedMembers.flatMap(m => m.tags || []))].map((tag, idx) => (
-            <span
-              key={idx}
-              className="text-xs px-2.5 py-1 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium shadow-sm"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Card Footer */}
-      <div className="flex items-center justify-between pl-8">
-        {/* Left side - Badges */}
-        <div className="flex flex-wrap gap-2 text-xs">
+        {/* 3rd line: Due time and description icon */}
+        <div className="flex items-center gap-3 mb-2 text-xs">
           {card.dueDate && (
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium ${
-              card.isCompleted 
-                ? 'bg-green-100 text-green-700' 
-                : isOverdue 
-                ? 'bg-red-100 text-red-700' 
-                : 'bg-blue-100 text-blue-700'
-            }`}>
-              <Clock size={13} />
-              {new Date(card.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            <div
+              className={`flex items-center gap-1 px-2 py-1 rounded ${
+                card.isCompleted
+                  ? 'bg-green-100 text-green-700'
+                  : isOverdue
+                  ? 'bg-red-100 text-red-700'
+                  : 'bg-blue-100 text-blue-700'
+              }`}
+            >
+              <Clock size={14} />
+              <span className="font-medium">
+                {new Date(card.dueDate).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </span>
             </div>
           )}
 
-          {card.attachments?.length > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 font-medium">
-              <Paperclip size={13} />
-              {card.attachments.length}
+          {card.description && (
+            <div className="text-gray-400">
+              <AlignLeft size={16} />
             </div>
           )}
         </div>
 
-        {/* Right side - Assigned Members */}
+        {/* 4th line: Assigned members avatars - align right */}
         {card.assignedMembers && card.assignedMembers.length > 0 && (
-          <div className="flex -space-x-2">
+          <div className="flex -space-x-2 justify-end">
             {card.assignedMembers.slice(0, 3).map((member) => (
-              <div
+              <img
                 key={member.id}
-                className="relative group"
-                title={`${member.name} (${member.role}) - ${member.tags?.join(', ')}`}
-              >
-                <img
-                  src={member.avatar}
-                  alt={member.name}
-                  className="w-8 h-8 rounded-full border-2 border-white shadow-md hover:scale-110 transition-transform duration-200"
-                />
-              </div>
+                src={member.avatar}
+                alt={member.name}
+                title={member.name}
+                className="w-7 h-7 rounded-full ring-2 ring-white object-cover"
+              />
             ))}
             {card.assignedMembers.length > 3 && (
-              <div className="w-8 h-8 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-600 shadow-md">
+              <div className="w-7 h-7 rounded-full ring-2 ring-white bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
                 +{card.assignedMembers.length - 3}
               </div>
             )}
