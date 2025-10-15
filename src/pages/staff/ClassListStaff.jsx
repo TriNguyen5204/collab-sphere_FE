@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   Plus,
   BookOpen,
@@ -23,10 +23,10 @@ import {
   getAllSubject,
   getAllLecturer,
 } from '../../services/userService';
-import { toast } from 'sonner';
+// import { toast } from 'sonner';
 import Header from '../../components/layout/Header';
 
-export default function ImprovedClassList() {
+export default function ClassListStaff() {
   const [classes, setClasses] = useState([]);
   const [subjectOptions, setSubjectOptions] = useState([]);
   const [lecturerOptions, setLecturerOptions] = useState([]);
@@ -48,46 +48,38 @@ export default function ImprovedClassList() {
   const [isMultiOpen, setIsMultiOpen] = useState(false);
 
   useEffect(() => {
-    fetchData();
-    fetchSubject();
-    fetchLecturer();
+    const fetchDropdowns = async () => {
+      try {
+        const [subjects, lecturers] = await Promise.all([getAllSubject(), getAllLecturer()]);
+        setSubjectOptions(subjects || []);
+        setLecturerOptions(lecturers.lecturerList || []);
+      } catch (err) {
+        console.error('Error loading filters:', err);
+      }
+    };
+    fetchDropdowns();
   }, []);
+
+
+  const fetchData = useCallback(async () => {
+    try {
+      const data = await getClass(filters);
+
+      if (data?.list) {
+        setClasses(data.list);
+        setTotalPages(data.pageCount || 1);
+      } else {
+        setClasses([]);
+        setTotalPages(1);
+      }
+    } catch (err) {
+      console.error('Error fetching classes:', err);
+    } 
+  }, [filters]);
 
   useEffect(() => {
     fetchData();
-  }, [filters.PageNum, filters.PageSize, filters.OrderBy, filters.Descending]);
-
-  const fetchData = async () => {
-    try {
-      const data = await getClass(
-        filters.ClassName,
-        filters.SubjectIds,
-        filters.LecturerIds,
-        filters.OrderBy,
-        filters.Descending,
-        filters.PageNum,
-        filters.PageSize,
-        filters.ViewAll
-      );
-      if (data) {
-        setClasses(data.list);
-        setTotalPages(data.pageCount);
-      }
-    } catch (error) {
-      console.error('Error fetching class list:', error);
-      toast.error('Failed to load classes');
-    }
-  };
-
-  const fetchSubject = async () => {
-    const response = await getAllSubject();
-    if (response) setSubjectOptions(response);
-  };
-
-  const fetchLecturer = async () => {
-    const response = await getAllLecturer();
-    if (response) setLecturerOptions(response.lecturerList);
-  };
+  }, [fetchData]);
 
   const handleSearch = e => {
     e.preventDefault();

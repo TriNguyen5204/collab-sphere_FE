@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom';
 import ProjectApprovalList from '../../components/ui/ProjectApprovalList';
 import {
   getPendingProjects,
-  approveProject,
-  rejectProject,
+  handleProject
 } from '../../services/userService';
 import { toast } from 'sonner';
 import Sidebar from '../../components/layout/HeadDepartmentSidebar';
@@ -43,19 +42,19 @@ export default function ProjectApprovals() {
   }, [projects]);
 
   const handleApproveProject = async projectId => {
-    const response = await approveProject(projectId);
+    const response = await handleProject(projectId, true);
     if (response) {
       toast.success(response);
     } else {
-      toast.error(`Failed to approve project: ${response.message}`);
+      toast.error(`Failed to approve project: ${response}`);
     }
   };
   const handleRejectProject = async projectId => {
-    const response = await rejectProject(projectId);
-    if (response.isSuccess) {
-      toast.success(response.message);
+    const response = await handleProject(projectId, false);
+    if (response) {
+      toast.success(response);
     } else {
-      toast.error(`Failed to reject project: ${response.message}`);
+      toast.error(`Failed to reject project: ${response}`);
     }
   };
   const totalPages = Math.ceil(total / pageSize);
