@@ -119,7 +119,6 @@ const StudentClassPage = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left: Assigned Classes */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow-md p-4">
                 <div className="flex items-center justify-between mb-4">
@@ -173,7 +172,7 @@ const StudentClassPage = () => {
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
                           <Users className="w-3 h-3" />
-                          <span>{c.memberCount} members</span>
+                          <span>{c.memberCount ?? 0} members</span>
                         </div>
                       </div>
                     ))}
@@ -199,8 +198,6 @@ const StudentClassPage = () => {
                           {selectedDetails.subjectCode} — {selectedDetails.subjectName}
                         </p>
                       </div>
-
-                      {/* Primary actions (See details) */}
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
@@ -241,8 +238,6 @@ const StudentClassPage = () => {
                           {selectedDetails.isActive ? 'Active' : 'Inactive'}
                         </p>
                       </div>
-
-                      {/* Members count only (button moved to header) */}
                       <div>
                         <p className="text-sm text-gray-500">Members</p>
                         <p className="font-medium text-gray-900">
@@ -255,8 +250,6 @@ const StudentClassPage = () => {
                         <p className="text-sm text-gray-500">Teams</p>
                         <p className="font-medium text-gray-900">{selectedDetails.teams?.length ?? 0}</p>
                       </div>
-
-                      {/* Projects count only (button moved to header) */}
                       <div>
                         <p className="text-sm text-gray-500">Projects</p>
                         <p className="font-medium text-gray-900">

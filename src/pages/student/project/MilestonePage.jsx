@@ -237,10 +237,6 @@ const MilestonePage = () => {
       <ProjectBoardHeader />
       
       <main className="p-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Project Milestones</h1>
-          <p className="text-gray-600 mt-1">Track and complete project milestones with your team</p>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
           {/* Left Sidebar - Milestone Timeline */}

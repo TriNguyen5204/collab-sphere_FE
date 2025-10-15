@@ -28,7 +28,7 @@ const BoardCard = ({ card, listId, onClick, onUpdate }) => {
   const handleCheckboxClick = (e) => {
     e.stopPropagation();
     const updatedCard = { ...card, isCompleted: !card.isCompleted };
-    onUpdate(listId, updatedCard);
+    onUpdate(updatedCard); // pass only the updated card
   };
 
   const { over, active } = useDndContext();
@@ -66,6 +66,7 @@ const BoardCard = ({ card, listId, onClick, onUpdate }) => {
         <div className="flex items-start gap-2 mb-2">
           <button
             onClick={handleCheckboxClick}
+            onPointerDownCapture={(e) => e.stopPropagation()} // avoid DnD grabbing the event
             className="mt-0.5 flex-shrink-0 transition-all duration-200 hover:scale-110"
             type="button"
           >

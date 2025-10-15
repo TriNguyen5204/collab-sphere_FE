@@ -210,3 +210,23 @@ export const getClassDetailsById = async (classId) => {
         throw error;
     }
 };
+
+export const getListOfTeamsByStudentId = async (studentId) => {
+  try {
+    const response = await apiClient.get(`/team/student/${studentId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching teams for student ID ${studentId}:`, error);
+    throw error;
+  }
+};
+
+export const getDetailOfProjectByProjectId = async (projectId) => {
+  try {
+    const response = await apiClient.get(`/project/${projectId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching project details for project ID ${projectId}:`, error);
+    throw error;
+  }
+};

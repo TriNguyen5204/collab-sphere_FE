@@ -153,12 +153,6 @@ const TeamWorkspace = () => {
       <ProjectBoardHeader selectedRole={selectedRole} onRoleChange={setSelectedRole} />
       
       <main className="p-6 space-y-6">
-        {/* Page Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Team Workspace</h1>
-          <p className="text-gray-600 mt-1">Manage your team and track collaboration</p>
-        </div>
-
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatCard
