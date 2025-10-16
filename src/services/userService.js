@@ -309,15 +309,6 @@ export const handleProject = async (projectId, status) => {
     throw error;
   }
 };
-export const rejectProject = async projectId => {
-  try {
-    const response = await apiClient.patch(`/project/${projectId}/deny`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error rejecting project with ID ${projectId}:`, error);
-    throw error;
-  }
-}
 
 //Student
 export const getClassesByStudentId = async (studentId) => {
