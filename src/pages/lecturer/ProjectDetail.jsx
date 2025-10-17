@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
 import { TimelineView, ProjectHeader, WorkBreakdownStructure } from '../../features/project';
 import styles from './ProjectDetail.module.css';
@@ -27,24 +27,76 @@ import {
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid';
 
+const mapProjectToForm = (data) => ({
+  title: data.title,
+  description: data.description,
+  category: data.category,
+  difficulty: data.difficulty,
+  estimatedDuration: data.estimatedDuration,
+  maxTeamSize: data.maxTeamSize,
+  minTeamSize: data.minTeamSize,
+  tags: data.tags.join(', '),
+  skillsRequired: data.skillsRequired.join(', '),
+  learningOutcomes: data.learningOutcomes.join('\n'),
+  prerequisites: data.prerequisites.join('\n'),
+});
+
+const mergeFormIntoProject = (project, form) => ({
+  ...project,
+  title: form.title.trim(),
+  description: form.description.trim(),
+  category: form.category.trim(),
+  difficulty: form.difficulty,
+  estimatedDuration: form.estimatedDuration.trim(),
+  maxTeamSize: Number(form.maxTeamSize) || project.maxTeamSize,
+  minTeamSize: Number(form.minTeamSize) || project.minTeamSize,
+  tags: form.tags
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean),
+  skillsRequired: form.skillsRequired
+    .split(',')
+    .map((skill) => skill.trim())
+    .filter(Boolean),
+  learningOutcomes: form.learningOutcomes
+    .split('\n')
+    .map((item) => item.trim())
+    .filter(Boolean),
+  prerequisites: form.prerequisites
+    .split('\n')
+    .map((item) => item.trim())
+    .filter(Boolean),
+  lastModified: new Date().toISOString().slice(0, 10),
+});
+
 const ProjectDetail = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('overview');
   const [wbsViewMode, setWbsViewMode] = useState('wbs'); // 'wbs' or 'timeline'
   const [selectedClasses, setSelectedClasses] = useState(new Set());
   const [isAssigning, setIsAssigning] = useState(false);
   const [expandedWbsItems, setExpandedWbsItems] = useState(new Set());
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [editMessage, setEditMessage] = useState('');
 
   // Mock data for the project
-  const projectData = {
-  id: projectId,
+  const initialProjectData = useMemo(() => ({
+    id: projectId,
     title: 'E-commerce Platform Development',
-    description: 'Build a complete e-commerce platform with user authentication, product catalog, shopping cart, and payment integration using modern web technologies.',
+    description:
+      'Build a complete e-commerce platform with user authentication, product catalog, shopping cart, and payment integration using modern web technologies.',
     category: 'Web Development',
     difficulty: 'Advanced',
     status: 'published',
     estimatedDuration: '8-10 weeks',
+  duration: '8-10 weeks',
+  estimatedHours: '120-160 hrs',
+  teamSize: '2-4 members',
+  rating: 4,
     maxTeamSize: 4,
     minTeamSize: 2,
     totalStudents: 156,
@@ -73,7 +125,13 @@ const ProjectDetail = () => {
     syllabusAlignment: 94,
     hasAIAnalysis: true,
     isFavorite: true
-  };
+  }), [projectId]);
+
+  const [projectData, setProjectData] = useState(initialProjectData);
+
+  useEffect(() => {
+    setProjectData(initialProjectData);
+  }, [initialProjectData]);
 
   // Enhanced Educational Kanban Tasks with Swimlane Features
   const [kanbanTasks, setKanbanTasks] = useState([
@@ -686,8 +744,44 @@ const ProjectDetail = () => {
 
 
 
+  useEffect(() => {
+    const editing = location.pathname.endsWith('/edit');
+    if (editing) {
+      setEditForm(mapProjectToForm(projectData));
+      setIsEditing(true);
+    } else {
+      setIsEditing(false);
+    }
+  }, [location.pathname, projectData]);
+
+  const closeEditPanel = () => {
+    navigate(`/lecturer/projects/${projectId}`, { replace: true });
+  };
+
+  const handleEditFieldChange = (field, value) => {
+    setEditForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleEditSave = (event) => {
+    event.preventDefault();
+    if (!editForm || isSavingEdit) return;
+    setIsSavingEdit(true);
+    setTimeout(() => {
+      setProjectData((prev) => mergeFormIntoProject(prev, editForm));
+      setIsSavingEdit(false);
+      setEditMessage('Project details updated for your latest submission.');
+      closeEditPanel();
+      setTimeout(() => {
+        setEditMessage('');
+      }, 3600);
+    }, 700);
+  };
+
   const handleAnalyze = () => {
-  navigate(`/lecturer/projects/${projectId}/analysis`);
+    navigate(`/lecturer/projects/${projectId}/analysis`);
   };
 
   const handleAssignToClasses = async () => {
@@ -796,7 +890,174 @@ const ProjectDetail = () => {
 
   return (
     <DashboardLayout>
-  <div className={styles.projectDetail}>
+      {isEditing && editForm && (
+        <div className={styles.editOverlay}>
+          <div className={styles.editPanel}>
+            <header className={styles.editHeader}>
+              <div>
+                <h2>Edit project blueprint</h2>
+                <p>Refresh the project brief before resubmitting for approval.</p>
+              </div>
+              <button
+                type="button"
+                className={styles.closeButton}
+                onClick={closeEditPanel}
+                aria-label="Close edit form"
+              >
+                ×
+              </button>
+            </header>
+            <form className={styles.editForm} onSubmit={handleEditSave}>
+              <div className={styles.formSection}>
+                <div className={styles.sectionHeaderRow}>
+                  <span className={styles.sectionTitle}>Project basics</span>
+                  <span className={styles.sectionHint}>Update the core details shared with students.</span>
+                </div>
+                <div className={styles.formGrid}>
+                  <label className={styles.formField}>
+                    <span>Project title</span>
+                    <input
+                      type="text"
+                      value={editForm.title}
+                      onChange={(event) => handleEditFieldChange('title', event.target.value)}
+                      required
+                    />
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Category</span>
+                    <input
+                      type="text"
+                      value={editForm.category}
+                      onChange={(event) => handleEditFieldChange('category', event.target.value)}
+                      required
+                    />
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Difficulty</span>
+                    <select
+                      value={editForm.difficulty}
+                      onChange={(event) => handleEditFieldChange('difficulty', event.target.value)}
+                    >
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Advanced">Advanced</option>
+                    </select>
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Estimated duration</span>
+                    <input
+                      type="text"
+                      value={editForm.estimatedDuration}
+                      onChange={(event) => handleEditFieldChange('estimatedDuration', event.target.value)}
+                    />
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Minimum team size</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={editForm.minTeamSize}
+                      onChange={(event) => handleEditFieldChange('minTeamSize', event.target.value)}
+                    />
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Maximum team size</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={editForm.maxTeamSize}
+                      onChange={(event) => handleEditFieldChange('maxTeamSize', event.target.value)}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className={styles.formSection}>
+                <div className={styles.sectionHeaderRow}>
+                  <span className={styles.sectionTitle}>Executive summary</span>
+                  <span className={styles.sectionHint}>Craft a compelling brief for lecturers and students.</span>
+                </div>
+                <label className={styles.formField}>
+                  <span>Summary</span>
+                  <textarea
+                    rows={4}
+                    value={editForm.description}
+                    onChange={(event) => handleEditFieldChange('description', event.target.value)}
+                  />
+                </label>
+              </div>
+
+              <div className={styles.formSection}>
+                <div className={styles.sectionHeaderRow}>
+                  <span className={styles.sectionTitle}>Scope & requirements</span>
+                  <span className={styles.sectionHint}>Highlight the skills and tags students should prepare for.</span>
+                </div>
+                <div className={styles.dualFieldRow}>
+                  <label className={styles.formField}>
+                    <span>Primary tags</span>
+                    <input
+                      type="text"
+                      value={editForm.tags}
+                      onChange={(event) => handleEditFieldChange('tags', event.target.value)}
+                      placeholder="React, AI, API"
+                    />
+                    <small>Separate tags with commas.</small>
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Required skill set</span>
+                    <input
+                      type="text"
+                      value={editForm.skillsRequired}
+                      onChange={(event) => handleEditFieldChange('skillsRequired', event.target.value)}
+                      placeholder="JavaScript, UX, Testing"
+                    />
+                    <small>Separate skills with commas.</small>
+                  </label>
+                </div>
+              </div>
+
+              <div className={styles.formSection}>
+                <div className={styles.sectionHeaderRow}>
+                  <span className={styles.sectionTitle}>Learning blueprint</span>
+                  <span className={styles.sectionHint}>Clarify the outcomes and prerequisites for the cohort.</span>
+                </div>
+                <div className={styles.dualFieldRow}>
+                  <label className={styles.formField}>
+                    <span>Learning outcomes</span>
+                    <textarea
+                      rows={4}
+                      value={editForm.learningOutcomes}
+                      onChange={(event) => handleEditFieldChange('learningOutcomes', event.target.value)}
+                      placeholder="One outcome per line"
+                    />
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Pre-requisites</span>
+                    <textarea
+                      rows={4}
+                      value={editForm.prerequisites}
+                      onChange={(event) => handleEditFieldChange('prerequisites', event.target.value)}
+                      placeholder="One prerequisite per line"
+                    />
+                  </label>
+                </div>
+              </div>
+              <footer className={styles.editFooter}>
+                <button type="button" className={styles.secondaryBtn} onClick={closeEditPanel}>
+                  Cancel
+                </button>
+                <button type="submit" className={styles.primaryBtn} disabled={isSavingEdit}>
+                  {isSavingEdit ? 'Saving...' : 'Save updates'}
+                </button>
+              </footer>
+            </form>
+          </div>
+        </div>
+      )}
+      {editMessage && (
+        <div className={styles.updateToast}>{editMessage}</div>
+      )}
+      <div className={styles.projectDetail}>
         {/* Header */}
         <ProjectHeader projectId={projectId} projectData={projectData} />
 

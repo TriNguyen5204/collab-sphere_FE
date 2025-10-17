@@ -1,44 +1,42 @@
 import apiClient from './apiClient';
 
 //staff
-export const getClass = async (
-  className,
-  subjectIds,
-  lecturerIds,
-  orderBy,
-  descending,
-  pageNum,
-  pageSize,
-  viewAll
-) => {
+export const getClass = async (filters) => {
   try {
-    const params = {
-      OrderBy: orderBy,
-      Descending: descending,
-      ViewAll: viewAll,
-      PageNum: pageNum,
-      PageSize: pageSize,
-    };
+    // Lấy ra từng trường
+    const {
+      ClassName,
+      SubjectIds,
+      LecturerIds,
+      OrderBy,
+      Descending,
+      PageNum,
+      PageSize,
+      ViewAll,
+    } = filters;
 
-    if (className && className.trim() !== '') {
-      params.ClassName = className;
-    }
+    // Tạo đối tượng params trống
+    const params = {};
 
-    if (subjectIds?.length > 0) {
-      params.SubjectIds = subjectIds;
-    }
-
-    if (lecturerIds?.length > 0) {
-      params.LecturerIds = lecturerIds;
-    }
+    // Chỉ thêm vào nếu có giá trị thực sự
+    if (ClassName?.trim()) params.ClassName = ClassName.trim();
+    if (SubjectIds?.length > 0) params.SubjectIds = SubjectIds.join(','); // Gộp thành chuỗi
+    if (LecturerIds?.length > 0) params.LecturerIds = LecturerIds.join(',');
+    if (ViewAll) params.ViewAll = ViewAll; // chỉ gửi nếu true
+    if (PageNum && PageNum !== 1) params.PageNum = PageNum; // bỏ mặc định 1
+    if (PageSize && PageSize !== 8) params.PageSize = PageSize;
+    if (OrderBy && OrderBy !== 'ClassName') params.OrderBy = OrderBy;
+    if (Descending) params.Descending = Descending;
 
     const response = await apiClient.get('/class', { params });
     return response.data;
   } catch (error) {
-    console.log('Error fetching class', error);
+    console.error('Error fetching class', error);
     throw error;
   }
 };
+
+
 
 export const getClassDetail = async id => {
   try {
@@ -243,13 +241,27 @@ export const updateSubject = async data => {
 };
 export const getAllProject = async (params = {}) => {
   try {
-    const response = await apiClient.get('/project', { params });
+    const response = await apiClient.get('/project', {
+      params: {
+        LecturerIds: params.lecturerIds, 
+        SubjectIds: params.subjectIds,   
+        Descriptors: params.descriptors,
+        ViewAll: params.viewAll,
+        PageNum: params.pageNum,
+        PageSize: params.pageSize,
+      },
+      paramsSerializer: {
+        indexes: null, // quan trọng: giúp Axios format array như ?SubjectIds=10&SubjectIds=11
+      },
+    });
+
     return response.data;
   } catch (error) {
-    console.error('Error fetching all projects:', error);
+    console.error('Error fetching all classes:', error);
     throw error;
   }
 };
+
 
 export const getPendingProjects = async ({
   descriptors,
@@ -282,9 +294,15 @@ export const getPendingProjects = async ({
     throw error;
   }
 };
-export const approveProject = async projectId => {
+export const handleProject = async (projectId, status) => {
   try {
-    const response = await apiClient.patch(`/project/${projectId}/approve`);
+    const response = await apiClient.patch(
+      `/project/${projectId}/approve`,
+      null, 
+      {
+        params: { Approve: status } 
+      }
+    );
     return response.data;
   } catch (error) {
     console.error(`Error approving project with ID ${projectId}:`, error);
@@ -299,4 +317,47 @@ export const rejectProject = async projectId => {
     console.error(`Error rejecting project with ID ${projectId}:`, error);
     throw error;
   }
+}
+
+//Student
+export const getClassesByStudentId = async (studentId) => {
+  try {
+    const response = await apiClient.get(`/class/student/${studentId}`);
+    const data = response.data;
+    return data?.list ?? [];
+  } catch (error) {
+    console.error('Error fetching classes by student id:', error);
+    throw error;
+  }
 };
+
+export const getClassDetailsById = async (classId) => {
+    try {
+        const response = await apiClient.get(`/class/${classId}`);
+        return response.data;
+    } catch (error) {
+        console.error(`Error fetching class details for class ID ${classId}:`, error);
+        throw error;
+    }
+};
+
+export const getListOfTeamsByStudentId = async (studentId) => {
+  try {
+    const response = await apiClient.get(`/team/student/${studentId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching teams for student ID ${studentId}:`, error);
+    throw error;
+  }
+};
+
+export const getDetailOfProjectByProjectId = async (projectId) => {
+  try {
+    const response = await apiClient.get(`/project/${projectId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching project details for project ID ${projectId}:`, error);
+    throw error;
+  }
+};
+;

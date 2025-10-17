@@ -30,20 +30,20 @@ const StudentLayout = ({ children }) => {
         items: [
           {
             label: 'Overview',
-            href: '/student',
+            href: '/student/home',
             icon: HomeIcon,
           },
           {
             label: 'My Classes',
-            href: '/student/class',
+            href: '/student/classes',
             icon: ClockIcon,
-            match: path => path.startsWith('/student/class'),
+            match: path => path.startsWith('/student/classes'),
           },
           {
             label: 'My Projects',
-            href: '/student/project',
+            href: '/student/projects',
             icon: SparklesIcon,
-            match: path => path.startsWith('/student/project'),
+            match: path => path.startsWith('/student/projects'),
           },
           {
             label: 'Team space',

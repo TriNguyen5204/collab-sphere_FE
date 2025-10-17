@@ -19,6 +19,8 @@ import MilestonePage from '../pages/student/project/MilestonePage';
 import CheckpointPage from '../pages/student/project/CheckpointPage';
 import PeerEvaluationPage from '../pages/student/project/PeerEvaluationPage';
 import TeamWorkspace from '../pages/student/project/TeamWorkspace';
+import StudentClassMembersPage from '../pages/student/StudentClassMembersPage';
+import StudentClassProjectsPage from '../pages/student/StudentClassProjectsPage';
 
 // lecturer pages
 import ClassManagementDashboard from '../pages/lecturer/ClassManagementDashboard';
@@ -39,6 +41,7 @@ import AcademicDetail from '../pages/academic/AcademicDetail';
 import LecturerListStaff from '../pages/staff/LecturerListStaff';
 import ClassListStaff from '../pages/staff/ClassListStaff';
 import ClassDetail from '../pages/staff/ClassDetail';
+
 
 // head department pages
 import DepartmentDashboard from '../pages/headDepartment/Dashboard';
@@ -82,6 +85,8 @@ const studentRoutes = [
   { path: '/student/project/:id/:projectName/checkpoints', element: protectRoute(['STUDENT'], <CheckpointPage />) },
   { path: '/student/project/:id/:projectName/peer-evaluation', element: protectRoute(['STUDENT'], <PeerEvaluationPage />) },
   { path: '/student/project/:id/:projectName/team-workspace', element: protectRoute(['STUDENT'], <TeamWorkspace />) },
+  { path: '/student/project/:id/:projectName/class-members', element: protectRoute(['STUDENT'], <StudentClassMembersPage />) },
+  { path: '/student/project/:id/:projectName/class-projects', element: protectRoute(['STUDENT'], <StudentClassProjectsPage />) },
 ];
 
 const lecturerRoutes = [
