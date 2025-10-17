@@ -1,6 +1,47 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import styles from './CreateProject.module.css';
+
+const SUBJECT_OPTIONS = [
+  'Software Engineering',
+  'Computer Science',
+  'Information Technology',
+  'Data Science',
+  'Cybersecurity',
+  'Web Development',
+  'Mobile Development',
+  'Machine Learning'
+];
+
+const CLASS_OPTIONS = [
+  { id: 1, name: 'SE301 - Advanced Software Engineering', students: 45 },
+  { id: 2, name: 'CS401 - Algorithms and Data Structures', students: 38 },
+  { id: 3, name: 'IT302 - Database Systems', students: 42 },
+  { id: 4, name: 'DS201 - Introduction to Data Science', students: 35 }
+];
+
+const TECH_STACK_OPTIONS = [
+  'React', 'Angular', 'Vue.js', 'Node.js', 'Express.js', 'MongoDB',
+  'PostgreSQL', 'MySQL', 'Python', 'Django', 'Flask', 'Java',
+  'Spring Boot', 'C#', '.NET', 'PHP', 'Laravel', 'TypeScript',
+  'JavaScript', 'HTML5', 'CSS3', 'Bootstrap', 'Tailwind CSS'
+];
+
+const PROCESSING_STEPS = [
+  'Document analysis',
+  'Milestone design',
+  'Checkpoint mapping'
+];
+
+const PROCESSING_MESSAGES = [
+  'Scanning requirements document...',
+  'Extracting primary objectives...',
+  'Mapping deliverables and constraints...',
+  'Designing milestone structure...',
+  'Drafting checkpoint backlog...',
+  'Estimating timeline and workload...',
+  'Polishing the AI blueprint...'
+];
 
 const CreateProject = () => {
   const { classId } = useParams();
@@ -9,8 +50,8 @@ const CreateProject = () => {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showAIResults, setShowAIResults] = useState(false);
-  
-  // Form state
+  const [learningObjectiveInput, setLearningObjectiveInput] = useState('');
+
   const [formData, setFormData] = useState({
     projectName: '',
     description: '',
@@ -23,7 +64,6 @@ const CreateProject = () => {
     learningObjectives: []
   });
 
-  // AI Processing results
   const [aiResults, setAiResults] = useState({
     extractedRequirements: [],
     learningOutcomes: [],
@@ -31,169 +71,213 @@ const CreateProject = () => {
     estimatedDuration: ''
   });
 
-  // Sample data
-  const subjects = [
-    'Software Engineering',
-    'Computer Science',
-    'Information Technology',
-    'Data Science',
-    'Cybersecurity',
-    'Web Development',
-    'Mobile Development',
-    'Machine Learning'
-  ];
+  const selectedClassMeta = useMemo(() => {
+    if (!formData.selectedClass) {
+      return null;
+    }
+    return CLASS_OPTIONS.find((cls) => String(cls.id) === String(formData.selectedClass)) || null;
+  }, [formData.selectedClass]);
 
-  const classes = [
-    { id: 1, name: 'SE301 - Advanced Software Engineering', students: 45 },
-    { id: 2, name: 'CS401 - Algorithms and Data Structures', students: 38 },
-    { id: 3, name: 'IT302 - Database Systems', students: 42 },
-    { id: 4, name: 'DS201 - Introduction to Data Science', students: 35 }
-  ];
+  const readinessScore = useMemo(() => {
+    let score = 20;
+    if (uploadedFile) {
+      score += 25;
+    }
+    if (formData.description.trim().length > 120) {
+      score += 20;
+    }
+    score += Math.min(20, formData.learningObjectives.length * 5);
+    score += Math.min(15, formData.techStack.length * 3);
+    if (formData.subject && formData.selectedClass) {
+      score += 10;
+    }
+    return Math.min(100, score);
+  }, [uploadedFile, formData.description, formData.learningObjectives.length, formData.techStack.length, formData.subject, formData.selectedClass]);
 
-  const techStackOptions = [
-    'React', 'Angular', 'Vue.js', 'Node.js', 'Express.js', 'MongoDB', 
-    'PostgreSQL', 'MySQL', 'Python', 'Django', 'Flask', 'Java', 
-    'Spring Boot', 'C#', '.NET', 'PHP', 'Laravel', 'TypeScript', 
-    'JavaScript', 'HTML5', 'CSS3', 'Bootstrap', 'Tailwind CSS'
-  ];
+  const canGenerateStructure = useMemo(() => {
+    const hasName = formData.projectName.trim().length >= 3;
+    const hasContext = Boolean(uploadedFile) || formData.description.trim().length >= 60;
+    return hasName && hasContext;
+  }, [formData.projectName, formData.description, uploadedFile]);
 
-  const processingSteps = [
-    'Document Analysis',
-    'Milestone Creation', 
-    'Checkpoint Generation'
-  ];
+  const processingStageIndex = useMemo(() => {
+    if (!isProcessing) {
+      return -1;
+    }
+    return Math.min(PROCESSING_STEPS.length - 1, Math.floor(processingStep / 2));
+  }, [isProcessing, processingStep]);
 
-  const processingMessages = [
-    'Analyzing requirements...',
-    'Extracting learning objectives...',
-    'Identifying key deliverables...',
-    'Creating milestone structure...',
-    'Generating checkpoints...',
-    'Estimating time requirements...',
-    'Finalizing project structure...'
-  ];
+  const checklistItems = useMemo(() => ([
+    {
+      label: 'Requirement document uploaded',
+      complete: Boolean(uploadedFile)
+    },
+    {
+      label: 'Project name defined',
+      complete: formData.projectName.trim().length >= 3
+    },
+    {
+      label: 'Subject and class selected',
+      complete: Boolean(formData.subject && formData.selectedClass)
+    },
+    {
+      label: 'Project description drafted',
+      complete: formData.description.trim().length >= 60
+    },
+    {
+      label: 'Preferred tech stack identified',
+      complete: formData.techStack.length > 0
+    }
+  ]), [uploadedFile, formData.projectName, formData.subject, formData.selectedClass, formData.description, formData.techStack.length]);
 
-  // File upload handlers
-  const handleDragEnter = useCallback((e) => {
-    e.preventDefault();
+  const handleDragEnter = useCallback((event) => {
+    event.preventDefault();
     setIsDragOver(true);
   }, []);
 
-  const handleDragLeave = useCallback((e) => {
-    e.preventDefault();
+  const handleDragLeave = useCallback((event) => {
+    event.preventDefault();
     setIsDragOver(false);
   }, []);
 
-  const handleDragOver = useCallback((e) => {
-    e.preventDefault();
+  const handleDragOver = useCallback((event) => {
+    event.preventDefault();
   }, []);
 
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
+  const handleDrop = useCallback((event) => {
+    event.preventDefault();
     setIsDragOver(false);
-    const files = Array.from(e.dataTransfer.files);
+    const files = Array.from(event.dataTransfer.files);
     if (files.length > 0) {
       handleFileUpload(files[0]);
     }
   }, []);
 
-  const handleFileUpload = (file) => {
+  const handleFileUpload = useCallback((file) => {
     if (file && (file.type === 'application/pdf' || file.type.includes('document') || file.type === 'text/plain')) {
       setUploadedFile(file);
-    } else {
-      alert('Please upload a PDF, Word document, or text file');
+      return;
     }
-  };
+    alert('Please upload a PDF, Word document, or text file');
+  }, []);
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({
+  const handleInputChange = useCallback((field, value) => {
+    setFormData((prev) => ({
       ...prev,
       [field]: value
     }));
-  };
+  }, []);
 
-  const handleTechStackToggle = (tech) => {
-    setFormData(prev => ({
+  const handleTechStackToggle = useCallback((tech) => {
+    setFormData((prev) => ({
       ...prev,
-      techStack: prev.techStack.includes(tech) 
-        ? prev.techStack.filter(t => t !== tech)
+      techStack: prev.techStack.includes(tech)
+        ? prev.techStack.filter((item) => item !== tech)
         : [...prev.techStack, tech]
     }));
-  };
+  }, []);
 
-  // AI Processing simulation
-  const generateProjectStructure = async () => {
+  const handleLearningObjectiveAdd = useCallback(() => {
+    const value = learningObjectiveInput.trim();
+    if (!value) {
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      learningObjectives: [...prev.learningObjectives, value]
+    }));
+    setLearningObjectiveInput('');
+  }, [learningObjectiveInput]);
+
+  const handleLearningObjectiveRemove = useCallback((objective) => {
+    setFormData((prev) => ({
+      ...prev,
+      learningObjectives: prev.learningObjectives.filter((item) => item !== objective)
+    }));
+  }, []);
+
+  const handleLearningObjectiveKeyDown = useCallback((event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleLearningObjectiveAdd();
+    }
+  }, [handleLearningObjectiveAdd]);
+
+  const generateProjectStructure = useCallback(async () => {
+    if (!canGenerateStructure || isProcessing) {
+      return;
+    }
+
     setIsProcessing(true);
     setProcessingStep(0);
     setShowAIResults(false);
 
-    // Simulate AI processing with realistic delays
-    for (let i = 0; i < processingMessages.length; i++) {
-      setProcessingStep(i);
-      await new Promise(resolve => setTimeout(resolve, 1500));
+    for (let index = 0; index < PROCESSING_MESSAGES.length; index += 1) {
+      setProcessingStep(index);
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((resolve) => setTimeout(resolve, 1200));
     }
 
-    // Simulate AI results
     const mockResults = {
       extractedRequirements: [
-        'User authentication and authorization system',
-        'RESTful API development with proper endpoints',
-        'Responsive frontend interface',
-        'Database design and implementation',
-        'Testing and validation procedures',
-        'Documentation and deployment'
+        'Build an authenticated collaboration workspace with role-based access',
+        'Expose RESTful APIs for milestone, checkpoint, and submission management',
+        'Design a responsive UI with analytics for lecturers and students',
+        'Implement database schemas to track teams, submissions, and evaluations',
+        'Automate status notifications and progress reminders',
+        'Prepare deployment-ready documentation and CI/CD workflow'
       ],
       learningOutcomes: [
-        'Understand full-stack development principles',
-        'Implement secure user authentication',
-        'Design and develop RESTful APIs',
-        'Create responsive user interfaces',
-        'Apply database design principles',
-        'Practice collaborative development workflows'
+        'Plan a full-stack project that aligns with academic outcomes',
+        'Apply secure authentication and authorization strategies',
+        'Coordinate team collaboration and workload distribution',
+        'Translate requirements into milestones and checkpoints',
+        'Evaluate project progress using analytics and reporting'
       ],
       milestones: [
         {
           id: 1,
-          title: 'Project Setup & Planning',
-          duration: '1 week',
+          title: 'Discovery & Project Blueprint',
+          duration: 'Week 1',
           checkpoints: [
-            'Repository setup and team organization',
-            'Requirements analysis and documentation',
-            'Technology stack finalization',
-            'Project timeline creation'
+            'Kick-off meeting and requirement clarification',
+            'Define success metrics and deliverable scope',
+            'Confirm technology stack and integration constraints',
+            'Publish project timeline to the class workspace'
           ]
         },
         {
           id: 2,
-          title: 'Backend Development',
-          duration: '3 weeks',
+          title: 'Core Platform Architecture',
+          duration: 'Weeks 2-4',
           checkpoints: [
-            'Database schema design and implementation',
-            'User authentication system',
-            'Core API endpoints development',
-            'API testing and documentation'
+            'Finalize database schema and seed initial data',
+            'Implement authentication and lecturer dashboards',
+            'Develop project management APIs and testing harness',
+            'Ship walkthrough documentation for student onboarding'
           ]
         },
         {
           id: 3,
-          title: 'Frontend Development',
-          duration: '3 weeks',
+          title: 'Collaboration & Analytics Layer',
+          duration: 'Weeks 5-6',
           checkpoints: [
-            'UI/UX design and wireframing',
-            'Component development',
-            'API integration',
-            'Responsive design implementation'
+            'Build chat, notification, and file-sharing workflows',
+            'Introduce analytics dashboards for lecturers',
+            'Connect AI milestone recommendations to checkpoints',
+            'Conduct mid-project usability review with stakeholders'
           ]
         },
         {
           id: 4,
-          title: 'Testing & Deployment',
-          duration: '1 week',
+          title: 'Testing, Evaluation & Launch',
+          duration: 'Weeks 7-8',
           checkpoints: [
-            'Unit and integration testing',
-            'User acceptance testing',
-            'Performance optimization',
-            'Production deployment'
+            'Run quality assurance and accessibility passes',
+            'Collect peer and lecturer evaluation feedback',
+            'Optimize performance for real-time collaboration',
+            'Publish release notes and deployment package'
           ]
         }
       ],
@@ -203,141 +287,172 @@ const CreateProject = () => {
     setAiResults(mockResults);
     setIsProcessing(false);
     setShowAIResults(true);
-  };
+  }, [canGenerateStructure, isProcessing]);
 
-  const regenerateStructure = () => {
+  const regenerateStructure = useCallback(() => {
     generateProjectStructure();
-  };
+  }, [generateProjectStructure]);
 
   return (
-    <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <div className={styles.breadcrumb}>
-          <Link to="/lecturer/classes" className={styles.breadcrumbLink}>Classes</Link>
-          <span className={styles.breadcrumbSeparator}>→</span>
-          {classId && (
-            <>
-              <Link to={`/lecturer/classes/${classId}`} className={styles.breadcrumbLink}>Class Details</Link>
-              <span className={styles.breadcrumbSeparator}>→</span>
-            </>
-          )}
-          <span className={styles.breadcrumbCurrent}>Create New Project</span>
-        </div>
-        
-        <div className={styles.headerContent}>
-          <h1 className={styles.title}>Create New Project</h1>
-          <p className={styles.subtitle}>
-            Upload project requirements or manually create a new collaborative project for your students
-          </p>
-        </div>
-      </div>
+    <div className={styles.page}>
+      <header className={styles.hero}>
+        <div className={styles.heroInner}>
+          <div className={styles.heroNav}>
+            <Link to="/lecturer/classes" className={styles.breadcrumbLink}>
+              Classes
+            </Link>
+            <span className={styles.breadcrumbSeparator}>/</span>
+            {classId && (
+              <>
+                <Link to={`/lecturer/classes/${classId}`} className={styles.breadcrumbLink}>
+                  Class detail
+                </Link>
+                <span className={styles.breadcrumbSeparator}>/</span>
+              </>
+            )}
+            <span className={styles.breadcrumbCurrent}>Create project</span>
+          </div>
 
-      <div className={styles.content}>
-        <div className={styles.mainContent}>
-          {/* File Upload Section */}
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Project Requirements Document</h2>
-            <div 
-              className={`${styles.uploadArea} ${isDragOver ? styles.dragOver : ''}`}
+          <div className={styles.heroContent}>
+            <div className={styles.heroText}>
+              <p className={styles.eyebrow}>Lecturer workspace</p>
+              <h1 className={styles.heroTitle}>Launch a collaborative project experience</h1>
+              <p className={styles.heroSubtitle}>
+                Combine your curated brief with AI assistance to publish a ready-to-run project for your class. We
+                surface key requirements, learning outcomes, and milestone plans in a single flow.
+              </p>
+            </div>
+            <div className={styles.heroStats}>
+              <div className={styles.heroStatCard}>
+                <span className={styles.heroStatLabel}>AI assistant</span>
+                <strong className={styles.heroStatValue}>
+                  {showAIResults ? 'Blueprint ready' : isProcessing ? 'Analyzing…' : 'Standing by'}
+                </strong>
+                <span className={styles.heroStatNote}>Structure generates once inputs are complete</span>
+              </div>
+              <div className={styles.heroStatCard}>
+                <span className={styles.heroStatLabel}>Readiness score</span>
+                <strong className={styles.heroStatValue}>{readinessScore}%</strong>
+                <span className={styles.heroStatNote}>Auto-updates as you enrich project details</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className={styles.pageBody}>
+        <div className={styles.primaryColumn}>
+          <section className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div>
+                <h2 className={styles.cardTitle}>1. Upload project requirements</h2>
+                <p className={styles.cardSubtitle}>
+                  Drop a syllabus, requirement brief, or project charter to give the AI a head start.
+                </p>
+              </div>
+              {uploadedFile && (
+                <button type="button" className={styles.cardAction} onClick={() => setUploadedFile(null)}>
+                  Remove file
+                </button>
+              )}
+            </div>
+
+            <div
+              className={`${styles.uploadDropzone} ${isDragOver ? styles.isDragOver : ''}`}
               onDragEnter={handleDragEnter}
               onDragLeave={handleDragLeave}
               onDragOver={handleDragOver}
               onDrop={handleDrop}
             >
               {uploadedFile ? (
-                <div className={styles.uploadedFile}>
-                  <div className={styles.fileIcon}>📄</div>
-                  <div className={styles.fileInfo}>
-                    <div className={styles.fileName}>{uploadedFile.name}</div>
-                    <div className={styles.fileSize}>
-                      {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
-                    </div>
+                <div className={styles.fileSummary}>
+                  <div className={styles.fileBadge}>Attached</div>
+                  <div className={styles.fileMeta}>
+                    <span className={styles.fileName}>{uploadedFile.name}</span>
+                    <span className={styles.fileSize}>{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</span>
                   </div>
-                  <button 
-                    className={styles.removeFile}
-                    onClick={() => setUploadedFile(null)}
-                  >
-                    ✕
-                  </button>
                 </div>
               ) : (
-                <>
-                  <div className={styles.uploadIcon}>📁</div>
-                  <div className={styles.uploadText}>
-                    <p>Drag and drop your project requirements document here</p>
-                    <p className={styles.uploadSubtext}>
-                      Supports PDF, Word documents, and text files
-                    </p>
-                  </div>
-                  <input
-                    type="file"
-                    className={styles.fileInput}
-                    accept=".pdf,.doc,.docx,.txt"
-                    onChange={(e) => handleFileUpload(e.target.files[0])}
-                  />
-                  <button className={styles.uploadButton}>
-                    Choose File
-                  </button>
-                </>
+                <div className={styles.uploadVisual}>
+                  <div className={styles.uploadIcon}>📄</div>
+                  <div className={styles.uploadText}>Drag &amp; drop or browse to upload project documentation</div>
+                  <div className={styles.uploadHint}>Supported formats: PDF, DOCX, TXT</div>
+                </div>
               )}
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,.txt"
+                className={styles.fileInput}
+                onChange={(event) => handleFileUpload(event.target.files?.[0])}
+              />
             </div>
-          </div>
+          </section>
 
-          {/* Manual Input Section */}
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Project Details</h2>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Project Name</label>
+          <section className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div>
+                <h2 className={styles.cardTitle}>2. Outline the project essentials</h2>
+                <p className={styles.cardSubtitle}>
+                  These details personalise the project blueprint for your chosen cohort.
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.fieldGrid}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.label} htmlFor="project-name">Project name</label>
                 <input
+                  id="project-name"
                   type="text"
                   className={styles.input}
-                  placeholder="Enter project name..."
+                  placeholder="e.g. AI-augmented project management suite"
                   value={formData.projectName}
-                  onChange={(e) => handleInputChange('projectName', e.target.value)}
+                  onChange={(event) => handleInputChange('projectName', event.target.value)}
                 />
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Subject/Course</label>
+              <div className={styles.fieldGroup}>
+                <label className={styles.label} htmlFor="subject-select">Subject or course</label>
                 <select
+                  id="subject-select"
                   className={styles.select}
                   value={formData.subject}
-                  onChange={(e) => handleInputChange('subject', e.target.value)}
+                  onChange={(event) => handleInputChange('subject', event.target.value)}
                 >
-                  <option value="">Select subject...</option>
-                  {subjects.map(subject => (
-                    <option key={subject} value={subject}>{subject}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Assign to Class</label>
-                <select
-                  className={styles.select}
-                  value={formData.selectedClass}
-                  onChange={(e) => handleInputChange('selectedClass', e.target.value)}
-                >
-                  <option value="">Select class...</option>
-                  {classes.map(cls => (
-                    <option key={cls.id} value={cls.id}>
-                      {cls.name} ({cls.students} students)
+                  <option value="">Select subject…</option>
+                  {SUBJECT_OPTIONS.map((subject) => (
+                    <option key={subject} value={subject}>
+                      {subject}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Difficulty Level</label>
-                <div className={styles.difficultySelector}>
-                  {['Beginner', 'Intermediate', 'Advanced'].map(level => (
+              <div className={styles.fieldGroup}>
+                <label className={styles.label} htmlFor="class-select">Assign to class</label>
+                <select
+                  id="class-select"
+                  className={styles.select}
+                  value={formData.selectedClass}
+                  onChange={(event) => handleInputChange('selectedClass', event.target.value)}
+                >
+                  <option value="">Select class…</option>
+                  {CLASS_OPTIONS.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} ({item.students} students)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <span className={styles.label}>Difficulty level</span>
+                <div className={styles.difficultyPills}>
+                  {['Beginner', 'Intermediate', 'Advanced'].map((level) => (
                     <button
                       key={level}
-                      className={`${styles.difficultyButton} ${
-                        formData.difficulty === level ? styles.active : ''
-                      }`}
+                      type="button"
+                      className={`${styles.pill} ${formData.difficulty === level ? styles.pillActive : ''}`}
                       onClick={() => handleInputChange('difficulty', level)}
                     >
                       {level}
@@ -347,42 +462,91 @@ const CreateProject = () => {
               </div>
             </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Project Description</label>
+            <div className={styles.fieldGroup}>
+              <label className={styles.label} htmlFor="project-description">Project description</label>
               <textarea
+                id="project-description"
                 className={styles.textarea}
-                placeholder="Describe the project objectives, requirements, and expected outcomes..."
-                rows={4}
+                placeholder="Describe the narrative, deliverables, and expectations students should meet. Include any contextual notes for the AI assistant."
+                rows={6}
                 value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
+                onChange={(event) => handleInputChange('description', event.target.value)}
               />
             </div>
-          </div>
 
-          {/* Configuration Section */}
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Project Configuration</h2>
+            <div className={styles.fieldGroup}>
+              <label className={styles.label} htmlFor="learning-objectives">Learning objectives</label>
+              <div className={styles.objectiveInputRow}>
+                <input
+                  id="learning-objectives"
+                  type="text"
+                  className={styles.objectiveInput}
+                  placeholder="Press Enter to add objectives (e.g. Collaborate using agile rituals)"
+                  value={learningObjectiveInput}
+                  onChange={(event) => setLearningObjectiveInput(event.target.value)}
+                  onKeyDown={handleLearningObjectiveKeyDown}
+                />
+                <button
+                  type="button"
+                  className={styles.secondaryAction}
+                  onClick={handleLearningObjectiveAdd}
+                  disabled={!learningObjectiveInput.trim()}
+                >
+                  Add
+                </button>
+              </div>
+              {formData.learningObjectives.length > 0 && (
+                <div className={styles.objectiveTags}>
+                  {formData.learningObjectives.map((objective) => (
+                    <span key={objective} className={styles.objectiveTag}>
+                      {objective}
+                      <button
+                        type="button"
+                        className={styles.tagRemove}
+                        onClick={() => handleLearningObjectiveRemove(objective)}
+                        aria-label="Remove objective"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div>
+                <h2 className={styles.cardTitle}>3. Configure cohort delivery</h2>
+                <p className={styles.cardSubtitle}>
+                  Fine-tune the timeline and team composition that the AI uses in its recommendations.
+                </p>
+              </div>
+            </div>
+
             <div className={styles.configGrid}>
-              <div className={styles.configGroup}>
-                <label className={styles.label}>Estimated Duration</label>
-                <div className={styles.durationSelector}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.label} htmlFor="duration-value">Estimated duration</label>
+                <div className={styles.durationRow}>
                   <input
+                    id="duration-value"
                     type="number"
-                    className={styles.durationInput}
                     min="1"
                     max="52"
+                    className={styles.numberInput}
                     value={formData.duration.value}
-                    onChange={(e) => handleInputChange('duration', {
+                    onChange={(event) => handleInputChange('duration', {
                       ...formData.duration,
-                      value: parseInt(e.target.value) || 1
+                      value: Number(event.target.value) || 1
                     })}
                   />
                   <select
-                    className={styles.durationUnit}
+                    className={styles.select}
                     value={formData.duration.unit}
-                    onChange={(e) => handleInputChange('duration', {
+                    onChange={(event) => handleInputChange('duration', {
                       ...formData.duration,
-                      unit: e.target.value
+                      unit: event.target.value
                     })}
                   >
                     <option value="weeks">weeks</option>
@@ -391,190 +555,274 @@ const CreateProject = () => {
                 </div>
               </div>
 
-              <div className={styles.configGroup}>
-                <label className={styles.label}>Team Size</label>
-                <div className={styles.teamSizeSelector}>
-                  <div className={styles.teamSizeInput}>
-                    <label>Min</label>
+              <div className={styles.fieldGroup}>
+                <label className={styles.label}>Team size range</label>
+                <div className={styles.teamSizeRow}>
+                  <div className={styles.teamSizeField}>
+                    <span className={styles.teamSizeLabel}>Min</span>
                     <input
                       type="number"
                       min="1"
                       max="10"
+                      className={styles.numberInput}
                       value={formData.teamSize.min}
-                      onChange={(e) => handleInputChange('teamSize', {
+                      onChange={(event) => handleInputChange('teamSize', {
                         ...formData.teamSize,
-                        min: parseInt(e.target.value) || 1
+                        min: Number(event.target.value) || 1
                       })}
                     />
                   </div>
-                  <div className={styles.teamSizeInput}>
-                    <label>Max</label>
+                  <div className={styles.teamSizeField}>
+                    <span className={styles.teamSizeLabel}>Max</span>
                     <input
                       type="number"
                       min="1"
                       max="10"
+                      className={styles.numberInput}
                       value={formData.teamSize.max}
-                      onChange={(e) => handleInputChange('teamSize', {
+                      onChange={(event) => handleInputChange('teamSize', {
                         ...formData.teamSize,
-                        max: parseInt(e.target.value) || 1
+                        max: Number(event.target.value) || 1
                       })}
                     />
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Technology Stack Section */}
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Technology Stack Preferences</h2>
-            <div className={styles.techStackGrid}>
-              {techStackOptions.map(tech => (
-                <button
-                  key={tech}
-                  className={`${styles.techButton} ${
-                    formData.techStack.includes(tech) ? styles.selected : ''
-                  }`}
-                  onClick={() => handleTechStackToggle(tech)}
-                >
-                  {tech}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Generate Button */}
-          <div className={styles.generateSection}>
-            <button
-              className={`${styles.generateButton} ${isProcessing ? styles.processing : ''}`}
-              onClick={generateProjectStructure}
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <>
-                  <div className={styles.spinner} />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  🚀 Generate Project Structure
-                </>
+          <section className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div>
+                <h2 className={styles.cardTitle}>4. Preferred technology stack</h2>
+                <p className={styles.cardSubtitle}>
+                  Highlight tools you expect teams to use. The AI includes them in learning outcomes and checkpoints.
+                </p>
+              </div>
+              {formData.techStack.length > 0 && (
+                <span className={styles.techCount}>{formData.techStack.length} selected</span>
               )}
-            </button>
-          </div>
-
-          {/* Processing Progress */}
-          {isProcessing && (
-            <div className={styles.processingSection}>
-              <div className={styles.progressSteps}>
-                {processingSteps.map((step, index) => (
-                  <div
-                    key={step}
-                    className={`${styles.progressStep} ${
-                      index <= Math.floor(processingStep / 2) ? styles.completed : ''
-                    } ${
-                      index === Math.floor(processingStep / 2) ? styles.active : ''
-                    }`}
+            </div>
+            <div className={styles.techGrid}>
+              {TECH_STACK_OPTIONS.map((tech) => {
+                const active = formData.techStack.includes(tech);
+                return (
+                  <button
+                    key={tech}
+                    type="button"
+                    className={`${styles.techChip} ${active ? styles.techChipActive : ''}`}
+                    onClick={() => handleTechStackToggle(tech)}
                   >
-                    <div className={styles.stepIndicator}>
-                      {index < Math.floor(processingStep / 2) ? '✓' : index + 1}
-                    </div>
-                    <span className={styles.stepLabel}>{step}</span>
-                  </div>
-                ))}
-              </div>
-              
-              <div className={styles.processingFeedback}>
-                <div className={styles.processingMessage}>
-                  {processingMessages[processingStep] || 'Processing...'}
-                </div>
-                <div className={styles.progressBar}>
-                  <div 
-                    className={styles.progressFill}
-                    style={{ width: `${((processingStep + 1) / processingMessages.length) * 100}%` }}
-                  />
-                </div>
+                    {tech}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className={`${styles.card} ${styles.accentCard}`}>
+            <div className={styles.cardHeader}>
+              <div>
+                <h2 className={styles.cardTitle}>Generate AI blueprint</h2>
+                <p className={styles.cardSubtitle}>
+                  We will translate the uploaded brief and manual inputs into milestones, checkpoints, and learning outcomes.
+                </p>
               </div>
             </div>
+            <div className={styles.accentBody}>
+              <div className={styles.cardNote}>
+                {canGenerateStructure
+                  ? 'All set. Launch the generator whenever you are ready.'
+                  : 'Add a project name and either upload a document or provide a detailed description to activate the generator.'}
+              </div>
+              <button
+                type="button"
+                className={styles.primaryAction}
+                onClick={generateProjectStructure}
+                disabled={!canGenerateStructure || isProcessing}
+              >
+                {isProcessing ? 'Processing AI blueprint…' : 'Generate project structure'}
+              </button>
+            </div>
+          </section>
+
+          {isProcessing && (
+            <section className={`${styles.card} ${styles.processingCard}`}>
+              <div className={styles.processingHeader}>
+                <div>
+                  <h2 className={styles.cardTitle}>AI is analysing your inputs</h2>
+                  <p className={styles.cardSubtitle}>We are combining the requirement document and manual details.</p>
+                </div>
+                <span className={styles.processingStatus}>Step {processingStep + 1} of {PROCESSING_MESSAGES.length}</span>
+              </div>
+
+              <div className={styles.processingSteps}>
+                {PROCESSING_STEPS.map((step, index) => {
+                  const isActive = index === processingStageIndex;
+                  const isComplete = index < processingStageIndex;
+                  return (
+                    <div
+                      key={step}
+                      className={`${styles.processingStep} ${isActive ? styles.stageActive : ''} ${isComplete ? styles.stageComplete : ''}`}
+                    >
+                      <span className={styles.stageNumber}>{isComplete ? '✓' : index + 1}</span>
+                      <span className={styles.stageLabel}>{step}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className={styles.progressMessage}>{PROCESSING_MESSAGES[processingStep] || 'Processing…'}</div>
+              <div className={styles.progressBar}>
+                <div
+                  className={styles.progressFill}
+                  style={{ width: `${((processingStep + 1) / PROCESSING_MESSAGES.length) * 100}%` }}
+                />
+              </div>
+            </section>
           )}
 
-          {/* AI Results */}
           {showAIResults && (
-            <div className={styles.resultsSection}>
-              <div className={styles.resultsHeader}>
-                <h2 className={styles.sectionTitle}>Generated Project Structure</h2>
-                <button className={styles.regenerateButton} onClick={regenerateStructure}>
-                  🔄 Regenerate Structure
+            <section className={`${styles.card} ${styles.aiCard}`}>
+              <div className={styles.cardHeader}>
+                <div>
+                  <h2 className={styles.cardTitle}>AI-generated milestone plan</h2>
+                  <p className={styles.cardSubtitle}>
+                    Review the structure, tweak as needed, then publish to your class workspace.
+                  </p>
+                </div>
+                <button type="button" className={styles.secondaryAction} onClick={regenerateStructure}>
+                  Regenerate
                 </button>
               </div>
 
-              <div className={styles.milestonesGrid}>
+              <div className={styles.milestones}>
                 {aiResults.milestones.map((milestone, index) => (
-                  <div key={milestone.id} className={styles.milestoneCard}>
+                  <article key={milestone.id} className={styles.milestone}>
                     <div className={styles.milestoneHeader}>
-                      <div className={styles.milestoneNumber}>{index + 1}</div>
-                      <div className={styles.milestoneInfo}>
+                      <span className={styles.milestoneIndex}>{index + 1}</span>
+                      <div>
                         <h3 className={styles.milestoneTitle}>{milestone.title}</h3>
-                        <div className={styles.milestoneDuration}>
-                          ⏱️ {milestone.duration}
-                        </div>
+                        <span className={styles.milestoneDuration}>{milestone.duration}</span>
                       </div>
                     </div>
-                    <div className={styles.checkpointsList}>
-                      {milestone.checkpoints.map((checkpoint, checkIndex) => (
-                        <div key={checkIndex} className={styles.checkpoint}>
-                          <div className={styles.checkpointBullet}>•</div>
-                          <span className={styles.checkpointText}>{checkpoint}</span>
-                        </div>
+                    <ul className={styles.checkpointList}>
+                      {milestone.checkpoints.map((checkpoint) => (
+                        <li key={checkpoint} className={styles.checkpointItem}>
+                          {checkpoint}
+                        </li>
                       ))}
-                    </div>
-                  </div>
+                    </ul>
+                  </article>
                 ))}
               </div>
 
-              <div className={styles.projectActions}>
-                <button className={styles.createProjectButton}>
-                  ✨ Create Project
+              <div className={styles.actionRow}>
+                <button type="button" className={styles.primaryAction}>
+                  Create project
                 </button>
-                <button className={styles.saveTemplateButton}>
-                  💾 Save as Template
+                <button type="button" className={styles.secondaryAction}>
+                  Save as template
                 </button>
               </div>
-            </div>
+            </section>
           )}
         </div>
 
-        {/* Side Panel */}
-        {showAIResults && (
-          <div className={styles.sidePanel}>
-            <div className={styles.sidePanelContent}>
-              <h3 className={styles.sidePanelTitle}>Extracted Requirements</h3>
-              <div className={styles.requirementsList}>
-                {aiResults.extractedRequirements.map((req, index) => (
-                  <div key={index} className={styles.requirement}>
-                    <div className={styles.requirementBullet}>✓</div>
-                    <span>{req}</span>
-                  </div>
-                ))}
+        <aside className={styles.secondaryColumn}>
+          <section className={styles.panelCard}>
+            <h3 className={styles.panelTitle}>Project snapshot</h3>
+            <div className={styles.snapshotGrid}>
+              <div className={styles.snapshotItem}>
+                <span className={styles.snapshotLabel}>Subject</span>
+                <span className={styles.snapshotValue}>{formData.subject || 'Not selected yet'}</span>
               </div>
-
-              <h3 className={styles.sidePanelTitle}>Learning Outcomes</h3>
-              <div className={styles.outcomesList}>
-                {aiResults.learningOutcomes.map((outcome, index) => (
-                  <div key={index} className={styles.outcome}>
-                    <div className={styles.outcomeBullet}>🎯</div>
-                    <span>{outcome}</span>
-                  </div>
-                ))}
+              <div className={styles.snapshotItem}>
+                <span className={styles.snapshotLabel}>Assigned class</span>
+                <span className={styles.snapshotValue}>
+                  {selectedClassMeta ? `${selectedClassMeta.name}` : 'Not assigned yet'}
+                </span>
               </div>
-
-              <div className={styles.estimationBadge}>
-                <span className={styles.estimationLabel}>Total Duration</span>
-                <span className={styles.estimationValue}>{aiResults.estimatedDuration}</span>
+              <div className={styles.snapshotItem}>
+                <span className={styles.snapshotLabel}>Team size</span>
+                <span className={styles.snapshotValue}>
+                  {formData.teamSize.min} - {formData.teamSize.max} members
+                </span>
+              </div>
+              <div className={styles.snapshotItem}>
+                <span className={styles.snapshotLabel}>Difficulty</span>
+                <span className={styles.snapshotValue}>{formData.difficulty}</span>
+              </div>
+              <div className={styles.snapshotItem}>
+                <span className={styles.snapshotLabel}>Duration</span>
+                <span className={styles.snapshotValue}>
+                  {showAIResults ? aiResults.estimatedDuration : `${formData.duration.value} ${formData.duration.unit}`}
+                </span>
+              </div>
+              <div className={styles.snapshotItem}>
+                <span className={styles.snapshotLabel}>Tech preferences</span>
+                <span className={styles.snapshotValue}>
+                  {formData.techStack.length > 0 ? formData.techStack.join(', ') : 'None selected'}
+                </span>
               </div>
             </div>
-          </div>
-        )}
+          </section>
+
+          <section className={styles.panelCard}>
+            <h3 className={styles.panelTitle}>Submission checklist</h3>
+            <ul className={styles.checklist}>
+              {checklistItems.map((item) => (
+                <li key={item.label} className={`${styles.checkItem} ${item.complete ? styles.checkComplete : styles.checkPending}`}>
+                  <span className={styles.checkIndicator}>{item.complete ? '✓' : '•'}</span>
+                  {item.label}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {showAIResults ? (
+            <section className={styles.panelCard}>
+              <h3 className={styles.panelTitle}>AI insights</h3>
+              <div className={styles.insightsSection}>
+                <span className={styles.insightsTitle}>Extracted requirements</span>
+                <ul className={styles.insightsList}>
+                  {aiResults.extractedRequirements.map((item) => (
+                    <li key={item} className={styles.insightItem}>
+                      <span className={styles.insightBullet}>•</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className={styles.insightsSection}>
+                <span className={styles.insightsTitle}>Learning outcomes</span>
+                <ul className={styles.insightsList}>
+                  {aiResults.learningOutcomes.map((item) => (
+                    <li key={item} className={styles.insightItem}>
+                      <span className={styles.insightBullet}>🎯</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className={styles.durationBadge}>
+                <span>Total duration</span>
+                <strong>{aiResults.estimatedDuration}</strong>
+              </div>
+            </section>
+          ) : (
+            <section className={styles.panelCard}>
+              <h3 className={styles.panelTitle}>Tips for stronger AI output</h3>
+              <div className={styles.emptyState}>
+                <h4 className={styles.emptyTitle}>Help the AI understand your intent</h4>
+                <p className={styles.emptyText}>
+                  Attach a requirement document and include at least three learning objectives. The assistant will
+                  generate richer milestones and checkpoint descriptions tailored to your class.
+                </p>
+              </div>
+            </section>
+          )}
+        </aside>
       </div>
     </div>
   );
