@@ -51,7 +51,7 @@ export default function ProjectManagement() {
           getAllLecturer(),
         ]);
         setSubjectOptions(subjects);
-        setLecturerOptions(lecturers.lecturerList);
+        setLecturerOptions(lecturers.list);
       } catch (err) {
         console.error("Error loading filters:", err);
       }

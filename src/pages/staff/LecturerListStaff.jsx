@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Search, Plus, Edit3, Trash2, Filter, ChevronDown } from 'lucide-react';
 import ModalWrapper from '../../components/layout/ModalWrapper';
-import CreateLecturerForm from './CreateLecturerForm';
+import CreateLecturerForm from '../../components/ui/CreateLecturerForm';
 import CreateMultipleLecturerForm from '../../components/ui/CreateMultipleLecturerForm';
 import CreateStudentForm from '../../components/ui/CreateStudentForm';
 import CreateMultipleStudentForm from '../../components/ui/CreateMultipleStudent';
@@ -38,8 +38,8 @@ export default function ImprovedAccountsTable() {
         appliedFilters.LecturerCode,
         appliedFilters.Major
       );
-      if (response?.lecturerList) {
-        setLecturers(response.lecturerList);
+      if (response?.list) {
+        setLecturers(response.list);
         setPageCount(response.pageCount);
         setItemCount(response.itemCount);
       }

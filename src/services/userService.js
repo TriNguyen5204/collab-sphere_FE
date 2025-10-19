@@ -1,3 +1,4 @@
+import { data } from 'react-router-dom';
 import apiClient from './apiClient';
 
 //staff
@@ -60,7 +61,7 @@ export const createMultipleClasses = async data => {
   try {
     const formData = new FormData();
     formData.append('file', data);
-    const response = await apiClient.post('/class/import', formData, {
+    const response = await apiClient.post('/class/imports', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -71,11 +72,29 @@ export const createMultipleClasses = async data => {
     throw error;
   }
 };
+export const createStudent = async data => {
+  try{
+    const response = await apiClient.post('/student',data, {
+      email: data.email,
+      password: data.password,
+      fullName: data.fullName,
+      address: data.address,
+      phoneNumber: data.phoneNumber,
+      yob: data.yearOfBirth,
+      school: data.school,
+      studentCode: data.studentCode,
+      major: data.major
+    })
+    return response.data
+  }catch(error){
+    console.log('Create failed', error)
+  }
+}
 export const importStudentList = async data => {
   try {
     const formData = new FormData();
     formData.append('file', data);
-    const response = await apiClient.post('/student/import', formData, {
+    const response = await apiClient.post('/student/imports', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -86,11 +105,31 @@ export const importStudentList = async data => {
     throw error;
   }
 };
+export const createLecturer = async (data) => {
+  try {
+    const response = await apiClient.post('/lecturer', {
+      email: data.email,
+      password: data.password,
+      fullName: data.name, 
+      address: data.address,
+      phoneNumber: data.phone,
+      yob: Number(data.birth),
+      school: data.school,
+      lecturerCode: data.lecturerCode, 
+      major: data.major
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Create lecturer failed:', error);
+    throw error;
+  }
+};
+
 export const importLecturerList = async data => {
   try {
     const formData = new FormData();
     formData.append('file', data);
-    const response = await apiClient.post('/lecturer/import', formData, {
+    const response = await apiClient.post('/lecturer/imports', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -163,7 +202,7 @@ export const getSyllabusBySubjectId = async subjectId => {
 export const assignLecturerIntoClass = async (classId, lecturerId) => {
   try {
     const response = await apiClient.patch(
-      `/class/${classId}/assign-lecturer`,
+      `/class/${classId}/lecturer-assignment`,
       {},
       {
         params: {
@@ -185,7 +224,7 @@ export const addStudentIntoClass = async (classId, studentList) => {
 
   try {
     const response = await apiClient.post(
-      `/class/${classId}/add-student`,
+      `/class/${classId}/students`,
       body
     );
     return response.data;
@@ -210,7 +249,7 @@ export const createMultipleSubjects = async data => {
   try {
     const formData = new FormData();
     formData.append('file', data);
-    const response = await apiClient.post('/subject/import', formData, {
+    const response = await apiClient.post('/subject/imports', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -221,6 +260,14 @@ export const createMultipleSubjects = async data => {
     throw error;
   }
 };
+export const getSubjectById = async id => {
+  try{
+    const response = await apiClient.get(`subject/${id}`)
+    return response.data
+  }catch(error){
+    console.log("Fetch failed", error)
+  }
+}
 export const deleteSubjectById = async subjectId => {
   try {
     const response = await apiClient.delete(`/subject/${subjectId}`);
@@ -297,7 +344,7 @@ export const getPendingProjects = async ({
 export const handleProject = async (projectId, status) => {
   try {
     const response = await apiClient.patch(
-      `/project/${projectId}/approve`,
+      `/project/${projectId}/approval`,
       null, 
       {
         params: { Approve: status } 
@@ -309,6 +356,14 @@ export const handleProject = async (projectId, status) => {
     throw error;
   }
 };
+export const deleteProject = async (projectId) => {
+  try{
+    const response = await apiClient.delete(`/project/head/${projectId}`)
+    return response.data
+  }catch(error){
+    console.error("Error deleting project", error)
+  }
+}
 
 //Student
 export const getClassesByStudentId = async (studentId) => {

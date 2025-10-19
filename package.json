@@ -21,6 +21,7 @@
     "express": "^5.1.0",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.23.22",
+    "http": "^0.0.1-security",
     "js-cookie": "^3.0.5",
     "prop-types": "^15.8.1",
     "react": "^19.1.1",
@@ -33,12 +34,14 @@
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "sonner": "^1.7.4",
+    "uuid": "^13.0.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
+    "@types/simple-peer": "^9.11.8",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.1",
