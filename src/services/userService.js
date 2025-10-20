@@ -57,6 +57,14 @@ export const createClass = async data => {
     throw error;
   }
 };
+export const updateClass = async (id, data) => {
+  try{
+    const response = await apiClient.patch(`/class/${id}`, data);
+    return response.data;
+  }catch(error){
+    console.log('Update failed', error)
+  }
+}
 export const createMultipleClasses = async data => {
   try {
     const formData = new FormData();
