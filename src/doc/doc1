@@ -1,0 +1,249 @@
+  
+ 
+CAPSTONE PROJECT REGISTER 
+ 
+Class:            Duration time:  from …/…/2025 to …/…/2025.
+
+(*) Profession: Software Engineer                   Specialty: SE     
+
+(*) Kinds of person make registers:              	Lecturer                	Students  
+ 
+1. Register information for the supervisor 
+
+No.	Full name	Phone	E-Mail 	Title 
+1	Nguyễn Trọng Tài	0903346184	TaiNT51@fe.edu.vn	Mentor
+
+
+2. Register information for students 
+
+No. 	Full name 	Student code 	Phone 	Email 	Role in Group 
+1	Nguyễn Huỳnh Minh Trí	SE184714	0898410174	trinhmse184714@fpt.edu.vn	Leader
+2	Châu Anh Tuấn	SE184736	0778699152	tuancase184736@fpt.edu.vn	Member
+3	Tạ Đức Thắng	SE184727	0859627651	thangtdse184727@fpt.edu.vn	Member
+4	Nguyễn Đức Trường Thịnh	SE182967	0867962434	thinhndtse182967@fpt.edu.vn	Member
+5	Mộc Nguyên	SE181820	0905412199	nguyenmse181820@fpt.edu.vn	Member
+ 
+
+3. Register content of the Capstone Project
+
+ (*) 3.1. Capstone Project name: 
+
+❖English: CollabSphere - System to support learning using project-based learning method
+❖Vietnamese: Hệ thống hỗ trợ việc học theo phương pháp project-based learning
+❖Abbreviation: COSRE
+
+      a. Context:
+In today’s education landscape, Project-Based Learning Method has become a powerful approach to help students develop practical skills, critical thinking, and teamwork abilities through real-world projects. However, managing and organizing Project-Based Learning team projects still faces several significant challenges:
+* Students and lecturers often rely on multiple independent platforms for communication, meetings, document sharing, diagram creation, whiteboard for notes and brainstorming, as well as for progress tracking and evaluating contributions.
+* Switching between these fragmented platforms disrupts the workflow, reduces efficiency, and makes it harder to maintain team focus.
+* Existing platforms are not fully optimized for real-time collaboration across multiple integrated modules such as whiteboarding, and diagram drawing.
+* Lack of a comprehensive system for tracking project progress, communicating via chat, scheduling and organizing meetings; integrating commenting and rating functions between instructors for individuals, as well as a peer review system between team members to accurately record each person's contribution to the project.
+Therefore, we propose CollabSphere — a system designed to support project management and real-time collaboration in Project-Based Learning environments. CollabSphere unifies tools such as video conferencing, group chat, task boards, whiteboards, and diagramming into one seamless workspace. This system aims to help students and lecturers streamline communication, improve project tracking, enhance teamwork, and create an engaging environment for hands-on learning and project development. CollabSphere also provides an evaluating system that recognizes project members’ contributions.
+
+      b. Proposed Solutions: 
+❖Develop a comprehensive system with multiple integrated  modules to support real-time communication, collaboration, and project development for Project-Based Learning Method, including: 
+▪Web-app interface for Admin, Head Department, Staff, Lecturers and Students.
+❖Objectives:
+▪Provide a unified platform for managing teams projects, integrating communication, collaboration, and project management tools into a single environment to support project development using the project-based learning method.
+▪Support lecturers in guiding, monitoring, and evaluating student projects with transparent progress tracking, contribution assessment, and feedback mechanisms.
+▪Enable students to effectively plan, execute, and document their projects through integrated modules such as video meetings, group chat, whiteboards, diagramming tools and task boards.
+▪Facilitate real-time collaboration and knowledge sharing, helping teams brainstorm ideas, co-create resources, and solve problems without switching between multiple disconnected applications.
+▪Enhance the learning experience by combining practical project development with structured guidance, promoting logical thinking, problem-solving skills, and teamwork in an academic setting.
+❖Key Features:
+a.  Subject & Syllabus Management:
+    * Staff can import files to automatically create the subject & syllabus of the system. 
+    * Staff can manage all subjects & syllabus of the system.
+b.  Account Management:
+    * Admin can view all head department, staff, lecturer, student accounts of the system.
+    * Admin can deactivate all user accounts of the system.
+    * Staff can import files to automatically create lecturer & student accounts and manage those accounts.
+    * Staff can assign a lecturer and add students into class.
+c.  Project Management:
+    * Lecturer can create projects and its relative information (objectives, project milestones) based on subject syllabus and manage their own projects list.
+* Lecturer can use AI support to generate project milestones based on the subject syllabus (information, objectives and project milestones).
+    * Lecturer can submit pending projects for approval by the head department.
+    * Head department can approve/deny pending projects.
+    * Head department can assign projects for all classes from the approved projects list.
+    * Head department can update approved projects.
+    * Lecturer can assign projects for their own class from the approved projects list.
+    * Lecturer can pick from the class’s projects for the team.
+d.  Class Management:
+    * Staff can import files to automatically create classes of the system.
+    * Staff can manage all classes of the system (class information and members).
+    * Staff can assign lecturers and class members into classes.
+e.  Teams & Workspace Management
+    * Lecturer can create teams of their assigned classes and manage those teams.
+    * Lecturer can manage each team’s information and members.
+    * Lecturer can monitor teams progress and percentage of each members’ contribution.
+* Lecturer can manage team milestones based on picked project (information, objectives and project milestones).
+* Lecturer can create and manage milestones questions to facilitate team development towards social contribution. 
+* Team leader (student) can manage their assigned teams.
+* Team leader (student) can monitor teams progress and percentage of each members’ contribution.
+* Team leader (student) can mark done team milestones.
+* Team leader (student) can create, assign members to checkpoints and manage those checkpoints.
+* Team member (student) can participate in team checkpoints and submit entries.
+* Team members that are assigned to checkpoints can mark done checkpoints.
+* Lecturer can view the workspace of teams.
+* Team leader (student) can create and manage cards, tasks, subtasks in the workspace of the team.
+* Team members (student) can create and manage tasks in sprints.
+f.  Communication Management
+* High quality video and audio meetings with flexible join/ leave options.
+* Persistent real-time chat for both in-meeting and out-of-meeting communication.
+* Screen sharing capabilities for presentations and demonstrations.
+* Schedule future team meetings.
+g.  Resources Management
+    * Lecture can manage resources (files, docs, slides, …) of classes and teams.
+    * Students can manage resources (files, docs, slides, …) of their teams.
+h.  Real-time Collaborative Development Tools: 
+    * Real-time interactive whiteboard for drawing, brainstorming.
+    * Real-time interactive text editor for writing documents and reports.
+    * All tools fully synchronized for smooth, multi-user real-time interaction.
+j.  Evaluation & Feedback System:
+* Lecturer can evaluate & give feedback for teams at the end of the project. 
+* Lecturer can evaluate & give feedback for each members’ answers. 
+* Lecturer can evaluate & give feedback for team checkpoint submissions. 
+* Lecturer can view other peer evaluations for each other to make informed judgments for each members in the future. 
+* Team members can give feedback for other members at the end of the project.
+* Team members can give feedback for other members’ milestones answers.
+k.  AI-powered Assistance:
+    * AI chatbot for idea brainstorming, project guidance and solution suggestions.
+    * Integrate AI to automatically generate project information (goals, timelines, relevant information, etc.).
+l.  Notification System
+    * Email notification for admin when receiving system reports from users.
+    * Email notification for team leader when being assigned to team.
+    * Email notification for lecturer and other members in team when leader mark done team milestones
+    * Email notification for lecture and other members in the team when team submit checkpoints.
+    * Email notification for team members in the team when receiving evaluation and feedback from lecturer or other peers.
+* Real-time notification for class members when lecturer upload new resources for class.
+* Real-time notification for team members when lecturer/ team members upload new resources for teams.
+    * Real-time notification for team members in the team when team leader mark done team milestones.
+    * Real-time notification for team members in the team when team submit any checkpoint.
+    * Real-time notification for team members in the team when team mark done any checkpoint.
+    * Real-time notification for lecturer/ team members when receiving messages or in-coming video meetings.
+❖Functional Requirements (role - function)
+▪Admin (System Administrator):
+* View all accounts of the system (Head Department, Staff, Lecturer, Student).
+* Deactivate all user accounts of the system.
+* View all system reports from users through email.
+* Dashboard.
+▪Staff:
+* Import files to automatically create and manage subjects of the system.
+* Import files to automatically create and manage syllabus of the system.
+* Import files to automatically create and manage classes of the system.
+* Import files to automatically create and manage lecturer/student accounts of the system.
+* View list and detail of subjects and syllabus.
+* View list and detail of classes.
+* View list and detail of lecturer/student accounts.
+* Assign lecturer and students to classes.
+▪Head Department:
+* View list and detail of all classes.
+* View list and detail of subject & syllabus.
+* View list and detail of all projects (information, objectives, milestones) of the system (pending, approved, denied).
+* Approve/deny pending projects.
+* Update approved projects.
+* Assign projects from approved projects list for all classes. 
+▪Lecturer
+* View list and detail of own projects (pending, approved, denied).
+* Create and manage projects based on subject syllabus (description, objectives, milestones).
+* Submit pending projects to the head department for approval.
+* Assign projects to assigned classes from the approval projects list of the system.
+* View list and detail of assigned classes (class info, list of students, classes’ projects, list of teams, …).
+* View list and detail of teams in assigned classes.
+* Create and manage teams in assigned classes.
+* Manage members of teams in classes.
+* Monitor team progress (team progress and completion).
+* Use AI support to analyze and receive advises, recommendations based on team progress. (optional)
+* Monitor each team member’s contribution.
+* Use AI support to analyze and receive advises, recommendations based on each member’s contribution. (optional)
+* Manage team milestones based on project objectives and milestones.
+* Create and manage milestones questions for teams in classes.
+* View list and detail of milestones answers of team members.
+* View checkpoints submissions of teams.
+* View workspace of teams.
+* Manage resources of classes, teams, milestones, checkpoints.
+* Evaluate and feedback teams/ team members at the end of projects.
+* Evaluate and feedback members’ milestones answers.
+* Evaluate and feedback team checkpoints submissions.
+* View evaluation and feedback of team members at the end of project.
+* View evaluation and feedback of team members for other milestones answers.
+* Chat with teams through the chat system.
+* Call meetings with teams.
+* Schedule and set notification for upcoming meetings.
+* Use real-time collaboration tools.
+* Use chat bot.
+▪Student
+* View list and detail of assigned classes.
+* View list and detail of assigned team in classes.
+* View detail of subject/syllabus.
+* View detail of team milestones and checkpoints.
+* Monitor team progress (team progress and completion).
+* Monitor each team member’s contribution.
+* Use AI support to analyze and receive advises, recommendations based on team progress. (optional)
+* Use AI support to analyze and receive advises, recommendations based on each member’s contribution. (optional)
+* Mark done team milestones.
+* Mark done team checkpoints.
+* View milestones questions.
+* Answer milestones questions.
+* Create and manage team checkpoints.
+* Submit team checkpoints.
+* View workspace of teams.
+* Create and manage cards, tasks, subtasks of the team in the workspace.
+* Manage resources of classes, teams, milestones, checkpoints.
+* Evaluate and feedback other team members at the end of projects.
+* Evaluate and feedback other team members’ milestones answers.
+* Chat with teams through the chat system.
+* Call meetings with teams.
+* Schedule and set notification for upcoming meetings.
+* View evaluation and feedback of lecturer/team members at the end of project.
+* View evaluation and feedback of lecturer/team members for other milestones answers.
+* View evaluate and feedback of lecturer for team checkpoints.
+* Use real-time collaboration tools.
+* Use chat bot.
+(*) 3.2.  Main proposal content (including result and product) 
+
+a.Theory and practice (document):
+●Apply the software development process and UML 2.0 in the modeling system. 
+●The documents include User Requirements, Software Requirement Specification, Architecture Design, Detail Design, System Implementation, and Testing Document, Installation Guide, Source code, and deployable software packages.
+●Server-side technologies:
+○Backend: ASP.NET Core Web API
+○Database: PostgreSQL 
+○Cloud Service: 
+■Azure (hosting server)
+■AWS (hosting frontend)
+■Cloudinary (media storage)
+■Upstash (Redis)
+○Realtime & Communication
+■WebRTC (call, audio meetings, screen sharing)
+■Signal (team chat system)
+■Socket.IO (real-time whiteboard)
+○AI & Code Compilation
+■Bedrock (AWS)
+○Client-side technologies:
+■Web-client: Reactjs
+
+b. Products: 
+   	 * Web-app for Admin, Head Department, Staff, Lecturers, Students 
+
+c. Proposed Tasks:
+* Task Package1: Analyze requirements, design the system
+* Task Package2: Develop API
+* Task Package3: Develop Web-app for Head Department/Staff
+* Task Package4: Develop Web-app for  Student/Lecturer
+* Task Package5: Develop Web-app for Admin
+* Task Package6: Deploy and test the entire system
+* Task Package7: Prepare all documents and reports
+4. Other comments (propose all relative things if have)
+N/A
+ 
+                         Supervisor  
+ (Sign and full name) 
+
+
+
+Nguyễn Trọng Tài	HCM, …/…../2025
+On behalf of the Registers  
+(Sign and full name) 
+
+
+
+ 

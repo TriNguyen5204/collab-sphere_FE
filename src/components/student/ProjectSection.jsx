@@ -5,8 +5,6 @@ const ProjectSection = ({
   title, 
   icon: Icon, 
   projects, 
-  starred, 
-  onToggleStar, 
   onCardClick,
   emptyMessage 
 }) => {
@@ -28,22 +26,13 @@ const ProjectSection = ({
       </h2>
       {projects.length > 0 ? (
         <div className="flex flex-wrap gap-6">
-          {projects.map((project) => {
-            const key = getProjectKey(project);
-            const isStar =
-              starred.includes(key) ||
-              (project?.ProjectId != null && starred.includes(String(project.ProjectId)));
-            return (
-              <ProjectCard
-                key={key}
-                project={project}
-                isStarred={isStar}
-                // Bind handlers so ProjectCard doesn't need to know IDs
-                onToggleStar={(e) => onToggleStar(e, key)}
-                onClick={() => onCardClick(project)}
-              />
-            );
-          })}
+          {projects.map((project) => (
+            <ProjectCard
+              key={getProjectKey(project)}
+              project={project}
+              onClick={() => onCardClick(project)}
+            />
+          ))}
         </div>
       ) : (
         emptyMessage && (

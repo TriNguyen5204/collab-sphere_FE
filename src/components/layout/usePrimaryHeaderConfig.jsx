@@ -95,7 +95,7 @@ const usePrimaryHeaderConfig = () => {
             <div className='absolute right-4 top-full mt-3 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl'>
               <button
                 onClick={() => {
-                  navigate('/profile');
+                  navigate('/student/profile');
                   setDropdownOpen(false);
                 }}
                 className='flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-600 transition hover:bg-blue-50 hover:text-blue-600'
@@ -105,7 +105,7 @@ const usePrimaryHeaderConfig = () => {
               </button>
               <button
                 onClick={() => {
-                  navigate('/class');
+                  navigate('/student/classes');
                   setDropdownOpen(false);
                 }}
                 className='flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-600 transition hover:bg-blue-50 hover:text-blue-600'
@@ -115,7 +115,7 @@ const usePrimaryHeaderConfig = () => {
               </button>
               <button
                 onClick={() => {
-                  navigate('/project');
+                  navigate('/student/projects');
                   setDropdownOpen(false);
                 }}
                 className='flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-600 transition hover:bg-blue-50 hover:text-blue-600'

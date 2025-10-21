@@ -15,8 +15,7 @@ const ProjectBoardViewMenu = () => {
   const menuItems = [
     { name: 'Board', icon: Kanban, path: `/student/project/${id}/${encodedProjectName}` },
     { name: 'Team Workspace', icon: UsersRound, path: `/student/project/${id}/${encodedProjectName}/team-workspace` },
-    { name: 'Milestones', icon: Flag, path: `/student/project/${id}/${encodedProjectName}/milestones` },
-    { name: 'Checkpoints', icon: CheckSquare, path: `/student/project/${id}/${encodedProjectName}/checkpoints` },
+    { name: 'Milestones & Checkpoints', icon: Flag, path: `/student/project/${id}/${encodedProjectName}/milestones&checkpoints` },
     { name: 'Communication', icon: MessageSquare, path: `/student/project/${id}/${encodedProjectName}/communication` },
     { name: 'Peer Evaluation', icon: ClipboardList, path: `/student/project/${id}/${encodedProjectName}/peer-evaluation` },
   ];
@@ -52,10 +51,10 @@ const ProjectBoardViewMenu = () => {
       </button>
 
       {open && (
-        <ul className="absolute mt-2 w-56 bg-gray-800 text-white shadow-lg rounded-lg border border-gray-700 text-sm z-10">
+        <ul className="absolute mt-2 bg-gray-800 text-white shadow-lg rounded-lg border border-gray-700 text-sm z-10 w-full">
           {menuItems.map(({ name, icon: Icon, path }) => {
             const normalizedPath = normalizePath(path);
-            const isActive = normalizedPath === activePath; // <-- only highlight the computed active item
+            const isActive = normalizedPath === activePath;
 
             return (
               <li key={name}>
