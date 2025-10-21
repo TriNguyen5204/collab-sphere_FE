@@ -684,16 +684,10 @@
   color: #0f172a;
 }
 
-.objectiveDescription {
-  font-size: 0.9rem;
-  color: #475569;
-  line-height: 1.5;
-}
-
 .objectiveMeta {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 3rem;
+  margin-bottom: 1.5rem;
 }
 
 .progressTag {

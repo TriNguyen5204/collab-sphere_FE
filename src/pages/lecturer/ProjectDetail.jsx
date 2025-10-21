@@ -26,47 +26,161 @@ import {
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid';
 
-const mapProjectToForm = (data) => ({
-  title: data.title,
-  description: data.description,
-  category: data.category,
-  difficulty: data.difficulty,
-  estimatedDuration: data.estimatedDuration,
-  maxTeamSize: data.maxTeamSize,
-  minTeamSize: data.minTeamSize,
-  tags: data.tags.join(', '),
-  skillsRequired: data.skillsRequired.join(', '),
-  learningOutcomes: data.learningOutcomes.join('\n'),
-  prerequisites: data.prerequisites.join('\n'),
+const generateUid = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+
+const createMilestoneFormRecord = (milestone = {}, parentUid = 'objective') => ({
+  uid: milestone.uid ?? generateUid(`${parentUid}-milestone`),
+  objectiveMilestoneId: milestone.objectiveMilestoneId ?? milestone.id ?? '',
+  title: milestone.title ?? milestone.description ?? '',
+  description: milestone.description ?? '',
+  startDate: milestone.startDate ?? '',
+  endDate: milestone.endDate ?? '',
 });
 
-const mergeFormIntoProject = (project, form) => ({
-  ...project,
-  title: form.title.trim(),
-  description: form.description.trim(),
-  category: form.category.trim(),
-  difficulty: form.difficulty,
-  estimatedDuration: form.estimatedDuration.trim(),
-  maxTeamSize: Number(form.maxTeamSize) || project.maxTeamSize,
-  minTeamSize: Number(form.minTeamSize) || project.minTeamSize,
-  tags: form.tags
-    .split(',')
-    .map((tag) => tag.trim())
-    .filter(Boolean),
-  skillsRequired: form.skillsRequired
-    .split(',')
-    .map((skill) => skill.trim())
-    .filter(Boolean),
-  learningOutcomes: form.learningOutcomes
-    .split('\n')
-    .map((item) => item.trim())
-    .filter(Boolean),
-  prerequisites: form.prerequisites
-    .split('\n')
-    .map((item) => item.trim())
-    .filter(Boolean),
-  lastModified: new Date().toISOString().slice(0, 10),
+const normaliseMilestoneRecord = (milestone = {}) => {
+  const resolvedTitle =
+    milestone.title ??
+    milestone.name ??
+    milestone.heading ??
+    milestone.summary ??
+    milestone.description ??
+    '';
+
+  const resolvedDescription = milestone.description ?? resolvedTitle;
+
+  return {
+    ...milestone,
+    title: resolvedTitle || 'Untitled milestone',
+    description: resolvedDescription,
+  };
+};
+
+const createObjectiveFormRecord = (objective = {}) => {
+  const uid = objective.uid ?? generateUid('objective');
+  const rawMilestones = Array.isArray(objective.objectiveMilestones)
+    ? objective.objectiveMilestones
+    : Array.isArray(objective.milestones)
+      ? objective.milestones
+      : [];
+
+  return {
+    uid,
+    objectiveId: objective.objectiveId ?? objective.id ?? '',
+    title:
+      objective.title ??
+      objective.name ??
+      objective.heading ??
+      objective.summary ??
+      objective.description ??
+      '',
+    priority: objective.priority ?? objective.priorityLevel ?? '',
+    objectiveMilestones: rawMilestones.map((milestone) =>
+      createMilestoneFormRecord(milestone, uid)
+    ),
+  };
+};
+
+const createEmptyObjective = () =>
+  createObjectiveFormRecord({
+    objectiveId: '',
+    title: '',
+    description: '',
+    priority: '',
+    objectiveMilestones: [],
+  });
+
+const createEmptyMilestone = (parentUid) => createMilestoneFormRecord({}, parentUid);
+
+const normaliseObjectiveRecord = (objective = {}) => {
+  const resolvedTitle =
+    objective.title ??
+    objective.name ??
+    objective.heading ??
+    objective.summary ??
+    objective.description ??
+    '';
+
+  const resolvedDescription = objective.description ?? '';
+
+  const rawMilestones = Array.isArray(objective.objectiveMilestones)
+    ? objective.objectiveMilestones
+    : Array.isArray(objective.milestones)
+      ? objective.milestones
+      : [];
+
+  return {
+    ...objective,
+    title: resolvedTitle || 'Untitled objective',
+    description: resolvedDescription,
+  objectiveMilestones: rawMilestones.map((milestone) => normaliseMilestoneRecord(milestone)),
+  };
+};
+
+const normaliseObjectives = (objectives) => {
+  if (!Array.isArray(objectives)) {
+    return [];
+  }
+
+  return objectives.map((objective) => normaliseObjectiveRecord(objective));
+};
+
+const mapProjectToForm = (data) => ({
+  projectId: data.id ?? data.projectId ?? '',
+  projectName: data.title ?? data.projectName ?? '',
+  description: data.description ?? '',
+  subjectId: data.subjectId ?? '',
+  objectives: Array.isArray(data.objectives)
+    ? data.objectives.map((objective) => createObjectiveFormRecord(normaliseObjectiveRecord(objective)))
+    : [],
 });
+
+const mergeFormIntoProject = (project, form) => {
+  const toTrimmed = (value) => (typeof value === 'string' ? value.trim() : '');
+
+  return {
+    ...project,
+    id: form.projectId !== '' ? (Number(form.projectId) || form.projectId) : project.id,
+    title: toTrimmed(form.projectName) || project.title,
+    description: toTrimmed(form.description),
+    subjectId:
+      form.subjectId === ''
+        ? project.subjectId ?? ''
+        : (Number(form.subjectId) || form.subjectId),
+    objectives: normaliseObjectives(form.objectives.map((objective) => {
+      const objectiveIdValue =
+        objective.objectiveId === ''
+          ? undefined
+          : (Number(objective.objectiveId) || objective.objectiveId);
+
+  const titleValue = toTrimmed(objective.title ?? objective.description ?? '');
+  const descriptionValue = toTrimmed(objective.description ?? '');
+
+      return {
+        id: objectiveIdValue,
+        objectiveId: objectiveIdValue,
+        title: titleValue,
+        description: descriptionValue,
+        priority: toTrimmed(objective.priority),
+        objectiveMilestones: objective.objectiveMilestones.map((milestone) => {
+          const milestoneIdValue =
+            milestone.objectiveMilestoneId === ''
+              ? undefined
+              : (Number(milestone.objectiveMilestoneId) || milestone.objectiveMilestoneId);
+
+          return {
+            id: milestoneIdValue,
+            objectiveMilestoneId: milestoneIdValue,
+            title: toTrimmed(milestone.title),
+            description: toTrimmed(milestone.description),
+            startDate: milestone.startDate,
+            endDate: milestone.endDate,
+          };
+        }),
+      };
+    })),
+    lastModified: new Date().toISOString().slice(0, 10),
+  };
+};
 
 const formatDate = (input) => {
   if (!input) {
@@ -110,6 +224,7 @@ const ProjectDetail = () => {
     statusString: 'PENDING',
     subjectName: '',
     subjectCode: '',
+  subjectId: 101,
     lecturerName: 'Dr. Sarah Johnson',
     lecturerCode: '',
     createdAt: null,
@@ -230,8 +345,8 @@ const ProjectDetail = () => {
 
       return {
         id: objectiveId,
-        title: objective.title ?? objective.name ?? 'Untitled objective',
-        description: objective.description ?? 'Description is not available yet.',
+        title: objective.title ?? objective.name ?? objective.description ?? 'Untitled objective',
+        description: objective.description ?? '',
         priority: objectivePriority,
         progress:
           clampPercentage(
@@ -281,7 +396,7 @@ const ProjectDetail = () => {
           updatedAt: response?.updatedAt ?? previous.updatedAt,
           statusString: response?.statusString ?? previous.statusString,
           status: response?.statusString?.toLowerCase() ?? previous.status,
-          objectives: Array.isArray(response?.objectives) ? response.objectives : [],
+          objectives: normaliseObjectives(response?.objectives),
         }));
       } catch (error) {
         if (!isCancelled) {
@@ -927,10 +1042,142 @@ const ProjectDetail = () => {
   };
 
   const handleEditFieldChange = (field, value) => {
-    setEditForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setEditForm((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [field]: value,
+      };
+    });
+  };
+
+  const handleObjectiveFieldChange = (objectiveIndex, field, value) => {
+    setEditForm((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const updatedObjectives = prev.objectives.map((objective, index) => (
+        index === objectiveIndex
+          ? { ...objective, [field]: value }
+          : objective
+      ));
+
+      return {
+        ...prev,
+        objectives: updatedObjectives,
+      };
+    });
+  };
+
+  const handleMilestoneFieldChange = (objectiveIndex, milestoneIndex, field, value) => {
+    setEditForm((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const updatedObjectives = prev.objectives.map((objective, index) => {
+        if (index !== objectiveIndex) {
+          return objective;
+        }
+
+        const updatedMilestones = objective.objectiveMilestones.map((milestone, mIndex) => (
+          mIndex === milestoneIndex
+            ? { ...milestone, [field]: value }
+            : milestone
+        ));
+
+        return {
+          ...objective,
+          objectiveMilestones: updatedMilestones,
+        };
+      });
+
+      return {
+        ...prev,
+        objectives: updatedObjectives,
+      };
+    });
+  };
+
+  const handleAddObjective = () => {
+    setEditForm((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        objectives: [...prev.objectives, createEmptyObjective()],
+      };
+    });
+  };
+
+  const handleRemoveObjective = (objectiveIndex) => {
+    setEditForm((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        objectives: prev.objectives.filter((_, index) => index !== objectiveIndex),
+      };
+    });
+  };
+
+  const handleAddMilestone = (objectiveIndex) => {
+    setEditForm((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const updatedObjectives = prev.objectives.map((objective, index) => {
+        if (index !== objectiveIndex) {
+          return objective;
+        }
+
+        return {
+          ...objective,
+          objectiveMilestones: [
+            ...objective.objectiveMilestones,
+            createEmptyMilestone(objective.uid),
+          ],
+        };
+      });
+
+      return {
+        ...prev,
+        objectives: updatedObjectives,
+      };
+    });
+  };
+
+  const handleRemoveMilestone = (objectiveIndex, milestoneIndex) => {
+    setEditForm((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const updatedObjectives = prev.objectives.map((objective, index) => {
+        if (index !== objectiveIndex) {
+          return objective;
+        }
+
+        return {
+          ...objective,
+          objectiveMilestones: objective.objectiveMilestones.filter((_, mIndex) => mIndex !== milestoneIndex),
+        };
+      });
+
+      return {
+        ...prev,
+        objectives: updatedObjectives,
+      };
+    });
   };
 
   const handleEditSave = (event) => {
@@ -1128,63 +1375,30 @@ const ProjectDetail = () => {
             <form className={styles.editForm} onSubmit={handleEditSave}>
               <div className={styles.formSection}>
                 <div className={styles.sectionHeaderRow}>
-                  <span className={styles.sectionTitle}>Project basics</span>
-                  <span className={styles.sectionHint}>Update the core details shared with students.</span>
+                  <span className={styles.sectionTitle}>Project metadata</span>
+                  <span className={styles.sectionHint}>Mirror the PUT request payload fields.</span>
                 </div>
                 <div className={styles.formGrid}>
                   <label className={styles.formField}>
-                    <span>Project title</span>
+                    <span>Project ID</span>
+                    <input type="text" value={editForm.projectId} readOnly />
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Project name</span>
                     <input
                       type="text"
-                      value={editForm.title}
-                      onChange={(event) => handleEditFieldChange('title', event.target.value)}
+                      value={editForm.projectName}
+                      onChange={(event) => handleEditFieldChange('projectName', event.target.value)}
                       required
                     />
                   </label>
                   <label className={styles.formField}>
-                    <span>Category</span>
-                    <input
-                      type="text"
-                      value={editForm.category}
-                      onChange={(event) => handleEditFieldChange('category', event.target.value)}
-                      required
-                    />
-                  </label>
-                  <label className={styles.formField}>
-                    <span>Difficulty</span>
-                    <select
-                      value={editForm.difficulty}
-                      onChange={(event) => handleEditFieldChange('difficulty', event.target.value)}
-                    >
-                      <option value="Beginner">Beginner</option>
-                      <option value="Intermediate">Intermediate</option>
-                      <option value="Advanced">Advanced</option>
-                    </select>
-                  </label>
-                  <label className={styles.formField}>
-                    <span>Estimated duration</span>
-                    <input
-                      type="text"
-                      value={editForm.estimatedDuration}
-                      onChange={(event) => handleEditFieldChange('estimatedDuration', event.target.value)}
-                    />
-                  </label>
-                  <label className={styles.formField}>
-                    <span>Minimum team size</span>
+                    <span>Subject ID</span>
                     <input
                       type="number"
-                      min="1"
-                      value={editForm.minTeamSize}
-                      onChange={(event) => handleEditFieldChange('minTeamSize', event.target.value)}
-                    />
-                  </label>
-                  <label className={styles.formField}>
-                    <span>Maximum team size</span>
-                    <input
-                      type="number"
-                      min="1"
-                      value={editForm.maxTeamSize}
-                      onChange={(event) => handleEditFieldChange('maxTeamSize', event.target.value)}
+                      value={editForm.subjectId}
+                      onChange={(event) => handleEditFieldChange('subjectId', event.target.value)}
+                      placeholder="e.g. 204"
                     />
                   </label>
                 </div>
@@ -1192,11 +1406,11 @@ const ProjectDetail = () => {
 
               <div className={styles.formSection}>
                 <div className={styles.sectionHeaderRow}>
-                  <span className={styles.sectionTitle}>Executive summary</span>
-                  <span className={styles.sectionHint}>Craft a compelling brief for lecturers and students.</span>
+                  <span className={styles.sectionTitle}>Project description</span>
+                  <span className={styles.sectionHint}>This maps directly to the API description field.</span>
                 </div>
                 <label className={styles.formField}>
-                  <span>Summary</span>
+                  <span>Description</span>
                   <textarea
                     rows={4}
                     value={editForm.description}
@@ -1207,58 +1421,177 @@ const ProjectDetail = () => {
 
               <div className={styles.formSection}>
                 <div className={styles.sectionHeaderRow}>
-                  <span className={styles.sectionTitle}>Scope & requirements</span>
-                  <span className={styles.sectionHint}>Highlight the skills and tags students should prepare for.</span>
+                  <span className={styles.sectionTitle}>Objectives &amp; milestones</span>
+                  <div className={styles.sectionActions}>
+                    <button type="button" className={styles.ghostButton} onClick={handleAddObjective}>
+                      Add objective
+                    </button>
+                  </div>
                 </div>
-                <div className={styles.dualFieldRow}>
-                  <label className={styles.formField}>
-                    <span>Primary tags</span>
-                    <input
-                      type="text"
-                      value={editForm.tags}
-                      onChange={(event) => handleEditFieldChange('tags', event.target.value)}
-                      placeholder="React, AI, API"
-                    />
-                    <small>Separate tags with commas.</small>
-                  </label>
-                  <label className={styles.formField}>
-                    <span>Required skill set</span>
-                    <input
-                      type="text"
-                      value={editForm.skillsRequired}
-                      onChange={(event) => handleEditFieldChange('skillsRequired', event.target.value)}
-                      placeholder="JavaScript, UX, Testing"
-                    />
-                    <small>Separate skills with commas.</small>
-                  </label>
-                </div>
-              </div>
-
-              <div className={styles.formSection}>
-                <div className={styles.sectionHeaderRow}>
-                  <span className={styles.sectionTitle}>Learning blueprint</span>
-                  <span className={styles.sectionHint}>Clarify the outcomes and prerequisites for the cohort.</span>
-                </div>
-                <div className={styles.dualFieldRow}>
-                  <label className={styles.formField}>
-                    <span>Learning outcomes</span>
-                    <textarea
-                      rows={4}
-                      value={editForm.learningOutcomes}
-                      onChange={(event) => handleEditFieldChange('learningOutcomes', event.target.value)}
-                      placeholder="One outcome per line"
-                    />
-                  </label>
-                  <label className={styles.formField}>
-                    <span>Pre-requisites</span>
-                    <textarea
-                      rows={4}
-                      value={editForm.prerequisites}
-                      onChange={(event) => handleEditFieldChange('prerequisites', event.target.value)}
-                      placeholder="One prerequisite per line"
-                    />
-                  </label>
-                </div>
+                {editForm.objectives.length === 0 ? (
+                  <p className={styles.emptyState}>No objectives configured yet. Add one to structure the request body.</p>
+                ) : (
+                  <div className={styles.objectiveList}>
+                    {editForm.objectives.map((objective, objectiveIndex) => (
+                      <div key={objective.uid} className={styles.objectiveCard}>
+                        <div className={styles.objectiveHeader}>
+                          <span>Objective {objectiveIndex + 1}</span>
+                          <div className={styles.objectiveActions}>
+                            <button
+                              type="button"
+                              className={styles.ghostButton}
+                              onClick={() => handleAddMilestone(objectiveIndex)}
+                            >
+                              Add milestone
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.dangerButton}
+                              onClick={() => handleRemoveObjective(objectiveIndex)}
+                            >
+                              Remove objective
+                            </button>
+                          </div>
+                        </div>
+                        <div className={styles.formGrid}>
+                          <label className={styles.formField}>
+                            <span>Objective ID</span>
+                            <input
+                              type="text"
+                              value={objective.objectiveId}
+                              onChange={(event) =>
+                                handleObjectiveFieldChange(objectiveIndex, 'objectiveId', event.target.value)
+                              }
+                              placeholder="Auto or manual"
+                            />
+                          </label>
+                          <label className={styles.formField}>
+                            <span>Description</span>
+                            <input
+                              type="text"
+                              value={objective.description}
+                              onChange={(event) =>
+                                handleObjectiveFieldChange(objectiveIndex, 'description', event.target.value)
+                              }
+                              placeholder="Enter objective description"
+                            />
+                          </label>
+                          <label className={styles.formField}>
+                            <span>Priority</span>
+                            <input
+                              type="text"
+                              value={objective.priority}
+                              onChange={(event) =>
+                                handleObjectiveFieldChange(objectiveIndex, 'priority', event.target.value)
+                              }
+                              placeholder="e.g. High"
+                            />
+                          </label>
+                        </div>
+                        {objective.objectiveMilestones.length === 0 ? (
+                          <p className={styles.emptyState}>No milestones for this objective yet.</p>
+                        ) : (
+                          <div className={styles.milestoneList}>
+                            {objective.objectiveMilestones.map((milestone, milestoneIndex) => (
+                              <div key={milestone.uid} className={styles.milestoneCard}>
+                                <div className={styles.milestoneHeader}>
+                                  <span>Milestone {milestoneIndex + 1}</span>
+                                  <button
+                                    type="button"
+                                    className={styles.dangerButton}
+                                    onClick={() => handleRemoveMilestone(objectiveIndex, milestoneIndex)}
+                                  >
+                                    Remove milestone
+                                  </button>
+                                </div>
+                                <div className={styles.formGrid}>
+                                  <label className={styles.formField}>
+                                    <span>Milestone ID</span>
+                                    <input
+                                      type="text"
+                                      value={milestone.objectiveMilestoneId}
+                                      onChange={(event) =>
+                                        handleMilestoneFieldChange(
+                                          objectiveIndex,
+                                          milestoneIndex,
+                                          'objectiveMilestoneId',
+                                          event.target.value,
+                                        )
+                                      }
+                                      placeholder="Auto or manual"
+                                    />
+                                  </label>
+                                  <label className={styles.formField}>
+                                    <span>Title</span>
+                                    <input
+                                      type="text"
+                                      value={milestone.title}
+                                      onChange={(event) =>
+                                        handleMilestoneFieldChange(
+                                          objectiveIndex,
+                                          milestoneIndex,
+                                          'title',
+                                          event.target.value,
+                                        )
+                                      }
+                                    />
+                                  </label>
+                                </div>
+                                <label className={styles.formField}>
+                                  <span>Description</span>
+                                  <textarea
+                                    rows={3}
+                                    value={milestone.description}
+                                    onChange={(event) =>
+                                      handleMilestoneFieldChange(
+                                        objectiveIndex,
+                                        milestoneIndex,
+                                        'description',
+                                        event.target.value,
+                                      )
+                                    }
+                                  />
+                                </label>
+                                <div className={styles.milestoneDates}>
+                                  <label className={styles.formField}>
+                                    <span>Start date</span>
+                                    <input
+                                      type="date"
+                                      value={milestone.startDate}
+                                      onChange={(event) =>
+                                        handleMilestoneFieldChange(
+                                          objectiveIndex,
+                                          milestoneIndex,
+                                          'startDate',
+                                          event.target.value,
+                                        )
+                                      }
+                                    />
+                                  </label>
+                                  <label className={styles.formField}>
+                                    <span>End date</span>
+                                    <input
+                                      type="date"
+                                      value={milestone.endDate}
+                                      onChange={(event) =>
+                                        handleMilestoneFieldChange(
+                                          objectiveIndex,
+                                          milestoneIndex,
+                                          'endDate',
+                                          event.target.value,
+                                        )
+                                      }
+                                    />
+                                  </label>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <footer className={styles.editFooter}>
                 <button type="button" className={styles.secondaryBtn} onClick={closeEditPanel}>

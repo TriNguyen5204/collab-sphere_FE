@@ -35,6 +35,5 @@ export const getClassProjects = async (classId, params = {}) => {
 	}
 
 	const response = await apiClient.get(`/project/class/${classId}`, { params });
-	console.log(response.data)
 	return response.data;
 };

@@ -60,27 +60,25 @@ const formatDateLabel = (input) => {
 };
 
 const WorkBreakdownStructure = ({ objectives = [], isLoading = false, onMilestoneClick }) => {
-  const [expandedObjectives, setExpandedObjectives] = useState(new Set());
+  const [expandedObjectiveId, setExpandedObjectiveId] = useState(null);
 
   useEffect(() => {
     if (!objectives.length) {
-      setExpandedObjectives(new Set());
+      setExpandedObjectiveId(null);
       return;
     }
 
-    setExpandedObjectives(new Set(objectives.map((objective) => objective.id)));
+    setExpandedObjectiveId((current) => {
+      if (current && objectives.some((objective) => objective.id === current)) {
+        return current;
+      }
+
+      return objectives[0]?.id ?? null;
+    });
   }, [objectives]);
 
   const toggleObjective = (objectiveId) => {
-    setExpandedObjectives((current) => {
-      const next = new Set(current);
-      if (next.has(objectiveId)) {
-        next.delete(objectiveId);
-      } else {
-        next.add(objectiveId);
-      }
-      return next;
-    });
+    setExpandedObjectiveId((current) => (current === objectiveId ? null : objectiveId));
   };
 
   const skeletonPlaceholders = useMemo(
@@ -161,6 +159,17 @@ const WorkBreakdownStructure = ({ objectives = [], isLoading = false, onMileston
       const deadlineLabel = formatDateLabel(milestone.endDate ?? milestone.dueDate);
       const progressTag = renderProgressTag(milestone.progress);
       const statusBadge = renderStatusBadge(milestone.status);
+      const titleText =
+        typeof milestone.title === 'string'
+          ? milestone.title.trim()
+          : String(milestone.title ?? '').trim();
+
+      const descriptionText =
+        typeof milestone.description === 'string' && milestone.description.trim().length > 0
+          ? milestone.description.trim()
+          : '';
+      const shouldRenderDescription =
+        descriptionText.length > 0 && descriptionText.toLowerCase() !== titleText.toLowerCase();
 
       return (
         <button
@@ -170,10 +179,12 @@ const WorkBreakdownStructure = ({ objectives = [], isLoading = false, onMileston
           onClick={() => onMilestoneClick?.(milestone)}
         >
           <div className={styles.milestoneHeader}>
-            <span className={styles.milestoneTitle}>{milestone.title}</span>
+            <span className={styles.milestoneTitle}>{titleText || 'Untitled milestone'}</span>
             {statusBadge}
           </div>
-          <p className={styles.milestoneDescription}>{milestone.description}</p>
+          {shouldRenderDescription && (
+            <p className={styles.milestoneDescription}>{descriptionText}</p>
+          )}
           <div className={styles.milestoneMeta}>
             {startLabel && (
               <span className={`${styles.metaItem} ${styles.scheduleItem}`}>
@@ -206,9 +217,19 @@ const WorkBreakdownStructure = ({ objectives = [], isLoading = false, onMileston
     }
 
     return objectives.map((objective) => {
-      const isExpanded = expandedObjectives.has(objective.id);
+      const isExpanded = expandedObjectiveId === objective.id;
       const priorityTag = renderPriorityTag(objective.priority);
       const progressTag = renderProgressTag(objective.progress);
+      const titleText =
+        typeof objective.title === 'string'
+          ? objective.title.trim()
+          : String(objective.title ?? '').trim();
+      const descriptionText =
+        typeof objective.description === 'string' && objective.description.trim().length > 0
+          ? objective.description.trim()
+          : '';
+      const shouldRenderDescription =
+        descriptionText.length > 0 && descriptionText.toLowerCase() !== titleText.toLowerCase();
 
       return (
         <div key={objective.id} className={styles.objectiveCard}>
@@ -227,9 +248,8 @@ const WorkBreakdownStructure = ({ objectives = [], isLoading = false, onMileston
             </button>
             <div className={styles.objectiveInfo}>
               <div className={styles.objectiveTitleRow}>
-                <h4 className={styles.objectiveTitle}>{objective.title}</h4>
+                <h4 className={styles.objectiveTitle}>{titleText || 'Untitled objective'}</h4>
               </div>
-              <p className={styles.objectiveDescription}>{objective.description}</p>
             </div>
             {(priorityTag || progressTag) && (
               <div className={styles.objectiveMeta}>
