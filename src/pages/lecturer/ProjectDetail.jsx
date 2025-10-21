@@ -124,6 +124,7 @@ const ProjectDetail = () => {
     createdBy: 'Dr. Sarah Johnson',
     tags: ['React', 'Node.js', 'MongoDB', 'Payment Integration', 'Authentication'],
     skillsRequired: ['JavaScript', 'React', 'Node.js', 'Database Design', 'API Development'],
+    objectives: [],
     learningOutcomes: [
       'Design and implement a full-stack web application',
       'Integrate third-party payment systems',
@@ -147,11 +148,113 @@ const ProjectDetail = () => {
   const [isLoadingProject, setIsLoadingProject] = useState(false);
   const [projectError, setProjectError] = useState('');
 
+  const clampPercentage = (value) => {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+      return null;
+    }
+
+    return Math.min(100, Math.max(0, Math.round(value)));
+  };
+
+  const normaliseStatus = (status, fallback = 'pending') => {
+    if (typeof status === 'string') {
+      return status.toLowerCase();
+    }
+
+    if (typeof status === 'number') {
+      const statusMap = ['pending', 'approved', 'rejected', 'in_progress', 'completed'];
+      return statusMap[status] ?? fallback;
+    }
+
+    return fallback;
+  };
+
+  const wbsObjectives = useMemo(() => {
+    if (!Array.isArray(projectData.objectives)) {
+      return [];
+    }
+
+    return projectData.objectives.map((objective, objectiveIndex) => {
+      const objectiveId =
+        objective.objectiveId ?? objective.id ?? `objective-${objectiveIndex}`;
+      const objectivePriorityRaw =
+        objective.priority ?? objective.priorityLevel ?? objective.objectivePriority ?? null;
+      const objectivePriority =
+        typeof objectivePriorityRaw === 'string'
+          ? objectivePriorityRaw.toLowerCase()
+          : null;
+
+      const rawMilestones = Array.isArray(objective.objectiveMilestones)
+        ? objective.objectiveMilestones
+        : Array.isArray(objective.milestones)
+          ? objective.milestones
+          : [];
+
+      const milestones = rawMilestones.map((milestone, milestoneIndex) => {
+        const milestoneId =
+          milestone.objectiveMilestoneId ??
+          milestone.id ??
+          `milestone-${objectiveId}-${milestoneIndex}`;
+        const resolvedStatus = milestone.statusString ?? milestone.status ?? null;
+        const resolvedEndDate =
+          milestone.endDate ??
+          milestone.finishDate ??
+          milestone.deadline ??
+          milestone.expectedCompletion ??
+          null;
+        const resolvedStartDate =
+          milestone.startDate ??
+          milestone.beginDate ??
+          milestone.start ??
+          milestone.plannedStart ??
+          null;
+
+        return {
+          id: milestoneId,
+          title: milestone.title ?? 'Untitled milestone',
+          description: milestone.description ?? 'Description is not available yet.',
+          status: resolvedStatus ? normaliseStatus(resolvedStatus) : undefined,
+          progress:
+            clampPercentage(
+              milestone.progress ??
+                milestone.completion ??
+                milestone.percentage ??
+                milestone.completionRate ??
+                milestone.completionPercentage ??
+                null,
+            ) ?? undefined,
+          startDate: resolvedStartDate,
+          endDate: resolvedEndDate,
+        };
+      });
+
+      return {
+        id: objectiveId,
+        title: objective.title ?? objective.name ?? 'Untitled objective',
+        description: objective.description ?? 'Description is not available yet.',
+        priority: objectivePriority,
+        progress:
+          clampPercentage(
+            objective.progress ??
+              objective.completion ??
+              objective.percentage ??
+              objective.completionRate ??
+              objective.completionPercentage ??
+              null,
+          ) ?? undefined,
+        milestones,
+      };
+    });
+  }, [projectData.objectives]);
+
   useEffect(() => {
     setProjectData(initialProjectData);
   }, [initialProjectData]);
-
   useEffect(() => {
+    if (!projectId) {
+      return undefined;
+    }
+
     let isCancelled = false;
 
     const fetchProject = async () => {
@@ -167,24 +270,22 @@ const ProjectDetail = () => {
 
         setProjectData((previous) => ({
           ...previous,
-          id: response?.projectId ?? previous.id,
-          title: response?.projectName ?? previous.title,
+          id: response?.projectId ?? response?.id ?? previous.id,
+          title: response?.projectName ?? response?.title ?? previous.title,
           description: response?.description ?? previous.description,
           subjectName: response?.subjectName ?? previous.subjectName,
           subjectCode: response?.subjectCode ?? previous.subjectCode,
           lecturerName: response?.lecturerName ?? previous.lecturerName,
           lecturerCode: response?.lecturerCode ?? previous.lecturerCode,
-          createdBy: response?.lecturerName ?? previous.createdBy,
           createdAt: response?.createdAt ?? previous.createdAt,
           updatedAt: response?.updatedAt ?? previous.updatedAt,
           statusString: response?.statusString ?? previous.statusString,
           status: response?.statusString?.toLowerCase() ?? previous.status,
-          objectives: response?.objectives ?? previous.objectives,
+          objectives: Array.isArray(response?.objectives) ? response.objectives : [],
         }));
       } catch (error) {
         if (!isCancelled) {
-          console.error('Failed to load project detail.', error);
-          setProjectError('Unable to load project detail. Please try again.');
+          setProjectError(error?.message ?? 'Unable to load project details');
         }
       } finally {
         if (!isCancelled) {
@@ -193,9 +294,7 @@ const ProjectDetail = () => {
       }
     };
 
-    if (projectId) {
-      fetchProject();
-    }
+    fetchProject();
 
     return () => {
       isCancelled = true;
@@ -957,6 +1056,56 @@ const ProjectDetail = () => {
     { id: 'analytics', name: 'Analytics', icon: ChartBarIcon },
   ];
 
+  const renderLoadingSkeleton = () => (
+    <div className={styles.loadingState}>
+      <div className={styles.loadingHero}>
+        <div className={styles.loadingBreadcrumb}>
+          <span className={`${styles.skeleton} ${styles.skeletonPill}`} />
+          <span className={`${styles.skeleton} ${styles.skeletonPill}`} />
+          <span className={`${styles.skeleton} ${styles.skeletonPill}`} />
+        </div>
+        <div className={`${styles.skeleton} ${styles.skeletonTitle}`} />
+        <div className={`${styles.skeleton} ${styles.skeletonSubtitle}`} />
+        <div className={styles.loadingBadgeRow}>
+          <span className={`${styles.skeleton} ${styles.skeletonBadge}`} />
+          <span className={`${styles.skeleton} ${styles.skeletonBadge}`} />
+          <span className={`${styles.skeleton} ${styles.skeletonBadge}`} />
+        </div>
+      </div>
+
+      <div className={styles.loadingColumns}>
+        <div className={styles.loadingColumn}>
+          <div className={`${styles.skeleton} ${styles.skeletonPanel}`} />
+          <div className={styles.skeletonCardShell}>
+            <span className={`${styles.skeleton} ${styles.skeletonLine}`} />
+            <span className={`${styles.skeleton} ${styles.skeletonLineShort}`} />
+            <span className={`${styles.skeleton} ${styles.skeletonLine}`} />
+            <span className={`${styles.skeleton} ${styles.skeletonLineTiny}`} />
+          </div>
+          <div className={`${styles.skeleton} ${styles.skeletonPanelTall}`} />
+        </div>
+        <div className={styles.loadingColumn}>
+          <div className={`${styles.skeleton} ${styles.skeletonPanel}`} />
+          <div className={styles.skeletonCardShell}>
+            <span className={`${styles.skeleton} ${styles.skeletonLine}`} />
+            <span className={`${styles.skeleton} ${styles.skeletonLineShort}`} />
+            <span className={`${styles.skeleton} ${styles.skeletonLine}`} />
+            <span className={`${styles.skeleton} ${styles.skeletonLineTiny}`} />
+          </div>
+          <div className={`${styles.skeleton} ${styles.skeletonPanel}`} />
+        </div>
+      </div>
+    </div>
+  );
+
+  if (isLoadingProject) {
+    return (
+      <DashboardLayout>
+        <div className={styles.projectDetail}>{renderLoadingSkeleton()}</div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       {isEditing && editForm && (
@@ -1177,33 +1326,7 @@ const ProjectDetail = () => {
                     </div>
                   </div>
                 </div>
-
-                {/* Project Details */}
-                <div className={styles.detailsCard}>
-                  <h3 className={styles.cardTitle}>Project Details</h3>
-                  <div className={styles.detailsList}>
-                    <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Created on</span>
-                      <span className={styles.detailValue}>{formatDate(projectData.createdAt)}</span>
-                    </div>
-                    <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Last modified</span>
-                      <span className={styles.detailValue}>{formatDate(projectData.updatedAt ?? projectData.lastModified)}</span>
-                    </div>
-                    <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Status</span>
-                      <span
-                        className={`${styles.statusPill} ${styles[`status-${(projectData.statusString ?? 'pending').toLowerCase()}`] ?? ''}`}
-                      >
-                        {projectData.statusString ?? 'PENDING'}
-                      </span>
-                    </div>
-                    <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Created by</span>
-                      <span className={styles.detailValue}>{projectData.createdBy}</span>
-                    </div>
-                  </div>
-                </div>
+                
 
                 {/* Learning Outcomes */}
                 <div className={styles.outcomesCard}>
@@ -1248,7 +1371,10 @@ const ProjectDetail = () => {
 
               <div className={styles.wbsContent}>
                 {wbsViewMode === 'wbs' ? (
-                  <WorkBreakdownStructure />
+                        <WorkBreakdownStructure
+                          objectives={wbsObjectives}
+                          isLoading={isLoadingProject}
+                        />
                 ) : (
                   <TimelineView kanbanTasks={kanbanTasks} />
                 )}

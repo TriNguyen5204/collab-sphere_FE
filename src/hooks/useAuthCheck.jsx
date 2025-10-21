@@ -1,30 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { refreshToken } from '../services/authService';
 import { useDispatch, useSelector } from 'react-redux';
 import Cookies from 'js-cookie';
 import { logout, setUserRedux } from '../store/slices/userSlice';
+import { isTokenExpired } from '../utils/tokenUtils';
 
 export function useAuthCheck() {
   const dispatch = useDispatch();
   const user = useSelector(state => state.user);
-  const [tokenStartTime, setTokenStartTime] = useState(0);
-
-  const TOKEN_LIFETIME_MS = 180 * 60 * 1000;
+  const CHECK_INTERVAL_MS = 60 * 1000;
 
   useEffect(() => {
-    if (!user.accessToken && Cookies.get('user')) {
-      setTokenStartTime(null);
-      return;
-    }
-    if (!tokenStartTime) {
-      const now = Date.now();
-      setTokenStartTime(now);
+    if (!user?.accessToken || !user?.refreshToken || !user?.userId) {
+      return undefined;
     }
 
     const handleRefreshToken = async () => {
+      if (!isTokenExpired(user.accessToken)) {
+        return;
+      }
+
       try {
-        const response = await refreshToken(user.refreshToken, user.userId);
-        if (response.isSuccess === true) {
+        const response = await refreshToken(user.userId, user.refreshToken);
+        if (response?.isSuccess) {
           const updatedUser = {
             ...user,
             accessToken: response.accessToken,
@@ -32,7 +30,6 @@ export function useAuthCheck() {
           };
           dispatch(setUserRedux(updatedUser));
           Cookies.set('user', JSON.stringify(updatedUser), { expires: 7 });
-          setTokenStartTime(Date.now());
         } else {
           throw new Error('Token refresh failed');
         }
@@ -40,16 +37,15 @@ export function useAuthCheck() {
         console.error('Token refresh error:', error);
         dispatch(logout());
         Cookies.remove('user');
-        window.location.href('/login');
-        setTokenStartTime(0);
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
       }
     };
-    // Kiểm tra mỗi phút xem token có hết hạn chưa
-    const interval = setInterval(() => {
-      if (tokenStartTime && Date.now() - tokenStartTime >= TOKEN_LIFETIME_MS) {
-        handleRefreshToken();
-      }
-    }, 60 * 1000);
+
+    handleRefreshToken();
+    const interval = setInterval(handleRefreshToken, CHECK_INTERVAL_MS);
+
     return () => clearInterval(interval);
-  }, [user.accessToken, tokenStartTime, user, dispatch, TOKEN_LIFETIME_MS]);
+  }, [user, dispatch]);
 }

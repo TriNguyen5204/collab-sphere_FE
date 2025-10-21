@@ -32,6 +32,7 @@ import ProjectLibrary from '../pages/lecturer/ProjectLibrary';
 import ProjectDetail from '../pages/lecturer/ProjectDetail';
 import ProjectAnalysis from '../pages/lecturer/ProjectAnalysis';
 import LecturerMonitoringDashboard from '../pages/lecturer/LecturerMonitoringDashboard';
+import ClassProjectAssignment from '../pages/lecturer/ClassProjectAssignment';
 
 // academic services (staff) pages
 import StaffPage from '../pages/staff/StaffPage';
@@ -93,6 +94,7 @@ const lecturerRoutes = [
   { path: '/lecturer/classes', element: protectRoute(['LECTURER'], <ClassManagementDashboard />) },
   { path: '/lecturer/classes/:classId', element: protectRoute(['LECTURER'], <ClassDetailPage />) },
   { path: '/lecturer/classes/:classId/projects', element: protectRoute(['LECTURER'], <ClassProjectOverview />) },
+  { path: '/lecturer/classes/:classId/project-assignments', element: protectRoute(['LECTURER'], <ClassProjectAssignment />) },
   { path: '/lecturer/classes/:classId/projects/:projectId', element: protectRoute(['LECTURER'], <TeamProjectDetail />) },
   { path: '/lecturer/create-project', element: protectRoute(['LECTURER'], <CreateProject />) },
   { path: '/lecturer/classes/:classId/create-project', element: protectRoute(['LECTURER'], <CreateProject />) },

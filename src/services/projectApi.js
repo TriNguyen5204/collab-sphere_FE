@@ -25,5 +25,16 @@ export const getProjectDetail = async (projectId) => {
 	}
 
 	const response = await apiClient.get(`/project/${projectId}`);
+	console.log(response.data)
+	return response.data;
+};
+
+export const getClassProjects = async (classId, params = {}) => {
+	if (!classId && classId !== 0) {
+		throw new Error('classId is required to fetch class projects.');
+	}
+
+	const response = await apiClient.get(`/project/class/${classId}`, { params });
+	console.log(response.data)
 	return response.data;
 };

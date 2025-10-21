@@ -13,18 +13,18 @@ export const login = async (email, password) => {
   }
 };
 
-export const refreshToken = async (refreshToken, userId) => {
-    try{
-        const response = await apiClient.post('/auth/refresh-token', {
-            refreshToken,
-            userId,
-        });
-        return response.data;
-    } catch (error) {
-        console.error("Refresh Token API failed:", error);
-        throw new Error(error.response?.data?.message || "Token refresh failed");
-    }
-}
+export const refreshToken = async (userId, refreshTokenValue) => {
+  try {
+    const response = await apiClient.post('/auth/refresh-token', {
+      userId,
+      refreshToken: refreshTokenValue,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Refresh Token API failed:', error);
+    throw new Error(error.response?.data?.message || 'Token refresh failed');
+  }
+};
 export const sendOtp = async (email) => {
   try {
     const response = await apiClient.post('/user/signup/send-otp', {

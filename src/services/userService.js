@@ -41,6 +41,7 @@ export const getClass = async (filters) => {
 export const getClassDetail = async id => {
   try {
     const response = await apiClient.get(`/class/${id}`);
+    console.log('Class detail response:', response.data);
     return response.data;
   } catch (error) {
     console.log('Error fetching class', error);
