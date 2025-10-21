@@ -1,32 +1,10 @@
 import apiClient from './apiClient';
+import { cleanParams } from '../utils/cleanParam';
 
 //staff
-export const getClass = async (filters) => {
+export const getClass = async filters => {
   try {
-    // Lấy ra từng trường
-    const {
-      ClassName,
-      SubjectIds,
-      LecturerIds,
-      OrderBy,
-      Descending,
-      PageNum,
-      PageSize,
-      ViewAll,
-    } = filters;
-
-    // Tạo đối tượng params trống
-    const params = {};
-
-    // Chỉ thêm vào nếu có giá trị thực sự
-    if (ClassName?.trim()) params.ClassName = ClassName.trim();
-    if (SubjectIds?.length > 0) params.SubjectIds = SubjectIds.join(','); // Gộp thành chuỗi
-    if (LecturerIds?.length > 0) params.LecturerIds = LecturerIds.join(',');
-    if (ViewAll) params.ViewAll = ViewAll; // chỉ gửi nếu true
-    if (PageNum && PageNum !== 1) params.PageNum = PageNum; // bỏ mặc định 1
-    if (PageSize && PageSize !== 8) params.PageSize = PageSize;
-    if (OrderBy && OrderBy !== 'ClassName') params.OrderBy = OrderBy;
-    if (Descending) params.Descending = Descending;
+    const params = cleanParams(filters);
 
     const response = await apiClient.get('/class', { params });
     return response.data;
@@ -35,8 +13,6 @@ export const getClass = async (filters) => {
     throw error;
   }
 };
-
-
 
 export const getClassDetail = async id => {
   try {
@@ -57,11 +33,19 @@ export const createClass = async data => {
     throw error;
   }
 };
+export const updateClass = async (id, data) => {
+  try {
+    const response = await apiClient.patch(`/class/${id}`, data);
+    return response.data;
+  } catch (error) {
+    console.log('Update failed', error);
+  }
+};
 export const createMultipleClasses = async data => {
   try {
     const formData = new FormData();
     formData.append('file', data);
-    const response = await apiClient.post('/class/import', formData, {
+    const response = await apiClient.post('/class/imports', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -72,11 +56,29 @@ export const createMultipleClasses = async data => {
     throw error;
   }
 };
+export const createStudent = async data => {
+  try {
+    const response = await apiClient.post('/student', data, {
+      email: data.email,
+      password: data.password,
+      fullName: data.fullName,
+      address: data.address,
+      phoneNumber: data.phoneNumber,
+      yob: data.yearOfBirth,
+      school: data.school,
+      studentCode: data.studentCode,
+      major: data.major,
+    });
+    return response.data;
+  } catch (error) {
+    console.log('Create failed', error);
+  }
+};
 export const importStudentList = async data => {
   try {
     const formData = new FormData();
     formData.append('file', data);
-    const response = await apiClient.post('/student/import', formData, {
+    const response = await apiClient.post('/student/imports', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -87,11 +89,31 @@ export const importStudentList = async data => {
     throw error;
   }
 };
+export const createLecturer = async data => {
+  try {
+    const response = await apiClient.post('/lecturer', {
+      email: data.email,
+      password: data.password,
+      fullName: data.name,
+      address: data.address,
+      phoneNumber: data.phone,
+      yob: Number(data.birth),
+      school: data.school,
+      lecturerCode: data.lecturerCode,
+      major: data.major,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Create lecturer failed:', error);
+    throw error;
+  }
+};
+
 export const importLecturerList = async data => {
   try {
     const formData = new FormData();
     formData.append('file', data);
-    const response = await apiClient.post('/lecturer/import', formData, {
+    const response = await apiClient.post('/lecturer/imports', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -109,21 +131,22 @@ export const getAllLecturer = async (
   lecturerCode,
   major,
   pageNumber,
-  pageSize,
+  pageSize = 5,
   isDesc
 ) => {
   try {
+    const params = cleanParams({
+      Email: email,
+      FullName: fullName,
+      Yob: yob,
+      LecturerCode: lecturerCode,
+      Major: major,
+      PageNum: pageNumber,
+      PageSize: pageSize,
+      IsDesc: isDesc,
+    });
     const response = await apiClient.get('/lecturer', {
-      params: {
-        Email: email,
-        FullName: fullName,
-        Yob: yob,
-        LecturerCode: lecturerCode,
-        Major: major,
-        PageNumber: pageNumber,
-        PageSize: pageSize,
-        IsDesc: isDesc,
-      },
+      params,
     });
     return response.data;
   } catch (error) {
@@ -131,9 +154,28 @@ export const getAllLecturer = async (
     throw error;
   }
 };
-export const getAllStudent = async () => {
+export const getAllStudent = async (
+  email,
+  fullName,
+  yob,
+  studentCode,
+  major,
+  pageNumber,
+  pageSize,
+  isDesc
+) => {
   try {
-    const response = await apiClient.get('/student');
+    const params = cleanParams({
+      Email: email,
+      FullName: fullName,
+      Yob: yob,
+      StudentCode: studentCode,
+      Major: major,
+      PageNum: pageNumber,
+      PageSize: pageSize,
+      IsDesc: isDesc,
+    });
+    const response = await apiClient.get('/student', {params});
     return response.data;
   } catch (error) {
     console.error('Error fetching all students:', error);
@@ -164,7 +206,7 @@ export const getSyllabusBySubjectId = async subjectId => {
 export const assignLecturerIntoClass = async (classId, lecturerId) => {
   try {
     const response = await apiClient.patch(
-      `/class/${classId}/assign-lecturer`,
+      `/class/${classId}/lecturer-assignment`,
       {},
       {
         params: {
@@ -181,14 +223,11 @@ export const assignLecturerIntoClass = async (classId, lecturerId) => {
 export const addStudentIntoClass = async (classId, studentList) => {
   const body = {
     classId,
-    studentList, 
+    studentList,
   };
 
   try {
-    const response = await apiClient.post(
-      `/class/${classId}/add-student`,
-      body
-    );
+    const response = await apiClient.post(`/class/${classId}/students`, body);
     return response.data;
   } catch (error) {
     console.error('Add failed:', error);
@@ -211,7 +250,7 @@ export const createMultipleSubjects = async data => {
   try {
     const formData = new FormData();
     formData.append('file', data);
-    const response = await apiClient.post('/subject/import', formData, {
+    const response = await apiClient.post('/subject/imports', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -220,6 +259,14 @@ export const createMultipleSubjects = async data => {
   } catch (error) {
     console.error('Error creating multiple subjects:', error);
     throw error;
+  }
+};
+export const getSubjectById = async id => {
+  try {
+    const response = await apiClient.get(`subject/${id}`);
+    return response.data;
+  } catch (error) {
+    console.log('Fetch failed', error);
   }
 };
 export const deleteSubjectById = async subjectId => {
@@ -244,8 +291,8 @@ export const getAllProject = async (params = {}) => {
   try {
     const response = await apiClient.get('/project', {
       params: {
-        LecturerIds: params.lecturerIds, 
-        SubjectIds: params.subjectIds,   
+        LecturerIds: params.lecturerIds,
+        SubjectIds: params.subjectIds,
         Descriptors: params.descriptors,
         ViewAll: params.viewAll,
         PageNum: params.pageNum,
@@ -262,7 +309,6 @@ export const getAllProject = async (params = {}) => {
     throw error;
   }
 };
-
 
 export const getPendingProjects = async ({
   descriptors,
@@ -298,10 +344,10 @@ export const getPendingProjects = async ({
 export const handleProject = async (projectId, status) => {
   try {
     const response = await apiClient.patch(
-      `/project/${projectId}/approve`,
-      null, 
+      `/project/${projectId}/approval`,
+      null,
       {
-        params: { Approve: status } 
+        params: { Approve: status },
       }
     );
     return response.data;
@@ -310,18 +356,17 @@ export const handleProject = async (projectId, status) => {
     throw error;
   }
 };
-export const rejectProject = async projectId => {
+export const deleteProject = async projectId => {
   try {
-    const response = await apiClient.patch(`/project/${projectId}/deny`);
+    const response = await apiClient.delete(`/project/head/${projectId}`);
     return response.data;
   } catch (error) {
-    console.error(`Error rejecting project with ID ${projectId}:`, error);
-    throw error;
+    console.error('Error deleting project', error);
   }
-}
+};
 
 //Student
-export const getClassesByStudentId = async (studentId) => {
+export const getClassesByStudentId = async studentId => {
   try {
     const response = await apiClient.get(`/class/student/${studentId}`);
     const data = response.data;
@@ -332,17 +377,20 @@ export const getClassesByStudentId = async (studentId) => {
   }
 };
 
-export const getClassDetailsById = async (classId) => {
-    try {
-        const response = await apiClient.get(`/class/${classId}`);
-        return response.data;
-    } catch (error) {
-        console.error(`Error fetching class details for class ID ${classId}:`, error);
-        throw error;
-    }
+export const getClassDetailsById = async classId => {
+  try {
+    const response = await apiClient.get(`/class/${classId}`);
+    return response.data;
+  } catch (error) {
+    console.error(
+      `Error fetching class details for class ID ${classId}:`,
+      error
+    );
+    throw error;
+  }
 };
 
-export const getListOfTeamsByStudentId = async (studentId) => {
+export const getListOfTeamsByStudentId = async studentId => {
   try {
     const response = await apiClient.get(`/team/student/${studentId}`);
     return response.data;
@@ -352,13 +400,15 @@ export const getListOfTeamsByStudentId = async (studentId) => {
   }
 };
 
-export const getDetailOfProjectByProjectId = async (projectId) => {
+export const getDetailOfProjectByProjectId = async projectId => {
   try {
     const response = await apiClient.get(`/project/${projectId}`);
     return response.data;
   } catch (error) {
-    console.error(`Error fetching project details for project ID ${projectId}:`, error);
+    console.error(
+      `Error fetching project details for project ID ${projectId}:`,
+      error
+    );
     throw error;
   }
 };
-;

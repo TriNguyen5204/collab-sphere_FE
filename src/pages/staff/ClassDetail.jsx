@@ -11,9 +11,11 @@ import { Calendar, Users, FileText, Layers, UserCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import Modal from '../../components/ui/Modal';
+import ModalWrapper from '../../components/layout/ModalWrapper';
 import Table from '../../components/ui/Table';
 import SectionCard from '../../components/ui/SectionCard';
 import Header from '../../components/layout/Header';
+import UpdateClassForm from '../../components/ui/UpdateClassForm';
 
 export default function ClassDetail() {
   const { classId } = useParams();
@@ -25,6 +27,7 @@ export default function ClassDetail() {
   const [showStudentModal, setShowStudentModal] = useState(false);
   const [showLecturerModal, setShowLecturerModal] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState([]);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -36,8 +39,8 @@ export default function ClassDetail() {
           getAllStudent(),
         ]);
         setClassDetail(cls);
-        setLecturerList(lecturers?.lecturerList ?? []);
-        setStudentList(students?.studentList ?? []);
+        setLecturerList(lecturers?.list ?? []);
+        setStudentList(students?.list ?? []);
       } catch (err) {
         setError('Failed to load class details');
       } finally {
@@ -125,6 +128,7 @@ export default function ClassDetail() {
           {/* Right side — Created date + Add button */}
           <div className='flex flex-col sm:flex-row sm:items-center gap-4'>
             {/* Created date */}
+            <button onClick={() => setShowUpdateModal(true)}>Update</button>
             <div className='flex items-center gap-2 text-gray-700 text-sm bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200'>
               <Calendar size={16} className='text-gray-500' />
               <span>
@@ -344,6 +348,14 @@ export default function ClassDetail() {
               )}
             </Modal>
           )}
+        </AnimatePresence>
+        <AnimatePresence>
+          <ModalWrapper
+            isOpen={showUpdateModal}
+            onClose={() => setShowUpdateModal(false)}
+          >
+            <UpdateClassForm classData={classDetail} />
+          </ModalWrapper>
         </AnimatePresence>
       </div>
     </>

@@ -1,19 +1,25 @@
 import React, { useState } from "react";
+import { createStudent } from "../../services/userService"; // đổi đường dẫn theo project của bạn
 
 const CreateStudentForm = () => {
-    const [student, setStudent] = useState({
-    fullname: "",
+  const [student, setStudent] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    studentCode: "",
     address: "",
-    phone: "",
+    phoneNumber: "",
     yearOfBirth: new Date().getFullYear() - 18,
     school: "",
     major: "",
     avatar_img: null,
   });
+
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  // handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setStudent((prev) => ({ ...prev, [name]: value }));
@@ -27,21 +33,85 @@ const CreateStudentForm = () => {
       setPreview(URL.createObjectURL(file));
     }
   };
+
+  // handle form submit
   const handleSubmit = async (e) => {
-    //call api
-  }
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
+
+    try {
+      // chuẩn bị FormData (nếu backend nhận file upload)
+      const formData = new FormData();
+      formData.append("email", student.email);
+      formData.append("password", student.password);
+      formData.append("fullName", student.fullName);
+      formData.append("address", student.address);
+      formData.append("phoneNumber", student.phoneNumber);
+      formData.append("yob", Number(student.yearOfBirth));
+      formData.append("school", student.school);
+      formData.append("studentCode", student.studentCode);
+      formData.append("major", student.major);
+      if (student.avatar_img) formData.append("avatar_img", student.avatar_img);
+
+      const response = await createStudent(formData);
+      if(response){
+        setMessage("✅ Student created successfully!");
+      }
+      
+    } catch (error) {
+      console.error("Create student failed:", error);
+      setMessage("❌ Failed to create student.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="p-6 max-w-lg mx-auto border rounded shadow">
       <h2 className="text-xl font-semibold mb-4">Create Student</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Fullname */}
+        {/* Full Name */}
         <input
           type="text"
-          name="fullname"
-          value={student.fullname}
+          name="fullName"
+          value={student.fullName}
           onChange={handleChange}
           placeholder="Full Name"
+          className="w-full p-2 border rounded"
+          required
+        />
+
+        {/* Email */}
+        <input
+          type="email"
+          name="email"
+          value={student.email}
+          onChange={handleChange}
+          placeholder="Email"
+          className="w-full p-2 border rounded"
+          required
+        />
+
+        {/* Password */}
+        <input
+          type="password"
+          name="password"
+          value={student.password}
+          onChange={handleChange}
+          placeholder="Password"
+          className="w-full p-2 border rounded"
+          required
+        />
+
+        {/* Student Code */}
+        <input
+          type="text"
+          name="studentCode"
+          value={student.studentCode}
+          onChange={handleChange}
+          placeholder="Student Code"
           className="w-full p-2 border rounded"
           required
         />
@@ -57,13 +127,13 @@ const CreateStudentForm = () => {
           required
         />
 
-        {/* Phone */}
+        {/* Phone Number */}
         <input
           type="text"
-          name="phone"
-          value={student.phone}
+          name="phoneNumber"
+          value={student.phoneNumber}
           onChange={handleChange}
-          placeholder="Phone"
+          placeholder="Phone Number"
           className="w-full p-2 border rounded"
           required
         />
@@ -133,4 +203,5 @@ const CreateStudentForm = () => {
     </div>
   );
 };
+
 export default CreateStudentForm;

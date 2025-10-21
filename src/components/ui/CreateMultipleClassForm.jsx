@@ -10,6 +10,7 @@ import {
   X,
 } from 'lucide-react';
 import { createMultipleClasses } from '../../services/userService';
+import { toast } from 'sonner';
 
 const CreateMultipleClassForm = () => {
   const [classes, setClasses] = useState([]);
@@ -114,13 +115,16 @@ const CreateMultipleClassForm = () => {
       const fileInput = document.getElementById('file-upload');
       const file = fileInput.files[0];
 
-      await createMultipleClasses(file);
-
-      alert('Tạo lớp thành công!');
+      const response = await createMultipleClasses(file);
+      if(response.isSuccess){
+        toast.success('Tạo lớp thành công!');
+      }
+      
       resetForm();
     } catch (err) {
       console.error('Error:', err);
-      alert('Có lỗi khi tạo lớp.');
+      toast.error('Có lỗi khi tạo lớp.');
+      resetForm();
     }
   };
 
