@@ -6,9 +6,8 @@ import {
   CalendarIcon,
   AcademicCapIcon,
   ClockIcon,
-  UserGroupIcon,
+  CheckCircleIcon,
 } from '@heroicons/react/24/outline';
-import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import styles from './ProjectHeader.module.css';
 
 const ProjectHeader = ({ projectId, projectData }) => {
@@ -22,11 +21,34 @@ const ProjectHeader = ({ projectId, projectData }) => {
     navigate(`/lecturer/projects/${projectId}/edit`);
   };
 
-  const duration = projectData.duration || projectData.estimatedDuration || '—';
-  const difficulty = projectData.difficulty || '—';
-  const estimatedHours = projectData.estimatedHours || projectData.estHours || '—';
-  const teamSize = projectData.teamSize || `${projectData.minTeamSize || '—'}-${projectData.maxTeamSize || '—'} members`;
-  const ratingValue = Number(projectData.rating) || 0;
+  const formatMetaDate = (value) => {
+    if (!value) {
+      return 'Not set';
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return 'Not set';
+    }
+
+    return date.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const subjectDisplay = projectData.subjectName
+    ? `${projectData.subjectName}${projectData.subjectCode ? ` (${projectData.subjectCode})` : ''}`
+    : 'Subject not assigned';
+
+  const statusLabel = projectData.statusString || projectData.status || 'PENDING';
+  const statusKey = statusLabel.toLowerCase();
+  const statusClassKey = statusKey ? statusKey.charAt(0).toUpperCase() + statusKey.slice(1) : 'Pending';
+  const createdLabel = formatMetaDate(projectData.createdAt);
+  const updatedLabel = formatMetaDate(projectData.updatedAt || projectData.lastModified);
+  const ownerLabel = projectData.lecturerName || projectData.createdBy || '—';
+  const description = projectData.description || 'No description provided yet.';
 
   return (
     <div className={styles.header}>
@@ -45,36 +67,40 @@ const ProjectHeader = ({ projectId, projectData }) => {
         <div className={styles.moduleInfo}>
           <div className={styles.titleSection}>
             <h1 className={styles.moduleTitle}>{projectData.title}</h1>
-            {ratingValue > 0 && (
-              <div className={styles.moduleRating}>
-                {[...Array(5)].map((_, index) => (
-                  <StarIconSolid
-                    key={index}
-                    className={`w-5 h-5 ${index < ratingValue ? 'text-yellow-400' : 'text-gray-300'}`}
-                  />
-                ))}
-                <span className={styles.ratingText}>({ratingValue}/5)</span>
-              </div>
-            )}
           </div>
-          <p className={styles.moduleDescription}>{projectData.description}</p>
+          <p className={styles.moduleDescription}>{description}</p>
+          <p className={styles.metaSubtitle}>Created by {ownerLabel}</p>
 
-          <div className={styles.moduleStats}>
-            <div className={styles.statItem}>
-              <CalendarIcon className="w-4 h-4" />
-              <span>Duration: {duration}</span>
+          <div className={styles.metaRow}>
+            <div className={styles.metaItem}>
+              <AcademicCapIcon className={styles.metaIcon} />
+              <div>
+                <span className={styles.metaLabel}>Subject</span>
+                <span className={styles.metaValue}>{subjectDisplay}</span>
+              </div>
             </div>
-            <div className={styles.statItem}>
-              <AcademicCapIcon className="w-4 h-4" />
-              <span>Difficulty: {difficulty}</span>
+            <div className={styles.metaItem}>
+              <CheckCircleIcon className={styles.metaIcon} />
+              <div>
+                <span className={styles.metaLabel}>Status</span>
+                <span className={`${styles.metaValue} ${styles.statusValue} ${styles[`status${statusClassKey}`] ?? ''}`}>
+                  {statusLabel}
+                </span>
+              </div>
             </div>
-            <div className={styles.statItem}>
-              <ClockIcon className="w-4 h-4" />
-              <span>Est. Hours: {estimatedHours}</span>
+            <div className={styles.metaItem}>
+              <CalendarIcon className={styles.metaIcon} />
+              <div>
+                <span className={styles.metaLabel}>Created</span>
+                <span className={styles.metaValue}>{createdLabel}</span>
+              </div>
             </div>
-            <div className={styles.statItem}>
-              <UserGroupIcon className="w-4 h-4" />
-              <span>Team Size: {teamSize}</span>
+            <div className={styles.metaItem}>
+              <ClockIcon className={styles.metaIcon} />
+              <div>
+                <span className={styles.metaLabel}>Last updated</span>
+                <span className={styles.metaValue}>{updatedLabel}</span>
+              </div>
             </div>
           </div>
         </div>

@@ -343,7 +343,7 @@ const ProjectLibrary = () => {
       id: 'totalProjects',
       label: 'Total projects',
       value: stats.totalProjects,
-      description: 'Pulled directly from `/api/project/lecturer`.',
+      description: '',
       icon: BookOpenIcon,
       iconWrapperClass: 'bg-indigo-100 text-indigo-600'
     },

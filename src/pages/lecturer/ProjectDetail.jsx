@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
 import { TimelineView, ProjectHeader, WorkBreakdownStructure } from '../../features/project';
 import styles from './ProjectDetail.module.css';
+import { getProjectDetail } from '../../services/projectApi';
 import {
   PencilIcon,
   CheckCircleIcon,
@@ -11,9 +12,7 @@ import {
   AcademicCapIcon,
   ChartBarIcon,
   BookOpenIcon,
-  TagIcon,
   CalendarIcon,
-  ExclamationTriangleIcon,
   InformationCircleIcon,
   ListBulletIcon,
   ChevronDownIcon,
@@ -69,6 +68,23 @@ const mergeFormIntoProject = (project, form) => ({
   lastModified: new Date().toISOString().slice(0, 10),
 });
 
+const formatDate = (input) => {
+  if (!input) {
+    return '—';
+  }
+
+  const date = new Date(input);
+  if (Number.isNaN(date.getTime())) {
+    return '—';
+  }
+
+  return date.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
 const ProjectDetail = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
@@ -90,13 +106,14 @@ const ProjectDetail = () => {
     description:
       'Build a complete e-commerce platform with user authentication, product catalog, shopping cart, and payment integration using modern web technologies.',
     category: 'Web Development',
-    difficulty: 'Advanced',
-    status: 'published',
-    estimatedDuration: '8-10 weeks',
-  duration: '8-10 weeks',
-  estimatedHours: '120-160 hrs',
-  teamSize: '2-4 members',
-  rating: 4,
+    status: 'pending',
+    statusString: 'PENDING',
+    subjectName: '',
+    subjectCode: '',
+    lecturerName: 'Dr. Sarah Johnson',
+    lecturerCode: '',
+    createdAt: null,
+    updatedAt: null,
     maxTeamSize: 4,
     minTeamSize: 2,
     totalStudents: 156,
@@ -105,7 +122,6 @@ const ProjectDetail = () => {
     averageScore: 87.3,
     lastModified: '2024-12-15',
     createdBy: 'Dr. Sarah Johnson',
-    version: '2.1',
     tags: ['React', 'Node.js', 'MongoDB', 'Payment Integration', 'Authentication'],
     skillsRequired: ['JavaScript', 'React', 'Node.js', 'Database Design', 'API Development'],
     learningOutcomes: [
@@ -128,10 +144,63 @@ const ProjectDetail = () => {
   }), [projectId]);
 
   const [projectData, setProjectData] = useState(initialProjectData);
+  const [isLoadingProject, setIsLoadingProject] = useState(false);
+  const [projectError, setProjectError] = useState('');
 
   useEffect(() => {
     setProjectData(initialProjectData);
   }, [initialProjectData]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const fetchProject = async () => {
+      setIsLoadingProject(true);
+      setProjectError('');
+
+      try {
+        const response = await getProjectDetail(projectId);
+
+        if (isCancelled) {
+          return;
+        }
+
+        setProjectData((previous) => ({
+          ...previous,
+          id: response?.projectId ?? previous.id,
+          title: response?.projectName ?? previous.title,
+          description: response?.description ?? previous.description,
+          subjectName: response?.subjectName ?? previous.subjectName,
+          subjectCode: response?.subjectCode ?? previous.subjectCode,
+          lecturerName: response?.lecturerName ?? previous.lecturerName,
+          lecturerCode: response?.lecturerCode ?? previous.lecturerCode,
+          createdBy: response?.lecturerName ?? previous.createdBy,
+          createdAt: response?.createdAt ?? previous.createdAt,
+          updatedAt: response?.updatedAt ?? previous.updatedAt,
+          statusString: response?.statusString ?? previous.statusString,
+          status: response?.statusString?.toLowerCase() ?? previous.status,
+          objectives: response?.objectives ?? previous.objectives,
+        }));
+      } catch (error) {
+        if (!isCancelled) {
+          console.error('Failed to load project detail.', error);
+          setProjectError('Unable to load project detail. Please try again.');
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingProject(false);
+        }
+      }
+    };
+
+    if (projectId) {
+      fetchProject();
+    }
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [projectId]);
 
   // Enhanced Educational Kanban Tasks with Swimlane Features
   const [kanbanTasks, setKanbanTasks] = useState([
@@ -1058,6 +1127,7 @@ const ProjectDetail = () => {
         <div className={styles.updateToast}>{editMessage}</div>
       )}
       <div className={styles.projectDetail}>
+          {projectError && <div className={styles.errorBanner}>{projectError}</div>}
         {/* Header */}
         <ProjectHeader projectId={projectId} projectData={projectData} />
 
@@ -1113,48 +1183,25 @@ const ProjectDetail = () => {
                   <h3 className={styles.cardTitle}>Project Details</h3>
                   <div className={styles.detailsList}>
                     <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Duration:</span>
-                      <span className={styles.detailValue}>{projectData.estimatedDuration}</span>
+                      <span className={styles.detailLabel}>Created on</span>
+                      <span className={styles.detailValue}>{formatDate(projectData.createdAt)}</span>
                     </div>
                     <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Team Size:</span>
-                      <span className={styles.detailValue}>{projectData.minTeamSize}-{projectData.maxTeamSize} members</span>
+                      <span className={styles.detailLabel}>Last modified</span>
+                      <span className={styles.detailValue}>{formatDate(projectData.updatedAt ?? projectData.lastModified)}</span>
                     </div>
                     <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Created By:</span>
-                      <span className={styles.detailValue}>{projectData.createdBy}</span>
-                    </div>
-                    <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Version:</span>
-                      <span className={styles.detailValue}>{projectData.version}</span>
-                    </div>
-                    <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Last Modified:</span>
-                      <span className={styles.detailValue}>{new Date(projectData.lastModified).toLocaleDateString()}</span>
-                    </div>
-                    <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Syllabus Alignment:</span>
-                      <span className={styles.detailValue}>
-                        <span className={styles.alignmentScore}>{projectData.syllabusAlignment}%</span>
+                      <span className={styles.detailLabel}>Status</span>
+                      <span
+                        className={`${styles.statusPill} ${styles[`status-${(projectData.statusString ?? 'pending').toLowerCase()}`] ?? ''}`}
+                      >
+                        {projectData.statusString ?? 'PENDING'}
                       </span>
                     </div>
-                  </div>
-                </div>
-
-                {/* Skills & Tags */}
-                <div className={styles.skillsCard}>
-                  <h3 className={styles.cardTitle}>Required Skills</h3>
-                  <div className={styles.skillsList}>
-                    {projectData.skillsRequired.map((skill, index) => (
-                      <span key={index} className={styles.skillTag}>{skill}</span>
-                    ))}
-                  </div>
-                  
-                  <h3 className={styles.cardTitle}>Tags</h3>
-                  <div className={styles.tagsList}>
-                    {projectData.tags.map((tag, index) => (
-                      <span key={index} className={styles.tag}>{tag}</span>
-                    ))}
+                    <div className={styles.detailItem}>
+                      <span className={styles.detailLabel}>Created by</span>
+                      <span className={styles.detailValue}>{projectData.createdBy}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -1171,18 +1218,6 @@ const ProjectDetail = () => {
                   </ul>
                 </div>
 
-                {/* Prerequisites */}
-                <div className={styles.prerequisitesCard}>
-                  <h3 className={styles.cardTitle}>Prerequisites</h3>
-                  <ul className={styles.prerequisitesList}>
-                    {projectData.prerequisites.map((prereq, index) => (
-                      <li key={index} className={styles.prerequisiteItem}>
-                        <ExclamationTriangleIcon className="w-4 h-4 text-amber-500" />
-                        {prereq}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
               </div>
             </div>
           )}
