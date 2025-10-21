@@ -15,7 +15,7 @@ import Table from '../../components/ui/Table';
 import SectionCard from '../../components/ui/SectionCard';
 import Header from '../../components/layout/Header';
 
-export default function ImprovedClassDetail() {
+export default function ClassDetail() {
   const { classId } = useParams();
   const [classDetail, setClassDetail] = useState(null);
   const [studentList, setStudentList] = useState([]);
@@ -57,6 +57,8 @@ export default function ImprovedClassDetail() {
       const res = await addStudentIntoClass(classId, selectedStudents);
       if (res) {
         toast.success('✅ Students added successfully!');
+        const updatedClass = await getClassDetail(classId);
+        setClassDetail(updatedClass);
         setSelectedStudents([]);
         setShowStudentModal(false);
       }
@@ -70,6 +72,8 @@ export default function ImprovedClassDetail() {
       const response = await assignLecturerIntoClass(classId, lecturerId);
       if (response.isSuccess) {
         toast.success(response.message);
+        const updatedClass = await getClassDetail(classId);
+        setClassDetail(updatedClass);
         setShowLecturerModal(false);
       }
     } catch {
@@ -107,6 +111,7 @@ export default function ImprovedClassDetail() {
       <div className='p-8 space-y-8 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen'>
         {/* Header */}
         <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-6'>
+          {/* Left side — Class info */}
           <div>
             <h1 className='text-3xl font-bold text-gray-900 flex items-center gap-3'>
               <UserCircle size={36} className='text-blue-600' />
@@ -116,12 +121,39 @@ export default function ImprovedClassDetail() {
               {classDetail.subjectCode} — {classDetail.subjectName}
             </p>
           </div>
-          <div className='flex items-center gap-3 text-gray-700 text-sm bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200'>
-            <Calendar size={16} />
-            <span>
-              Created on{' '}
-              {new Date(classDetail.createdDate).toLocaleDateString('en-GB')}
-            </span>
+
+          {/* Right side — Created date + Add button */}
+          <div className='flex flex-col sm:flex-row sm:items-center gap-4'>
+            {/* Created date */}
+            <div className='flex items-center gap-2 text-gray-700 text-sm bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200'>
+              <Calendar size={16} className='text-gray-500' />
+              <span>
+                Created on{' '}
+                {new Date(classDetail.createdDate).toLocaleDateString('en-GB')}
+              </span>
+            </div>
+
+            {/* Add Lecturer button */}
+            <button
+              onClick={() => setShowLecturerModal(true)}
+              className='inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-sm text-sm font-medium'
+            >
+              <svg
+                xmlns='http://www.w3.org/2000/svg'
+                fill='none'
+                viewBox='0 0 24 24'
+                strokeWidth={2}
+                stroke='currentColor'
+                className='w-5 h-5'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  d='M12 4v16m8-8H4'
+                />
+              </svg>
+              Add Lecturer
+            </button>
           </div>
         </div>
 
@@ -221,13 +253,7 @@ export default function ImprovedClassDetail() {
         </SectionCard>
 
         {/* Teams + Add Lecturer */}
-        <SectionCard
-          title='Teams'
-          icon={<UserCircle size={20} />}
-          buttonLabel='Add Lecturer'
-          buttonColor='green'
-          onButtonClick={() => setShowLecturerModal(true)}
-        >
+        <SectionCard title='Teams' icon={<UserCircle size={20} />}>
           {classDetail.teams.length === 0 ? (
             <EmptyState text='No teams created yet.' />
           ) : (

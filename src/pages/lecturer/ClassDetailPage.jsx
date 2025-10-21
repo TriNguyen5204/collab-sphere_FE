@@ -395,6 +395,110 @@ const ClassDetailPage = () => {
     [students]
   );
 
+  const sortedModules = [...modulesData].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+  const totalTeams = teams.length;
+  const behindCount = students.filter((student) => student.status === 'behind').length;
+  const unassignedCount = unassignedStudents.length;
+  const averageTeamProgress = totalTeams
+    ? Math.round(
+        teams.reduce((total, team) => total + (team.avgProgress || 0), 0) / totalTeams
+      )
+    : 0;
+  const placementMessage = unassignedCount > 0
+    ? `${unassignedCount} students need team placement.`
+    : 'Every student is already placed into a team.';
+
+  const leadersCount = students.filter((student) => student.role === 'leader').length;
+  const activeProjectsCount = classProjects.filter((project) =>
+    ['In Progress', 'Planning', 'Review'].includes(project.status)
+  ).length;
+  const discoveryProjectsCount = classProjects.filter((project) =>
+    project.status === 'Discovery'
+  ).length;
+  const nextProjectDue = classProjects.reduce((soonest, project) => {
+    if (!project.dueDate) {
+      return soonest;
+    }
+    const dueDate = new Date(project.dueDate);
+    if (!soonest || dueDate < soonest) {
+      return dueDate;
+    }
+    return soonest;
+  }, null);
+  const nextProjectDueLabel = nextProjectDue
+    ? nextProjectDue.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    : 'TBD';
+  const recentResourceCount = resourcesData.filter((resource) => {
+    const uploaded = new Date(resource.uploadDate);
+    const diffDays = (Date.now() - uploaded.getTime()) / (1000 * 60 * 60 * 24);
+    return diffDays <= 60;
+  }).length;
+  const latestResource = resourcesData.reduce((latest, resource) => {
+    if (!latest) {
+      return resource;
+    }
+    return new Date(resource.uploadDate) > new Date(latest.uploadDate) ? resource : latest;
+  }, null);
+  const latestResourceLabel = latestResource ? latestResource.title : 'Upload your first resource';
+  const latestResourceDateLabel = latestResource
+    ? new Date(latestResource.uploadDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    : '';
+  const averageTaskCompletionRate = students.length
+    ? Math.round(
+        (students.reduce((total, student) => {
+          if (!student.totalTasks) {
+            return total;
+          }
+          return total + student.tasksCompleted / student.totalTasks;
+        }, 0) /
+          students.length) *
+          100
+      )
+    : 0;
+  const teamLeadLabel = leadersCount === 1 ? 'team lead' : 'team leads';
+  const flaggedLabel = behindCount === 1 ? 'learner flagged' : 'learners flagged';
+  const discoveryLabel = discoveryProjectsCount === 1 ? 'project in discovery' : 'projects in discovery';
+  const recentResourceLabel = recentResourceCount === 1 ? 'asset' : 'assets';
+  const moduleProgressSparkline = sortedModules.slice(0, 6).map((module) =>
+    Math.round((module.studentsCompleted / module.totalStudents) * 100)
+  );
+  const projectStatusBreakdown = classProjects.reduce((acc, project) => {
+    const key = project.status.toLowerCase();
+    if (!acc[key]) {
+      acc[key] = { label: project.status, count: 0 };
+    } else {
+      acc[key].label = project.status;
+    }
+    acc[key].count += 1;
+    return acc;
+  }, {});
+  const projectStatusList = Object.values(projectStatusBreakdown).sort((a, b) => b.count - a.count);
+  const mostAccessedResource = resourcesData.reduce((top, resource) => {
+    const engagement = resource.downloads ?? resource.views ?? resource.visits ?? 0;
+    const currentTop = top ? (top.downloads ?? top.views ?? top.visits ?? 0) : -1;
+    return engagement > currentTop ? resource : top;
+  }, null);
+  const mostAccessedResourceEngagement = mostAccessedResource
+    ? mostAccessedResource.downloads ?? mostAccessedResource.views ?? mostAccessedResource.visits ?? 0
+    : 0;
+  const mostAccessedResourceMetric = mostAccessedResource
+    ? `${mostAccessedResourceEngagement} ${
+        (mostAccessedResource.downloads && 'downloads') ||
+        (mostAccessedResource.views && 'views') ||
+        (mostAccessedResource.visits && 'visits')
+      }`
+    : 'Awaiting engagement';
+  const mostAccessedResourceLabel = mostAccessedResource ? mostAccessedResource.title : 'No resource engagement yet';
+  const getStatusClassName = (status) => (status || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const activeStudentCount = students.filter((student) => student.status === 'active').length;
+  const averageStudentProgress = students.length
+    ? Math.round(students.reduce((total, student) => total + (student.progress || 0), 0) / students.length)
+    : 0;
+  const assignmentCoverage = students.length
+    ? Math.round(((students.length - unassignedCount) / students.length) * 100)
+    : 0;
+  const rosterSignalMessage = behindCount > 0 ? 'Coaching recommended' : 'Momentum sustained';
+
   // Filter students
   const filteredStudents = useMemo(() => {
     const searchValue = searchTerm.trim().toLowerCase();
@@ -611,47 +715,95 @@ const ClassDetailPage = () => {
   };
 
   const renderStudentsTab = () => (
-    <div className="p-6">
-      {/* Search and Filters */}
-      <div className={styles.studentsHeader}>
-        <h3 className="text-lg font-semibold text-gray-900">Class Roster</h3>
-        <div className={styles.searchAndFilters}>
-          <div className="relative flex-1">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+    <section className={styles.rosterSection}>
+      <header className={styles.rosterHeader}>
+        <div className={styles.rosterTitleGroup}>
+          <h3>Class Roster</h3>
+          <p>{averageStudentProgress}% course momentum • {assignmentCoverage}% assigned • {rosterSignalMessage}</p>
+        </div>
+        <div className={styles.rosterQuickGlance}>
+          <div className={styles.glanceCard}>
+            <span className={styles.glanceLabel}>Active</span>
+            <span className={styles.glanceValue}>{activeStudentCount}</span>
+          </div>
+          <div className={`${styles.glanceCard} ${behindCount > 0 ? styles.glanceWarning : ''}`}>
+            <span className={styles.glanceLabel}>Behind</span>
+            <span className={styles.glanceValue}>{behindCount}</span>
+          </div>
+          <div className={styles.glanceCard}>
+            <span className={styles.glanceLabel}>Unassigned</span>
+            <span className={styles.glanceValue}>{unassignedCount}</span>
+          </div>
+        </div>
+      </header>
+
+      <div className={styles.toolbarGrid}>
+        <div className={styles.searchPanel}>
+          <div className={styles.searchField}>
+            <MagnifyingGlassIcon className={styles.searchIcon} />
             <input
               type="text"
-              placeholder="Search students, teams, or status..."
+              placeholder="Search by name, email, or team"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className={styles.searchInput}
             />
           </div>
-          <select
-            value={teamFilter}
-            onChange={(e) => setTeamFilter(e.target.value)}
-            className={styles.filterSelect}
-          >
-            <option value="all">All Teams</option>
-            <option value="unassigned">Unassigned</option>
-            {teams.map((team) => (
-              <option key={team.id} value={team.name}>
+          <div className={styles.filterPills}>
+            <button
+              type="button"
+              className={`${styles.filterPill} ${teamFilter === 'all' ? styles.filterPillActive : ''}`}
+              onClick={() => setTeamFilter('all')}
+            >
+              All teams
+            </button>
+            <button
+              type="button"
+              className={`${styles.filterPill} ${teamFilter === 'unassigned' ? styles.filterPillActive : ''}`}
+              onClick={() => setTeamFilter('unassigned')}
+            >
+              Unassigned
+            </button>
+            {teams.slice(0, 4).map((team) => (
+              <button
+                key={team.id}
+                type="button"
+                className={`${styles.filterPill} ${teamFilter === team.name ? styles.filterPillActive : ''}`}
+                onClick={() => setTeamFilter(team.name)}
+              >
                 {team.name}
-              </option>
+              </button>
             ))}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className={styles.filterSelect}
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="behind">Behind</option>
-          </select>
+          </div>
+        </div>
+
+        <div className={styles.controlPanel}>
+          <label className={styles.controlSelect}>
+            <span>Status</span>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="all">All status</option>
+              <option value="active">Active</option>
+              <option value="behind">Behind</option>
+            </select>
+          </label>
+          <label className={styles.controlSelect}>
+            <span>Team</span>
+            <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
+              <option value="all">Any</option>
+              <option value="unassigned">Unassigned</option>
+              {teams.map((team) => (
+                <option key={team.id} value={team.name}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="button" className={styles.primaryToolbarButton} onClick={() => setIsCreateTeamOpen(true)}>
+            <PlusIcon className="w-4 h-4" />
+            Smart team
+          </button>
         </div>
       </div>
 
-      {/* Bulk Actions Toolbar */}
       {selectedStudents.size > 0 && (
         <div className={styles.bulkToolbar}>
           <input
@@ -660,16 +812,15 @@ const ClassDetailPage = () => {
             onChange={selectAllStudents}
             className={styles.checkbox}
           />
-          <span className="text-sm font-medium">
+          <span className={styles.bulkCount}>
             {selectedStudents.size} of {filteredStudents.length} selected
           </span>
-          <button className={styles.btnSecondary}>Send Message</button>
-          <button className={styles.btnSecondary}>Generate Report</button>
-          <button className={styles.btnSecondary}>Export Data</button>
+          <button className={styles.bulkAction}>Message</button>
+          <button className={styles.bulkAction}>Generate brief</button>
+          <button className={styles.bulkAction}>Export CSV</button>
         </div>
       )}
-      
-      {/* Students Table */}
+
       <div className={styles.studentsTable}>
         <div className={styles.tableContainer}>
           <table className={styles.table}>
@@ -686,15 +837,16 @@ const ClassDetailPage = () => {
                 <th>Student</th>
                 <th>Team</th>
                 <th>Progress</th>
+                <th>Last submission</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {filteredStudents.map((student) => (
                 <tr
                   key={student.id}
-                  className={selectedStudents.has(student.id) ? styles.selected : ''}
+                  className={`${styles.tableRow} ${selectedStudents.has(student.id) ? styles.selected : ''}`}
                 >
                   <td>
                     <input
@@ -705,16 +857,16 @@ const ClassDetailPage = () => {
                     />
                   </td>
                   <td>
-                    <div className={styles.studentCell}>
+                    <div className={styles.studentIdentity}>
                       <div 
                         className={styles.avatar}
-                        style={{ backgroundColor: student.teamColor }}
+                        style={{ backgroundColor: student.teamColor || '#94a3b8' }}
                       >
                         {student.avatar}
                       </div>
-                      <div className={styles.studentInfo}>
-                        <h4>{student.name}</h4>
-                        <p>{student.email}</p>
+                      <div className={styles.studentMeta}>
+                        <span className={styles.studentName}>{student.name}</span>
+                        <span className={styles.studentEmail}>{student.email}</span>
                       </div>
                     </div>
                   </td>
@@ -722,11 +874,12 @@ const ClassDetailPage = () => {
                     {student.team ? (
                       <span 
                         className={styles.teamBadge}
-                        style={{ backgroundColor: `${student.teamColor}15`, color: student.teamColor }}
+                        style={{ '--team-color': student.teamColor }}
                       >
+                        <span className={styles.teamBadgeDot} style={{ backgroundColor: student.teamColor }} />
                         {student.team}
                         {student.role === 'leader' && (
-                          <span className={styles.leaderBadge}>LEADER</span>
+                          <span className={styles.leaderBadge}>Leader</span>
                         )}
                       </span>
                     ) : (
@@ -745,17 +898,30 @@ const ClassDetailPage = () => {
                         />
                       </div>
                       <span className={styles.progressText}>
-                        {student.progress}% ({student.tasksCompleted}/{student.totalTasks})
+                        {student.progress}% · {student.tasksCompleted}/{student.totalTasks}
                       </span>
                     </div>
                   </td>
                   <td>
-                    <span className={`${styles.statusBadge} ${styles[student.status]}`}>
+                    <div className={styles.lastSubmission}>
+                      <DocumentTextIcon className="w-4 h-4" />
+                      <span>{new Date(student.lastSubmission).toLocaleDateString()}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className={`${styles.statusBadge} ${styles[`status-${student.status}`] || ''}`}>
                       {student.status}
                     </span>
                   </td>
-                  <td>
-                    <a href="#" className={styles.actionButton}>View Details</a>
+                  <td className={styles.rowActions}>
+                    <button type="button" className={styles.rowActionButton}>
+                      <EyeIcon className="w-4 h-4" />
+                      View
+                    </button>
+                    <button type="button" className={styles.rowActionButton}>
+                      <ShareIcon className="w-4 h-4" />
+                      Notify
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -763,7 +929,7 @@ const ClassDetailPage = () => {
           </table>
         </div>
       </div>
-    </div>
+    </section>
   );
 
   const renderTeamsTab = () => (
@@ -1445,84 +1611,203 @@ const ClassDetailPage = () => {
             <span className="text-gray-300">•</span>
             <span className="font-medium text-gray-600">{classData.code}</span>
           </div>
-          
-          <div>
-            <h1 className={styles.title}>
-              {classData.code} - {classData.name}
-            </h1>
-            <p className={styles.description}>{classData.description}</p>
-            
-            <div className={styles.meta}>
-              <div className={styles.metaItem}>
-                <UserIcon className="w-4 h-4" />
-                {classData.instructor}
+
+          <div className={styles.headerGrid}>
+            <div className={styles.headerPrimary}>
+              <div className={styles.headerBadges}>
+                <span className={styles.termChip}>
+                  <CalendarIcon className="w-4 h-4" />
+                  {classData.term}
+                </span>
+                <span className={styles.termChip}>
+                  <ClockIcon className="w-4 h-4" />
+                  {classData.schedule}
+                </span>
               </div>
-              <div className={styles.metaItem}>
-                <CalendarIcon className="w-4 h-4" />
-                {classData.term}
+
+              <h1 className={styles.title}>
+                {classData.code} · {classData.name}
+              </h1>
+              <p className={styles.description}>{classData.description}</p>
+
+              <div className={styles.metaCards}>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>Instructor</span>
+                  <span className={styles.metaValue}>{classData.instructor}</span>
+                </div>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>Active teams</span>
+                  <span className={styles.metaValue}>{totalTeams}</span>
+                </div>
+                <div className={styles.metaCard}>
+                  <span className={styles.metaLabel}>Learning hours</span>
+                  <span className={styles.metaValue}>{classData.activeLearningHours}</span>
+                </div>
               </div>
-              <div className={styles.metaItem}>
-                <ClockIcon className="w-4 h-4" />
-                {classData.schedule}
+
+              <div className={styles.tagCluster}>
+                <span className={styles.tagChip}>
+                  <UserGroupIcon className="w-4 h-4" />
+                  {classData.totalStudents} students
+                </span>
+                <span className={styles.tagChip}>
+                  <BookOpenIcon className="w-4 h-4" />
+                  {classData.totalModules} modules
+                </span>
+                <span className={styles.tagChip}>
+                  <AcademicCapIcon className="w-4 h-4" />
+                  {classProjects.length} active projects
+                </span>
+                <span className={styles.tagChip}>
+                  <ChartBarIcon className="w-4 h-4" />
+                  {averageTeamProgress}% avg team progress
+                </span>
+              </div>
+
+              <div className={styles.headerActions}>
+                <button className={styles.btnSecondary}>
+                  <Cog6ToothIcon className="w-4 h-4 mr-2" />
+                  Manage settings
+                </button>
+                <Link
+                  to={`/lecturer/classes/${classId}/projects`}
+                  className={styles.btnSecondary}
+                  style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+                >
+                  <FolderIcon className="w-4 h-4 mr-2" />
+                  Project workspace
+                </Link>
+                <button className={styles.btnGhost}>
+                  <ShareIcon className="w-4 h-4 mr-2" />
+                  Share brief
+                </button>
+                <button className={styles.btnGradient}>
+                  <PlayIcon className="w-4 h-4 mr-2" />
+                  Launch session
+                </button>
               </div>
             </div>
-            
-            <div className={styles.actions}>
-              <button className={styles.btnSecondary}>
-                <Cog6ToothIcon className="w-4 h-4 mr-2" />
-                Settings
-              </button>
-              <Link to={`/lecturer/classes/${classId}/projects`} className={styles.btnSecondary} style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
-                <ChartBarIcon className="w-4 h-4 mr-2" />
-                View Projects
-              </Link>
-              <button className={styles.btnGradient}>
-                <PlayIcon className="w-4 h-4 mr-2" />
-                Start Session
-              </button>
-            </div>
+
+
           </div>
         </div>
 
-        {/* Enhanced Stat Chips */}
-        <div className={styles.statChips}>
-          <div className={styles.statChip}>
-            <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-              <UserGroupIcon className="w-6 h-6" />
-            </div>
-            <div className={styles.statContent}>
-              <div className={styles.statValue}>{classData.totalStudents}</div>
-              <div className={styles.statLabel}>Students</div>
-            </div>
+        {/* Overview Metrics */}
+        <section className={styles.metricsStage} aria-label="Class analytics overview">
+          <div className={styles.metricsGrid}>
+            <article className={styles.metricCard} data-tone="indigo">
+              <div className={styles.metricTop}>
+                <div className={styles.metricIconOrbit}>
+                  <UserGroupIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className={styles.metricLabel}>Roster health</span>
+                  <p className={styles.metricSubtitle}>{placementMessage}</p>
+                </div>
+              </div>
+              <div className={styles.metricBody}>
+                <div className={styles.metricFigure}>
+                  <span className={styles.metricNumber}>{classData.totalStudents}</span>
+                  <span className={styles.metricUnit}>students</span>
+                </div>
+                <div className={styles.metricChips}>
+                  <span className={styles.metricChipPositive}>{leadersCount} {teamLeadLabel} active</span>
+                  <span className={behindCount > 0 ? styles.metricChipWarning : styles.metricChipNeutral}>
+                    {behindCount > 0 ? `${behindCount} ${flaggedLabel}` : 'All on track'}
+                  </span>
+                </div>
+              </div>
+              <div className={styles.metricSparkline} aria-hidden="true">
+                {moduleProgressSparkline.map((value, index) => (
+                  <span
+                    key={index}
+                    className={styles.sparklineBar}
+                    style={{ height: `${Math.max(value, 12)}%` }}
+                  />
+                ))}
+              </div>
+              <footer className={styles.metricFooter}>
+                <span className={styles.metricFootnote}>Milestone coverage</span>
+                <span className={styles.metricFootnoteValue}>{averageTaskCompletionRate}% avg task completion</span>
+              </footer>
+            </article>
+
+            <article className={styles.metricCard} data-tone="sunset">
+              <div className={styles.metricTop}>
+                <div className={styles.metricIconOrbit}>
+                  <BookOpenIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className={styles.metricLabel}>Project pipeline</span>
+                  <p className={styles.metricSubtitle}>Next review {nextProjectDueLabel}</p>
+                </div>
+              </div>
+              <div className={styles.metricBody}>
+                <div className={styles.metricFigure}>
+                  <span className={styles.metricNumber}>{activeProjectsCount}</span>
+                  <span className={styles.metricUnit}>active projects</span>
+                </div>
+                <ul className={styles.metricLegend}>
+                  {projectStatusList.map((status) => (
+                    <li key={status.label} className={styles.metricLegendItem}>
+                      <span
+                        className={`${styles.metricLegendDot} ${styles[`statusDot${getStatusClassName(status.label)}`] || ''}`}
+                      />
+                      <span className={styles.metricLegendLabel}>
+                        {status.count} {status.label.toLowerCase()}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <footer className={styles.metricFooter}>
+                <span className={styles.metricFootnote}>Discovery</span>
+                <div className={styles.metricFooterActions}>
+                  <span className={styles.metricFootnoteValue}>{discoveryProjectsCount} {discoveryLabel}</span>
+                  <Link
+                    to={`/lecturer/classes/${classId}/projects`}
+                    className={styles.metricFootnoteAction}
+                  >
+                    <LinkIcon className="w-4 h-4" />
+                    Open tracker
+                  </Link>
+                </div>
+              </footer>
+            </article>
+
+            <article className={styles.metricCard} data-tone="lagoon">
+              <div className={styles.metricTop}>
+                <div className={styles.metricIconOrbit}>
+                  <FolderIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className={styles.metricLabel}>Resource hub</span>
+                  <p className={styles.metricSubtitle}>{recentResourceCount} {recentResourceLabel} added in 60 days</p>
+                </div>
+              </div>
+              <div className={styles.metricBody}>
+                <div className={styles.metricFigure}>
+                  <span className={styles.metricNumber}>{classData.totalResources}</span>
+                  <span className={styles.metricUnit}>assets</span>
+                </div>
+                <div className={styles.metricStack}>
+                  <div className={styles.metricStackRow}>
+                    <span className={styles.metricStackLabel}>Latest upload</span>
+                    <span className={styles.metricStackValue}>{latestResourceLabel}</span>
+                  </div>
+                  <div className={styles.metricStackRow}>
+                    <span className={styles.metricStackLabel}>Engagement</span>
+                    <span className={styles.metricStackValue}>{mostAccessedResourceMetric}</span>
+                  </div>
+                </div>
+              </div>
+              <footer className={styles.metricFooter}>
+                <span className={styles.metricFootnote}>Updated</span>
+                <span className={styles.metricFootnoteValue}>{latestResourceDateLabel || '—'}</span>
+              </footer>
+            </article>
           </div>
-          <div className={styles.statChip}>
-            <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #ff6b6b 0%, #feca57 100%)' }}>
-              <BookOpenIcon className="w-6 h-6" />
-            </div>
-            <div className={styles.statContent}>
-              <div className={styles.statValue}>{classData.totalModules}</div>
-              <div className={styles.statLabel}>Projects</div>
-            </div>
-          </div>
-          <div className={styles.statChip}>
-            <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #48dbfb 0%, #0abde3 100%)' }}>
-              <FolderIcon className="w-6 h-6" />
-            </div>
-            <div className={styles.statContent}>
-              <div className={styles.statValue}>{classData.totalResources}</div>
-              <div className={styles.statLabel}>Resources</div>
-            </div>
-          </div>
-          <div className={styles.statChip}>
-            <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #fd79a8 0%, #e84393 100%)' }}>
-              <ChartBarIcon className="w-6 h-6" />
-            </div>
-            <div className={styles.statContent}>
-              <div className={styles.statValue}>{classData.avgScore}%</div>
-              <div className={styles.statLabel}>Avg Score</div>
-            </div>
-          </div>
-        </div>
+        </section>
 
         {/* MD3 Tabs */}
         <div className={styles.md3Tabs}>

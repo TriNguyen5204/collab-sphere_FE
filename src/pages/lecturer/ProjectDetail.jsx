@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
 import { TimelineView, ProjectHeader, WorkBreakdownStructure } from '../../features/project';
 import styles from './ProjectDetail.module.css';
+import { getProjectDetail } from '../../services/projectApi';
 import {
   PencilIcon,
   CheckCircleIcon,
@@ -11,9 +12,7 @@ import {
   AcademicCapIcon,
   ChartBarIcon,
   BookOpenIcon,
-  TagIcon,
   CalendarIcon,
-  ExclamationTriangleIcon,
   InformationCircleIcon,
   ListBulletIcon,
   ChevronDownIcon,
@@ -69,6 +68,23 @@ const mergeFormIntoProject = (project, form) => ({
   lastModified: new Date().toISOString().slice(0, 10),
 });
 
+const formatDate = (input) => {
+  if (!input) {
+    return '—';
+  }
+
+  const date = new Date(input);
+  if (Number.isNaN(date.getTime())) {
+    return '—';
+  }
+
+  return date.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
 const ProjectDetail = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
@@ -90,9 +106,14 @@ const ProjectDetail = () => {
     description:
       'Build a complete e-commerce platform with user authentication, product catalog, shopping cart, and payment integration using modern web technologies.',
     category: 'Web Development',
-    difficulty: 'Advanced',
-    status: 'published',
-    estimatedDuration: '8-10 weeks',
+    status: 'pending',
+    statusString: 'PENDING',
+    subjectName: '',
+    subjectCode: '',
+    lecturerName: 'Dr. Sarah Johnson',
+    lecturerCode: '',
+    createdAt: null,
+    updatedAt: null,
     maxTeamSize: 4,
     minTeamSize: 2,
     totalStudents: 156,
@@ -101,7 +122,6 @@ const ProjectDetail = () => {
     averageScore: 87.3,
     lastModified: '2024-12-15',
     createdBy: 'Dr. Sarah Johnson',
-    version: '2.1',
     tags: ['React', 'Node.js', 'MongoDB', 'Payment Integration', 'Authentication'],
     skillsRequired: ['JavaScript', 'React', 'Node.js', 'Database Design', 'API Development'],
     learningOutcomes: [
@@ -124,10 +144,63 @@ const ProjectDetail = () => {
   }), [projectId]);
 
   const [projectData, setProjectData] = useState(initialProjectData);
+  const [isLoadingProject, setIsLoadingProject] = useState(false);
+  const [projectError, setProjectError] = useState('');
 
   useEffect(() => {
     setProjectData(initialProjectData);
   }, [initialProjectData]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const fetchProject = async () => {
+      setIsLoadingProject(true);
+      setProjectError('');
+
+      try {
+        const response = await getProjectDetail(projectId);
+
+        if (isCancelled) {
+          return;
+        }
+
+        setProjectData((previous) => ({
+          ...previous,
+          id: response?.projectId ?? previous.id,
+          title: response?.projectName ?? previous.title,
+          description: response?.description ?? previous.description,
+          subjectName: response?.subjectName ?? previous.subjectName,
+          subjectCode: response?.subjectCode ?? previous.subjectCode,
+          lecturerName: response?.lecturerName ?? previous.lecturerName,
+          lecturerCode: response?.lecturerCode ?? previous.lecturerCode,
+          createdBy: response?.lecturerName ?? previous.createdBy,
+          createdAt: response?.createdAt ?? previous.createdAt,
+          updatedAt: response?.updatedAt ?? previous.updatedAt,
+          statusString: response?.statusString ?? previous.statusString,
+          status: response?.statusString?.toLowerCase() ?? previous.status,
+          objectives: response?.objectives ?? previous.objectives,
+        }));
+      } catch (error) {
+        if (!isCancelled) {
+          console.error('Failed to load project detail.', error);
+          setProjectError('Unable to load project detail. Please try again.');
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingProject(false);
+        }
+      }
+    };
+
+    if (projectId) {
+      fetchProject();
+    }
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [projectId]);
 
   // Enhanced Educational Kanban Tasks with Swimlane Features
   const [kanbanTasks, setKanbanTasks] = useState([
@@ -904,112 +977,139 @@ const ProjectDetail = () => {
               </button>
             </header>
             <form className={styles.editForm} onSubmit={handleEditSave}>
-              <div className={styles.formGrid}>
+              <div className={styles.formSection}>
+                <div className={styles.sectionHeaderRow}>
+                  <span className={styles.sectionTitle}>Project basics</span>
+                  <span className={styles.sectionHint}>Update the core details shared with students.</span>
+                </div>
+                <div className={styles.formGrid}>
+                  <label className={styles.formField}>
+                    <span>Project title</span>
+                    <input
+                      type="text"
+                      value={editForm.title}
+                      onChange={(event) => handleEditFieldChange('title', event.target.value)}
+                      required
+                    />
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Category</span>
+                    <input
+                      type="text"
+                      value={editForm.category}
+                      onChange={(event) => handleEditFieldChange('category', event.target.value)}
+                      required
+                    />
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Difficulty</span>
+                    <select
+                      value={editForm.difficulty}
+                      onChange={(event) => handleEditFieldChange('difficulty', event.target.value)}
+                    >
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Advanced">Advanced</option>
+                    </select>
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Estimated duration</span>
+                    <input
+                      type="text"
+                      value={editForm.estimatedDuration}
+                      onChange={(event) => handleEditFieldChange('estimatedDuration', event.target.value)}
+                    />
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Minimum team size</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={editForm.minTeamSize}
+                      onChange={(event) => handleEditFieldChange('minTeamSize', event.target.value)}
+                    />
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Maximum team size</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={editForm.maxTeamSize}
+                      onChange={(event) => handleEditFieldChange('maxTeamSize', event.target.value)}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className={styles.formSection}>
+                <div className={styles.sectionHeaderRow}>
+                  <span className={styles.sectionTitle}>Executive summary</span>
+                  <span className={styles.sectionHint}>Craft a compelling brief for lecturers and students.</span>
+                </div>
                 <label className={styles.formField}>
-                  <span>Project title</span>
-                  <input
-                    type="text"
-                    value={editForm.title}
-                    onChange={(event) => handleEditFieldChange('title', event.target.value)}
-                    required
-                  />
-                </label>
-                <label className={styles.formField}>
-                  <span>Category</span>
-                  <input
-                    type="text"
-                    value={editForm.category}
-                    onChange={(event) => handleEditFieldChange('category', event.target.value)}
-                    required
-                  />
-                </label>
-                <label className={styles.formField}>
-                  <span>Difficulty</span>
-                  <select
-                    value={editForm.difficulty}
-                    onChange={(event) => handleEditFieldChange('difficulty', event.target.value)}
-                  >
-                    <option value="Beginner">Beginner</option>
-                    <option value="Intermediate">Intermediate</option>
-                    <option value="Advanced">Advanced</option>
-                  </select>
-                </label>
-                <label className={styles.formField}>
-                  <span>Estimated duration</span>
-                  <input
-                    type="text"
-                    value={editForm.estimatedDuration}
-                    onChange={(event) => handleEditFieldChange('estimatedDuration', event.target.value)}
-                  />
-                </label>
-                <label className={styles.formField}>
-                  <span>Minimum team size</span>
-                  <input
-                    type="number"
-                    min="1"
-                    value={editForm.minTeamSize}
-                    onChange={(event) => handleEditFieldChange('minTeamSize', event.target.value)}
-                  />
-                </label>
-                <label className={styles.formField}>
-                  <span>Maximum team size</span>
-                  <input
-                    type="number"
-                    min="1"
-                    value={editForm.maxTeamSize}
-                    onChange={(event) => handleEditFieldChange('maxTeamSize', event.target.value)}
+                  <span>Summary</span>
+                  <textarea
+                    rows={4}
+                    value={editForm.description}
+                    onChange={(event) => handleEditFieldChange('description', event.target.value)}
                   />
                 </label>
               </div>
-              <label className={styles.formField}>
-                <span>Executive summary</span>
-                <textarea
-                  rows={4}
-                  value={editForm.description}
-                  onChange={(event) => handleEditFieldChange('description', event.target.value)}
-                />
-              </label>
-              <div className={styles.dualFieldRow}>
-                <label className={styles.formField}>
-                  <span>Primary tags</span>
-                  <input
-                    type="text"
-                    value={editForm.tags}
-                    onChange={(event) => handleEditFieldChange('tags', event.target.value)}
-                    placeholder="React, AI, API"
-                  />
-                  <small>Separate tags with commas.</small>
-                </label>
-                <label className={styles.formField}>
-                  <span>Required skill set</span>
-                  <input
-                    type="text"
-                    value={editForm.skillsRequired}
-                    onChange={(event) => handleEditFieldChange('skillsRequired', event.target.value)}
-                    placeholder="JavaScript, UX, Testing"
-                  />
-                  <small>Separate skills with commas.</small>
-                </label>
+
+              <div className={styles.formSection}>
+                <div className={styles.sectionHeaderRow}>
+                  <span className={styles.sectionTitle}>Scope & requirements</span>
+                  <span className={styles.sectionHint}>Highlight the skills and tags students should prepare for.</span>
+                </div>
+                <div className={styles.dualFieldRow}>
+                  <label className={styles.formField}>
+                    <span>Primary tags</span>
+                    <input
+                      type="text"
+                      value={editForm.tags}
+                      onChange={(event) => handleEditFieldChange('tags', event.target.value)}
+                      placeholder="React, AI, API"
+                    />
+                    <small>Separate tags with commas.</small>
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Required skill set</span>
+                    <input
+                      type="text"
+                      value={editForm.skillsRequired}
+                      onChange={(event) => handleEditFieldChange('skillsRequired', event.target.value)}
+                      placeholder="JavaScript, UX, Testing"
+                    />
+                    <small>Separate skills with commas.</small>
+                  </label>
+                </div>
               </div>
-              <div className={styles.dualFieldRow}>
-                <label className={styles.formField}>
-                  <span>Learning outcomes</span>
-                  <textarea
-                    rows={4}
-                    value={editForm.learningOutcomes}
-                    onChange={(event) => handleEditFieldChange('learningOutcomes', event.target.value)}
-                    placeholder="One outcome per line"
-                  />
-                </label>
-                <label className={styles.formField}>
-                  <span>Pre-requisites</span>
-                  <textarea
-                    rows={4}
-                    value={editForm.prerequisites}
-                    onChange={(event) => handleEditFieldChange('prerequisites', event.target.value)}
-                    placeholder="One prerequisite per line"
-                  />
-                </label>
+
+              <div className={styles.formSection}>
+                <div className={styles.sectionHeaderRow}>
+                  <span className={styles.sectionTitle}>Learning blueprint</span>
+                  <span className={styles.sectionHint}>Clarify the outcomes and prerequisites for the cohort.</span>
+                </div>
+                <div className={styles.dualFieldRow}>
+                  <label className={styles.formField}>
+                    <span>Learning outcomes</span>
+                    <textarea
+                      rows={4}
+                      value={editForm.learningOutcomes}
+                      onChange={(event) => handleEditFieldChange('learningOutcomes', event.target.value)}
+                      placeholder="One outcome per line"
+                    />
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Pre-requisites</span>
+                    <textarea
+                      rows={4}
+                      value={editForm.prerequisites}
+                      onChange={(event) => handleEditFieldChange('prerequisites', event.target.value)}
+                      placeholder="One prerequisite per line"
+                    />
+                  </label>
+                </div>
               </div>
               <footer className={styles.editFooter}>
                 <button type="button" className={styles.secondaryBtn} onClick={closeEditPanel}>
@@ -1027,6 +1127,7 @@ const ProjectDetail = () => {
         <div className={styles.updateToast}>{editMessage}</div>
       )}
       <div className={styles.projectDetail}>
+          {projectError && <div className={styles.errorBanner}>{projectError}</div>}
         {/* Header */}
         <ProjectHeader projectId={projectId} projectData={projectData} />
 
@@ -1082,48 +1183,25 @@ const ProjectDetail = () => {
                   <h3 className={styles.cardTitle}>Project Details</h3>
                   <div className={styles.detailsList}>
                     <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Duration:</span>
-                      <span className={styles.detailValue}>{projectData.estimatedDuration}</span>
+                      <span className={styles.detailLabel}>Created on</span>
+                      <span className={styles.detailValue}>{formatDate(projectData.createdAt)}</span>
                     </div>
                     <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Team Size:</span>
-                      <span className={styles.detailValue}>{projectData.minTeamSize}-{projectData.maxTeamSize} members</span>
+                      <span className={styles.detailLabel}>Last modified</span>
+                      <span className={styles.detailValue}>{formatDate(projectData.updatedAt ?? projectData.lastModified)}</span>
                     </div>
                     <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Created By:</span>
-                      <span className={styles.detailValue}>{projectData.createdBy}</span>
-                    </div>
-                    <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Version:</span>
-                      <span className={styles.detailValue}>{projectData.version}</span>
-                    </div>
-                    <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Last Modified:</span>
-                      <span className={styles.detailValue}>{new Date(projectData.lastModified).toLocaleDateString()}</span>
-                    </div>
-                    <div className={styles.detailItem}>
-                      <span className={styles.detailLabel}>Syllabus Alignment:</span>
-                      <span className={styles.detailValue}>
-                        <span className={styles.alignmentScore}>{projectData.syllabusAlignment}%</span>
+                      <span className={styles.detailLabel}>Status</span>
+                      <span
+                        className={`${styles.statusPill} ${styles[`status-${(projectData.statusString ?? 'pending').toLowerCase()}`] ?? ''}`}
+                      >
+                        {projectData.statusString ?? 'PENDING'}
                       </span>
                     </div>
-                  </div>
-                </div>
-
-                {/* Skills & Tags */}
-                <div className={styles.skillsCard}>
-                  <h3 className={styles.cardTitle}>Required Skills</h3>
-                  <div className={styles.skillsList}>
-                    {projectData.skillsRequired.map((skill, index) => (
-                      <span key={index} className={styles.skillTag}>{skill}</span>
-                    ))}
-                  </div>
-                  
-                  <h3 className={styles.cardTitle}>Tags</h3>
-                  <div className={styles.tagsList}>
-                    {projectData.tags.map((tag, index) => (
-                      <span key={index} className={styles.tag}>{tag}</span>
-                    ))}
+                    <div className={styles.detailItem}>
+                      <span className={styles.detailLabel}>Created by</span>
+                      <span className={styles.detailValue}>{projectData.createdBy}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -1140,18 +1218,6 @@ const ProjectDetail = () => {
                   </ul>
                 </div>
 
-                {/* Prerequisites */}
-                <div className={styles.prerequisitesCard}>
-                  <h3 className={styles.cardTitle}>Prerequisites</h3>
-                  <ul className={styles.prerequisitesList}>
-                    {projectData.prerequisites.map((prereq, index) => (
-                      <li key={index} className={styles.prerequisiteItem}>
-                        <ExclamationTriangleIcon className="w-4 h-4 text-amber-500" />
-                        {prereq}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
               </div>
             </div>
           )}

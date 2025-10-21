@@ -1,12 +1,15 @@
 /* Project Header Styles */
 .header {
-  background: white;
-  margin: -24px -24px 24px -24px;
-  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(241, 245, 249, 0.95) 100%);
+  margin-bottom: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 24px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
 }
 
 .headerTop {
-  padding: 16px 24px 0;
+  padding: 20px 28px 0;
 }
 
 .breadcrumb {
@@ -48,7 +51,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 16px 24px 24px;
+  padding: 24px 28px 28px;
   gap: 24px;
 }
 
@@ -70,18 +73,6 @@
   margin: 0;
 }
 
-.moduleRating {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.ratingText {
-  font-size: 14px;
-  color: #6b7280;
-  margin-left: 4px;
-}
-
 .moduleDescription {
   font-size: 16px;
   color: #6b7280;
@@ -89,22 +80,83 @@
   line-height: 1.5;
 }
 
-.moduleStats {
-  display: flex;
-  gap: 24px;
-  flex-wrap: wrap;
+.metaSubtitle {
+  font-size: 14px;
+  color: #4b5563;
+  margin: 0 0 18px 0;
 }
 
-.statItem {
+.metaRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.metaItem {
   display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+.metaIcon {
+  width: 22px;
+  height: 22px;
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.metaLabel {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.metaValue {
+  display: block;
+  font-size: 15px;
+  color: #1f2937;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.statusValue {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
-  color: #374151;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
-.statItem svg {
-  color: #6b7280;
+.statusApproved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.statusPending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.statusDenied,
+.statusRejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.statusDraft {
+  background: #e0e7ff;
+  color: #3730a3;
 }
 
 .headerActions {
@@ -145,7 +197,7 @@
     gap: 8px;
   }
   
-  .moduleStats {
-    gap: 16px;
+  .metaRow {
+    grid-template-columns: 1fr;
   }
 }

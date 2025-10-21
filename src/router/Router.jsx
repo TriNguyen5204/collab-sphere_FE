@@ -42,6 +42,7 @@ import LecturerListStaff from '../pages/staff/LecturerListStaff';
 import ClassListStaff from '../pages/staff/ClassListStaff';
 import ClassDetail from '../pages/staff/ClassDetail';
 
+
 // head department pages
 import DepartmentDashboard from '../pages/headDepartment/Dashboard';
 import SubjectManagement from '../pages/headDepartment/SubjectAndSyllabusManagement';

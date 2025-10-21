@@ -26,7 +26,13 @@ const AppSidebar = ({
   itemClassName,
   activeItemClassName,
 }) => {
+  const normalizePath = path => {
+    if (!path) return '/';
+    const trimmed = path.replace(/\/+$/, '');
+    return trimmed.length ? trimmed : '/';
+  };
   const location = useLocation();
+  const currentPath = normalizePath(location.pathname);
   const effectiveSections = sections.length ? sections : [{ items: [] }];
   const collapsed = !expanded;
 
@@ -85,7 +91,8 @@ const AppSidebar = ({
             <div className={styles.navList}>
               {(section.items ?? []).map(item => {
                 const Icon = item.icon;
-                const isActive = item.match ? item.match(location.pathname) : location.pathname === item.href;
+                const targetHref = normalizePath(item.href);
+                const isActive = item.match ? item.match(currentPath) : currentPath === targetHref;
                 const linkContent = (
                   <>
                     {Icon && <Icon className={styles.navIcon} />}
@@ -94,6 +101,8 @@ const AppSidebar = ({
                   </>
                 );
 
+                const itemClassName = clsx(styles.navItem, isActive && styles.navItemActive);
+
                 if (item.toExternal) {
                   return (
                     <a
@@ -101,7 +110,7 @@ const AppSidebar = ({
                       href={item.href}
                       target={item.target ?? '_blank'}
                       rel={item.rel ?? 'noreferrer'}
-                      className={clsx(styles.navItem, isActive && 'active')}
+                      className={itemClassName}
                       title={!expanded ? item.label : undefined}
                     >
                       {linkContent}

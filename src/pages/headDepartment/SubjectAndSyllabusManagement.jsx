@@ -66,7 +66,7 @@ export default function SubjectManagement() {
             subjectId: selectedSubject.subjectId,
             description: data.subjectSyllabus.description,
             credits: data.subjectSyllabus.noCredit,
-            topics: [data.subjectSyllabus.syllabusName], // bạn có thể tuỳ chỉnh thêm
+            topics: [data.subjectSyllabus.syllabusName],
           };
 
           const outcomeData = {

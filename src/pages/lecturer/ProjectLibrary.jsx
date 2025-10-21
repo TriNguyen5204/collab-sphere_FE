@@ -1,865 +1,622 @@
-import React, { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import DashboardLayout from '../../components/DashboardLayout';
-import styles from './ProjectLibrary.module.css';
 import {
-  MagnifyingGlassIcon,
-  PlusIcon,
-  DocumentArrowUpIcon,
   BookOpenIcon,
-  Squares2X2Icon,
-  ListBulletIcon,
-  ArrowPathIcon,
-  ShareIcon,
-  EyeIcon,
+  ClipboardDocumentListIcon,
+  MagnifyingGlassIcon,
+  CalendarDaysIcon,
+  CheckCircleIcon,
+  InformationCircleIcon,
+  PlusIcon,
+  SparklesIcon
 } from '@heroicons/react/24/outline';
-import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import { getLecturerProjects } from '../../services/projectApi';
 
-const PROJECTS_DATA = [
-  {
-    id: 1,
-    title: 'E-commerce Platform Development',
-    description:
-      'Build a complete e-commerce platform with user authentication, product catalog, shopping cart, and payment integration.',
-    category: 'Web Development',
-    difficulty: 'Advanced',
-    status: 'published',
-    estimatedDuration: '8-12 weeks',
-    maxTeamSize: 5,
-    skillsRequired: ['React', 'Node.js', 'MongoDB', 'Express', 'Payment APIs'],
-    learningOutcomes: [
-      'Full-stack web development',
-      'Database design and management',
-      'API integration',
-      'User authentication and security',
-    ],
-    assignedClasses: ['SE301', 'CS401'],
-    totalTeams: 12,
-    activeTeams: 8,
-    completedTeams: 4,
-    averageScore: 85.2,
-    createdDate: '2024-09-15',
-    lastModified: '2024-11-20',
-    createdBy: 'Dr. Sarah Chen',
-    tags: ['react', 'nodejs', 'ecommerce', 'full-stack'],
-    isFavorite: true,
-    documentCount: 5,
-    resourceCount: 12,
-    hasAIAnalysis: true,
-    syllabusAlignment: 92,
-    complexity: 'high',
-  },
-  {
-    id: 2,
-    title: 'Mobile Health Tracking App',
-    description:
-      'Develop a mobile application for health and fitness tracking with sensor integration and data visualization.',
-    category: 'Mobile Development',
-    difficulty: 'Intermediate',
-    status: 'published',
-    estimatedDuration: '6-8 weeks',
-    maxTeamSize: 4,
-    skillsRequired: ['React Native', 'Firebase', 'Charts.js', 'Mobile Sensors'],
-    learningOutcomes: [
-      'Mobile app development',
-      'Sensor integration',
-      'Data visualization',
-      'Real-time data processing',
-    ],
-    assignedClasses: ['CS302'],
-    totalTeams: 6,
-    activeTeams: 6,
-    completedTeams: 0,
-    averageScore: 0,
-    createdDate: '2024-10-01',
-    lastModified: '2024-11-18',
-    createdBy: 'Dr. Michael Rodriguez',
-    tags: ['mobile', 'health', 'react-native', 'sensors'],
-    isFavorite: false,
-    documentCount: 3,
-    resourceCount: 8,
-    hasAIAnalysis: true,
-    syllabusAlignment: 88,
-    complexity: 'medium',
-  },
-  {
-    id: 3,
-    title: 'AI-Powered Chatbot',
-    description:
-      'Create an intelligent chatbot using natural language processing and machine learning algorithms.',
-    category: 'Artificial Intelligence',
-    difficulty: 'Advanced',
-    status: 'draft',
-    estimatedDuration: '10-14 weeks',
-    maxTeamSize: 3,
-    skillsRequired: ['Python', 'TensorFlow', 'NLP', 'REST APIs'],
-    learningOutcomes: [
-      'Machine learning implementation',
-      'Natural language processing',
-      'AI model training',
-      'Conversational AI design',
-    ],
-    assignedClasses: [],
-    totalTeams: 0,
-    activeTeams: 0,
-    completedTeams: 0,
-    averageScore: 0,
-    createdDate: '2024-11-10',
-    lastModified: '2024-11-19',
-    createdBy: 'Dr. Emily Watson',
-    tags: ['ai', 'chatbot', 'nlp', 'python'],
-    isFavorite: true,
-    documentCount: 2,
-    resourceCount: 6,
-    hasAIAnalysis: false,
-    syllabusAlignment: 0,
-    complexity: 'high',
-  },
-  {
-    id: 4,
-    title: 'IoT Smart Home System',
-    description:
-      'Design and implement an IoT-based smart home system with sensor networks and mobile control.',
-    category: 'Internet of Things',
-    difficulty: 'Advanced',
-    status: 'published',
-    estimatedDuration: '12-16 weeks',
-    maxTeamSize: 6,
-    skillsRequired: ['Arduino', 'Raspberry Pi', 'MQTT', 'React', 'Python'],
-    learningOutcomes: [
-      'IoT system architecture',
-      'Embedded systems programming',
-      'Wireless communication protocols',
-      'Real-time monitoring systems',
-    ],
-    assignedClasses: ['EE401', 'CS403'],
-    totalTeams: 4,
-    activeTeams: 3,
-    completedTeams: 1,
-    averageScore: 78.5,
-    createdDate: '2024-08-20',
-    lastModified: '2024-11-15',
-    createdBy: 'Prof. James Liu',
-    tags: ['iot', 'arduino', 'smart-home', 'embedded'],
-    isFavorite: false,
-    documentCount: 7,
-    resourceCount: 15,
-    hasAIAnalysis: true,
-    syllabusAlignment: 95,
-    complexity: 'high',
-  },
-  {
-    id: 5,
-    title: 'Social Media Analytics Dashboard',
-    description:
-      'Build a comprehensive analytics dashboard for social media data with real-time visualization.',
-    category: 'Data Science',
-    difficulty: 'Intermediate',
-    status: 'published',
-    estimatedDuration: '6-8 weeks',
-    maxTeamSize: 4,
-    skillsRequired: ['Python', 'Pandas', 'D3.js', 'APIs', 'PostgreSQL'],
-    learningOutcomes: [
-      'Data analysis and visualization',
-      'API integration and data collection',
-      'Dashboard design and development',
-      'Statistical analysis and reporting',
-    ],
-    assignedClasses: ['DS201'],
-    totalTeams: 8,
-    activeTeams: 5,
-    completedTeams: 3,
-    averageScore: 82.7,
-    createdDate: '2024-09-05',
-    lastModified: '2024-11-12',
-    createdBy: 'Dr. Anna Kim',
-    tags: ['data-science', 'analytics', 'dashboard', 'python'],
-    isFavorite: false,
-    documentCount: 4,
-    resourceCount: 10,
-    hasAIAnalysis: true,
-    syllabusAlignment: 90,
-    complexity: 'medium',
-  },
-  {
-    id: 6,
-    title: 'Blockchain Voting System',
-    description:
-      'Develop a secure voting system using blockchain technology with transparency and immutability.',
-    category: 'Blockchain',
-    difficulty: 'Advanced',
-    status: 'review',
-    estimatedDuration: '14-18 weeks',
-    maxTeamSize: 5,
-    skillsRequired: ['Solidity', 'Web3.js', 'Ethereum', 'React', 'Cryptography'],
-    learningOutcomes: [
-      'Blockchain development',
-      'Smart contract programming',
-      'Decentralized application (DApp) creation',
-      'Cryptographic security implementation',
-    ],
-    assignedClasses: [],
-    totalTeams: 0,
-    activeTeams: 0,
-    completedTeams: 0,
-    averageScore: 0,
-    createdDate: '2024-11-01',
-    lastModified: '2024-11-20',
-    createdBy: 'Dr. Robert Zhang',
-    tags: ['blockchain', 'voting', 'solidity', 'web3'],
-    isFavorite: true,
-    documentCount: 3,
-    resourceCount: 8,
-    hasAIAnalysis: false,
-    syllabusAlignment: 0,
-    complexity: 'high',
-  },
-];
-
-const statusLabels = {
-  published: 'Published',
-  draft: 'Draft',
-  review: 'In Review',
+const REQUIRED_PROJECT_FIELDS = {
+  projectId: 'Used as the unique key for navigation and actions.',
+  projectName: 'Shown as the project title in list and card views.',
+  description: 'Displayed beneath the title for quick context.',
+  status: 'Determines project status badges and filtering options.',
+  subjectCode: 'Provides a quick reference to the linked subject.',
+  subjectName: 'Supplies human readable context alongside the subject code.',
+  lecturerName: 'Clarifies the project owner when multiple lecturers collaborate.',
+  objectives: 'Feeds the objectives preview and milestone rollups.'
 };
 
-const formatDate = (value) =>
-  new Intl.DateTimeFormat('en-US', {
+const STATUS_CODE_MAP = {
+  0: 'PENDING',
+  1: 'APPROVED',
+  2: 'REJECTED'
+};
+
+const STATUS_LABELS = {
+  APPROVED: 'Approved',
+  PENDING: 'Pending',
+  REJECTED: 'Rejected',
+  UNKNOWN: 'Unknown'
+};
+
+const normaliseStatus = (rawStatus, fallback) => {
+  if (typeof rawStatus === 'string' && rawStatus.trim().length > 0) {
+    return rawStatus.trim().toUpperCase();
+  }
+
+  if (typeof rawStatus === 'number') {
+    return STATUS_CODE_MAP[rawStatus] ?? fallback;
+  }
+
+  return fallback;
+};
+
+const mapApiProjectToViewModel = (rawProject = {}) => {
+  const statusValue = normaliseStatus(
+    rawProject.statusString ?? rawProject.status,
+    'UNKNOWN'
+  );
+
+  const objectives = Array.isArray(rawProject.objectives)
+    ? rawProject.objectives.map((objective) => {
+        const milestones = Array.isArray(objective.objectiveMilestones)
+          ? objective.objectiveMilestones.map((milestone) => ({
+              objectiveMilestoneId: milestone.objectiveMilestoneId ?? milestone.id ?? null,
+              title: milestone.title ?? 'Untitled milestone',
+              description: milestone.description ?? '',
+              startDate: milestone.startDate ?? milestone.beginDate ?? null,
+              endDate: milestone.endDate ?? milestone.finishDate ?? null
+            }))
+          : [];
+
+        return {
+          objectiveId: objective.objectiveId ?? objective.id ?? null,
+          description: objective.description ?? 'Objective description unavailable',
+          priority: objective.priority ?? 'Normal',
+          milestones
+        };
+      })
+    : [];
+
+  const milestones = objectives.flatMap((objective) =>
+    objective.milestones.map((milestone) => ({
+      ...milestone,
+      objectiveId: objective.objectiveId
+    }))
+  );
+
+  return {
+    projectId: rawProject.projectId ?? rawProject.id ?? null,
+    projectName: rawProject.projectName ?? rawProject.name ?? 'Untitled project',
+    description: rawProject.description ?? 'Project description unavailable.',
+    lecturerName:
+      rawProject.lecturerName ??
+      rawProject.lecturerFullName ??
+      rawProject.lecturer?.fullName ??
+      '—',
+    lecturerId: rawProject.lecturerId ?? null,
+    subjectCode: rawProject.subjectCode ?? rawProject.subject?.code ?? '—',
+    subjectName: rawProject.subjectName ?? rawProject.subject?.name ?? '—',
+    status: statusValue,
+    statusLabel: STATUS_LABELS[statusValue] ?? statusValue,
+    objectives,
+    milestones,
+    hasObjectives: objectives.length > 0,
+    milestoneCount: milestones.length
+  };
+};
+
+const extractProjectList = (payload) => {
+  if (!payload) return [];
+
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload.list)) {
+    return payload.list;
+  }
+
+  if (Array.isArray(payload.data)) {
+    return payload.data;
+  }
+
+  if (Array.isArray(payload.items)) {
+    return payload.items;
+  }
+
+  return [];
+};
+
+const normaliseProjectResponse = (payload) => {
+  const rawProjects = extractProjectList(payload);
+  const missingFields = new Set();
+
+  const projects = rawProjects.map((rawProject) => {
+    Object.keys(REQUIRED_PROJECT_FIELDS).forEach((field) => {
+      const value = rawProject?.[field];
+      if (value === undefined || value === null) {
+        missingFields.add(field);
+      }
+    });
+
+    return mapApiProjectToViewModel(rawProject);
+  });
+
+  return {
+    projects,
+    missingFields: Array.from(missingFields)
+  };
+};
+
+const renderProjectStatSkeleton = (key) => (
+  <div
+    key={key}
+    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm animate-pulse"
+  >
+    <div className="flex items-center justify-between">
+      <div className="space-y-3">
+        <div className="h-3 w-24 rounded bg-slate-200" />
+        <div className="h-7 w-16 rounded bg-slate-300" />
+      </div>
+      <div className="h-12 w-12 rounded-xl bg-slate-200" />
+    </div>
+    <div className="mt-4 h-3 w-32 rounded bg-slate-100" />
+  </div>
+);
+
+const renderProjectCardSkeleton = (key) => (
+  <div
+    key={key}
+    className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm animate-pulse"
+  >
+    <div className="flex items-start justify-between gap-2">
+      <div className="space-y-2">
+        <div className="h-3 w-20 rounded bg-slate-200" />
+        <div className="h-5 w-36 rounded bg-slate-200" />
+        <div className="h-3 w-40 rounded bg-slate-100" />
+        <div className="h-3 w-32 rounded bg-slate-100" />
+      </div>
+      <div className="h-6 w-20 rounded-full bg-slate-200" />
+    </div>
+    <div className="mt-4 grid grid-cols-2 gap-4">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={index} className="space-y-2">
+          <div className="h-3 w-24 rounded bg-slate-100" />
+          <div className="h-4 w-16 rounded bg-slate-200" />
+        </div>
+      ))}
+    </div>
+    <div className="mt-auto flex flex-col gap-2 pt-6 sm:flex-row">
+      <div className="h-10 w-full rounded-xl bg-slate-200" />
+      <div className="h-10 w-full rounded-xl bg-slate-200" />
+    </div>
+  </div>
+);
+
+const renderMilestoneSkeleton = (key) => (
+  <div
+    key={key}
+    className="rounded-xl border border-slate-200 bg-slate-100/80 px-4 py-4 animate-pulse"
+  >
+    <div className="h-4 w-40 rounded bg-slate-200" />
+    <div className="mt-2 h-3 w-32 rounded bg-slate-200" />
+    <div className="mt-2 h-3 w-28 rounded bg-slate-100" />
+  </div>
+);
+
+const formatDate = (value) => {
+  if (!value) return 'TBA';
+
+  return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
-    year: 'numeric',
+    year: 'numeric'
   }).format(new Date(value));
+};
+
+const statusBadgeStyles = (status) => {
+  switch (status) {
+    case 'APPROVED':
+      return 'bg-emerald-100 text-emerald-700 border border-emerald-200';
+    case 'PENDING':
+      return 'bg-amber-100 text-amber-700 border border-amber-200';
+    case 'REJECTED':
+      return 'bg-rose-100 text-rose-700 border border-rose-200';
+    default:
+      return 'bg-slate-100 text-slate-600 border border-slate-200';
+  }
+};
 
 const ProjectLibrary = () => {
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState('grid');
+  const lecturerId = useSelector((state) => state.user?.userId);
+
+  const [projects, setProjects] = useState([]);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const showProjectSkeleton = isLoadingProjects && projects.length === 0;
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedDifficulty, setSelectedDifficulty] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
-  const [sortBy, setSortBy] = useState('recent');
-  const [selectedProjects, setSelectedProjects] = useState(new Set());
-  const [favoriteProjects, setFavoriteProjects] = useState(
-    () => new Set(PROJECTS_DATA.filter((module) => module.isFavorite).map((module) => module.id))
-  );
-  const [isLoading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
 
-  const categories = useMemo(
-  () => ['all', ...new Set(PROJECTS_DATA.map((module) => module.category))],
-    []
-  );
+  useEffect(() => {
+    let isMounted = true;
 
-  const difficulties = useMemo(
-  () => ['all', ...new Set(PROJECTS_DATA.map((module) => module.difficulty))],
-    []
-  );
+    const fetchProjects = async () => {
+      if (!lecturerId) {
+        setProjects([]);
+        return;
+      }
 
-  const statuses = useMemo(
-  () => ['all', ...new Set(PROJECTS_DATA.map((module) => module.status))],
-    []
-  );
+      setIsLoadingProjects(true);
+
+      try {
+        const payload = await getLecturerProjects(lecturerId);
+        const { projects: apiProjects, missingFields } = normaliseProjectResponse(payload);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setProjects(apiProjects);
+
+        if (missingFields.length > 0) {
+          missingFields.forEach((field) => {
+            const reason = REQUIRED_PROJECT_FIELDS[field];
+            console.warn(
+              `[Lecturer Project Library] Missing '${field}' in /api/project/lecturer response. ${
+                reason ?? 'This field powers lecturer project dashboard UI elements.'
+              }`
+            );
+          });
+        }
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        console.error('Failed to load lecturer projects from /api/project/lecturer.', error);
+        setProjects([]);
+      } finally {
+        if (isMounted) {
+          setIsLoadingProjects(false);
+        }
+      }
+    };
+
+    fetchProjects();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [lecturerId]);
+
+  const projectInsights = useMemo(() => projects, [projects]);
+
+  const availableStatuses = useMemo(() => {
+    const statuses = new Set();
+    projectInsights.forEach((project) => {
+      if (project.status) {
+        statuses.add(project.status);
+      }
+    });
+    return Array.from(statuses);
+  }, [projectInsights]);
 
   const filteredProjects = useMemo(() => {
-    const lowerSearch = searchTerm.trim().toLowerCase();
+    const normalizedSearch = searchTerm.trim().toLowerCase();
 
-  return PROJECTS_DATA.filter((module) => {
+    return projectInsights.filter((project) => {
       const matchesSearch =
-        !lowerSearch ||
-        module.title.toLowerCase().includes(lowerSearch) ||
-        module.description.toLowerCase().includes(lowerSearch) ||
-        module.tags.some((tag) => tag.toLowerCase().includes(lowerSearch));
+        !normalizedSearch.length ||
+        project.projectName.toLowerCase().includes(normalizedSearch) ||
+        project.subjectName.toLowerCase().includes(normalizedSearch) ||
+        project.subjectCode.toLowerCase().includes(normalizedSearch) ||
+        project.description.toLowerCase().includes(normalizedSearch);
 
-      const matchesCategory = selectedCategory === 'all' || module.category === selectedCategory;
-      const matchesDifficulty =
-        selectedDifficulty === 'all' || module.difficulty === selectedDifficulty;
-      const matchesStatus = selectedStatus === 'all' || module.status === selectedStatus;
+      const matchesStatus =
+        statusFilter === 'all' || project.status === statusFilter;
 
-      return matchesSearch && matchesCategory && matchesDifficulty && matchesStatus;
+      return matchesSearch && matchesStatus;
     });
-  }, [searchTerm, selectedCategory, selectedDifficulty, selectedStatus]);
+  }, [projectInsights, searchTerm, statusFilter]);
 
-  const sortedProjects = useMemo(() => {
-    const projects = [...filteredProjects];
-
-    switch (sortBy) {
-      case 'recent':
-        return projects.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
-      case 'name':
-        return projects.sort((a, b) => a.title.localeCompare(b.title));
-      case 'popularity':
-        return projects.sort((a, b) => b.totalTeams - a.totalTeams);
-      case 'score':
-        return projects.sort((a, b) => b.averageScore - a.averageScore);
-      default:
-        return projects;
-    }
-  }, [filteredProjects, sortBy]);
-
-  const statistics = useMemo(() => {
-  const total = PROJECTS_DATA.length;
-  const published = PROJECTS_DATA.filter((module) => module.status === 'published').length;
-  const draft = PROJECTS_DATA.filter((module) => module.status === 'draft').length;
-  const review = PROJECTS_DATA.filter((module) => module.status === 'review').length;
-  const totalTeams = PROJECTS_DATA.reduce((sum, module) => sum + module.totalTeams, 0);
-  const activeTeams = PROJECTS_DATA.reduce((sum, module) => sum + module.activeTeams, 0);
-  const aiReady = PROJECTS_DATA.filter((module) => module.hasAIAnalysis).length;
-  const alignmentCandidates = PROJECTS_DATA.filter((module) => module.syllabusAlignment > 0);
-    const averageAlignment = alignmentCandidates.length
-      ? Math.round(
-          alignmentCandidates.reduce((sum, module) => sum + module.syllabusAlignment, 0) /
-            alignmentCandidates.length
-        )
-      : 0;
+  const stats = useMemo(() => {
+    const totalObjectives = projectInsights.reduce(
+      (total, project) => total + project.objectives.length,
+      0
+    );
+    const totalMilestones = projectInsights.reduce(
+      (total, project) => total + project.milestoneCount,
+      0
+    );
+    const projectsWithObjectives = projectInsights.filter((project) => project.hasObjectives).length;
 
     return {
-      total,
-      published,
-      draft,
-      review,
-      totalTeams,
-      activeTeams,
-      aiReady,
-      averageAlignment,
+      totalProjects: projectInsights.length,
+      projectsWithObjectives,
+      totalObjectives,
+      totalMilestones
     };
-  }, []);
+  }, [projectInsights]);
 
-  const heroMetrics = useMemo(
-    () => [
-      {
-        label: 'Published Projects',
-        value: statistics.published,
-        delta: statistics.total
-          ? `${Math.round((statistics.published / statistics.total) * 100)}% of library`
-          : 'No projects yet',
-        positive: true,
-      },
-      {
-        label: 'Awaiting Review',
-        value: statistics.review,
-        delta: statistics.review === 0 ? 'All clear' : 'Action required',
-        positive: statistics.review === 0,
-      },
-      {
-        label: 'Average Alignment',
-        value: `${statistics.averageAlignment}%`,
-        delta: `${statistics.aiReady} projects AI-ready`,
-        positive: true,
-      },
-      {
-        label: 'Active Teams',
-        value: statistics.activeTeams,
-        delta: `${statistics.totalTeams} teams overall`,
-        positive: true,
-      },
-    ],
-    [statistics]
-  );
-
-  const statusClassMap = {
-    published: styles.badgeSuccess,
-    draft: styles.badgeMuted,
-    review: styles.badgeWarning,
-  };
-
-  const difficultyClassMap = {
-    Beginner: styles.badgeMuted,
-    Intermediate: styles.badgeSuccess,
-    Advanced: styles.badgeAccent,
-  };
-
-  const toggleFavoriteProject = (projectId) => {
-    setFavoriteProjects((prev) => {
-      const updated = new Set(prev);
-      if (updated.has(projectId)) {
-        updated.delete(projectId);
-      } else {
-        updated.add(projectId);
-      }
-      return updated;
-    });
-  };
-
-  const toggleProjectSelection = (projectId) => {
-    setSelectedProjects((prev) => {
-      const updated = new Set(prev);
-      if (updated.has(projectId)) {
-        updated.delete(projectId);
-      } else {
-        updated.add(projectId);
-      }
-      return updated;
-    });
-  };
-
-  const handleSelectAll = (checked) => {
-    if (checked) {
-  setSelectedProjects(new Set(sortedProjects.map((module) => module.id)));
-    } else {
-      setSelectedProjects(new Set());
+  const projectStatCards = [
+    {
+      id: 'totalProjects',
+      label: 'Total projects',
+      value: stats.totalProjects,
+      description: '',
+      icon: BookOpenIcon,
+      iconWrapperClass: 'bg-indigo-100 text-indigo-600'
+    },
+    {
+      id: 'projectsWithObjectives',
+      label: 'Has objectives',
+      value: stats.projectsWithObjectives,
+      description: 'Projects enriched with at least one learning objective.',
+      icon: CheckCircleIcon,
+      iconWrapperClass: 'bg-emerald-100 text-emerald-600'
+    },
+    {
+      id: 'totalObjectives',
+      label: 'Objectives tracked',
+      value: stats.totalObjectives,
+      description: 'Total number of objectives across all projects.',
+      icon: SparklesIcon,
+      iconWrapperClass: 'bg-blue-100 text-blue-600'
+    },
+    {
+      id: 'totalMilestones',
+      label: 'Milestones synced',
+      value: stats.totalMilestones,
+      description: 'Milestones exposed by objectives for planning timelines.',
+      icon: CalendarDaysIcon,
+      iconWrapperClass: 'bg-amber-100 text-amber-600'
     }
-  };
+  ];
+
+  const upcomingMilestones = useMemo(() => {
+    const now = new Date();
+
+    const milestones = projectInsights.flatMap((project) =>
+      project.milestones.map((milestone) => ({
+        ...milestone,
+        projectId: project.projectId,
+        projectName: project.projectName,
+        subjectCode: project.subjectCode
+      }))
+    );
+
+    return milestones
+      .filter((milestone) => milestone.startDate && new Date(milestone.endDate ?? milestone.startDate) >= now)
+      .sort((a, b) => new Date(a.startDate ?? a.endDate ?? now) - new Date(b.startDate ?? b.endDate ?? now))
+      .slice(0, 4);
+  }, [projectInsights]);
 
   const handleCreateProject = () => {
-    navigate('/lecturer/projects/create');
+    navigate('/lecturer/create-project');
   };
 
-  const handleUploadDocument = () => {
-    navigate('/lecturer/projects/upload');
-  };
-
-  const handleProjectClick = (projectId) => {
+  const handleViewProject = (projectId) => {
     navigate(`/lecturer/projects/${projectId}`);
   };
 
-  const handleAnalyzeProject = (projectId) => {
-    navigate(`/lecturer/projects/${projectId}/analysis`);
-  };
+  return (
+    <DashboardLayout>
+      <div className="min-h-screen bg-slate-50">
+        <div className="w-full px-6 py-10 space-y-10 lg:px-8 2xl:px-12">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wider text-slate-500">Lecturer workspace</p>
+              <h1 className="mt-2 text-3xl font-semibold text-slate-900">Project Library</h1>
+              <p className="mt-2 text-sm text-slate-500">
+                Browse projects sourced from the API and review objectives and milestones without relying on mock data.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                onClick={handleCreateProject}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-700"
+              >
+                <PlusIcon className="h-4 w-4" />
+                New Project
+              </button>
+            </div>
+          </div>
 
-  const handleDuplicateProject = (projectId) => {
-    navigate(`/lecturer/projects/${projectId}/duplicate`);
-  };
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 2xl:gap-6">
+            {showProjectSkeleton
+              ? projectStatCards.map((card) => renderProjectStatSkeleton(card.id))
+              : projectStatCards.map((card) => {
+                  const Icon = card.icon;
+                  return (
+                    <div key={card.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-slate-500">{card.label}</p>
+                          <p className="mt-2 text-2xl font-semibold text-slate-900">{card.value}</p>
+                        </div>
+                        <div className={`rounded-xl p-3 ${card.iconWrapperClass}`}>
+                          <Icon className="h-6 w-6" />
+                        </div>
+                      </div>
+                      <p className="mt-3 text-xs text-slate-500">{card.description}</p>
+                    </div>
+                  );
+                })}
+          </div>
 
-  const handleShareProject = (projectId) => {
-    console.log('Share project', projectId);
-  };
-
-  const renderGridView = () => (
-    <div className={styles.moduleGrid}>
-      {sortedProjects.map((module) => {
-        const cardClasses = [styles.moduleCard];
-        if (selectedProjects.has(module.id)) {
-          cardClasses.push(styles.moduleCardSelected);
-        }
-
-    const statusClass = statusClassMap[module.status] || styles.badgeMuted;
-    const difficultyClass = difficultyClassMap[module.difficulty] || styles.badgeMuted;
-    const isFavorite = favoriteProjects.has(module.id);
-
-        return (
-          <article key={module.id} className={cardClasses.join(' ')}>
-            <div className={styles.cardTopRow}>
-              <div className={styles.cardMeta}>
-                <div className={styles.tagRow}>
-                  <label className={styles.selectionCheckbox}>
-                    <input
-                      type="checkbox"
-                      checked={selectedProjects.has(module.id)}
-                      onChange={() => toggleProjectSelection(module.id)}
-                    />
-                  </label>
-                  <span className={`${styles.tag} ${statusClass}`}>
-                    {statusLabels[module.status] || module.status}
-                  </span>
-                  <span className={`${styles.tag} ${difficultyClass}`}>{module.difficulty}</span>
-                  <span
-                    className={`${styles.tag} ${
-                      module.hasAIAnalysis ? styles.badgePrimary : styles.badgeWarning
-                    }`}
-                  >
-                    {module.hasAIAnalysis ? 'AI Insights' : 'AI Pending'}
-                  </span>
+          <div className="grid grid-cols-1 gap-8 xl:grid-cols-12">
+            <div className="space-y-6 xl:col-span-8 2xl:col-span-9">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900">Projects</h2>
+                    <p className="text-xs text-slate-500">Search, filter, and jump into project detail.</p>
+                    {isLoadingProjects && (
+                      <p className="mt-1 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-500">
+                        <SparklesIcon className="h-3 w-3 animate-spin" />
+                        Refreshing data…
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex w-full flex-col gap-3 lg:w-auto lg:flex-row lg:items-center">
+                    <div className="relative w-full lg:w-56">
+                      <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(event) => setSearchTerm(event.target.value)}
+                        placeholder="Search project or subject"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                      />
+                      <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    </div>
+                    <select
+                      value={statusFilter}
+                      onChange={(event) => setStatusFilter(event.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-600 shadow-sm transition hover:border-slate-300 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 lg:w-40"
+                    >
+                      <option value="all">All statuses</option>
+                      {availableStatuses.map((status) => (
+                        <option key={status} value={status}>
+                          {STATUS_LABELS[status] ?? status}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
-                <h3 className={styles.moduleTitle} onClick={() => handleProjectClick(module.id)}>
-                  {module.title}
-                </h3>
-                <p className={styles.moduleSubtitle}>{module.description}</p>
+                {showProjectSkeleton ? (
+                  <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
+                    {Array.from({ length: 4 }).map((_, index) =>
+                      renderProjectCardSkeleton(`project-skeleton-${index}`)
+                    )}
+                  </div>
+                ) : filteredProjects.length === 0 ? (
+                  <div className="mt-10 rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center">
+                    <BookOpenIcon className="mx-auto h-10 w-10 text-slate-300" />
+                    <p className="mt-4 text-sm font-medium text-slate-600">No projects match the selected filters yet.</p>
+                    <p className="mt-1 text-xs text-slate-400">Adjust the search parameters or create a new project.</p>
+                  </div>
+                ) : (
+                  <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
+                    {filteredProjects.map((project) => (
+                      <div
+                        key={project.projectId ?? project.projectName}
+                        className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">{project.subjectCode}</p>
+                            <h3 className="mt-1 text-lg font-semibold text-slate-900">{project.projectName}</h3>
+                            <p className="mt-1 text-xs text-slate-500">{project.description}</p>
+                            <p className="mt-2 text-xs text-slate-500">Lecturer: {project.lecturerName}</p>
+                          </div>
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadgeStyles(project.status)}`}>
+                            {project.statusLabel}
+                          </span>
+                        </div>
 
-                <div className={`${styles.tagRow} ${styles.skillTagRow}`}>
-                  {module.skillsRequired.slice(0, 3).map((skill) => (
-                    <span key={skill} className={`${styles.tag} ${styles.badgeMuted}`}>
-                      {skill}
-                    </span>
-                  ))}
-                  {module.skillsRequired.length > 3 && (
-                    <span className={`${styles.tag} ${styles.badgeMuted}`}>
-                      +{module.skillsRequired.length - 3}
-                    </span>
+                        <div className="mt-4 grid grid-cols-2 gap-4 text-sm text-slate-600">
+                          <div className="space-y-1">
+                            <p className="text-xs uppercase tracking-wide text-slate-400">Objectives</p>
+                            <p className="text-base font-semibold text-slate-900">{project.objectives.length}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-xs uppercase tracking-wide text-slate-400">Milestones</p>
+                            <p className="text-base font-semibold text-slate-900">{project.milestoneCount}</p>
+                          </div>
+                          <div className="col-span-2 space-y-1">
+                            <p className="text-xs uppercase tracking-wide text-slate-400">Recent objective</p>
+                            <p className="text-sm text-slate-600">
+                              {project.objectives[0]?.description ?? 'Objectives will appear when provided.'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-auto flex flex-col gap-2 pt-6 sm:flex-row">
+                          <button
+                            onClick={() => handleViewProject(project.projectId)}
+                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                          >
+                            Open project detail
+                          </button>
+                          <button
+                            onClick={() => navigate(`/lecturer/projects/${project.projectId}/analysis`)}
+                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                          >
+                            AI insights
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-6 xl:col-span-4 2xl:col-span-3">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <InformationCircleIcon className="h-5 w-5 text-indigo-500" />
+                  <h2 className="text-lg font-semibold text-slate-900">Data coverage</h2>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">This library mirrors the backend payload exactly.</p>
+                <p className="mt-4 text-sm text-slate-600">
+                  Objectives and milestones display only when provided by the API. Missing fields are logged to the console so you can coordinate with the backend before surfacing additional UI.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <CalendarDaysIcon className="h-5 w-5 text-indigo-500" />
+                  <h2 className="text-lg font-semibold text-slate-900">Upcoming milestones</h2>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">These are sourced directly from objective milestones.</p>
+                <div className="mt-4 space-y-4">
+                  {showProjectSkeleton ? (
+                    Array.from({ length: 3 }).map((_, index) =>
+                      renderMilestoneSkeleton(`milestone-skeleton-${index}`)
+                    )
+                  ) : upcomingMilestones.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
+                      <p className="text-sm font-semibold text-slate-700">No milestones scheduled yet</p>
+                      <p className="mt-1 text-xs text-slate-500">Milestones will appear once objectives define timelines.</p>
+                    </div>
+                  ) : (
+                    upcomingMilestones.map((milestone) => (
+                      <div key={`${milestone.objectiveMilestoneId}-${milestone.projectId}`} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <p className="text-sm font-semibold text-slate-800">{milestone.title}</p>
+                        <p className="text-xs text-slate-500">{milestone.projectName} · {milestone.subjectCode}</p>
+                        <p className="mt-1 text-xs text-slate-500">{formatDate(milestone.startDate)} – {formatDate(milestone.endDate)}</p>
+                      </div>
+                    ))
                   )}
                 </div>
               </div>
 
-              <button
-                type="button"
-                className={`${styles.favoriteBtn} ${isFavorite ? styles.favoriteBtnActive : ''}`}
-                onClick={() => toggleFavoriteProject(module.id)}
-                aria-label={isFavorite ? 'Remove from favourites' : 'Add to favourites'}
-              >
-                <StarIconSolid className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className={styles.cardLower}>
-              <div className={styles.metricsRow}>
-                <div className={styles.metricBlock}>
-                  <span className={styles.metricLabelSmall}>Active Teams</span>
-                  <span className={styles.metricValueStrong}>{module.activeTeams}</span>
-                  <span className={styles.metricFootnote}>of {module.totalTeams} teams</span>
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <CheckCircleIcon className="h-5 w-5 text-indigo-500" />
+                  <h2 className="text-lg font-semibold text-slate-900">Lecturer checklist</h2>
                 </div>
-                <div className={styles.metricBlock}>
-                  <span className={styles.metricLabelSmall}>Alignment</span>
-                  <span className={styles.metricValueStrong}>
-                    {module.syllabusAlignment ? `${module.syllabusAlignment}%` : '—'}
-                  </span>
-                  <span className={styles.metricFootnote}>
-                    {module.hasAIAnalysis ? 'AI-reviewed' : 'Awaiting AI analysis'}
-                  </span>
-                </div>
-                <div className={styles.metricBlock}>
-                  <span className={styles.metricLabelSmall}>Duration</span>
-                  <span className={styles.metricValueStrong}>{module.estimatedDuration}</span>
-                  <span className={styles.metricFootnote}>
-                    Max team size {module.maxTeamSize}
-                  </span>
-                </div>
-              </div>
-
-              <div className={styles.divider} />
-
-              <div className={styles.footerRow}>
-                <div className={styles.footerMeta}>
-                  <span>Updated {formatDate(module.lastModified)}</span>
-                  <span>
-                    {module.assignedClasses.length > 0
-                      ? `${module.assignedClasses.length} classes assigned`
-                      : 'Not assigned yet'}
-                  </span>
-                </div>
-                <div className={styles.cardActions}>
-                  <button
-                    type="button"
-                    className={styles.actionBtn}
-                    onClick={() => handleProjectClick(module.id)}
-                  >
-                    Open project
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.secondaryBtn}
-                    onClick={() => handleAnalyzeProject(module.id)}
-                  >
-                    AI insights
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.secondaryBtn}
-                    onClick={() => handleDuplicateProject(module.id)}
-                  >
-                    Duplicate
-                  </button>
-                </div>
+                <p className="mt-1 text-xs text-slate-500">Quick reminders aligned with current API coverage.</p>
+                <ul className="mt-4 space-y-3 text-sm text-slate-600">
+                  <li className="flex items-start gap-2">
+                    <CheckCircleIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
+                    Confirm each project has clear objectives before assigning to classes.
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircleIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
+                    Coordinate milestone dates with class schedules so students are not overbooked.
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircleIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
+                    Share feedback with the backend team if required fields are missing from responses.
+                  </li>
+                </ul>
               </div>
             </div>
-          </article>
-        );
-      })}
-    </div>
-  );
-
-  const renderListView = () => (
-    <div className={styles.listContainer}>
-      <div className={styles.listHeader}>
-        <div className={styles.listHeaderRow}>
-          <div className={styles.listCell}>
-            <label className={styles.selectionCheckbox}>
-              <input
-                type="checkbox"
-                onChange={(event) => handleSelectAll(event.target.checked)}
-                checked={sortedProjects.length > 0 && selectedProjects.size === sortedProjects.length}
-                aria-label="Select all projects"
-              />
-            </label>
           </div>
-          <div className={styles.listCell}>Project</div>
-          <div className={styles.listCell}>Category</div>
-          <div className={styles.listCell}>Status</div>
-          <div className={styles.listCell}>Difficulty</div>
-          <div className={styles.listCell}>Teams</div>
-          <div className={styles.listCell}>Alignment</div>
-          <div className={styles.listCell}>Modified</div>
-          <div className={styles.listCell}>Actions</div>
         </div>
-      </div>
-
-      <div className={styles.listBody}>
-        {sortedProjects.map((module) => {
-          const statusClass = statusClassMap[module.status] || styles.badgeMuted;
-          const difficultyClass = difficultyClassMap[module.difficulty] || styles.badgeMuted;
-          const isFavorite = favoriteProjects.has(module.id);
-
-          return (
-            <div
-              key={module.id}
-              className={`${styles.listRow} ${
-                selectedProjects.has(module.id) ? styles.listRowSelected : ''
-              }`}
-            >
-              <div className={styles.listCell}>
-                <label className={styles.selectionCheckbox}>
-                  <input
-                    type="checkbox"
-                    checked={selectedProjects.has(module.id)}
-                    onChange={() => toggleProjectSelection(module.id)}
-                    aria-label={`Select ${module.title}`}
-                  />
-                </label>
-              </div>
-              <div className={styles.listCell}>
-                <div className={styles.listModuleInfo}>
-                  <div className={styles.listModuleTitle}>
-                    <Link to={`/lecturer/projects/${module.id}`}>{module.title}</Link>
-                    {isFavorite && <StarIconSolid className="w-4 h-4 text-yellow-400" />}
-                  </div>
-                  <div className={styles.listModuleDescription}>{module.description}</div>
-                  <div className={styles.listModuleTags}>
-                    {module.skillsRequired.slice(0, 3).map((skill) => (
-                      <span key={skill} className={styles.listSkillTag}>
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className={styles.listCell}>
-                <span className={`${styles.tag} ${statusClass}`}>
-                  {statusLabels[module.status] || module.status}
-                </span>
-              </div>
-              <div className={styles.listCell}>
-                <span className={`${styles.tag} ${difficultyClass}`}>{module.difficulty}</span>
-              </div>
-              <div className={styles.listCell}>
-                <span>{module.totalTeams}</span>
-              </div>
-              <div className={styles.listCell}>
-                <div className={styles.listProgress} aria-hidden>
-                  <div
-                    className={styles.listProgressFill}
-                    style={{ width: `${module.syllabusAlignment}%` }}
-                  />
-                </div>
-              </div>
-              <div className={styles.listCell}>
-                <span>{formatDate(module.lastModified)}</span>
-              </div>
-              <div className={styles.listCell}>
-                <div className={styles.listActions}>
-                  <button
-                    type="button"
-                    onClick={() => handleProjectClick(module.id)}
-                    title="Open project"
-                  >
-                    <EyeIcon className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAnalyzeProject(module.id)}
-                    title="Run AI analysis"
-                  >
-                    <ArrowPathIcon className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleShareProject(module.id)}
-                    title="Share project"
-                  >
-                    <ShareIcon className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  return (
-    <DashboardLayout>
-      <div className={styles.page}>
-        <section className={styles.hero}>
-          <div className={styles.heroContent}>
-            <div className={styles.heroHeader}>
-              <div className="flex items-center gap-3">
-                <BookOpenIcon className="w-9 h-9 text-slate-100" />
-                <div>
-                  <h1 className={styles.heroTitle}>Project Library</h1>
-                  <p className={styles.heroSubtitle}>
-                    Curate, launch, and monitor projects with AI insights and streamlined oversight for every class you guide.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.heroActions}>
-              <button type="button" className={styles.primaryAction} onClick={handleCreateProject}>
-                <PlusIcon className="w-5 h-5" />
-                Create project
-              </button>
-              <button type="button" className={styles.secondaryAction} onClick={handleUploadDocument}>
-                <DocumentArrowUpIcon className="w-5 h-5" />
-                Upload requirements
-              </button>
-            </div>
-
-            <div className={styles.impactGrid}>
-              {heroMetrics.map((metric) => (
-                <div key={metric.label} className={styles.impactCard}>
-                  <div className={styles.metricHeader}>
-                    <span className={styles.metricLabel}>{metric.label}</span>
-                  </div>
-                  <div className={styles.metricValueGroup}>
-                    <span className={styles.metricValue}>{metric.value}</span>
-                  </div>
-                  <span
-                    className={`${styles.metricDelta} ${
-                      metric.positive ? styles.metricDeltaPositive : styles.metricDeltaNegative
-                    }`}
-                  >
-                    {metric.delta}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.filterDock}>
-          <div className={styles.queryRow}>
-            <div className={styles.searchWrap}>
-              <input
-                type="text"
-                className={styles.searchInput}
-                placeholder="Search projects, descriptions, or tags"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-              />
-            </div>
-            <select
-              value={sortBy}
-              onChange={(event) => setSortBy(event.target.value)}
-              className={styles.sortSelect}
-            >
-              <option value="recent">Recently updated</option>
-              <option value="name">Name A-Z</option>
-              <option value="popularity">Most teams</option>
-              <option value="score">Highest score</option>
-            </select>
-          </div>
-
-          <div className={styles.controlRow}>
-            <div className={styles.selectGroup}>
-              <select
-                value={selectedDifficulty}
-                onChange={(event) => setSelectedDifficulty(event.target.value)}
-                className={styles.select}
-              >
-                {difficulties.map((difficulty) => (
-                  <option key={difficulty} value={difficulty}>
-                    {difficulty === 'all' ? 'All difficulties' : difficulty}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={selectedStatus}
-                onChange={(event) => setSelectedStatus(event.target.value)}
-                className={styles.select}
-              >
-                {statuses.map((status) => (
-                  <option key={status} value={status}>
-                    {status === 'all' ? 'All statuses' : statusLabels[status] || status}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className={styles.modeToggle}>
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                className={`${styles.modeButton} ${viewMode === 'grid' ? styles.modeButtonActive : ''}`}
-              >
-                <Squares2X2Icon className="w-4 h-4" />
-                Grid
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('list')}
-                className={`${styles.modeButton} ${viewMode === 'list' ? styles.modeButtonActive : ''}`}
-              >
-                <ListBulletIcon className="w-4 h-4" />
-                List
-              </button>
-            </div>
-          </div>
-
-          <div className={styles.chipRow}>
-            {categories.map((category) => (
-              <button
-                key={category}
-                type="button"
-                className={`${styles.chip} ${selectedCategory === category ? styles.chipActive : ''}`}
-                onClick={() => setSelectedCategory(category)}
-              >
-                {category === 'all' ? 'All categories' : category}
-              </button>
-            ))}
-          </div>
-
-          {selectedProjects.size > 0 && (
-            <div className={styles.bulkBar}>
-              <span>
-                {selectedProjects.size} project{selectedProjects.size > 1 ? 's' : ''} selected
-              </span>
-              <div className={styles.bulkActions}>
-                <button type="button" className={`${styles.bulkButton} ${styles.bulkButtonPrimary}`}>
-                  Assign to class
-                </button>
-                <button type="button" className={`${styles.bulkButton} ${styles.bulkButtonSecondary}`}>
-                  Export
-                </button>
-                <button type="button" className={`${styles.bulkButton} ${styles.bulkButtonSecondary}`}>
-                  Archive
-                </button>
-              </div>
-            </div>
-          )}
-        </section>
-
-        <section className={styles.moduleSection}>
-          <div className={styles.sectionHeading}>
-            <h2 className={styles.sectionTitle}>Library overview</h2>
-            <span className={styles.sectionCaption}>
-              Showing {sortedProjects.length} of {PROJECTS_DATA.length} projects
-            </span>
-          </div>
-
-          {isLoading ? (
-            <div className={styles.loadingState}>
-              <ArrowPathIcon className="w-8 h-8 animate-spin" />
-              <p>Loading projects…</p>
-            </div>
-          ) : sortedProjects.length === 0 ? (
-            <div className={styles.emptyState}>
-              <strong>No projects match your query</strong>
-              <p>Adjust your filters or create a new project to populate the library.</p>
-              <div className={styles.emptyActions}>
-                <button type="button" className={styles.primaryAction} onClick={handleCreateProject}>
-                  <PlusIcon className="w-5 h-5" />
-                  Create project
-                </button>
-                <button type="button" className={styles.secondaryAction} onClick={handleUploadDocument}>
-                  <DocumentArrowUpIcon className="w-5 h-5" />
-                  Upload requirements
-                </button>
-              </div>
-            </div>
-          ) : viewMode === 'grid' ? (
-            renderGridView()
-          ) : (
-            renderListView()
-          )}
-        </section>
       </div>
     </DashboardLayout>
   );
