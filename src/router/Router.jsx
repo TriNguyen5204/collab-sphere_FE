@@ -59,10 +59,7 @@ import SystemReport from '../pages/admin/SystemReport';
 // misc / sandbox
 import ConnectRoom from '../test/ConnectRoom';
 import VideoRoom from '../test/VideoRoom';
-import WebRTC from '../test/WebRTC';
 import TestKanbanBoard from '../pages/TestKanbanBoard';
-import RoomJoinPage from '../test/RoomJoinPage';
-import MeetingRoom from '../test/MeetingRoom';
 
 import RoleProtectedRoute from './RoleProtectedRoute';
 
@@ -77,9 +74,9 @@ const publicRoutes = [
   { path: '/unauthorized', element: <Unauthorized /> },
   // { path: '/room', element: <ConnectRoom /> },
   // { path: '/room/:roomId', element: <VideoRoom /> },
-  { path: '/room', element: <RoomJoinPage/>},
-  { path: '/room/:roomId', element: <MeetingRoom/>},
-  { path: '/meeting', element: <WebRTC/> },
+  // { path: '/room', element: <RoomJoinPage/>},
+  // { path: '/room/:roomId', element: <MeetingRoom/>},
+  // { path: '/meeting', element: <WebRTC/> },
   { path: '/test/kanban', element: <TestKanbanBoard /> },
 ];
 

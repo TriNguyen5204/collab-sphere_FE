@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Search, Plus, Edit3, Trash2, Filter, ChevronDown } from 'lucide-react';
+import { Search, Plus, Edit3, Trash2, Filter, ChevronDown, User, GraduationCap } from 'lucide-react';
 import ModalWrapper from '../../components/layout/ModalWrapper';
 import CreateLecturerForm from '../../components/ui/CreateLecturerForm';
 import CreateMultipleLecturerForm from '../../components/ui/CreateMultipleLecturerForm';
 import CreateStudentForm from '../../components/ui/CreateStudentForm';
 import CreateMultipleStudentForm from '../../components/ui/CreateMultipleStudent';
 import Header from '../../components/layout/Header';
-import { getAllLecturer } from '../../services/userService';
+import { getAllLecturer, getAllStudent } from '../../services/userService';
 
 export default function ImprovedAccountsTable() {
+  const [accountType, setAccountType] = useState('lecturer');
   const [selectedAccounts, setSelectedAccounts] = useState(new Set());
   const [searchFilters, setSearchFilters] = useState({
     Email: '',
@@ -23,38 +24,49 @@ export default function ImprovedAccountsTable() {
   const [isMultipleOpen, setIsMultipleOpen] = useState(false);
   const [isStudentOpen, setIsStudentOpen] = useState(false);
   const [isMultipleStudentOpen, setIsMultipleStudentOpen] = useState(false);
-  const [lecturers, setLecturers] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [pageNum, setPageNum] = useState(1);
-  const [pageSize] = useState(10);
   const [pageCount, setPageCount] = useState(0);
   const [itemCount, setItemCount] = useState(0);
+  const pageSize = 5
 
   useEffect(() => {
     const fetchLecturer = async () => {
-      const response = await getAllLecturer(
-        appliedFilters.Email,
-        appliedFilters.FullName,
-        appliedFilters.Yob,
-        appliedFilters.LecturerCode,
-        appliedFilters.Major
-      );
+      let response;
+      if (accountType === 'lecturer') {
+        response = await getAllLecturer(
+          appliedFilters.Email,
+          appliedFilters.FullName,
+          appliedFilters.Yob,
+          appliedFilters.LecturerCode,
+          appliedFilters.Major,
+          pageNum,
+          pageSize
+        );
+      } else {
+        response = await getAllStudent(
+          appliedFilters.Email,
+          appliedFilters.FullName,
+          appliedFilters.Yob,
+          appliedFilters.LecturerCode,
+          appliedFilters.Major,
+          pageNum,
+          pageSize
+        );
+      }
+
       if (response?.list) {
-        setLecturers(response.list);
+        setAccounts(response.list);
         setPageCount(response.pageCount);
         setItemCount(response.itemCount);
       }
     };
     fetchLecturer();
-  }, [
-    appliedFilters.Email,
-    appliedFilters.FullName,
-    appliedFilters.LecturerCode,
-    appliedFilters.Major,
-    appliedFilters.Yob,
-  ]);
+  }, [appliedFilters.Email, appliedFilters.FullName, appliedFilters.LecturerCode, appliedFilters.Major, appliedFilters.Yob, accountType, appliedFilters, pageNum]);
 
   const handleApplyFilters = () => {
     setAppliedFilters(searchFilters);
+    setPageNum(1)
   };
 
   const handlePrevPage = () => {
@@ -66,10 +78,10 @@ export default function ImprovedAccountsTable() {
   };
 
   const handleSelectAll = () => {
-    if (selectedAccounts.size === lecturers.length) {
+    if (selectedAccounts.size === accounts.length) {
       setSelectedAccounts(new Set());
     } else {
-      setSelectedAccounts(new Set(lecturers.map(lec => lec.uId)));
+      setSelectedAccounts(new Set(accounts.map(lec => lec.uId)));
     }
   };
 
@@ -99,6 +111,28 @@ export default function ImprovedAccountsTable() {
             </p>
           </div>
 
+          <div className='flex gap-3 mb-6'>
+            <button
+              onClick={() => setAccountType('lecturer')}
+              className={`flex items-center gap-2 px-5 py-2 rounded-lg border transition-all ${
+                accountType === 'lecturer'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <User className='w-4 h-4' /> Lecturers
+            </button>
+            <button
+              onClick={() => setAccountType('student')}
+              className={`flex items-center gap-2 px-5 py-2 rounded-lg border transition-all ${
+                accountType === 'student'
+                  ? 'bg-green-600 text-white border-green-600'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <GraduationCap className='w-4 h-4' /> Students
+            </button>
+          </div>
           {/* Controls Bar */}
           <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6'>
             <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4'>
@@ -204,7 +238,9 @@ export default function ImprovedAccountsTable() {
                 {Object.entries(searchFilters).map(([key, value]) => (
                   <div key={key} className='flex flex-col'>
                     <label className='text-sm font-medium text-gray-700 mb-1'>
-                      {key}
+                      {key === 'LecturerCode' && accountType === 'student'
+                        ? 'StudentCode'
+                        : key}
                     </label>
                     <input
                       name={key}
@@ -219,26 +255,26 @@ export default function ImprovedAccountsTable() {
             )}
           </div>
 
-          {/* Lecturer Table */}
+          {/* Accounts Table */}
           <div className='bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
             <table className='min-w-full divide-y divide-gray-200'>
               <thead className='bg-gray-50'>
                 <tr>
-                  <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                  <th className='px-6 py-3'>
                     <input
                       type='checkbox'
-                      checked={selectedAccounts.size === lecturers.length}
+                      checked={selectedAccounts.size === accounts.length}
                       onChange={handleSelectAll}
                     />
                   </th>
                   <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase'>
-                    Lecturer
+                    {accountType === 'lecturer' ? 'Lecturer' : 'Student'}
                   </th>
                   <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase'>
                     Email
                   </th>
                   <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase'>
-                    Lecturer Code
+                    {accountType === 'lecturer' ? 'Lecturer Code' : 'Student Code'}
                   </th>
                   <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase'>
                     Major
@@ -252,51 +288,51 @@ export default function ImprovedAccountsTable() {
                 </tr>
               </thead>
               <tbody className='divide-y divide-gray-100'>
-                {lecturers.map(lec => (
-                  <tr key={lec.uId} className='hover:bg-gray-50'>
+                {accounts.map(acc => (
+                  <tr key={acc.uId} className='hover:bg-gray-50'>
                     <td className='px-6 py-4'>
                       <input
                         type='checkbox'
-                        checked={selectedAccounts.has(lec.uId)}
-                        onChange={() => handleSelectAccount(lec.uId)}
+                        checked={selectedAccounts.has(acc.uId)}
+                        onChange={() => handleSelectAccount(acc.uId)}
                       />
                     </td>
                     <td className='px-6 py-4 font-medium text-gray-800'>
-                      {lec.fullname}
+                      {acc.fullname}
                     </td>
-                    <td className='px-6 py-4 text-gray-600'>{lec.email}</td>
+                    <td className='px-6 py-4 text-gray-600'>{acc.email}</td>
                     <td className='px-6 py-4 text-gray-600'>
-                      {lec.lecturerCode}
+                      {accountType === 'lecturer'
+                        ? acc.lecturerCode
+                        : acc.studentCode}
                     </td>
-                    <td className='px-6 py-4 text-gray-600'>{lec.major}</td>
-                    <td className='px-6 py-4 text-gray-600'>
-                      {lec.yob || '-'}
-                    </td>
+                    <td className='px-6 py-4 text-gray-600'>{acc.major}</td>
+                    <td className='px-6 py-4 text-gray-600'>{acc.yob || '-'}</td>
                     <td className='px-6 py-4'>
                       <span
                         className={`px-2 py-1 text-xs rounded-full font-semibold ${
-                          lec.isActive
+                          acc.isActive
                             ? 'bg-green-100 text-green-700'
                             : 'bg-red-100 text-red-700'
                         }`}
                       >
-                        {lec.isActive ? 'Active' : 'Inactive'}
+                        {acc.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {lecturers.length === 0 && (
+            {accounts.length === 0 && (
               <div className='p-6 text-center text-gray-500'>
-                No lecturers found.
+                No {accountType}s found.
               </div>
             )}
           </div>
         </div>
         <div className='flex justify-between items-center mt-6'>
           <p className='text-gray-600 text-sm'>
-            Showing <span className='font-semibold'>{lecturers.length}</span> of{' '}
+            Showing <span className='font-semibold'>{accounts.length}</span> of{' '}
             <span className='font-semibold'>{itemCount}</span> lecturers
           </p>
 

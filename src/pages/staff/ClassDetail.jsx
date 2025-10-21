@@ -39,8 +39,8 @@ export default function ClassDetail() {
           getAllStudent(),
         ]);
         setClassDetail(cls);
-        setLecturerList(lecturers?.lecturerList ?? []);
-        setStudentList(students?.studentList ?? []);
+        setLecturerList(lecturers?.list ?? []);
+        setStudentList(students?.list ?? []);
       } catch (err) {
         setError('Failed to load class details');
       } finally {
