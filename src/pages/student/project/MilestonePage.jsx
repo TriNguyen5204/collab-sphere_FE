@@ -9,241 +9,22 @@ import CheckpointCard from '../../../components/student/checkpoint/CheckpointCar
 import CheckpointFormModal from '../../../components/student/checkpoint/CheckpointFormModal';
 import FileUploadModal from '../../../components/student/checkpoint/FileUploadModal';
 import { Plus, CheckSquare, Folder } from 'lucide-react';
+import { getAllMilestonesByTeamId, getDetailOfMilestoneByMilestoneId } from '../../../services/userService';
 
 const MilestonePage = () => {
   const { id, projectName } = useParams();
-  
-  const [milestones, setMilestones] = useState([
-    {
-      id: 1,
-      title: "Project Initialization",
-      description: "Set up project repository, team structure, and initial documentation",
-      dueDate: "2025-09-15",
-      status: "completed",
-      completedDate: "2025-09-14",
-      completedBy: "Alice Johnson (Leader)",
-      questions: [
-        {
-          id: 1,
-          question: "What is your team's Git repository URL?",
-          answer: "https://github.com/team-alpha/collab-sphere",
-          answeredBy: "Alice Johnson",
-          answeredAt: "2025-09-12",
-          type: "text"
-        },
-        {
-          id: 2,
-          question: "How many team members are actively participating?",
-          answer: "4",
-          answeredBy: "Alice Johnson",
-          answeredAt: "2025-09-12",
-          type: "number"
-        },
-        {
-          id: 3,
-          question: "Have you completed the team roles assignment?",
-          answer: "Yes",
-          answeredBy: "Alice Johnson",
-          answeredAt: "2025-09-13",
-          type: "boolean"
-        }
-      ],
-      progress: 100,
-      requiredAnswers: 3,
-      completedAnswers: 3,
-      checkpoints: []
-    },
-    {
-      id: 2,
-      title: "Requirements & Design",
-      description: "Complete system requirements analysis and design documentation",
-      dueDate: "2025-09-30",
-      status: "in-progress",
-      completedDate: null,
-      completedBy: null,
-      questions: [
-        {
-          id: 4,
-          question: "Describe your system architecture in detail",
-          answer: "We are using a microservices architecture with React frontend, NestJS backend, and PostgreSQL database...",
-          answeredBy: "Bob Smith",
-          answeredAt: "2025-09-25",
-          type: "textarea"
-        },
-        {
-          id: 5,
-          question: "What are the main functional requirements?",
-          answer: "",
-          answeredBy: null,
-          answeredAt: null,
-          type: "textarea"
-        },
-        {
-          id: 6,
-          question: "Have you created wireframes for all main screens?",
-          answer: "",
-          answeredBy: null,
-          answeredAt: null,
-          type: "boolean"
-        },
-        {
-          id: 7,
-          question: "What design patterns will you implement?",
-          answer: "",
-          answeredBy: null,
-          answeredAt: null,
-          type: "text"
-        }
-      ],
-      progress: 25,
-      requiredAnswers: 4,
-      completedAnswers: 1,
-      checkpoints: [
-        {
-          id: 1,
-          title: "Initial Planning Document",
-          description: "Submit project charter, WBS, and initial timeline",
-          dueDate: "2025-09-20",
-          status: "completed",
-          createdBy: "Alice Johnson",
-          createdAt: "2025-09-01",
-          submissions: [
-            {
-              id: 1,
-              fileName: "project-charter.pdf",
-              fileSize: "2.5 MB",
-              fileType: "pdf",
-              uploadedBy: "Alice Johnson",
-              uploadedAt: "2025-09-18T10:30:00",
-            },
-            {
-              id: 2,
-              fileName: "timeline.xlsx",
-              fileSize: "1.2 MB",
-              fileType: "xlsx",
-              uploadedBy: "Bob Smith",
-              uploadedAt: "2025-09-19T14:20:00",
-            }
-          ],
-          comments: "All documents submitted on time. Great work!"
-        },
-        {
-          id: 2,
-          title: "Database Schema Design",
-          description: "Complete ER diagram and database schema documentation",
-          dueDate: "2025-10-05",
-          status: "in-progress",
-          createdBy: "Alice Johnson",
-          createdAt: "2025-09-15",
-          submissions: [
-            {
-              id: 3,
-              fileName: "er-diagram.png",
-              fileSize: "850 KB",
-              fileType: "png",
-              uploadedBy: "Charlie Brown",
-              uploadedAt: "2025-10-01T09:15:00",
-            }
-          ],
-          comments: ""
-        },
-        {
-          id: 3,
-          title: "API Documentation",
-          description: "Document all REST API endpoints with request/response examples",
-          dueDate: "2025-10-12",
-          status: "pending",
-          createdBy: "Alice Johnson",
-          createdAt: "2025-09-25",
-          submissions: [],
-          comments: ""
-        }
-      ]
-    },
-    {
-      id: 3,
-      title: "Core Development Phase 1",
-      description: "Implement basic functionality and database structure",
-      dueDate: "2025-10-15",
-      status: "pending",
-      completedDate: null,
-      completedBy: null,
-      questions: [
-        {
-          id: 8,
-          question: "What percentage of core features are implemented?",
-          answer: "",
-          answeredBy: null,
-          answeredAt: null,
-          type: "number"
-        },
-        {
-          id: 9,
-          question: "Describe any technical challenges faced",
-          answer: "",
-          answeredBy: null,
-          answeredAt: null,
-          type: "textarea"
-        },
-        {
-          id: 10,
-          question: "Have you implemented unit tests?",
-          answer: "",
-          answeredBy: null,
-          answeredAt: null,
-          type: "boolean"
-        }
-      ],
-      progress: 0,
-      requiredAnswers: 3,
-      completedAnswers: 0,
-      checkpoints: []
-    },
-    {
-      id: 4,
-      title: "Integration & Testing",
-      description: "Complete system integration and comprehensive testing",
-      dueDate: "2025-10-30",
-      status: "locked",
-      completedDate: null,
-      completedBy: null,
-      questions: [
-        {
-          id: 11,
-          question: "What types of testing have you performed?",
-          answer: "",
-          answeredBy: null,
-          answeredAt: null,
-          type: "textarea"
-        },
-        {
-          id: 12,
-          question: "What is your test coverage percentage?",
-          answer: "",
-          answeredBy: null,
-          answeredAt: null,
-          type: "number"
-        }
-      ],
-      progress: 0,
-      requiredAnswers: 2,
-      completedAnswers: 0,
-      checkpoints: []
-    }
-  ]);
-
-  const [selectedMilestone, setSelectedMilestone] = useState(milestones[1]);
+  const [milestones, setMilestones] = useState([]);
+  const [selectedMilestone, setSelectedMilestone] = useState(null);
   const [answers, setAnswers] = useState({});
   const [isLeader, setIsLeader] = useState(true);
-
-  // Checkpoint state
+  const [isLoadingList, setIsLoadingList] = useState(false);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedCheckpoint, setSelectedCheckpoint] = useState(null);
   const [newCheckpoint, setNewCheckpoint] = useState({ title: '', description: '', dueDate: '' });
   const [selectedFiles, setSelectedFiles] = useState([]);
-  // Active folder tab state
   const [activeTab, setActiveTab] = useState('in-progress');
   const getDefaultTab = (cps = []) => {
     const inProgress = cps.filter(c => (c.status === 'in-progress' || c.status === 'pending')).length;
@@ -253,57 +34,182 @@ const MilestonePage = () => {
     return 'in-progress';
   };
   useEffect(() => {
-    // Reset active tab on milestone change
     setActiveTab(getDefaultTab(selectedMilestone?.checkpoints || []));
   }, [selectedMilestone]);
 
-  const handleAnswerChange = (questionId, value) => {
-    setAnswers({ ...answers, [questionId]: value });
+  const normalizeStatus = (statusString) => {
+    const map = {
+      NOT_DONE: 'pending',
+      IN_PROGRESS: 'in-progress',
+      COMPLETED: 'completed',
+      LOCKED: 'locked',
+    };
+    if (typeof statusString === 'string') {
+      return map[statusString] || statusString.toLowerCase();
+    }
+    return 'pending';
   };
 
-  const handleSaveAnswer = (questionId) => {
-    const updatedMilestones = milestones.map(milestone => {
-      if (milestone.id === selectedMilestone.id) {
-        const updatedQuestions = milestone.questions.map(q => {
-          if (q.id === questionId) {
-            const prev = Array.isArray(q.answers) ? q.answers : (q.answer ? [{
-              content: q.answer,
-              answeredBy: q.answeredBy,
-              answeredAt: q.answeredAt
-            }] : []);
-            const newEntry = {
-              content: answers[questionId] || '',
-              answeredBy: 'Current User',
-              answeredAt: new Date().toISOString()
-            };
-            return {
-              ...q,
-              answers: newEntry.content ? [...prev, newEntry] : prev,
-              // keep old single-answer fields for backwards compatibility but do not use them going forward
-            };
-          }
-          return q;
-        });
-        // completedAnswers: count questions with at least one answer entry
-        const completedAnswers = updatedQuestions.filter(q => (Array.isArray(q.answers) ? q.answers.length > 0 : (q.answer && q.answer !== ""))).length;
-        const progress = Math.round((completedAnswers / milestone.requiredAnswers) * 100);
-        
-        return {
-          ...milestone,
-          questions: updatedQuestions,
-          completedAnswers,
-          progress
-        };
-      }
-      return milestone;
+  const mapListItemToMilestone = (item) => ({
+    id: item.teamMilestoneId ?? item.id,
+    objectiveMilestoneId: item.objectiveMilestoneId,
+    teamId: item.teamId,
+    title: item.title,
+    description: item.description,
+    startDate: item.startDate,
+    dueDate: item.endDate,
+    progress: Math.round(item.progress ?? 0),
+    status: normalizeStatus(item.statusString ?? item.status),
+    requiredAnswers: item.milestoneQuestionCount ?? 0,
+    completedAnswers: 0,
+    completedDate: null,
+    completedBy: null,
+    questions: [],
+    checkpoints: [],
+    _hasDetails: false,
+  });
+
+  const mergeDetailIntoMilestone = (base, detail) => {
+    const questionsRaw = detail?.milestoneQuestions || detail?.questions || [];
+    const questions = questionsRaw.map((q) => {
+      const answersArray = (q.answers || q.answerList || []).map((a) => ({
+        content: a.content ?? a.answer ?? '',
+        answeredBy: a.answeredByName ?? a.answeredBy ?? a.userName ?? '',
+        answeredAt: a.answeredAt ?? a.createdAt ?? '',
+      }));
+      return {
+        id: q.id ?? q.questionId,
+        question: q.content ?? q.text ?? q.question ?? '',
+        type: q.type ?? 'text',
+        answers: answersArray,
+      };
     });
-    
-    setMilestones(updatedMilestones);
-    setSelectedMilestone(updatedMilestones.find(m => m.id === selectedMilestone.id));
-    setAnswers({ ...answers, [questionId]: "" });
+    const completedAnswers = questions.filter((q) => (q.answers?.length ?? 0) > 0).length;
+
+    const cpRaw = detail?.checkpoints || detail?.checkpointList || [];
+    const checkpoints = cpRaw.map((cp) => {
+      const submissions = (cp.submissions || cp.attachments || []).map((s, idx) => ({
+        id: s.id ?? s.submissionId ?? idx,
+        fileName: s.fileName ?? s.name ?? 'file',
+        fileSize: s.fileSize ? `${s.fileSize}` : (s.size ? `${(s.size / (1024 * 1024)).toFixed(2)} MB` : ''),
+        fileType: s.fileType ?? (s.fileName ? s.fileName.split('.').pop()?.toLowerCase() : ''),
+        uploadedBy: s.uploadedByName ?? s.uploadedBy ?? s.userName ?? '',
+        uploadedAt: s.uploadedAt ?? s.createdAt ?? '',
+      }));
+      return {
+        id: cp.id ?? cp.checkpointId,
+        title: cp.title ?? cp.name ?? 'Checkpoint',
+        description: cp.description ?? '',
+        dueDate: cp.dueDate ?? cp.deadline ?? cp.endDate ?? null,
+        status: normalizeStatus(cp.statusString ?? cp.status ?? 'NOT_DONE'),
+        createdBy: cp.createdByName ?? cp.createdBy ?? '',
+        createdAt: cp.createdAt ?? '',
+        submissions,
+        comments: cp.comments ?? '',
+      };
+    });
+
+    return {
+      ...base,
+      progress: Math.round(detail?.progress ?? base.progress ?? 0),
+      status: normalizeStatus(detail?.statusString ?? detail?.status ?? base.status),
+      requiredAnswers: detail?.milestoneQuestionCount ?? base.requiredAnswers ?? 0,
+      completedAnswers,
+      questions,
+      checkpoints,
+      _hasDetails: true,
+    };
   };
+
+  const fetchMilestones = async (teamId) => {
+    try {
+      setIsLoadingList(true);
+      const response = await getAllMilestonesByTeamId(teamId);
+      console.log("Fetched milestones:", response);
+      const list = Array.isArray(response?.list)
+        ? response.list
+        : Array.isArray(response)
+          ? response
+          : (response?.data || []);
+      const mapped = (list || []).map(mapListItemToMilestone);
+      setMilestones(mapped);
+      if (mapped.length > 0) {
+        setSelectedMilestone(mapped[0]);
+        fetchMilestoneDetail(mapped[0].id);
+      }
+    } catch (error) {
+      console.error("Error fetching milestones:", error);
+    } finally {
+      setIsLoadingList(false);
+    }
+  };
+
+  const fetchMilestoneDetail = async (milestoneId) => {
+    try {
+      if (!milestoneId) return;
+      setIsLoadingDetail(true);
+      const detail = await getDetailOfMilestoneByMilestoneId(milestoneId);
+      console.log("Fetched milestone detail:", detail);
+      setMilestones((prev) => prev.map((m) => (m.id === milestoneId ? mergeDetailIntoMilestone(m, detail) : m)));
+      setSelectedMilestone((prev) => {
+        if (!prev) return prev;
+        if (prev.id !== milestoneId) return prev;
+        return mergeDetailIntoMilestone(prev, detail);
+      });
+    } catch (error) {
+      console.error("Error fetching milestone detail:", error);
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  };
+
+  useEffect(() => {
+    if (id) {
+      fetchMilestones(id);
+    }
+  }, [id]);
+
+  // const handleSaveAnswer = (questionId) => {
+  //   if (!selectedMilestone) return;
+  //   const updatedMilestones = milestones.map(milestone => {
+  //     if (milestone.id === selectedMilestone.id) {
+  //       const updatedQuestions = milestone.questions.map(q => {
+  //         if (q.id === questionId) {
+  //           const prev = Array.isArray(q.answers) ? q.answers : [];
+  //           const newEntry = {
+  //             content: answers[questionId] || '',
+  //             answeredBy: 'Current User',
+  //             answeredAt: new Date().toISOString()
+  //           };
+  //           return {
+  //             ...q,
+  //             answers: newEntry.content ? [...prev, newEntry] : prev,
+  //             // keep old single-answer fields for backwards compatibility but do not use them going forward
+  //           };
+  //         }
+  //         return q;
+  //       });
+  //       // completedAnswers: count questions with at least one answer entry
+  //       const completedAnswers = updatedQuestions.filter(q => (Array.isArray(q.answers) ? q.answers.length > 0 : false)).length;
+  //       const progress = Math.round((completedAnswers / milestone.requiredAnswers) * 100);
+        
+  //       return {
+  //         ...milestone,
+  //         questions: updatedQuestions,
+  //         completedAnswers,
+  //         progress
+  //       };
+  //     }
+  //     return milestone;
+  //   });
+    
+  //   setMilestones(updatedMilestones);
+  //   setSelectedMilestone(updatedMilestones.find(m => m.id === selectedMilestone.id));
+  //   setAnswers({ ...answers, [questionId]: "" });
+  // };
 
   const handleCompleteMilestone = () => {
+    if (!selectedMilestone) return;
     if (!isLeader) {
       alert("Only team leader can mark milestones as complete");
       return;
@@ -330,7 +236,6 @@ const MilestonePage = () => {
     setSelectedMilestone(updatedMilestones.find(m => m.id === selectedMilestone.id));
   };
 
-  // Helpers to safely get checkpoints for the selected milestone
   const selectedCheckpoints = useMemo(() => selectedMilestone?.checkpoints || [], [selectedMilestone]);
 
   const isMilestoneReadOnly = useMemo(() => {
@@ -355,8 +260,8 @@ const MilestonePage = () => {
     return { total, completed, percent: total ? Math.round((completed / total) * 100) : 0 };
   }, [selectedCheckpoints]);
 
-  // Checkpoint handlers
   const handleCreateCheckpoint = () => {
+    if (!selectedMilestone) return;
     if (!newCheckpoint.title || !newCheckpoint.dueDate) {
       alert("Please fill in all required fields");
       return;
@@ -390,6 +295,7 @@ const MilestonePage = () => {
   };
 
   const handleUpdateCheckpoint = () => {
+    if (!selectedMilestone || !selectedCheckpoint) return;
     const updated = milestones.map(m => {
       if (m.id !== selectedMilestone.id) return m;
       const updatedCps = (m.checkpoints || []).map(cp =>
@@ -405,6 +311,7 @@ const MilestonePage = () => {
   };
 
   const handleDeleteCheckpoint = (checkpointId) => {
+    if (!selectedMilestone) return;
     if (isMilestoneReadOnly) {
       alert('This milestone is locked or completed. You cannot delete checkpoints.');
       return;
@@ -431,6 +338,7 @@ const MilestonePage = () => {
   };
 
   const handleUploadSubmission = () => {
+    if (!selectedMilestone || !selectedCheckpoint) return;
     if (isMilestoneReadOnly) {
       alert('This milestone is locked or completed. You cannot upload submissions.');
       return;
@@ -474,6 +382,7 @@ const MilestonePage = () => {
   };
 
   const handleDeleteSubmission = (checkpointId, submissionId) => {
+    if (!selectedMilestone) return;
     if (isMilestoneReadOnly) {
       alert('This milestone is locked or completed. You cannot delete submissions.');
       return;
@@ -496,6 +405,7 @@ const MilestonePage = () => {
   };
 
   const handleMarkComplete = (checkpointId) => {
+    if (!selectedMilestone) return;
     if (isMilestoneReadOnly) {
       alert('This milestone is locked or completed. You cannot change checkpoint status.');
       return;
@@ -546,6 +456,9 @@ const MilestonePage = () => {
     resetCheckpointUI();
     setSelectedMilestone(m);
     setActiveTab(getDefaultTab(m?.checkpoints || []));
+    if (!m?._hasDetails) {
+      fetchMilestoneDetail(m?.id);
+    }
   };
 
   return (
@@ -556,19 +469,67 @@ const MilestonePage = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
           {/* Left Sidebar - Milestone Timeline */}
-          <MilestoneTimeline
-            milestones={milestones}
-            selectedMilestone={selectedMilestone}
-            onSelectMilestone={handleSelectMilestone}
-          />
+          {isLoadingList && milestones.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="h-6 w-48 bg-gray-200 animate-pulse rounded mb-4" />
+              <div className="space-y-3">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="p-4 border-2 border-gray-200 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-gray-200 animate-pulse rounded-full" />
+                      <div className="flex-1 min-w-0">
+                        <div className="h-4 w-40 bg-gray-200 animate-pulse rounded mb-2" />
+                        <div className="h-3 w-28 bg-gray-200 animate-pulse rounded" />
+                        <div className="mt-3 h-2 w-full bg-gray-200 animate-pulse rounded" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <MilestoneTimeline
+              milestones={milestones}
+              selectedMilestone={selectedMilestone || { id: null }}
+              onSelectMilestone={handleSelectMilestone}
+            />
+          )}
 
           {/* Main Content - Milestone Details */}
           <div className="lg:col-span-2 space-y-6">
-            <MilestoneHeader
-              milestone={selectedMilestone}
-              isLeader={false}
-              onComplete={handleCompleteMilestone}
-            />
+            {selectedMilestone && !isLoadingDetail ? (
+              <MilestoneHeader
+                milestone={selectedMilestone}
+                isLeader={false}
+                onComplete={handleCompleteMilestone}
+              />
+            ) : (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="h-7 w-56 bg-gray-200 animate-pulse rounded" />
+                      <div className="h-6 w-24 bg-gray-200 animate-pulse rounded-full" />
+                    </div>
+                    <div className="h-4 w-80 bg-gray-200 animate-pulse rounded" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
+                  <div>
+                    <div className="h-3 w-24 bg-gray-200 animate-pulse rounded mb-2" />
+                    <div className="h-4 w-32 bg-gray-200 animate-pulse rounded" />
+                  </div>
+                  <div>
+                    <div className="h-3 w-32 bg-gray-200 animate-pulse rounded mb-2" />
+                    <div className="h-4 w-24 bg-gray-200 animate-pulse rounded" />
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t">
+                  <div className="h-3 w-28 bg-gray-200 animate-pulse rounded mb-2" />
+                  <div className="h-3 w-full bg-gray-200 animate-pulse rounded" />
+                </div>
+              </div>
+            )}
 
             
 
@@ -605,7 +566,19 @@ const MilestonePage = () => {
                 </div>
               )}
 
-              <CheckpointSummaryCards checkpoints={selectedCheckpoints.map(cp => cp.status === 'pending' ? { ...cp, status: 'in-progress' } : cp)} />
+              {isLoadingDetail ? (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="bg-white rounded-lg shadow-md p-4">
+                      <div className="h-6 w-10 bg-gray-200 animate-pulse rounded mb-2" />
+                      <div className="h-7 w-10 bg-gray-200 animate-pulse rounded" />
+                      <div className="h-3 w-24 bg-gray-200 animate-pulse rounded mt-2" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <CheckpointSummaryCards checkpoints={selectedCheckpoints.map(cp => cp.status === 'pending' ? { ...cp, status: 'in-progress' } : cp)} />
+              )}
 
               <div className="space-y-4">
                 {/* Folder Tabs */}
@@ -630,19 +603,42 @@ const MilestonePage = () => {
 
                 {/* Active Tab Content */}
                 <div className="space-y-3">
-                  {(checkpointGroups[activeTab] || []).map((checkpoint) => (
-                    <CheckpointCard
-                      key={checkpoint.id}
-                      checkpoint={checkpoint}
-                      isLeader={isLeader}
-                      readOnly={isMilestoneReadOnly || checkpoint.status === 'completed'}
-                      onEdit={(cp) => !isMilestoneReadOnly && checkpoint.status !== 'completed' && openEditModal(cp)}
-                      onDelete={(id) => !isMilestoneReadOnly && checkpoint.status !== 'completed' && handleDeleteCheckpoint(id)}
-                      onUpload={(cp) => !isMilestoneReadOnly && checkpoint.status !== 'completed' && openUploadModal(cp)}
-                      onMarkComplete={(id) => !isMilestoneReadOnly && checkpoint.status !== 'completed' && handleMarkComplete(id)}
-                      onDeleteSubmission={(cpId, subId) => !isMilestoneReadOnly && checkpoint.status !== 'completed' && handleDeleteSubmission(cpId, subId)}
-                    />
-                  ))}
+                  {isLoadingDetail ? (
+                    [...Array(2)].map((_, i) => (
+                      <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden">
+                        <div className="p-6 border-b">
+                          <div className="h-5 w-64 bg-gray-200 animate-pulse rounded mb-2" />
+                          <div className="h-4 w-80 bg-gray-200 animate-pulse rounded mb-3" />
+                          <div className="flex items-center gap-4">
+                            <div className="h-4 w-32 bg-gray-200 animate-pulse rounded" />
+                            <div className="h-4 w-28 bg-gray-200 animate-pulse rounded" />
+                            <div className="h-4 w-40 bg-gray-200 animate-pulse rounded" />
+                          </div>
+                        </div>
+                        <div className="p-6">
+                          <div className="h-5 w-40 bg-gray-200 animate-pulse rounded mb-4" />
+                          <div className="space-y-2">
+                            <div className="h-10 w-full bg-gray-200 animate-pulse rounded" />
+                            <div className="h-10 w-full bg-gray-200 animate-pulse rounded" />
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    (checkpointGroups[activeTab] || []).map((checkpoint) => (
+                      <CheckpointCard
+                        key={checkpoint.id}
+                        checkpoint={checkpoint}
+                        isLeader={isLeader}
+                        readOnly={isMilestoneReadOnly || checkpoint.status === 'completed'}
+                        onEdit={(cp) => !isMilestoneReadOnly && checkpoint.status !== 'completed' && openEditModal(cp)}
+                        onDelete={(id) => !isMilestoneReadOnly && checkpoint.status !== 'completed' && handleDeleteCheckpoint(id)}
+                        onUpload={(cp) => !isMilestoneReadOnly && checkpoint.status !== 'completed' && openUploadModal(cp)}
+                        onMarkComplete={(id) => !isMilestoneReadOnly && checkpoint.status !== 'completed' && handleMarkComplete(id)}
+                        onDeleteSubmission={(cpId, subId) => !isMilestoneReadOnly && checkpoint.status !== 'completed' && handleDeleteSubmission(cpId, subId)}
+                      />
+                    ))
+                  )}
                 </div>
 
                 {selectedCheckpoints.length === 0 && (

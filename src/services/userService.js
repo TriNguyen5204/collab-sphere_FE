@@ -342,4 +342,33 @@ export const getDetailOfProjectByProjectId = async (projectId) => {
     throw error;
   }
 };
-;
+
+export const getUserProfile = async (userId) => {
+  try {
+    const response = await apiClient.get(`/user/profile/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching profile for user ID ${userId}:`, error);
+    throw error;
+  }
+};
+
+export const getAllMilestonesByTeamId = async (teamId) => {
+  try {
+    const response = await apiClient.get(`/milestone/team/${teamId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching milestones for team ID ${teamId}:`, error);
+    throw error;
+  }
+};
+
+export const getDetailOfMilestoneByMilestoneId = async (milestoneId) => {
+  try {
+    const response = await apiClient.get(`/milestone/${milestoneId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching milestone details for milestone ID ${milestoneId}:`, error);
+    throw error;
+  }
+};

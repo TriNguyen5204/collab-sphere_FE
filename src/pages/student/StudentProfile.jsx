@@ -1,12 +1,35 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import ProfileInformation from "../../components/student/ProfileInformation";
 import AccountSettings from "../../components/student/AccountSettings";
 import AcademicInformation from "../../components/student/AcademicInformation";
 import { User, Settings, GraduationCap } from "lucide-react";
 import StudentLayout from "../../components/layout/StudentLayout";
-
+import { getUserProfile } from "../../services/userService";
+import { useSelector } from "react-redux";
 const StudentProfile = () => {
   const [activeTab, setActiveTab] = useState("profile");
+  const [userProfile, setUserProfile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const userId = useSelector((state) => state.user.userId);
+
+  const fetchUserProfile = async (userId) => {
+    try {
+      setLoading(true);
+      const profileData = await getUserProfile(userId);
+      setUserProfile(profileData.user);
+      console.log("User data:", profileData.user);
+    } catch (error) {
+      console.error("Failed to fetch user profile:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (userId) {
+      fetchUserProfile(userId);
+    }
+  }, [userId]);
 
   const tabs = [
     { id: "profile", label: "Profile Information", icon: User },
@@ -15,15 +38,21 @@ const StudentProfile = () => {
   ];
 
   const renderContent = () => {
+    if (loading) {
+      return <div className="text-gray-500">Loading profile...</div>;
+    }
+    if (!userProfile) {
+      return <div className="text-gray-500">No profile data available.</div>;
+    }
     switch (activeTab) {
       case "profile":
-        return <ProfileInformation />;
+        return <ProfileInformation user={userProfile} />;
       case "academic":
-        return <AcademicInformation />;
+        return <AcademicInformation user={userProfile} />;
       case "settings":
         return <AccountSettings />;
       default:
-        return <ProfileInformation />;
+        return <ProfileInformation user={userProfile} />;
     }
   };
 

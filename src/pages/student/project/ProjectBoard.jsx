@@ -2,21 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import ProjectBoardHeader from '../../../components/layout/ProjectBoardHeader';
 import TrelloBoard from '../../../components/student/board/TrelloBoard';
-import { getDetailOfProjectByProjectId } from '../../../services/userService';
 
 const ProjectBoard = () => {
   const [selectedRole, setSelectedRole] = useState('all');
 
-  const fetchProjectDetails = async (projectId) => {
-    try {
-      const data = await getDetailOfProjectByProjectId(projectId);
-      console.log('Fetched project details:', data);
-      return data;
-    } catch (error) {
-      console.error('Error fetching project details:', error);
-      return null;
-    }
-  };
 
   const location = useLocation();
   const params = useParams();
@@ -24,14 +13,6 @@ const ProjectBoard = () => {
   const queryProjectId = new URLSearchParams(location.search).get('projectId');
   const activeProjectId = routeProjectId || queryProjectId;
 
-  useEffect(() => {
-    if (!activeProjectId) {
-      console.warn('No projectId found in URL (expected :projectId or :id).');
-      return;
-    }
-    console.log('Using projectId:', activeProjectId);
-    fetchProjectDetails(activeProjectId);
-  }, [activeProjectId]);
 
   // Archived items state
   const [archivedItems, setArchivedItems] = useState({ cards: [], lists: [] });

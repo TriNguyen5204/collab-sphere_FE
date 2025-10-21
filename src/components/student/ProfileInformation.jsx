@@ -1,17 +1,50 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Camera, Mail, Phone, MapPin, Calendar, Save, Edit2 } from "lucide-react";
 
-const ProfileInformation = () => {
+const ProfileInformation = ({ user }) => {
   const [isEditing, setIsEditing] = useState(false);
+
+  const fallbackAvatar = useMemo(() => {
+    const name = user?.fullname?.trim() || "Student";
+    const encoded = encodeURIComponent(name);
+    return `https://ui-avatars.com/api/?name=${encoded}&background=E5E7EB&color=111827`;
+  }, [user?.fullname]);
+
+  const resolveAvatar = (avatarImg) => {
+    if (!avatarImg) return fallbackAvatar;
+    // Accept only full http/https URLs; otherwise, use name-based fallback
+    if (typeof avatarImg === "string" && /^(https?:)\/\//i.test(avatarImg)) {
+      return avatarImg;
+    }
+    return fallbackAvatar;
+  };
+
   const [profileData, setProfileData] = useState({
-    fullName: "John Doe",
-    email: "[email protected]",
-    phone: "+1 (555) 123-4567",
-    dateOfBirth: "2000-05-15",
-    address: "123 Main Street, City, State 12345",
-    bio: "Computer Science student passionate about web development and artificial intelligence.",
-    avatar: "https://i.pravatar.cc/150?u=student",
+    fullName: user?.fullname || "",
+    email: user?.email || "",
+    phone: user?.phoneNumber || "",
+    // Use yob (year of birth) if available; map to a date input friendly format
+    dateOfBirth: user?.yob ? `${user.yob}-01-01` : "",
+    address: user?.address || "",
+    bio: "",
+    avatar: resolveAvatar(user?.avatarImg),
+    code: user?.code || "",
   });
+
+  useEffect(() => {
+    // Keep local state in sync if parent user changes
+    setProfileData((prev) => ({
+      ...prev,
+      fullName: user?.fullname || "",
+      email: user?.email || "",
+      phone: user?.phoneNumber || "",
+      dateOfBirth: user?.yob ? `${user.yob}-01-01` : "",
+      address: user?.address || "",
+      avatar: resolveAvatar(user?.avatarImg),
+      code: user?.code || "",
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -65,6 +98,7 @@ const ProfileInformation = () => {
           <img
             src={profileData.avatar}
             alt="Profile"
+            onError={() => setProfileData((prev) => ({ ...prev, avatar: fallbackAvatar }))}
             className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
           />
           {isEditing && (
@@ -74,9 +108,10 @@ const ProfileInformation = () => {
           )}
         </div>
         <div>
-          <h3 className="text-xl font-semibold text-gray-900">{profileData.fullName}</h3>
-          <p className="text-gray-600">Student ID: ST2024001</p>
-          <p className="text-sm text-gray-500 mt-1">Member since: January 2024</p>
+          <h3 className="text-xl font-semibold text-gray-900">{profileData.fullName || "—"}</h3>
+          <p className="text-gray-600">Student ID: {profileData.code || "—"}</p>
+          {/* Member since unknown with current data */}
+          <p className="text-sm text-gray-500 mt-1">Member since: —</p>
         </div>
       </div>
 
@@ -141,17 +176,20 @@ const ProfileInformation = () => {
           />
         </div>
 
-        {/* Date of Birth */}
+        {/* Year of Birth (mapped from yob) */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2 items-center gap-2">
             <Calendar size={16} />
-            Date of Birth
+            Year of Birth
           </label>
           <input
-            type="date"
-            name="dateOfBirth"
-            value={profileData.dateOfBirth}
-            onChange={handleInputChange}
+            type="number"
+            name="yob"
+            value={profileData.dateOfBirth ? profileData.dateOfBirth.slice(0, 4) : ""}
+            onChange={(e) => {
+              const year = e.target.value;
+              setProfileData((prev) => ({ ...prev, dateOfBirth: year ? `${year}-01-01` : "" }));
+            }}
             disabled={!isEditing}
             className={`w-full px-4 py-2 border rounded-lg ${
               isEditing
@@ -181,24 +219,7 @@ const ProfileInformation = () => {
           />
         </div>
 
-        {/* Bio - Full Width */}
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Bio
-          </label>
-          <textarea
-            name="bio"
-            value={profileData.bio}
-            onChange={handleInputChange}
-            disabled={!isEditing}
-            rows={4}
-            className={`w-full px-4 py-2 border rounded-lg resize-none ${
-              isEditing
-                ? "border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                : "border-gray-200 bg-gray-50"
-            } transition`}
-          />
-        </div>
+        {/* Bio removed for now as backend does not provide it */}
       </div>
     </div>
   );

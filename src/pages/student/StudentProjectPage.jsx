@@ -21,13 +21,6 @@ const StudentProjectPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // Safe key for any project item 
-  const getProjectKey = useCallback((p) => {
-    const a = p?.projectId ?? "x";
-    const b = p?.teamId ?? "x";
-    const c = p?.classId ?? "x";
-    return String(`${c}-${b}-${a}`);
-  }, []);
 
   const fetchTeams = async () => {
     if (!studentId) return;
@@ -51,7 +44,7 @@ const StudentProjectPage = () => {
   }, [studentId]);
 
   const handleCardClick = (team) => {
-    const safeId = team?.projectId;
+    const safeId = team?.teamId;
     const safeName = team?.projectName;
     if (!safeId) return;
     navigate(`/student/project/${safeId}/${encodeURIComponent(safeName)}`);
