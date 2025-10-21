@@ -6,5 +6,6 @@ export const getLecturerClasses = async (lecturerId, params = {}) => {
   }
 
   const response = await apiClient.get(`/class/lecturer/${lecturerId}`, { params });
+  console.log(response.data);
   return response.data;
 };

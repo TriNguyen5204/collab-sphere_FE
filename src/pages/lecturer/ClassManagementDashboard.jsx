@@ -9,6 +9,7 @@ import {
   CheckCircleIcon,
   ClipboardDocumentListIcon,
   DocumentTextIcon,
+  KeyIcon,
   MegaphoneIcon,
   PlusIcon,
   SparklesIcon,
@@ -122,11 +123,57 @@ const normaliseClassResponse = (payload) => {
     missingFields: Array.from(missingFields)
   };
 };
+
+const renderClassStatSkeleton = (key) => (
+  <div
+    key={key}
+    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm animate-pulse"
+  >
+    <div className="flex items-center justify-between">
+      <div className="space-y-3">
+        <div className="h-3 w-24 rounded bg-slate-200" />
+        <div className="h-7 w-16 rounded bg-slate-300" />
+      </div>
+      <div className="h-12 w-12 rounded-xl bg-slate-200" />
+    </div>
+    <div className="mt-4 h-3 w-32 rounded bg-slate-100" />
+  </div>
+);
+
+const renderClassCardSkeleton = (key) => (
+  <div
+    key={key}
+    className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm animate-pulse"
+  >
+    <div className="flex items-start justify-between gap-2">
+      <div className="space-y-2">
+        <div className="h-3 w-20 rounded bg-slate-200" />
+        <div className="h-5 w-32 rounded bg-slate-200" />
+        <div className="h-3 w-24 rounded bg-slate-100" />
+        <div className="h-3 w-20 rounded bg-slate-100" />
+      </div>
+      <div className="h-6 w-16 rounded-full bg-slate-200" />
+    </div>
+    <div className="mt-4 grid grid-cols-2 gap-4 text-sm text-slate-600">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div key={index} className="space-y-2">
+          <div className="h-3 w-24 rounded bg-slate-100" />
+          <div className="h-4 w-16 rounded bg-slate-200" />
+        </div>
+      ))}
+    </div>
+    <div className="mt-auto flex flex-col gap-2 pt-6 sm:flex-row">
+      <div className="h-10 w-full rounded-xl bg-slate-200" />
+      <div className="h-10 w-full rounded-xl bg-slate-200" />
+    </div>
+  </div>
+);
 const ClassManagementDashboard = () => {
   const navigate = useNavigate();
   const lecturerId = useSelector((state) => state.user?.userId);
   const [classes, setClasses] = useState([]);
   const [isLoadingClasses, setIsLoadingClasses] = useState(false);
+  const showClassSkeleton = isLoadingClasses && classes.length === 0;
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -268,21 +315,48 @@ const ClassManagementDashboard = () => {
     };
   }, [classInsights]);
 
+  const classStatCards = [
+    {
+      id: 'activeClasses',
+      label: 'Active classes',
+      value: `${stats.activeClasses}/${stats.totalClasses}`,
+      description: 'Includes classes in delivery or grading state.',
+      icon: AcademicCapIcon,
+      iconWrapperClass: 'bg-indigo-100 text-indigo-600'
+    },
+    {
+      id: 'totalStudents',
+      label: 'Students enrolled',
+      value: stats.totalStudents,
+      description: 'Active enrolments.',
+      icon: UserGroupIcon,
+      iconWrapperClass: 'bg-emerald-100 text-emerald-600'
+    },
+    {
+      id: 'totalTeams',
+      label: 'Teams tracked',
+      value: stats.totalTeams,
+      description: 'Derived from team records linked to each class.',
+      icon: Squares2X2Icon,
+      iconWrapperClass: 'bg-blue-100 text-blue-600'
+    },
+    {
+      id: 'averageClassSize',
+      label: 'Average class size',
+      value: stats.averageClassSize,
+      description: 'Helps balance teams by spotting unusually large cohorts.',
+      icon: ClipboardDocumentListIcon,
+      iconWrapperClass: 'bg-amber-100 text-amber-600'
+    }
+  ];
+
   const formatDate = (input) => {
     if (!input) return 'TBA';
-    return new Date(input).toLocaleString('en-US', {
-      month: 'short',
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'long',
       day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-
-  const getStatusBadgeColor = (isActive) => {
-    return isActive
-      ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-      : 'bg-slate-100 text-slate-600 border border-slate-200';
+      year: 'numeric'
+    }).format(new Date(input));
   };
 
   const handleViewClass = (classId) => {
@@ -302,77 +376,32 @@ const ClassManagementDashboard = () => {
                 Review active classes and logistics while we wait for richer milestone data from the backend.
               </p>
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <button
-                onClick={() => navigate('/lecturer/classes')}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
-              >
-                <ClipboardDocumentListIcon className="h-4 w-4" />
-                View Class Library
-              </button>
-              <button
-                onClick={() => navigate('/lecturer/create-project')}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-700"
-              >
-                <PlusIcon className="h-4 w-4" />
-                New Project
-              </button>
-            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 2xl:gap-6">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Active classes</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900">{stats.activeClasses}/{stats.totalClasses}</p>
-                </div>
-                <div className="rounded-xl bg-indigo-100 p-3 text-indigo-600">
-                  <AcademicCapIcon className="h-6 w-6" />
-                </div>
-              </div>
-              <p className="mt-3 text-xs text-slate-500">Includes classes in delivery or grading state.</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Students enrolled</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900">{stats.totalStudents}</p>
-                </div>
-                <div className="rounded-xl bg-emerald-100 p-3 text-emerald-600">
-                  <UserGroupIcon className="h-6 w-6" />
-                </div>
-              </div>
-              <p className="mt-3 text-xs text-slate-500">Active enrolments pulled from `class_member`.</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Teams tracked</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900">{stats.totalTeams}</p>
-                </div>
-                <div className="rounded-xl bg-blue-100 p-3 text-blue-600">
-                  <Squares2X2Icon className="h-6 w-6" />
-                </div>
-              </div>
-              <p className="mt-3 text-xs text-slate-500">Derived from team records linked to each class.</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Average class size</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900">{stats.averageClassSize}</p>
-                </div>
-                <div className="rounded-xl bg-amber-100 p-3 text-amber-600">
-                  <ClipboardDocumentListIcon className="h-6 w-6" />
-                </div>
-              </div>
-              <p className="mt-3 text-xs text-slate-500">Helps balance teams by spotting unusually large cohorts.</p>
-            </div>
+            {showClassSkeleton
+              ? classStatCards.map((card) => renderClassStatSkeleton(card.id))
+              : classStatCards.map((card) => {
+                  const Icon = card.icon;
+                  return (
+                    <div key={card.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-slate-500">{card.label}</p>
+                          <p className="mt-2 text-2xl font-semibold text-slate-900">{card.value}</p>
+                        </div>
+                        <div className={`rounded-xl p-3 ${card.iconWrapperClass}`}>
+                          <Icon className="h-6 w-6" />
+                        </div>
+                      </div>
+                      <p className="mt-3 text-xs text-slate-500">{card.description}</p>
+                    </div>
+                  );
+                })}
           </div>
 
-          <div className="grid grid-cols-1 gap-8 xl:grid-cols-12">
-            <div className="space-y-6 xl:col-span-8 2xl:col-span-9">
+          <div className="space-y-8">
+            <div className="space-y-6">
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div>
@@ -418,66 +447,112 @@ const ClassManagementDashboard = () => {
                   </div>
                 </div>
 
-                {filteredClasses.length === 0 ? (
+                {showClassSkeleton ? (
+                  <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+                    {Array.from({ length: 6 }).map((_, index) =>
+                      renderClassCardSkeleton(`class-skeleton-${index}`)
+                    )}
+                  </div>
+                ) : filteredClasses.length === 0 ? (
                   <div className="mt-10 rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center">
                     <DocumentTextIcon className="mx-auto h-10 w-10 text-slate-300" />
                     <p className="mt-4 text-sm font-medium text-slate-600">No classes match the selected filters yet.</p>
                     <p className="mt-1 text-xs text-slate-400">Adjust the search parameters or start drafting a new class plan.</p>
                   </div>
                 ) : (
-                  <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">
-                    {filteredClasses.map((cls) => (
-                      <div
-                        key={cls.classId}
-                        className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">{cls.subjectCode}</p>
-                            <h3 className="mt-1 text-lg font-semibold text-slate-900">{cls.className}</h3>
-                            <p className="mt-1 text-xs text-slate-500">Lecturer: {cls.lecturerName}</p>
-                            <p className="mt-1 text-xs text-slate-500">Enrol key: {cls.enrolKey}</p>
-                          </div>
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusBadgeColor(cls.isActive)}`}>
-                            {cls.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
+                  <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+                    {[...filteredClasses]
+                      .sort((a, b) => {
+                        if (a.isActive === b.isActive) {
+                          return (a.className || '').localeCompare(b.className || '');
+                        }
+                        return a.isActive ? -1 : 1;
+                      })
+                      .map((cls) => {
+                      const statusLabel = cls.isActive ? 'Active' : 'Inactive';
+                      const statusBadgeClass = cls.isActive
+                        ? 'border border-emerald-200 bg-emerald-100 text-emerald-700'
+                        : 'border border-rose-200 bg-rose-100 text-rose-700';
 
-                        <div className="mt-4 grid grid-cols-2 gap-4 text-sm text-slate-600">
-                          <div className="space-y-1">
-                            <p className="text-xs uppercase tracking-wide text-slate-400">Students</p>
-                            <p className="text-base font-semibold text-slate-900">{cls.memberCount}</p>
+                      return (
+                        <div
+                          key={cls.classId}
+                          className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-md transition hover:-translate-y-1.5 hover:shadow-xl"
+                        >
+                          <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 via-indigo-500/90 to-violet-500 px-6 py-6 text-white">
+                            <div className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-white/15 blur-3xl transition group-hover:scale-110" />
+                            <div className="flex items-start justify-between gap-6">
+                              <div>
+                                <span className="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide">
+                                  {cls.subjectCode}
+                                </span>
+                                <h3 className="mt-3 text-2xl font-semibold leading-snug">
+                                  {cls.className}
+                                </h3>
+                              </div>
+                              <div className="flex flex-col items-end gap-3">
+                                <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${statusBadgeClass}`}>
+                                  <CheckCircleIcon className="h-3 w-3" />
+                                  {statusLabel}
+                                </span>
+                                <Squares2X2Icon className="h-16 w-16 text-white/25" />
+                              </div>
+                            </div>
                           </div>
-                          <div className="space-y-1">
-                            <p className="text-xs uppercase tracking-wide text-slate-400">Teams</p>
-                            <p className="text-base font-semibold text-slate-900">{cls.teamCount}</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-xs uppercase tracking-wide text-slate-400">Created</p>
-                            <p className="text-base font-semibold text-slate-900">{cls.createdDate ? formatDate(cls.createdDate) : '—'}</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-xs uppercase tracking-wide text-slate-400">Status</p>
-                            <p className="text-base font-semibold text-slate-900">{cls.isActive ? 'In delivery' : 'Inactive'}</p>
-                          </div>
-                        </div>
 
-                        <div className="mt-auto flex flex-col gap-2 pt-6 sm:flex-row">
-                          <button
-                            onClick={() => handleViewClass(cls.classId)}
-                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                          >
-                            Open class workspace
-                          </button>
-                          <button
-                            onClick={() => navigate(`/lecturer/monitoring/${cls.classId}`)}
-                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
-                          >
-                            Performance monitor
-                          </button>
+                          <div className="grid grid-cols-1 gap-6 px-6 py-6 text-sm text-slate-600 xl:grid-cols-2">
+                            <div className="space-y-4">
+                              <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                                <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Class logistics</h4>
+                                <dl className="mt-3 space-y-2">
+                                  {cls.createdDate && (
+                                    <div className="flex items-center justify-between text-slate-700">
+                                      <dt className="text-xs font-medium text-slate-500">Enrol key</dt>
+                                      <dd className="text-sm font-semibold text-slate-900">{cls.enrolKey}</dd>
+                                    </div>
+                                  )}
+                                  <div className="flex items-center justify-between text-slate-700">
+                                    <dt className="text-xs font-medium text-slate-500">Lecturer</dt>
+                                    <dd className="text-sm font-semibold text-slate-900">{cls.lecturerName ?? '—'}</dd>
+                                  </div>
+                                </dl>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col gap-4">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-sm">
+                                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Students</p>
+                                  <p className="mt-2 text-xl font-semibold text-slate-900">{cls.memberCount}</p>
+                                </div>
+                                <div className="rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-sm">
+                                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Teams</p>
+                                  <p className="mt-2 text-xl font-semibold text-slate-900">{cls.teamCount}</p>
+                                </div>
+                              </div>
+
+                            </div>
+                          </div>
+
+                          <div className="mt-auto flex flex-col gap-3 border-t border-slate-100 bg-slate-50 px-6 py-5 sm:flex-row">
+                            <button
+                              onClick={() => handleViewClass(cls.classId)}
+                              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-600"
+                            >
+                              <AcademicCapIcon className="h-4 w-4" />
+                              Open class workspace
+                            </button>
+                            <button
+                              onClick={() => navigate(`/lecturer/monitoring/${cls.classId}`)}
+                              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                            >
+                              <ChartBarIcon className="h-4 w-4" />
+                              Performance monitor
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -527,42 +602,6 @@ const ClassManagementDashboard = () => {
                     ))}
                   </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="space-y-6 xl:col-span-4 2xl:col-span-3">
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <ClipboardDocumentListIcon className="h-5 w-5 text-indigo-500" />
-                  <h2 className="text-lg font-semibold text-slate-900">Data coverage</h2>
-                </div>
-                <p className="mt-1 text-xs text-slate-500">This dashboard currently shows high-level class metadata.</p>
-                <p className="mt-4 text-sm text-slate-600">
-                  Project assignments, team milestones, and checkpoint timelines are hidden until the API provides those fields.
-                  When they are available we can re-enable the project insights cards without further UI changes.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <CalendarDaysIcon className="h-5 w-5 text-indigo-500" />
-                  <h2 className="text-lg font-semibold text-slate-900">Next steps for lecturers</h2>
-                </div>
-                <p className="mt-1 text-xs text-slate-500">Quick reminders to keep classes running smoothly.</p>
-                <ul className="mt-4 space-y-3 text-sm text-slate-600">
-                  <li className="flex items-start gap-2">
-                    <CheckCircleIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
-                    Share enrol keys with new students and verify roster changes weekly.
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircleIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
-                    Use the announcements panel to broadcast resource updates or schedule shifts.
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircleIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
-                    Jump into the class workspace to review submissions and message teams as needed.
-                  </li>
-                </ul>
               </div>
             </div>
           </div>

@@ -148,6 +148,62 @@ const normaliseProjectResponse = (payload) => {
   };
 };
 
+const renderProjectStatSkeleton = (key) => (
+  <div
+    key={key}
+    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm animate-pulse"
+  >
+    <div className="flex items-center justify-between">
+      <div className="space-y-3">
+        <div className="h-3 w-24 rounded bg-slate-200" />
+        <div className="h-7 w-16 rounded bg-slate-300" />
+      </div>
+      <div className="h-12 w-12 rounded-xl bg-slate-200" />
+    </div>
+    <div className="mt-4 h-3 w-32 rounded bg-slate-100" />
+  </div>
+);
+
+const renderProjectCardSkeleton = (key) => (
+  <div
+    key={key}
+    className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm animate-pulse"
+  >
+    <div className="flex items-start justify-between gap-2">
+      <div className="space-y-2">
+        <div className="h-3 w-20 rounded bg-slate-200" />
+        <div className="h-5 w-36 rounded bg-slate-200" />
+        <div className="h-3 w-40 rounded bg-slate-100" />
+        <div className="h-3 w-32 rounded bg-slate-100" />
+      </div>
+      <div className="h-6 w-20 rounded-full bg-slate-200" />
+    </div>
+    <div className="mt-4 grid grid-cols-2 gap-4">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={index} className="space-y-2">
+          <div className="h-3 w-24 rounded bg-slate-100" />
+          <div className="h-4 w-16 rounded bg-slate-200" />
+        </div>
+      ))}
+    </div>
+    <div className="mt-auto flex flex-col gap-2 pt-6 sm:flex-row">
+      <div className="h-10 w-full rounded-xl bg-slate-200" />
+      <div className="h-10 w-full rounded-xl bg-slate-200" />
+    </div>
+  </div>
+);
+
+const renderMilestoneSkeleton = (key) => (
+  <div
+    key={key}
+    className="rounded-xl border border-slate-200 bg-slate-100/80 px-4 py-4 animate-pulse"
+  >
+    <div className="h-4 w-40 rounded bg-slate-200" />
+    <div className="mt-2 h-3 w-32 rounded bg-slate-200" />
+    <div className="mt-2 h-3 w-28 rounded bg-slate-100" />
+  </div>
+);
+
 const formatDate = (value) => {
   if (!value) return 'TBA';
 
@@ -177,6 +233,7 @@ const ProjectLibrary = () => {
 
   const [projects, setProjects] = useState([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const showProjectSkeleton = isLoadingProjects && projects.length === 0;
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -281,6 +338,41 @@ const ProjectLibrary = () => {
     };
   }, [projectInsights]);
 
+  const projectStatCards = [
+    {
+      id: 'totalProjects',
+      label: 'Total projects',
+      value: stats.totalProjects,
+      description: 'Pulled directly from `/api/project/lecturer`.',
+      icon: BookOpenIcon,
+      iconWrapperClass: 'bg-indigo-100 text-indigo-600'
+    },
+    {
+      id: 'projectsWithObjectives',
+      label: 'Has objectives',
+      value: stats.projectsWithObjectives,
+      description: 'Projects enriched with at least one learning objective.',
+      icon: CheckCircleIcon,
+      iconWrapperClass: 'bg-emerald-100 text-emerald-600'
+    },
+    {
+      id: 'totalObjectives',
+      label: 'Objectives tracked',
+      value: stats.totalObjectives,
+      description: 'Total number of objectives across all projects.',
+      icon: SparklesIcon,
+      iconWrapperClass: 'bg-blue-100 text-blue-600'
+    },
+    {
+      id: 'totalMilestones',
+      label: 'Milestones synced',
+      value: stats.totalMilestones,
+      description: 'Milestones exposed by objectives for planning timelines.',
+      icon: CalendarDaysIcon,
+      iconWrapperClass: 'bg-amber-100 text-amber-600'
+    }
+  ];
+
   const upcomingMilestones = useMemo(() => {
     const now = new Date();
 
@@ -321,71 +413,35 @@ const ProjectLibrary = () => {
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <button
-                onClick={() => navigate('/lecturer/projects')}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
-              >
-                <ClipboardDocumentListIcon className="h-4 w-4" />
-                Manage project library
-              </button>
-              <button
                 onClick={handleCreateProject}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-700"
               >
                 <PlusIcon className="h-4 w-4" />
-                New project
+                New Project
               </button>
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 2xl:gap-6">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Total projects</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900">{stats.totalProjects}</p>
-                </div>
-                <div className="rounded-xl bg-indigo-100 p-3 text-indigo-600">
-                  <BookOpenIcon className="h-6 w-6" />
-                </div>
-              </div>
-              <p className="mt-3 text-xs text-slate-500">Pulled directly from `/api/project/lecturer`.</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Has objectives</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900">{stats.projectsWithObjectives}</p>
-                </div>
-                <div className="rounded-xl bg-emerald-100 p-3 text-emerald-600">
-                  <CheckCircleIcon className="h-6 w-6" />
-                </div>
-              </div>
-              <p className="mt-3 text-xs text-slate-500">Projects enriched with at least one learning objective.</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Objectives tracked</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900">{stats.totalObjectives}</p>
-                </div>
-                <div className="rounded-xl bg-blue-100 p-3 text-blue-600">
-                  <SparklesIcon className="h-6 w-6" />
-                </div>
-              </div>
-              <p className="mt-3 text-xs text-slate-500">Total number of objectives across all projects.</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Milestones synced</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900">{stats.totalMilestones}</p>
-                </div>
-                <div className="rounded-xl bg-amber-100 p-3 text-amber-600">
-                  <CalendarDaysIcon className="h-6 w-6" />
-                </div>
-              </div>
-              <p className="mt-3 text-xs text-slate-500">Milestones exposed by objectives for planning timelines.</p>
-            </div>
+            {showProjectSkeleton
+              ? projectStatCards.map((card) => renderProjectStatSkeleton(card.id))
+              : projectStatCards.map((card) => {
+                  const Icon = card.icon;
+                  return (
+                    <div key={card.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-slate-500">{card.label}</p>
+                          <p className="mt-2 text-2xl font-semibold text-slate-900">{card.value}</p>
+                        </div>
+                        <div className={`rounded-xl p-3 ${card.iconWrapperClass}`}>
+                          <Icon className="h-6 w-6" />
+                        </div>
+                      </div>
+                      <p className="mt-3 text-xs text-slate-500">{card.description}</p>
+                    </div>
+                  );
+                })}
           </div>
 
           <div className="grid grid-cols-1 gap-8 xl:grid-cols-12">
@@ -428,7 +484,13 @@ const ProjectLibrary = () => {
                   </div>
                 </div>
 
-                {filteredProjects.length === 0 ? (
+                {showProjectSkeleton ? (
+                  <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
+                    {Array.from({ length: 4 }).map((_, index) =>
+                      renderProjectCardSkeleton(`project-skeleton-${index}`)
+                    )}
+                  </div>
+                ) : filteredProjects.length === 0 ? (
                   <div className="mt-10 rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center">
                     <BookOpenIcon className="mx-auto h-10 w-10 text-slate-300" />
                     <p className="mt-4 text-sm font-medium text-slate-600">No projects match the selected filters yet.</p>
@@ -510,7 +572,11 @@ const ProjectLibrary = () => {
                 </div>
                 <p className="mt-1 text-xs text-slate-500">These are sourced directly from objective milestones.</p>
                 <div className="mt-4 space-y-4">
-                  {upcomingMilestones.length === 0 ? (
+                  {showProjectSkeleton ? (
+                    Array.from({ length: 3 }).map((_, index) =>
+                      renderMilestoneSkeleton(`milestone-skeleton-${index}`)
+                    )
+                  ) : upcomingMilestones.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
                       <p className="text-sm font-semibold text-slate-700">No milestones scheduled yet</p>
                       <p className="mt-1 text-xs text-slate-500">Milestones will appear once objectives define timelines.</p>
