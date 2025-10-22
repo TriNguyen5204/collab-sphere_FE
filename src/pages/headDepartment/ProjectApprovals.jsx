@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ProjectApprovalList from '../../components/ui/ProjectApprovalList';
 import {
-  getPendingProjects,
-  handleProject
+  getPendingProjects
 } from '../../services/userService';
-import { toast } from 'sonner';
 import Sidebar from '../../components/layout/HeadDepartmentSidebar';
 
 export default function ProjectApprovals() {
@@ -41,22 +39,7 @@ export default function ProjectApprovals() {
     setPendingCount(projects.filter(p => p.status === 'pending').length);
   }, [projects]);
 
-  const handleApproveProject = async projectId => {
-    const response = await handleProject(projectId, true);
-    if (response) {
-      toast.success(response);
-    } else {
-      toast.error(`Failed to approve project: ${response}`);
-    }
-  };
-  const handleRejectProject = async projectId => {
-    const response = await handleProject(projectId, false);
-    if (response) {
-      toast.success(response);
-    } else {
-      toast.error(`Failed to reject project: ${response}`);
-    }
-  };
+  
   const totalPages = Math.ceil(total / pageSize);
 
   return (
@@ -140,8 +123,6 @@ export default function ProjectApprovals() {
                     <>
                       <ProjectApprovalList
                         projects={projects}
-                        onApprove={id => handleApproveProject(id)}
-                        onReject={id => handleRejectProject(id)}
                       />
 
                       {/* 📄 Pagination */}

@@ -34,13 +34,13 @@ export default function ClassListStaff() {
 
   const [filters, setFilters] = useState({
     ClassName: '',
-    SubjectIds: [],
-    LecturerIds: [],
+    SubjectId: null,
+    LecturerId: null,
     OrderBy: 'ClassName',
-    Descending: false,
+    // Descending: false,
     PageNum: 1,
     PageSize: 8,
-    ViewAll: false,
+    // ViewAll: false,
   });
 
   const [totalPages, setTotalPages] = useState(1);
@@ -50,16 +50,18 @@ export default function ClassListStaff() {
   useEffect(() => {
     const fetchDropdowns = async () => {
       try {
-        const [subjects, lecturers] = await Promise.all([getAllSubject(), getAllLecturer()]);
+        const [subjects, lecturers] = await Promise.all([
+          getAllSubject(),
+          getAllLecturer(),
+        ]);
         setSubjectOptions(subjects || []);
-        setLecturerOptions(lecturers.lecturerList || []);
+        setLecturerOptions(lecturers.list || []);
       } catch (err) {
         console.error('Error loading filters:', err);
       }
     };
     fetchDropdowns();
   }, []);
-
 
   const fetchData = useCallback(async () => {
     try {
@@ -74,7 +76,7 @@ export default function ClassListStaff() {
       }
     } catch (err) {
       console.error('Error fetching classes:', err);
-    } 
+    }
   }, [filters]);
 
   useEffect(() => {
@@ -159,13 +161,11 @@ export default function ClassListStaff() {
               </label>
               <select
                 className='w-full border border-gray-300 rounded-lg px-3 py-2'
-                value={filters.SubjectIds[0] || ''}
+                value={filters.SubjectId ?? ''}
                 onChange={e =>
                   setFilters({
                     ...filters,
-                    SubjectIds: e.target.value
-                      ? [parseInt(e.target.value)]
-                      : [],
+                    SubjectId: e.target.value ? parseInt(e.target.value) : null,
                   })
                 }
               >
@@ -185,13 +185,13 @@ export default function ClassListStaff() {
               </label>
               <select
                 className='w-full border border-gray-300 rounded-lg px-3 py-2'
-                value={filters.LecturerIds[0] || ''}
+                value={filters.LecturerId ?? ''}
                 onChange={e =>
                   setFilters({
                     ...filters,
-                    LecturerIds: e.target.value
-                      ? [parseInt(e.target.value)]
-                      : [],
+                    LecturerId: e.target.value
+                      ? parseInt(e.target.value)
+                      : null,
                   })
                 }
               >

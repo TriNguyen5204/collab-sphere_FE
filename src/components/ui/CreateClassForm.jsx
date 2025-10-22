@@ -6,6 +6,7 @@ import {
   getAllSubject,
 } from "../../services/userService";
 import { Check, Users, BookOpen, UserCheck, Eye } from "lucide-react";
+import { toast } from "sonner";
 
 const CreateClassForm = () => {
   const [step, setStep] = useState(1);
@@ -31,8 +32,8 @@ const CreateClassForm = () => {
           getAllLecturer(),
           getAllSubject(),
         ]);
-        setStudents(studentsData || []);
-        setLecturers(lecturersData || []);
+        setStudents(studentsData.list || []);
+        setLecturers(lecturersData.list || []);
         setSubjects(subjectsData || []);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -67,7 +68,7 @@ const CreateClassForm = () => {
   const handleSubmit = async () => {
     try {
       await createClass(formData);
-      alert("✅ Class created successfully!");
+      toast.success("✅ Class created successfully!");
       setFormData({
         className: "",
         subjectId: "",
@@ -79,7 +80,7 @@ const CreateClassForm = () => {
       setStep(1);
     } catch (error) {
       console.error("❌ Error creating class:", error);
-      alert("Failed to create class!");
+      toast.error("Failed to create class!");
     }
   };
 

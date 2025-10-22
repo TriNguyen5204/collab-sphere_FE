@@ -2317,6 +2317,28 @@
   color: inherit;
 }
 
+.moduleState {
+  display: grid;
+  place-items: center;
+  padding: 48px 16px;
+  background: rgba(241, 245, 249, 0.5);
+  border: 1px dashed rgba(148, 163, 184, 0.5);
+  border-radius: 12px;
+}
+
+.projectBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.08);
+  color: rgba(30, 41, 59, 0.82);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .projectPickerGrid::-webkit-scrollbar {
   width: 6px;
 }
@@ -2625,16 +2647,24 @@
   flex-shrink: 0;
 }
 
-.moduleIndex.difficulty-beginner {
+.moduleIndex.status-completed {
   background: linear-gradient(135deg, #10b981, #059669);
 }
 
-.moduleIndex.difficulty-intermediate {
+.moduleIndex.status-active {
   background: linear-gradient(135deg, #3b82f6, #2563eb);
 }
 
-.moduleIndex.difficulty-advanced {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+.moduleIndex.status-upcoming {
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+}
+
+.moduleIndex.status-draft {
+  background: linear-gradient(135deg, #94a3b8, #64748b);
+}
+
+.moduleIndex.status-archived {
+  background: linear-gradient(135deg, #cbd5f5, #94a3b8);
 }
 
 .moduleTitle {
@@ -2672,6 +2702,11 @@
 
 .statusBadge.status-draft {
   background: #f1f5f9;
+  color: #475569;
+}
+
+.statusBadge.status-archived {
+  background: rgba(148, 163, 184, 0.25);
   color: #475569;
 }
 

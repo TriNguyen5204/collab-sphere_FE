@@ -81,13 +81,6 @@
   border: 1px solid rgba(102, 126, 234, 0.1);
 }
 
-.actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
-  position: relative;
-  z-index: 1;
-}
 
 /* Enhanced Stat Cards */
 .statCards {

@@ -140,10 +140,6 @@ const ImprovedLecturerCreation = () => {
 
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setIsSubmitting(true);
-      setIsLoading(false);
 
       const response = await importLecturerList(uploadedFile);
       if (response.isSuccess === true) {

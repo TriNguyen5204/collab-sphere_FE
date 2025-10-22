@@ -4,91 +4,61 @@ import {
   MapPin,
   Phone,
   Calendar,
-  Upload,
-  GraduationCap,
-  BookOpen,
   Save,
   X,
-  Camera,
-  Check,
+  GraduationCap,
+  BookOpen,
 } from 'lucide-react';
+import { createLecturer } from '../../services/userService';
+import { toast } from 'sonner';
 
 const CreateLecturerForm = () => {
   const [formData, setFormData] = useState({
     name: '',
+    email: '',
+    password: '',
+    lecturerCode: '',
     address: '',
     phone: '',
     birth: '',
-    avatar: null,
     school: '',
     major: '',
   });
 
-  const [avatarPreview, setAvatarPreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const schools = [
-    'Harvard University',
-    'Stanford University',
-    'MIT - Massachusetts Institute of Technology',
-    'University of California, Berkeley',
-    'Oxford University',
-    'Cambridge University',
-    'Yale University',
-    'Princeton University',
-    'Columbia University',
-    'University of Chicago',
-  ];
-
-  const majors = [
-    'Computer Science',
-    'Mathematics',
-    'Physics',
-    'Chemistry',
-    'Biology',
-    'Engineering',
-    'Economics',
-    'Psychology',
-    'Literature',
-    'History',
-    'Philosophy',
-    'Business Administration',
-  ];
-
   const handleInputChange = e => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
-  };
 
-  const handleAvatarChange = e => {
-    const file = e.target.files[0];
-    if (file) {
-      setFormData(prev => ({ ...prev, avatar: file }));
-      const reader = new FileReader();
-      reader.onload = e => setAvatarPreview(e.target.result);
-      reader.readAsDataURL(file);
+    // Nếu là trường ngày sinh -> chỉ lấy năm
+    if (name === 'birth') {
+      const year = value ? new Date(value).getFullYear().toString() : '';
+      setFormData(prev => ({ ...prev, [name]: year }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
     }
+
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const validateForm = () => {
     const newErrors = {};
 
+    if (!formData.email.trim()) newErrors.email = 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(formData.email))
+      newErrors.email = 'Invalid email format';
+    if (!formData.password.trim()) newErrors.password = 'Password is required';
+    if (!formData.lecturerCode.trim())
+      newErrors.lecturerCode = 'Lecturer code is required';
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!formData.address.trim()) newErrors.address = 'Address is required';
     if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
     else if (!/^\+?[\d\s-()]+$/.test(formData.phone))
       newErrors.phone = 'Invalid phone format';
-    if (!formData.birth) newErrors.birth = 'Birth date is required';
-    if (!formData.school) newErrors.school = 'School is required';
-    if (!formData.major) newErrors.major = 'Major is required';
+    if (!formData.birth) newErrors.birth = 'Birth year is required';
+    if (!formData.school.trim()) newErrors.school = 'School is required';
+    if (!formData.major.trim()) newErrors.major = 'Major is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -96,68 +66,48 @@ const CreateLecturerForm = () => {
 
   const handleSubmit = async e => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
     setIsSubmitting(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Lecturer created:', formData);
+    try {
+      await createLecturer(formData);
+      toast.success('Lecturer created successfully!');
+      setFormData({
+        name: '',
+        address: '',
+        phone: '',
+        birth: '',
+        school: '',
+        major: '',
+      });
+    } catch (error) {
+      console.error('Error creating lecturer:', error);
+      toast.error('Failed to create lecturer');
+    } finally {
       setIsSubmitting(false);
-      // Reset form or redirect
-      alert('Lecturer created successfully!');
-    }, 2000);
+    }
   };
 
   const handleReset = () => {
     setFormData({
       name: '',
+      email: '',
+      password: '',
+      lecturerCode: '',
       address: '',
       phone: '',
       birth: '',
-      avatar: null,
       school: '',
       major: '',
     });
-    setAvatarPreview(null);
+
     setErrors({});
   };
 
   return (
     <form onSubmit={handleSubmit}>
-      {/* Form */}
       <div className='bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden'>
         <div className='p-8'>
-          {/* Avatar Upload Section */}
-          <div className='flex flex-col items-center mb-8'>
-            <div className='relative group'>
-              <div className='w-32 h-32 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center overflow-hidden border-4 border-white shadow-lg'>
-                {avatarPreview ? (
-                  <img
-                    src={avatarPreview}
-                    alt='Avatar preview'
-                    className='w-full h-full object-cover'
-                  />
-                ) : (
-                  <Camera className='w-12 h-12 text-gray-400' />
-                )}
-              </div>
-              <label className='absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer'>
-                <Upload className='w-6 h-6 text-white' />
-                <input
-                  type='file'
-                  accept='image/*'
-                  onChange={handleAvatarChange}
-                  className='hidden'
-                />
-              </label>
-            </div>
-            <p className='text-sm text-gray-500 mt-2'>
-              Click to upload avatar (optional)
-            </p>
-          </div>
-
           <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
             {/* Left Column */}
             <div className='space-y-6'>
@@ -234,12 +184,11 @@ const CreateLecturerForm = () => {
               <div>
                 <label className='flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2'>
                   <Calendar className='w-4 h-4' />
-                  Date of Birth *
+                  Year of Birth *
                 </label>
                 <input
                   type='date'
                   name='birth'
-                  value={formData.birth}
                   onChange={handleInputChange}
                   className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     errors.birth
@@ -247,6 +196,11 @@ const CreateLecturerForm = () => {
                       : 'border-gray-200 focus:border-blue-300'
                   }`}
                 />
+                {formData.birth && (
+                  <p className='text-sm text-gray-600 mt-1'>
+                    Selected year: <strong>{formData.birth}</strong>
+                  </p>
+                )}
                 {errors.birth && (
                   <p className='text-red-500 text-sm mt-1'>{errors.birth}</p>
                 )}
@@ -255,29 +209,91 @@ const CreateLecturerForm = () => {
 
             {/* Right Column */}
             <div className='space-y-6'>
+              {/* Email Field */}
+              <div>
+                <label className='flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2'>
+                  Email *
+                </label>
+                <input
+                  type='email'
+                  name='email'
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder='Enter email address'
+                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.email
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-200 focus:border-blue-300'
+                  }`}
+                />
+                {errors.email && (
+                  <p className='text-red-500 text-sm mt-1'>{errors.email}</p>
+                )}
+              </div>
+
+              {/* Password Field */}
+              <div>
+                <label className='flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2'>
+                  Password *
+                </label>
+                <input
+                  type='password'
+                  name='password'
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  placeholder='Enter password'
+                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.password
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-200 focus:border-blue-300'
+                  }`}
+                />
+                {errors.password && (
+                  <p className='text-red-500 text-sm mt-1'>{errors.password}</p>
+                )}
+              </div>
+
+              {/* Lecturer Code Field */}
+              <div>
+                <label className='flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2'>
+                  Lecturer Code *
+                </label>
+                <input
+                  type='text'
+                  name='lecturerCode'
+                  value={formData.lecturerCode}
+                  onChange={handleInputChange}
+                  placeholder='Enter lecturer code'
+                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.lecturerCode
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-200 focus:border-blue-300'
+                  }`}
+                />
+                {errors.lecturerCode && (
+                  <p className='text-red-500 text-sm mt-1'>
+                    {errors.lecturerCode}
+                  </p>
+                )}
+              </div>
               {/* School Field */}
               <div>
                 <label className='flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2'>
                   <GraduationCap className='w-4 h-4' />
                   School/University *
                 </label>
-                <select
+                <input
+                  type='text'
                   name='school'
                   value={formData.school}
                   onChange={handleInputChange}
+                  placeholder='Enter school/university name'
                   className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     errors.school
                       ? 'border-red-300 bg-red-50'
                       : 'border-gray-200 focus:border-blue-300'
                   }`}
-                >
-                  <option value=''>Select a school</option>
-                  {schools.map((school, index) => (
-                    <option key={index} value={school}>
-                      {school}
-                    </option>
-                  ))}
-                </select>
+                />
                 {errors.school && (
                   <p className='text-red-500 text-sm mt-1'>{errors.school}</p>
                 )}
@@ -289,36 +305,30 @@ const CreateLecturerForm = () => {
                   <BookOpen className='w-4 h-4' />
                   Major/Department *
                 </label>
-                <select
+                <input
+                  type='text'
                   name='major'
                   value={formData.major}
                   onChange={handleInputChange}
+                  placeholder='Enter major or department'
                   className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     errors.major
                       ? 'border-red-300 bg-red-50'
                       : 'border-gray-200 focus:border-blue-300'
                   }`}
-                >
-                  <option value=''>Select a major</option>
-                  {majors.map((major, index) => (
-                    <option key={index} value={major}>
-                      {major}
-                    </option>
-                  ))}
-                </select>
+                />
                 {errors.major && (
                   <p className='text-red-500 text-sm mt-1'>{errors.major}</p>
                 )}
               </div>
 
-              {/* Additional Info */}
               <div className='bg-blue-50 border border-blue-200 rounded-xl p-4'>
                 <h3 className='font-semibold text-blue-900 mb-2'>
                   Additional Information
                 </h3>
                 <ul className='text-sm text-blue-700 space-y-1'>
                   <li>• All fields marked with * are required</li>
-                  <li>• Avatar image should be less than 5MB</li>
+                  <li>• Birth date will be saved as year only</li>
                   <li>• Phone number should include country code</li>
                   <li>• Double-check all information before submitting</li>
                 </ul>
@@ -327,7 +337,7 @@ const CreateLecturerForm = () => {
           </div>
         </div>
 
-        {/* Form Footer */}
+        {/* Footer */}
         <div className='bg-gray-50 px-8 py-6 border-t border-gray-200'>
           <div className='flex items-center justify-between'>
             <button
@@ -342,7 +352,6 @@ const CreateLecturerForm = () => {
             <button
               type='submit'
               disabled={isSubmitting}
-              onClick={handleSubmit}
               className={`flex items-center gap-2 px-8 py-3 rounded-xl font-semibold transition-all ${
                 isSubmitting
                   ? 'bg-gray-400 text-white cursor-not-allowed'
@@ -367,4 +376,5 @@ const CreateLecturerForm = () => {
     </form>
   );
 };
+
 export default CreateLecturerForm;

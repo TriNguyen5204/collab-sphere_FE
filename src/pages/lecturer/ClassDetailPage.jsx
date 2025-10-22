@@ -28,45 +28,263 @@ import {
   AcademicCapIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
+import { getClassProjects } from '../../services/projectApi';
 
-const CLASS_PROJECT_POOL = [
-  {
-    id: 'mobile-app',
-    name: 'Mobile App Development',
-    summary: 'Cross-platform companion app that helps students track campus events and deliverables.',
-    status: 'In Progress',
-    dueDate: '2025-10-15',
-    gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-    tags: ['Mobile', 'UX Research'],
-  },
-  {
-    id: 'web-dashboard',
-    name: 'Faculty Analytics Dashboard',
-    summary: 'Data-driven dashboard with real-time lecturer insights and predictive risk alerts.',
-    status: 'Planning',
-    dueDate: '2025-10-28',
-    gradient: 'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%)',
-    tags: ['Data Viz', 'React'],
-  },
-  {
-    id: 'ai-chatbot',
-    name: 'AI Academic Assistant',
-    summary: 'Conversational agent that answers course FAQs and surfaces checkpoints with reminders.',
-    status: 'Review',
-    dueDate: '2025-11-05',
-    gradient: 'linear-gradient(135deg, #fb7185 0%, #f97316 100%)',
-    tags: ['AI', 'Node.js'],
-  },
-  {
-    id: 'research-portal',
-    name: 'Research Collaboration Portal',
-    summary: 'Portal that streamlines proposal approvals and tracks joint publications.',
-    status: 'Discovery',
-    dueDate: '2025-11-15',
-    gradient: 'linear-gradient(135deg, #22c55e 0%, #4ade80 100%)',
-    tags: ['Collaboration', 'Security'],
-  },
+const PROJECT_GRADIENTS = [
+  'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+  'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%)',
+  'linear-gradient(135deg, #fb7185 0%, #f97316 100%)',
+  'linear-gradient(135deg, #22c55e 0%, #4ade80 100%)',
+  'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',
 ];
+
+const resolveProjectGradient = (index) => PROJECT_GRADIENTS[index % PROJECT_GRADIENTS.length];
+
+const formatStatusMeta = (value) => {
+  if (!value) {
+    return { label: 'Pending', token: 'pending' };
+  }
+
+  const base = value.toString().trim();
+  if (!base.length) {
+    return { label: 'Pending', token: 'pending' };
+  }
+
+  const token = base.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+  const label = token
+    .split('_')
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ');
+
+  return {
+    label: label || base,
+    token: token || base.toLowerCase(),
+  };
+};
+
+const formatDateLabel = (input, fallback = 'TBA') => {
+  if (!input) {
+    return fallback;
+  }
+
+  const date = new Date(input);
+  if (Number.isNaN(date.getTime())) {
+    return fallback;
+  }
+
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
+const toValidDate = (input) => {
+  if (!input) {
+    return null;
+  }
+
+  const date = new Date(input);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const toNumber = (value) => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const pickFirstFinite = (candidates) => {
+  for (const candidate of candidates) {
+    const parsed = toNumber(candidate);
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+
+  return null;
+};
+
+const resolveStatusVariant = (token) => {
+  const normalised = (token ?? '').toString().trim().toLowerCase();
+
+  if (!normalised) {
+    return 'upcoming';
+  }
+
+  if (['completed', 'complete', 'done', 'finished', 'approved'].includes(normalised)) {
+    return 'completed';
+  }
+
+  if (['active', 'in_progress', 'ongoing', 'current', 'assigned', 'progress'].includes(normalised)) {
+    return 'active';
+  }
+
+  if (['archived', 'cancelled', 'canceled', 'denied', 'rejected', 'inactive'].includes(normalised)) {
+    return 'archived';
+  }
+
+  if (['draft', 'on_hold', 'paused'].includes(normalised)) {
+    return 'draft';
+  }
+
+  if (['upcoming', 'pending', 'planning', 'planned', 'scheduled', 'review', 'discovery', 'awaiting', 'new'].includes(normalised)) {
+    return 'upcoming';
+  }
+
+  return 'draft';
+};
+
+const clampPercentage = (value) => Math.max(0, Math.min(Math.round(value), 100));
+
+const extractProjectStats = (project, fallbackTotal) => {
+  const completed = pickFirstFinite([
+    project?.completedStudents,
+    project?.studentsCompleted,
+    project?.completedMembers,
+    project?.learnersCompleted,
+  ]) ?? 0;
+
+  const total = pickFirstFinite([
+    project?.totalStudents,
+    project?.studentsTotal,
+    project?.totalMembers,
+    project?.learnersTotal,
+    fallbackTotal,
+  ]) ?? (fallbackTotal ?? 0);
+
+  const resources = pickFirstFinite([
+    project?.resourcesCount,
+    project?.resources,
+    project?.totalResources,
+    project?.resourceTotal,
+  ]) ?? 0;
+
+  const assignments = pickFirstFinite([
+    project?.assignmentsCount,
+    project?.assignments,
+    project?.totalAssignments,
+  ]) ?? 0;
+
+  const estimated = pickFirstFinite([
+    project?.estimatedHours,
+    project?.estimatedTime,
+    project?.expectedHours,
+  ]);
+
+  return {
+    completed,
+    total,
+    resources,
+    assignments,
+    estimated,
+  };
+};
+
+const calculateProjectProgress = (project, stats, fallbackTotal) => {
+  const directPercentage = pickFirstFinite([
+    project?.progress,
+    project?.progressPercentage,
+    project?.progressPercent,
+    project?.completionRate,
+  ]);
+
+  if (directPercentage !== null) {
+    return clampPercentage(directPercentage);
+  }
+
+  const ratioValue = pickFirstFinite([project?.progressRatio, project?.completionRatio]);
+  if (ratioValue !== null) {
+    return clampPercentage(ratioValue * 100);
+  }
+
+  const denominator = stats?.total ?? fallbackTotal ?? 0;
+  const numerator = stats?.completed ?? 0;
+
+  if (denominator > 0) {
+    return clampPercentage((numerator / denominator) * 100);
+  }
+
+  return 0;
+};
+
+const PROGRESS_COLOR_BY_STATUS = {
+  completed: '#10b981',
+  active: '#3b82f6',
+  upcoming: '#f59e0b',
+  draft: '#94a3b8',
+  archived: '#94a3b8',
+};
+
+const normaliseClassProject = (item, index) => {
+  if (!item) {
+    return null;
+  }
+
+  const rawId = item.projectId ?? item.id;
+  const id = Number(rawId);
+
+  if (!Number.isFinite(id)) {
+    return null;
+  }
+
+  const { label, token } = formatStatusMeta(item.statusString ?? item.status);
+  const tags = [];
+
+  if (item.subjectCode) {
+    tags.push(item.subjectCode);
+  }
+
+  if (item.subjectName) {
+    tags.push(item.subjectName);
+  }
+
+  if (item.lecturerName) {
+    tags.push(item.lecturerName);
+  }
+
+  const summary = item.description?.trim?.() ? item.description : 'Description updating soon.';
+
+  return {
+    id,
+    name: item.projectName ?? 'Untitled project',
+    summary,
+    status: label,
+    statusToken: token,
+    dueDate: item.dueDate ?? null,
+    updatedAt: item.updatedAt ?? null,
+    gradient: resolveProjectGradient(index),
+    tags,
+    subjectName: item.subjectName ?? '',
+    subjectCode: item.subjectCode ?? '',
+    lecturerName: item.lecturerName ?? '',
+    objectives: Array.isArray(item.objectives) ? item.objectives : [],
+  };
+};
+
+const extractProjectList = (payload) => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.list)) {
+    return payload.list;
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+
+  if (Array.isArray(payload?.items)) {
+    return payload.items;
+  }
+
+  return [];
+};
 
 const INITIAL_STUDENTS = [
   {
@@ -242,8 +460,10 @@ const ClassDetailPage = () => {
   const [teamFilter, setTeamFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [students, setStudents] = useState(() => INITIAL_STUDENTS);
-  const [classProjects] = useState(CLASS_PROJECT_POOL);
-  const [teams, setTeams] = useState(() => buildInitialTeams(INITIAL_TEAM_CONFIG, INITIAL_STUDENTS, CLASS_PROJECT_POOL));
+  const [classProjects, setClassProjects] = useState([]);
+  const [isClassProjectsLoading, setIsClassProjectsLoading] = useState(false);
+  const [classProjectsError, setClassProjectsError] = useState('');
+  const [teams, setTeams] = useState(() => buildInitialTeams(INITIAL_TEAM_CONFIG, INITIAL_STUDENTS, []));
   const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false);
   const [teamFormError, setTeamFormError] = useState('');
   const [memberSearchTerm, setMemberSearchTerm] = useState('');
@@ -252,7 +472,7 @@ const ClassDetailPage = () => {
   const [teamForm, setTeamForm] = useState(() => ({
     name: '',
     color: TEAM_COLOR_SWATCHES[0],
-    projectId: CLASS_PROJECT_POOL[0]?.id || '',
+    projectId: '',
     memberIds: [],
     leaderId: '',
     description: '',
@@ -265,6 +485,66 @@ const ClassDetailPage = () => {
     const timeout = setTimeout(() => setShowTeamToast(false), 3200);
     return () => clearTimeout(timeout);
   }, [showTeamToast]);
+
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const fetchClassProjects = async () => {
+      if (!classId) {
+        setClassProjects([]);
+        return;
+      }
+
+      setIsClassProjectsLoading(true);
+      setClassProjectsError('');
+
+      try {
+        const response = await getClassProjects(classId);
+        const projects = extractProjectList(response)
+          .map((item, index) => normaliseClassProject(item, index))
+          .filter((project) => project !== null);
+
+        if (!isSubscribed) {
+          return;
+        }
+
+        setClassProjects(projects);
+      } catch (error) {
+        console.error('Failed to load class projects from /api/project/class.', error);
+        if (isSubscribed) {
+          setClassProjects([]);
+          setClassProjectsError('Unable to load class projects right now.');
+        }
+      } finally {
+        if (isSubscribed) {
+          setIsClassProjectsLoading(false);
+        }
+      }
+    };
+
+    fetchClassProjects();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [classId]);
+
+  useEffect(() => {
+    if (!classProjects.length) {
+      return;
+    }
+
+    setTeamForm((current) => {
+      if (current.projectId !== '' && current.projectId !== null && current.projectId !== undefined) {
+        return current;
+      }
+
+      return {
+        ...current,
+        projectId: classProjects[0].id,
+      };
+    });
+  }, [classProjects]);
 
   // Mock data with enhanced student info
   const classData = {
@@ -283,61 +563,6 @@ const ClassDetailPage = () => {
   };
 
   // Modules data for LMS-style module management
-  const modulesData = [
-    {
-      id: 1,
-      title: 'Introduction to OOP Concepts',
-      description: 'Basic concepts of object-oriented programming',
-      status: 'completed',
-      studentsCompleted: 38,
-      totalStudents: 42,
-      dueDate: '2025-09-15',
-      resources: 4,
-      assignments: 2,
-      difficulty: 'beginner',
-      estimatedHours: 3
-    },
-    {
-      id: 2,
-      title: 'Classes and Objects',
-      description: 'Understanding classes, objects, and instantiation',
-      status: 'active',
-      studentsCompleted: 28,
-      totalStudents: 42,
-      dueDate: '2025-09-25',
-      resources: 6,
-      assignments: 3,
-      difficulty: 'intermediate',
-      estimatedHours: 5
-    },
-    {
-      id: 3,
-      title: 'Inheritance and Polymorphism',
-      description: 'Advanced OOP concepts and their implementation',
-      status: 'upcoming',
-      studentsCompleted: 0,
-      totalStudents: 42,
-      dueDate: '2025-10-05',
-      resources: 5,
-      assignments: 2,
-      difficulty: 'advanced',
-      estimatedHours: 6
-    },
-    {
-      id: 4,
-      title: 'Design Patterns',
-      description: 'Common design patterns in object-oriented programming',
-      status: 'draft',
-      studentsCompleted: 0,
-      totalStudents: 42,
-      dueDate: '2025-10-15',
-      resources: 3,
-      assignments: 1,
-      difficulty: 'advanced',
-      estimatedHours: 4
-    }
-  ];
-
   // Resources data for resource library management
   const resourcesData = [
     {
@@ -390,12 +615,32 @@ const ClassDetailPage = () => {
     }
   ];
 
+  const classTotalStudents = classData.totalStudents ?? 0;
+
+  const sortedProjectsByDueDate = [...classProjects].sort((a, b) => {
+    const left = toValidDate(a.dueDate) ?? new Date(8640000000000000);
+    const right = toValidDate(b.dueDate) ?? new Date(8640000000000000);
+    return left - right;
+  });
+
+  const moduleProgressSparkline = (() => {
+    const sparkline = sortedProjectsByDueDate.slice(0, 6).map((project) => {
+      const stats = extractProjectStats(project, classTotalStudents);
+      return calculateProjectProgress(project, stats, classTotalStudents);
+    });
+
+    if (sparkline.length === 0) {
+      return [24, 32, 18, 28, 22, 30];
+    }
+
+    return sparkline;
+  })();
+
   const unassignedStudents = useMemo(
     () => students.filter((student) => !student.team),
     [students]
   );
 
-  const sortedModules = [...modulesData].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
   const totalTeams = teams.length;
   const behindCount = students.filter((student) => student.status === 'behind').length;
   const unassignedCount = unassignedStudents.length;
@@ -410,16 +655,16 @@ const ClassDetailPage = () => {
 
   const leadersCount = students.filter((student) => student.role === 'leader').length;
   const activeProjectsCount = classProjects.filter((project) =>
-    ['In Progress', 'Planning', 'Review'].includes(project.status)
+    ['approved', 'in_progress', 'active', 'ongoing'].includes(project.statusToken)
   ).length;
   const discoveryProjectsCount = classProjects.filter((project) =>
-    project.status === 'Discovery'
+    ['planning', 'review', 'draft', 'discovery', 'pending'].includes(project.statusToken)
   ).length;
   const nextProjectDue = classProjects.reduce((soonest, project) => {
-    if (!project.dueDate) {
+    const dueDate = toValidDate(project.dueDate);
+    if (!dueDate) {
       return soonest;
     }
-    const dueDate = new Date(project.dueDate);
     if (!soonest || dueDate < soonest) {
       return dueDate;
     }
@@ -459,16 +704,15 @@ const ClassDetailPage = () => {
   const flaggedLabel = behindCount === 1 ? 'learner flagged' : 'learners flagged';
   const discoveryLabel = discoveryProjectsCount === 1 ? 'project in discovery' : 'projects in discovery';
   const recentResourceLabel = recentResourceCount === 1 ? 'asset' : 'assets';
-  const moduleProgressSparkline = sortedModules.slice(0, 6).map((module) =>
-    Math.round((module.studentsCompleted / module.totalStudents) * 100)
-  );
   const projectStatusBreakdown = classProjects.reduce((acc, project) => {
-    const key = project.status.toLowerCase();
+    const key = project.statusToken ?? 'unknown';
+
     if (!acc[key]) {
-      acc[key] = { label: project.status, count: 0 };
+      acc[key] = { label: project.status ?? 'Unknown', count: 0 };
     } else {
-      acc[key].label = project.status;
+      acc[key].label = project.status ?? acc[key].label;
     }
+
     acc[key].count += 1;
     return acc;
   }, {});
@@ -535,20 +779,32 @@ const ClassDetailPage = () => {
       if (!searchValue) {
         return true;
       }
-      return (
-        project.name.toLowerCase().includes(searchValue) ||
-        project.summary.toLowerCase().includes(searchValue)
-      );
+      const haystack = [
+        project.name,
+        project.summary,
+        project.status,
+        project.subjectName,
+        project.subjectCode,
+        project.lecturerName,
+        ...(project.tags ?? []),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(searchValue);
     });
   }, [projectSearchTerm, classProjects]);
 
-  const canSubmitTeam = teamForm.name.trim() && teamForm.memberIds.length >= 2 && teamForm.projectId;
+  const hasSelectedProject =
+    teamForm.projectId !== '' && teamForm.projectId !== null && teamForm.projectId !== undefined;
+  const canSubmitTeam = teamForm.name.trim() && teamForm.memberIds.length >= 2 && hasSelectedProject;
 
   const openCreateTeamPanel = () => {
     setTeamForm({
       name: '',
       color: TEAM_COLOR_SWATCHES[0],
-      projectId: classProjects[0]?.id || '',
+      projectId: classProjects[0]?.id ?? '',
       memberIds: [],
       leaderId: '',
       description: '',
@@ -607,7 +863,7 @@ const ClassDetailPage = () => {
       setTeamFormError('Select at least two members for the new team.');
       return;
     }
-    if (!teamForm.projectId) {
+    if (!hasSelectedProject) {
       setTeamFormError('Choose a project from the class pool.');
       return;
     }
@@ -995,19 +1251,37 @@ const ClassDetailPage = () => {
             Projects already approved for this class. Link one when creating a team.
           </p>
           <div className={styles.projectPoolGrid}>
-            {classProjects.map((project) => (
-              <div key={project.id} className={styles.projectChip} style={{ background: project.gradient }}>
-                <div className={styles.projectChipHeader}>
-                  <span className={styles.projectChipName}>{project.name}</span>
-                  <span className={styles.projectChipStatus}>{project.status}</span>
-                </div>
-                <p className={styles.projectChipSummary}>{project.summary}</p>
-                <div className={styles.projectChipMeta}>
-                  <CalendarIcon className="w-3 h-3" />
-                  <span>Due {new Date(project.dueDate).toLocaleDateString()}</span>
-                </div>
-              </div>
-            ))}
+            {isClassProjectsLoading ? (
+              <span className={styles.emptyState}>Loading class projects…</span>
+            ) : classProjects.length > 0 ? (
+              classProjects.map((project) => {
+                const timelineLabel = project.dueDate
+                  ? `Due ${formatDateLabel(project.dueDate)}`
+                  : `Updated ${formatDateLabel(project.updatedAt, 'Awaiting update')}`;
+
+                return (
+                  <div
+                    key={project.id}
+                    className={styles.projectChip}
+                    style={{ background: project.gradient }}
+                  >
+                    <div className={styles.projectChipHeader}>
+                      <span className={styles.projectChipName}>{project.name}</span>
+                      <span className={styles.projectChipStatus}>{project.status}</span>
+                    </div>
+                    <p className={styles.projectChipSummary}>{project.summary}</p>
+                    <div className={styles.projectChipMeta}>
+                      <CalendarIcon className="w-3 h-3" />
+                      <span>{timelineLabel}</span>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <span className={styles.emptyState}>
+                {classProjectsError || 'No projects assigned to this class yet.'}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -1079,91 +1353,122 @@ const ClassDetailPage = () => {
   const renderModulesTab = () => (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-slate-900">Course Projects</h3>
-        <button className={styles.btnPrimary}>
-            <PlusIcon className="w-4 h-4 mr-2" />
-            Add Project
-        </button>
+        <h3 className="text-lg font-semibold text-slate-900">Course Projects</h3>
+        <Link
+          to={`/lecturer/classes/${classId}/project-assignments`}
+          className={styles.btnPrimary}
+          style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+        >
+          <PlusIcon className="w-4 h-4 mr-2" />
+          Assign Projects
+        </Link>
       </div>
       
       <div className="space-y-4">
-        {modulesData.map((module, index) => (
-          <div key={module.id} className={styles.moduleCard}>
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-4 flex-1">
-                <div className={`${styles.moduleIndex} ${styles[`difficulty-${module.difficulty}`]}`}>
-                  {index + 1}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h4 className={styles.moduleTitle}>{module.title}</h4>
-                    <span className={`${styles.statusBadge} ${styles[`status-${module.status}`]}`}>
-                      {module.status}
-                    </span>
-                    <span className={`${styles.difficultyBadge} ${styles[`difficulty-${module.difficulty}`]}`}>
-                      {module.difficulty}
-                    </span>
-                  </div>
-                  <p className={styles.moduleDescription}>{module.description}</p>
-                  
-                  <div className="flex items-center gap-6 mt-3 text-sm text-slate-600">
-                    <div className="flex items-center gap-1">
-                      <UserGroupIcon className="w-4 h-4" />
-                      <span>{module.studentsCompleted}/{module.totalStudents} completed</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <FolderIcon className="w-4 h-4" />
-                      <span>{module.resources} resources</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <DocumentTextIcon className="w-4 h-4" />
-                      <span>{module.assignments} assignments</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <ClockIcon className="w-4 h-4" />
-                      <span>{module.estimatedHours}h estimated</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <CalendarIcon className="w-4 h-4" />
-                      <span>Due: {new Date(module.dueDate).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-slate-700">Progress</span>
-                      <span className="text-sm font-medium text-slate-900">
-                        {Math.round((module.studentsCompleted / module.totalStudents) * 100)}%
-                      </span>
-                    </div>
-                    <div className={styles.progressBarContainer}>
-                      <div 
-                        className={styles.progressBarFill}
-                        style={{
-                          width: `${(module.studentsCompleted / module.totalStudents) * 100}%`,
-                          backgroundColor: module.status === 'completed' ? '#10b981' : 
-                                         module.status === 'active' ? '#3b82f6' : '#94a3b8'
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <button className={styles.iconButton}>
-                  <EyeIcon className="w-4 h-4" />
-                </button>
-                <button className={styles.iconButton}>
-                  <PencilIcon className="w-4 h-4" />
-                </button>
-                <button className={styles.iconButton}>
-                  <ShareIcon className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+        {isClassProjectsLoading ? (
+          <div className={styles.moduleState}>
+            <span className={styles.emptyState}>Loading class projects…</span>
           </div>
-        ))}
+        ) : classProjects.length === 0 ? (
+          <div className={styles.moduleState}>
+            <span className={styles.emptyState}>
+              {classProjectsError || 'No projects assigned to this class yet.'}
+            </span>
+          </div>
+        ) : (
+          classProjects.map((project, index) => {
+            const statusVariant = resolveStatusVariant(project.statusToken);
+            const stats = extractProjectStats(project, classTotalStudents);
+            const progressPercent = calculateProjectProgress(project, stats, classTotalStudents);
+            const completionLabel = stats.total > 0
+              ? `${Math.min(stats.completed, stats.total)}/${stats.total} completed`
+              : `${stats.completed} completed`;
+            const dueDateLabel = project.dueDate ? formatDateLabel(project.dueDate) : 'TBA';
+            const progressColor = PROGRESS_COLOR_BY_STATUS[statusVariant] ?? '#3b82f6';
+            const resourcesLabel = `${stats.resources} resource${stats.resources === 1 ? '' : 's'}`;
+            const assignmentsLabel = `${stats.assignments} assignment${stats.assignments === 1 ? '' : 's'}`;
+            const estimatedLabel = stats.estimated !== null ? `${stats.estimated}h estimated` : null;
+
+            return (
+              <div key={project.id} className={styles.moduleCard}>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className={`${styles.moduleIndex} ${styles[`status-${statusVariant}`]}`}>
+                      {index + 1}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-3 mb-2">
+                        <h4 className={styles.moduleTitle}>{project.name}</h4>
+                        <span className={`${styles.statusBadge} ${styles[`status-${statusVariant}`]}`}>
+                          {project.status}
+                        </span>
+                        {(project.tags ?? []).slice(0, 2).map((tag) => (
+                          <span key={tag} className={styles.projectBadge}>
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      <p className={styles.moduleDescription}>{project.summary}</p>
+
+                      <div className="flex flex-wrap items-center gap-6 mt-3 text-sm text-slate-600">
+                        <div className="flex items-center gap-1">
+                          <UserGroupIcon className="w-4 h-4" />
+                          <span>{completionLabel}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <FolderIcon className="w-4 h-4" />
+                          <span>{resourcesLabel}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <DocumentTextIcon className="w-4 h-4" />
+                          <span>{assignmentsLabel}</span>
+                        </div>
+                        {estimatedLabel && (
+                          <div className="flex items-center gap-1">
+                            <ClockIcon className="w-4 h-4" />
+                            <span>{estimatedLabel}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <CalendarIcon className="w-4 h-4" />
+                          <span>Due: {dueDateLabel}</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-slate-700">Progress</span>
+                          <span className="text-sm font-medium text-slate-900">{progressPercent}%</span>
+                        </div>
+                        <div className={styles.progressBarContainer}>
+                          <div
+                            className={styles.progressBarFill}
+                            style={{
+                              width: `${progressPercent}%`,
+                              backgroundColor: progressColor,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button className={styles.iconButton} aria-label={`View ${project.name} project`}>
+                      <EyeIcon className="w-4 h-4" />
+                    </button>
+                    <button className={styles.iconButton} aria-label={`Edit ${project.name} project`}>
+                      <PencilIcon className="w-4 h-4" />
+                    </button>
+                    <button className={styles.iconButton} aria-label={`Share ${project.name} project`}>
+                      <ShareIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

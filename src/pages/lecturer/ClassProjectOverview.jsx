@@ -143,6 +143,7 @@ const ClassProjectOverview = () => {
             <span>{projects.length} Active Projects</span>
           </div>
         </div>
+
       </div>
 
       <div style={{ padding: '24px' }}>
