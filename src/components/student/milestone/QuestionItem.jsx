@@ -9,7 +9,12 @@ const QuestionItem = ({
   onAnswerChange, 
   onSaveAnswer 
 }) => {
-  const hasAnswer = question.answer && question.answer !== "";
+  const answersArray = Array.isArray(question.answers) ? question.answers : (question.answer ? [{
+    content: question.answer,
+    answeredBy: question.answeredBy,
+    answeredAt: question.answeredAt
+  }] : []);
+  const hasAnswer = answersArray.length > 0;
 
   const renderInput = () => {
     if (milestoneStatus === 'completed' || milestoneStatus === 'locked') {
@@ -80,17 +85,21 @@ const QuestionItem = ({
             </div>
           )}
 
-          {/* Display existing answer */}
+          {/* Display existing answers */}
           {hasAnswer && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
-              <p className="text-sm text-gray-900 whitespace-pre-wrap">{question.answer}</p>
-              <div className="flex items-center gap-2 text-xs text-gray-600 mt-2">
-                <Users size={12} />
-                <span>Answered by {question.answeredBy}</span>
-                <span className="text-gray-400">•</span>
-                <Clock size={12} />
-                <span>{new Date(question.answeredAt).toLocaleString()}</span>
-              </div>
+            <div className="space-y-2 mb-3">
+              {answersArray.map((a, idx) => (
+                <div key={idx} className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap">{a.content}</p>
+                  <div className="flex items-center gap-2 text-xs text-gray-600 mt-2">
+                    <Users size={12} />
+                    <span>Answered by {a.answeredBy}</span>
+                    <span className="text-gray-400">•</span>
+                    <Clock size={12} />
+                    <span>{new Date(a.answeredAt).toLocaleString()}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
@@ -101,7 +110,7 @@ const QuestionItem = ({
               disabled={!currentAnswer || currentAnswer === ""}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
             >
-              {hasAnswer ? 'Update Answer' : 'Save Answer'}
+              Add Answer
             </button>
           )}
         </div>

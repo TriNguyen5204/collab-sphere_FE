@@ -21,6 +21,10 @@ const AppSidebar = ({
   topSlot,
   footerSlot,
   className,
+  showBrand = true,
+  style,
+  itemClassName,
+  activeItemClassName,
 }) => {
   const normalizePath = path => {
     if (!path) return '/';
@@ -42,38 +46,41 @@ const AppSidebar = ({
       )}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      style={style}
     >
-      <div className={styles.logo}>
-        {brand.to ? (
-          <Link to={brand.to} className={styles.logoContent}>
-            {brand.logo ? (
-              <img src={brand.logo} alt={brand.title} className={styles.logoImage} />
-            ) : (
-              <div className={styles.logoIcon}>
-                <div className={styles.logoIconInner}></div>
+      {showBrand && (
+        <div className={styles.logo}>
+          {brand.to ? (
+            <Link to={brand.to} className={styles.logoContent}>
+              {brand.logo ? (
+                <img src={brand.logo} alt={brand.title} className={styles.logoImage} />
+              ) : (
+                <div className={styles.logoIcon}>
+                  <div className={styles.logoIconInner}></div>
+                </div>
+              )}
+              <div className={styles.logoTextGroup}>
+                <span className={styles.logoText}>{brand.title}</span>
+                {brand.subtitle && <span className={styles.logoSubtitle}>{brand.subtitle}</span>}
               </div>
-            )}
-            <div className={styles.logoTextGroup}>
-              <span className={styles.logoText}>{brand.title}</span>
-              {brand.subtitle && <span className={styles.logoSubtitle}>{brand.subtitle}</span>}
-            </div>
-          </Link>
-        ) : (
-          <div className={styles.logoContent}>
-            {brand.logo ? (
-              <img src={brand.logo} alt={brand.title} className={styles.logoImage} />
-            ) : (
-              <div className={styles.logoIcon}>
-                <div className={styles.logoIconInner}></div>
+            </Link>
+          ) : (
+            <div className={styles.logoContent}>
+              {brand.logo ? (
+                <img src={brand.logo} alt={brand.title} className={styles.logoImage} />
+              ) : (
+                <div className={styles.logoIcon}>
+                  <div className={styles.logoIconInner}></div>
+                </div>
+              )}
+              <div className={styles.logoTextGroup}>
+                <span className={styles.logoText}>{brand.title}</span>
+                {brand.subtitle && <span className={styles.logoSubtitle}>{brand.subtitle}</span>}
               </div>
-            )}
-            <div className={styles.logoTextGroup}>
-              <span className={styles.logoText}>{brand.title}</span>
-              {brand.subtitle && <span className={styles.logoSubtitle}>{brand.subtitle}</span>}
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {topSlot}
 
@@ -111,11 +118,16 @@ const AppSidebar = ({
                   );
                 }
 
+                const extraItemClasses =
+                  typeof itemClassName === 'function' ? itemClassName(item, isActive) : itemClassName;
+                const extraActiveClasses =
+                  isActive && (typeof activeItemClassName === 'function' ? activeItemClassName(item) : activeItemClassName);
+
                 return (
                   <Link
                     key={item.label}
                     to={item.href}
-                    className={itemClassName}
+                    className={clsx(styles.navItem, isActive && 'active', extraItemClasses, extraActiveClasses)}
                     onClick={() => {
                       if (onNavigate) onNavigate(item.href);
                       if (item.onClick) item.onClick(item.href);
@@ -170,6 +182,8 @@ AppSidebar.propTypes = {
   topSlot: PropTypes.node,
   footerSlot: PropTypes.node,
   className: PropTypes.string,
+  itemClassName: PropTypes.oneOfType([PropTypes.string, PropTypes.func]),
+  activeItemClassName: PropTypes.oneOfType([PropTypes.string, PropTypes.func]),
 };
 
 export default AppSidebar;

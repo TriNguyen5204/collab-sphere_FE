@@ -8,7 +8,6 @@ import FileUploadModal from '../../../components/student/checkpoint/FileUploadMo
 import { Plus, CheckSquare } from 'lucide-react';
 
 const CheckpointPage = () => {
-  const { id, projectName } = useParams();
   
   const [checkpoints, setCheckpoints] = useState([
     {
@@ -217,8 +216,6 @@ const CheckpointPage = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#D5DADF" }}>
-      <ProjectBoardHeader />
-      
       <main className="p-6">
         <div className="flex items-center justify-between mb-6">
           {isLeader && (

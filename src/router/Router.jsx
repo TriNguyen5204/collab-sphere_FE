@@ -87,12 +87,11 @@ const studentRoutes = [
   { path: '/student/classes', element: protectRoute(['STUDENT'], <StudentClassPage />) },
   { path: '/student/profile', element: protectRoute(['STUDENT'], <StudentProfile />) },
   { path: '/student/project/:id/:projectName', element: protectRoute(['STUDENT'], <ProjectBoard />) },
-  { path: '/student/project/:id/:projectName/milestones', element: protectRoute(['STUDENT'], <MilestonePage />) },
-  { path: '/student/project/:id/:projectName/checkpoints', element: protectRoute(['STUDENT'], <CheckpointPage />) },
+  { path: '/student/project/:id/:projectName/milestones&checkpoints', element: protectRoute(['STUDENT'], <MilestonePage />) },
   { path: '/student/project/:id/:projectName/peer-evaluation', element: protectRoute(['STUDENT'], <PeerEvaluationPage />) },
   { path: '/student/project/:id/:projectName/team-workspace', element: protectRoute(['STUDENT'], <TeamWorkspace />) },
-  { path: '/student/project/:id/:projectName/class-members', element: protectRoute(['STUDENT'], <StudentClassMembersPage />) },
-  { path: '/student/project/:id/:projectName/class-projects', element: protectRoute(['STUDENT'], <StudentClassProjectsPage />) },
+  { path: '/student/:className/members', element: protectRoute(['STUDENT'], <StudentClassMembersPage />) },
+  { path: '/student/:className/projects', element: protectRoute(['STUDENT'], <StudentClassProjectsPage />) },
 ];
 
 const lecturerRoutes = [

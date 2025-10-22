@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Lock, Bell, Shield, Eye, EyeOff, Save, Trash2 } from "lucide-react";
 
 const AccountSettings = () => {
@@ -66,6 +66,27 @@ const AccountSettings = () => {
   const handleSaveSettings = () => {
     // API call to save settings
     alert("Settings saved successfully!");
+  };
+
+  const isPasswordDirty = useMemo(() => {
+    return (
+      passwordData.currentPassword !== "" ||
+      passwordData.newPassword !== "" ||
+      passwordData.confirmPassword !== ""
+    );
+  }, [passwordData]);
+
+  const isPasswordValid = useMemo(() => {
+    return (
+      passwordData.currentPassword &&
+      passwordData.newPassword &&
+      passwordData.confirmPassword &&
+      passwordData.newPassword === passwordData.confirmPassword
+    );
+  }, [passwordData]);
+
+  const handleCancelPassword = () => {
+    setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
   };
 
   return (
@@ -150,127 +171,35 @@ const AccountSettings = () => {
             </div>
           </div>
 
-          <button
-            onClick={handleChangePassword}
-            className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition"
-          >
-            <Lock size={16} />
-            Change Password
-          </button>
-        </div>
-      </div>
-
-      {/* Notification Settings */}
-      <div className="bg-gray-50 rounded-lg p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Bell className="text-brand-600" size={24} />
-          <h3 className="text-lg font-semibold text-gray-900">Notification Preferences</h3>
-        </div>
-
-        <div className="space-y-3">
-          {Object.entries(notificationSettings).map(([key, value]) => (
-            <div key={key} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
-              <div>
-                <p className="font-medium text-gray-900">
-                  {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
-                </p>
-                <p className="text-sm text-gray-500">
-                  {key === "emailNotifications" && "Receive email notifications for updates"}
-                  {key === "projectUpdates" && "Get notified about project changes"}
-                  {key === "taskReminders" && "Receive reminders for upcoming tasks"}
-                  {key === "weeklyReport" && "Get weekly summary of your activities"}
-                  {key === "marketingEmails" && "Receive promotional emails and updates"}
-                </p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={value}
-                  onChange={() => handleNotificationToggle(key)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
-              </label>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Privacy Settings */}
-      <div className="bg-gray-50 rounded-lg p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Shield className="text-brand-600" size={24} />
-          <h3 className="text-lg font-semibold text-gray-900">Privacy Settings</h3>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Profile Visibility
-            </label>
-            <select
-              name="profileVisibility"
-              value={privacySettings.profileVisibility}
-              onChange={handlePrivacyChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-brand-500 focus:ring-2 focus:ring-brand-200 transition"
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={handleCancelPassword}
+              disabled={!isPasswordDirty}
+              className={`px-4 py-2 rounded-lg transition border ${
+                !isPasswordDirty
+                  ? "bg-white text-gray-400 cursor-not-allowed border-gray-200"
+                  : "bg-white text-red-600 border-red-300 hover:bg-red-50"
+              }`}
             >
-              <option value="public">Public - Anyone can view</option>
-              <option value="team">Team Members Only</option>
-              <option value="private">Private - Only me</option>
-            </select>
-          </div>
-
-          <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
-            <div>
-              <p className="font-medium text-gray-900">Show Email Address</p>
-              <p className="text-sm text-gray-500">Allow others to see your email</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                name="showEmail"
-                checked={privacySettings.showEmail}
-                onChange={handlePrivacyChange}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
-            </label>
-          </div>
-
-          <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
-            <div>
-              <p className="font-medium text-gray-900">Show Phone Number</p>
-              <p className="text-sm text-gray-500">Allow others to see your phone</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                name="showPhone"
-                checked={privacySettings.showPhone}
-                onChange={handlePrivacyChange}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
-            </label>
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleChangePassword}
+              disabled={!isPasswordValid}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+                !isPasswordValid
+                  ? "bg-white text-gray-400 cursor-not-allowed border-gray-200 border"
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+              }`}
+            >
+              Save Changes
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Save Settings Button */}
-      <div className="flex justify-between items-center">
-        <button
-          onClick={handleSaveSettings}
-          className="flex items-center gap-2 px-6 py-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition"
-        >
-          <Save size={18} />
-          Save All Settings
-        </button>
-
-        <button className="flex items-center gap-2 px-6 py-3 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition">
-          <Trash2 size={18} />
-          Delete Account
-        </button>
-      </div>
     </div>
   );
 };
