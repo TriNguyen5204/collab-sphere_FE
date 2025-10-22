@@ -356,7 +356,7 @@ export const handleProject = async (projectId, status) => {
     throw error;
   }
 };
-export const deleteProject = async projectId => {
+export const deleteProject = async (projectId) => {
   try {
     const response = await apiClient.delete(`/project/head/${projectId}`);
     return response.data;
@@ -366,7 +366,7 @@ export const deleteProject = async projectId => {
 };
 
 //Student
-export const getClassesByStudentId = async studentId => {
+export const getClassesByStudentId = async (studentId) => {
   try {
     const response = await apiClient.get(`/class/student/${studentId}`);
     const data = response.data;
@@ -377,7 +377,7 @@ export const getClassesByStudentId = async studentId => {
   }
 };
 
-export const getClassDetailsById = async classId => {
+export const getClassDetailsById = async (classId) => {
   try {
     const response = await apiClient.get(`/class/${classId}`);
     return response.data;
@@ -390,7 +390,7 @@ export const getClassDetailsById = async classId => {
   }
 };
 
-export const getListOfTeamsByStudentId = async studentId => {
+export const getListOfTeamsByStudentId = async (studentId) => {
   try {
     const response = await apiClient.get(`/team/student/${studentId}`);
     return response.data;
@@ -400,7 +400,7 @@ export const getListOfTeamsByStudentId = async studentId => {
   }
 };
 
-export const getDetailOfProjectByProjectId = async projectId => {
+export const getDetailOfProjectByProjectId = async (projectId) => {
   try {
     const response = await apiClient.get(`/project/${projectId}`);
     return response.data;
