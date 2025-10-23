@@ -20,42 +20,34 @@ io.on('connection', socket => {
   socket.emit('me', socket.id);
 
   socket.on('disconnect', () => {
-    socket.broadcast.emit('callEnded');
+    const roomId = socket.roomId;
+    if (roomId) {
+      console.log(`${socket.name} (${socket.id}) disconnected from ${roomId}`);
+      socket.to(roomId).emit('userLeft', socket.id);
+    }
   });
 
-  socket.on('endCall', data => {
-    io.to(data.to).emit('callEnded');
-  });
-
-  socket.on('callUser', ({ userToCall, signalData, from, name }) => {
-    io.to(userToCall).emit('callUser', {
-      signal: signalData,
-      from: from,
-      name: name,
-    });
-  });
-
-  socket.on('answerCall', data => {
-    io.to(data.to).emit('callAccepted', data.signal);
-  });
-
-  // ---- NEW GROUP CALL CODE ----
+  // ---- GROUP CALL CODE ----
   socket.on('joinRoom', ({ roomId, name }) => {
     socket.join(roomId);
     socket.roomId = roomId;
     socket.name = name || 'Anonymous';
 
-    console.log(name + ' joined ' + roomId);
+    console.log(`${name} (${socket.id}) joined ${roomId}`);
 
-    // Send existing users list to the new user
+    // Get all users in room (including the new user)
     const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
+    
+    // Send list of OTHER users to the new user
     const otherUsers = clients.filter(id => id !== socket.id);
-
-    // make sure it's always an array
-    console.log('User list', otherUsers);
+    console.log(`Sending to ${socket.id}, other users:`, otherUsers);
     socket.emit('allUsers', otherUsers);
 
-    // Notify others in room that a new user joined
+    // Notify ONLY the new user about existing peers
+    // (they will initiate connections to all existing users)
+    
+    // Notify ALL existing users about the new user
+    // (they will wait for connection from the new user)
     socket.to(roomId).emit('userJoined', {
       id: socket.id,
       name: socket.name,
@@ -63,24 +55,23 @@ io.on('connection', socket => {
   });
 
   socket.on('signal', data => {
-    socket.to(data.to).emit('signal', {
-      from: socket.id,
-      signal: data.signal,
-    });
-  });
-
-  socket.on('disconnect', () => {
-    const roomId = socket.roomId;
-    if (roomId) {
-      socket.to(roomId).emit('userLeft', socket.id);
+    const targetId = data.targetId;
+    if (targetId) {
+      // Forward the signal to the target peer
+      io.to(targetId).emit('signal', {
+        from: socket.id,
+        signal: data.signal,
+      });
     }
   });
 
   socket.on('leaveRoom', () => {
     const roomId = socket.roomId;
     if (roomId) {
+      console.log(`${socket.name} (${socket.id}) left ${roomId}`);
       socket.leave(roomId);
       socket.to(roomId).emit('userLeft', socket.id);
+      socket.roomId = null;
     }
   });
 });

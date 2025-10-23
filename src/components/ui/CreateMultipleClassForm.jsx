@@ -12,7 +12,7 @@ import {
 import { createMultipleClasses } from '../../services/userService';
 import { toast } from 'sonner';
 
-const CreateMultipleClassForm = () => {
+const CreateMultipleClassForm = ({onClose}) => {
   const [classes, setClasses] = useState([]);
   const [errors, setErrors] = useState([]);
   const [uploadStatus, setUploadStatus] = useState('idle');
@@ -118,6 +118,9 @@ const CreateMultipleClassForm = () => {
       const response = await createMultipleClasses(file);
       if(response.isSuccess){
         toast.success('Tạo lớp thành công!');
+        setTimeout(() => {
+          if (onClose) onClose();
+        }, 1500);
       }
       
       resetForm();

@@ -51,6 +51,7 @@ import SubjectDetail from '../pages/headDepartment/SubjectDetail';
 import ProjectManagement from '../pages/headDepartment/ProjectManagement';
 import ProjectApprovals from '../pages/headDepartment/ProjectApprovals';
 import PendingProjectDetail from '../pages/headDepartment/PendingProjectDetail';
+import HeadProjectDetail from '../pages/headDepartment/ProjectDetail';
 
 // admin pages
 import AdminDashboard from '../pages/admin/AdminDashboard';
@@ -61,6 +62,10 @@ import SystemReport from '../pages/admin/SystemReport';
 import ConnectRoom from '../test/ConnectRoom';
 import VideoRoom from '../test/VideoRoom';
 import TestKanbanBoard from '../pages/TestKanbanBoard';
+import Layout from '../test/Meeting/Layout'
+import RoomJoinPage from '../test/RoomJoinPage'
+import MeetingRoom from '../test/MeetingRoom';
+// import StreamVideoMeeting from '../test/StreamVideoMeeting';
 
 import RoleProtectedRoute from './RoleProtectedRoute';
 
@@ -75,9 +80,10 @@ const publicRoutes = [
   { path: '/unauthorized', element: <Unauthorized /> },
   // { path: '/room', element: <ConnectRoom /> },
   // { path: '/room/:roomId', element: <VideoRoom /> },
-  // { path: '/room', element: <RoomJoinPage/>},
-  // { path: '/room/:roomId', element: <MeetingRoom/>},
-  // { path: '/meeting', element: <WebRTC/> },
+  { path: '/room', element: <RoomJoinPage/>},
+  { path: '/room/:roomId', element: <MeetingRoom/>},
+  // { path: '/meeting', element: <StreamVideoMeeting/> },
+  { path: '/test/meeting', element: <Layout/> },
   { path: '/test/kanban', element: <TestKanbanBoard /> },
 ];
 
@@ -129,7 +135,8 @@ const headDepartmentRoutes = [
   { path: '/head-department/subject-management/:id', element: protectRoute(['HEAD_DEPARTMENT'], <SubjectDetail />) },
   { path: '/head-department/project-approvals', element: protectRoute(['HEAD_DEPARTMENT'], <ProjectApprovals />) },
   { path: '/head-department/project-management', element: protectRoute(['HEAD_DEPARTMENT'], <ProjectManagement />) },
-  { path: '/head-department/project-approvals/:id', element: protectRoute(['HEAD_DEPARTMENT'], <PendingProjectDetail/>)}
+  { path: '/head-department/project-approvals/:id', element: protectRoute(['HEAD_DEPARTMENT'], <PendingProjectDetail/>)},
+  { path: '/head-department/project/:id', element: protectRoute(['HEAD_DEPARTMENT'], <HeadProjectDetail />) },
 ];
 
 const adminRoutes = [
