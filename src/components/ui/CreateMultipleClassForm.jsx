@@ -12,11 +12,12 @@ import {
 import { createMultipleClasses } from '../../services/userService';
 import { toast } from 'sonner';
 
-const CreateMultipleClassForm = () => {
+const CreateMultipleClassForm = ({ onClose }) => {
   const [classes, setClasses] = useState([]);
   const [errors, setErrors] = useState([]);
   const [uploadStatus, setUploadStatus] = useState('idle');
   const [fileName, setFileName] = useState('');
+  const [apiErrors, setApiErrors] = useState([]);
 
   const downloadTemplate = () => {
     const template = [
@@ -24,8 +25,9 @@ const CreateMultipleClassForm = () => {
         ClassName: 'SE1234',
         EnrolKey: 'ENR123',
         SubjectCode: 'CS101',
+        SemesterCode: 'FA252',
         LecturerCode: 'GV001',
-        StudentCodes: 'SV001,SV002,SV003',
+        StudentCodes: 'SE18471,SE18472',
         IsActive: true,
       },
     ];
@@ -62,6 +64,7 @@ const CreateMultipleClassForm = () => {
           if (!cls.ClassName?.trim()) rowErrors.push('Thiếu ClassName');
           if (!cls.EnrolKey?.trim()) rowErrors.push('Thiếu EnrolKey');
           if (!cls.SubjectCode?.trim()) rowErrors.push('Thiếu SubjectCode');
+          if (!cls.SemesterCode?.trim()) rowErrors.push('Thiếu SemesterCode');
           if (!cls.LecturerCode?.trim()) rowErrors.push('Thiếu LecturerCode');
 
           if (
@@ -116,15 +119,21 @@ const CreateMultipleClassForm = () => {
       const file = fileInput.files[0];
 
       const response = await createMultipleClasses(file);
-      if(response.isSuccess){
+      if (response.isSuccess) {
         toast.success('Tạo lớp thành công!');
+        setTimeout(() => {
+          if (onClose) onClose();
+        }, 1500);
       }
-      
+
       resetForm();
-    } catch (err) {
-      console.error('Error:', err);
-      toast.error('Có lỗi khi tạo lớp.');
-      resetForm();
+    } catch (error) {
+      const apiErrorList = error?.response?.data?.errorList || [];
+      setApiErrors(apiErrorList);
+
+      if (!apiErrorList.length) {
+        toast.error(error.message || 'Đã xảy ra lỗi khi import');
+      }
     }
   };
 
@@ -357,6 +366,19 @@ const CreateMultipleClassForm = () => {
           )}
         </div>
       </div>
+      {/* errorList */}
+      {apiErrors.length > 0 && (
+        <div className='mt-4 p-4 bg-red-50 border border-red-300 rounded-md'>
+          <h3 className='text-red-600 font-semibold mb-2'>Danh sách lỗi:</h3>
+          <ul className='list-disc list-inside text-red-700'>
+            {apiErrors.map((err, index) => (
+              <li key={index}>
+                <strong>{err.field}</strong>: {err.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };

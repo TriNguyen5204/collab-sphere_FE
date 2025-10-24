@@ -12,7 +12,7 @@ import {
 import { createLecturer } from '../../services/userService';
 import { toast } from 'sonner';
 
-const CreateLecturerForm = () => {
+const CreateLecturerForm = ({ onClose }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -70,8 +70,13 @@ const CreateLecturerForm = () => {
 
     setIsSubmitting(true);
     try {
-      await createLecturer(formData);
-      toast.success('Lecturer created successfully!');
+      const response = await createLecturer(formData);
+      if (response) {
+        toast.success('Lecturer created successfully!');
+        setTimeout(() => {
+          if (onClose) onClose();
+        }, 1500);
+      }
       setFormData({
         name: '',
         address: '',
@@ -82,7 +87,12 @@ const CreateLecturerForm = () => {
       });
     } catch (error) {
       console.error('Error creating lecturer:', error);
-      toast.error('Failed to create lecturer');
+      const errorMsg =
+        error?.response?.data?.item2 ||
+        error?.message ||
+        'Unknown error occurred.';
+
+      toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
     }

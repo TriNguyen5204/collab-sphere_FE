@@ -17,8 +17,9 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { importStudentList } from '../../services/userService';
+import { toast } from 'sonner';
 
-const ImprovedStudentCreation = () => {
+const ImprovedStudentCreation = ({ onClose }) => {
   const [students, setStudents] = useState([]);
   const [fileName, setFileName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -26,6 +27,7 @@ const ImprovedStudentCreation = () => {
   const [uploadStatus, setUploadStatus] = useState('');
   const [errors, setErrors] = useState([]);
   const [uploadedFile, setUploadedFile] = useState(null);
+  const [apiErrors, setApiErrors] = useState([]);
 
   // Download template function
   const downloadTemplate = () => {
@@ -161,23 +163,27 @@ const ImprovedStudentCreation = () => {
 
     setIsLoading(true);
     try {
-      // Simulate API call
       setIsSubmitting(true);
       setIsLoading(false);
 
       const response = await importStudentList(uploadedFile);
+
       if (response.isSuccess === true) {
         setUploadStatus('success');
+        setTimeout(() => {
+          if (onClose) onClose();
+        }, 1500);
+      } else if (response.errorList?.length) {
+        setApiErrors(response.errorList);
       }
-      setTimeout(() => {
-        setIsSubmitting(false);
-        setStudents([]);
-        setFileName('');
-        setUploadStatus('');
-      }, 3000);
     } catch (error) {
       setIsLoading(false);
-      alert('Có lỗi xảy ra khi tạo tài khoản');
+      const apiErrorList = error?.response?.data?.errorList || [];
+      setApiErrors(apiErrorList);
+
+      if (!apiErrorList.length) {
+        toast.error(error.message || 'Đã xảy ra lỗi khi import');
+      }
     }
   };
 
@@ -490,23 +496,16 @@ const ImprovedStudentCreation = () => {
           </button>
         </div>
       )}
-
-      {/* Success Message */}
-      {isSubmitting && (
-        <div className='text-center py-8'>
-          <div className='inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4'>
-            <Check className='w-8 h-8 text-green-600' />
-          </div>
-          <h3 className='text-xl font-semibold text-green-900 mb-2'>
-            Success!
-          </h3>
-          <p className='text-green-700'>
-            All {students.length} student accounts have been created
-            successfully!
-          </p>
-          <div className='mt-4 text-sm text-green-600'>
-            Login credentials will be sent to their contact information.
-          </div>
+      {apiErrors.length > 0 && (
+        <div className='mt-4 p-4 bg-red-50 border border-red-300 rounded-md'>
+          <h3 className='text-red-600 font-semibold mb-2'>Danh sách lỗi:</h3>
+          <ul className='list-disc list-inside text-red-700'>
+            {apiErrors.map((err, index) => (
+              <li key={index}>
+                <strong>{err.field}</strong>: {err.message}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
