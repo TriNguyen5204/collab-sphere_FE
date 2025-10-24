@@ -79,6 +79,8 @@ const MilestoneTimeline = ({ milestones, selectedMilestone, onSelectMilestone })
                         />
                       </div>
                     </div>
+
+                    {/* Additional summary moved to Milestone Header */}
                   </div>
                   
                   {isActive && <ChevronRight className="text-blue-500 flex-shrink-0" size={20} />}

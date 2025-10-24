@@ -175,7 +175,7 @@ export const getAllStudent = async (
       PageSize: pageSize,
       IsDesc: isDesc,
     });
-    const response = await apiClient.get('/student', {params});
+    const response = await apiClient.get('/student', { params });
     return response.data;
   } catch (error) {
     console.error('Error fetching all students:', error);
@@ -439,6 +439,50 @@ export const getDetailOfMilestoneByMilestoneId = async (milestoneId) => {
     return response.data;
   } catch (error) {
     console.error(`Error fetching milestone details for milestone ID ${milestoneId}:`, error);
+    throw error;
+  }
+};
+
+export const getDetailOfCheckpointByCheckpointId = async (checkpointId) => {
+  try {
+    const response = await apiClient.get(`/checkpoint/${checkpointId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching checkpoint details for checkpoint ID ${checkpointId}:`, error);
+    throw error;
+  }
+};
+
+export const patchMarkDoneMilestoneByMilestoneId = async (teamMilestoneId, isDone = true) => {
+  try {
+    const response = await apiClient.patch(
+      `/milestone/${teamMilestoneId}/status`,
+      null,
+      {
+        params: { isDone },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating done status for team milestone ID ${teamMilestoneId}:`, error);
+    throw error;
+  }
+};
+
+export const postCreateCheckpoint = async (teamMilestoneId, title, description, complexity, startDate, dueDate) => {
+  try {
+    console.log(teamMilestoneId, title, description, complexity, startDate, dueDate);
+    const response = await apiClient.post(`/checkpoint`, {
+      teamMilestoneId,
+      title,
+      description,
+      complexity,
+      startDate,
+      dueDate,
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error creating checkpoint for team milestone ID ${teamMilestoneId}:`, error);
     throw error;
   }
 };

@@ -3,29 +3,29 @@ import { useParams } from 'react-router-dom';
 import ProjectBoardHeader from '../../../components/layout/ProjectBoardHeader';
 import MilestoneTimeline from '../../../components/student/milestone/MilestoneTimeline';
 import MilestoneHeader from '../../../components/student/milestone/MilestoneHeader';
-import MilestoneQuestions from '../../../components/student/milestone/MilestoneQuestions';
-import CheckpointSummaryCards from '../../../components/student/checkpoint/CheckpointSummaryCards';
-import CheckpointCard from '../../../components/student/checkpoint/CheckpointCard';
-import CheckpointFormModal from '../../../components/student/checkpoint/CheckpointFormModal';
-import FileUploadModal from '../../../components/student/checkpoint/FileUploadModal';
+import CheckpointSummaryCards from '../../../components/student/milestone/CheckpointSummaryCards';
+import CheckpointCard from '../../../components/student/milestone/CheckpointCard';
+import CheckpointFormModal from '../../../components/student/milestone/CheckpointFormModal';
 import { Plus, CheckSquare, Folder } from 'lucide-react';
-import { getAllMilestonesByTeamId, getDetailOfMilestoneByMilestoneId } from '../../../services/userService';
+import { getAllMilestonesByTeamId, getDetailOfMilestoneByMilestoneId, patchMarkDoneMilestoneByMilestoneId, postCreateCheckpoint } from '../../../services/userService';
+import { useSelector } from 'react-redux';
+import { toast } from 'sonner';
 
 const MilestonePage = () => {
-  const { id, projectName } = useParams();
+  const { id } = useParams();
   const [milestones, setMilestones] = useState([]);
   const [selectedMilestone, setSelectedMilestone] = useState(null);
   const [answers, setAnswers] = useState({});
-  const [isLeader, setIsLeader] = useState(true);
   const [isLoadingList, setIsLoadingList] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedCheckpoint, setSelectedCheckpoint] = useState(null);
-  const [newCheckpoint, setNewCheckpoint] = useState({ title: '', description: '', dueDate: '' });
-  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [newCheckpoint, setNewCheckpoint] = useState({ title: '', description: '', startDate: '', dueDate: '', complexity: 'LOW' });
   const [activeTab, setActiveTab] = useState('in-progress');
+
+  const role = useSelector((state) => state.user.roleName);
+
   const getDefaultTab = (cps = []) => {
     const inProgress = cps.filter(c => (c.status === 'in-progress' || c.status === 'pending')).length;
     const completed = cps.filter(c => c.status === 'completed').length;
@@ -33,20 +33,25 @@ const MilestonePage = () => {
     if (completed > 0) return 'completed';
     return 'in-progress';
   };
+
   useEffect(() => {
     setActiveTab(getDefaultTab(selectedMilestone?.checkpoints || []));
   }, [selectedMilestone]);
 
-  const normalizeStatus = (statusString) => {
+  const normalizeStatus = (raw) => {
+    // Support numeric and boolean representations: 0/false => NOT_DONE, 1/true => DONE
+    if (raw === 0 || raw === '0' || raw === false) return 'pending';
+    if (raw === 1 || raw === '1' || raw === true) return 'completed';
+
+    const s = typeof raw === 'string' ? raw.trim().toUpperCase() : '';
     const map = {
       NOT_DONE: 'pending',
       IN_PROGRESS: 'in-progress',
       COMPLETED: 'completed',
+      DONE: 'completed',
       LOCKED: 'locked',
     };
-    if (typeof statusString === 'string') {
-      return map[statusString] || statusString.toLowerCase();
-    }
+    if (s) return map[s] || s.toLowerCase();
     return 'pending';
   };
 
@@ -66,6 +71,9 @@ const MilestonePage = () => {
     completedBy: null,
     questions: [],
     checkpoints: [],
+    lecturerFiles: [],
+    returns: [],
+    evaluation: null,
     _hasDetails: false,
   });
 
@@ -78,7 +86,7 @@ const MilestonePage = () => {
         answeredAt: a.answeredAt ?? a.createdAt ?? '',
       }));
       return {
-        id: q.id ?? q.questionId,
+        id: q.id ?? q.questionId ?? q.milestoneQuestionId,
         question: q.content ?? q.text ?? q.question ?? '',
         type: q.type ?? 'text',
         answers: answersArray,
@@ -86,7 +94,7 @@ const MilestonePage = () => {
     });
     const completedAnswers = questions.filter((q) => (q.answers?.length ?? 0) > 0).length;
 
-    const cpRaw = detail?.checkpoints || detail?.checkpointList || [];
+  const cpRaw = detail?.checkpoints || detail?.checkpointList || [];
     const checkpoints = cpRaw.map((cp) => {
       const submissions = (cp.submissions || cp.attachments || []).map((s, idx) => ({
         id: s.id ?? s.submissionId ?? idx,
@@ -96,27 +104,92 @@ const MilestonePage = () => {
         uploadedBy: s.uploadedByName ?? s.uploadedBy ?? s.userName ?? '',
         uploadedAt: s.uploadedAt ?? s.createdAt ?? '',
       }));
+      const assignments = (cp.checkpointAssignments || []).map((a) => ({
+        id: a.checkpointAssignmentId ?? a.id,
+        checkpointId: a.checkpointId ?? cp.checkpointId ?? cp.id,
+        classMemberId: a.classMemberId,
+        studentId: a.studentId,
+        fullname: a.fullname ?? a.fullName,
+        studentCode: a.studentCode,
+        avatarImg: a.avatarImg,
+        teamRole: a.teamRole,
+        teamRoleString: a.teamRoleString,
+      }));
+  // Normalize checkpoint status supporting numeric 0/1 or string variants
+  const statusRaw = cp.statusString ?? cp.status ?? 'NOT_DONE';
+  let statusString;
+  if (statusRaw === 0 || statusRaw === '0' || statusRaw === false) statusString = 'NOT_DONE';
+  else if (statusRaw === 1 || statusRaw === '1' || statusRaw === true) statusString = 'DONE';
+  else statusString = typeof statusRaw === 'string' ? statusRaw : 'NOT_DONE';
+  const uiStatusMap = { NOT_DONE: 'pending', IN_PROGRESS: 'in-progress', COMPLETED: 'completed', DONE: 'completed', LOCKED: 'locked' };
+  const uiStatus = uiStatusMap[statusString] || (typeof statusString === 'string' ? statusString.toLowerCase() : 'pending');
       return {
         id: cp.id ?? cp.checkpointId,
         title: cp.title ?? cp.name ?? 'Checkpoint',
         description: cp.description ?? '',
         dueDate: cp.dueDate ?? cp.deadline ?? cp.endDate ?? null,
-        status: normalizeStatus(cp.statusString ?? cp.status ?? 'NOT_DONE'),
-        createdBy: cp.createdByName ?? cp.createdBy ?? '',
+        startDate: cp.startDate ?? null,
+        status: cp.status ?? null,
+        statusString,
+        uiStatus,
+        complexity: cp.complexity ?? 'LOW',
+        assignments,
         createdAt: cp.createdAt ?? '',
         submissions,
         comments: cp.comments ?? '',
       };
     });
 
+    const lecturerFilesRaw = detail?.milestoneFiles || [];
+    const lecturerFiles = lecturerFilesRaw.map((f, idx) => ({
+      id: f.fileId ?? idx,
+      name: f.fileName ?? f.name ?? f.type ?? 'File',
+      path: f.filePath ?? f.path ?? '',
+      type: f.type ?? (f.filePath ? f.filePath.split('.').pop()?.toUpperCase() : ''),
+    }));
+
+    const returnsRaw = detail?.milestoneReturns || [];
+    const returns = returnsRaw.map((r, idx) => ({
+      id: r.mileReturnId ?? idx,
+      path: r.filePath ?? '',
+      type: r.type ?? '',
+      submittedAt: r.submitedDate ?? r.submittedAt ?? r.createdDate ?? '',
+      student: {
+        id: r.studentId ?? null,
+        name: r.fullname ?? r.fullName ?? '',
+        code: r.studentCode ?? '',
+        avatar: r.avatarImg ?? '',
+      },
+    }));
+
+    // Lecturer evaluation
+    const evaluationRaw = detail?.milestoneEvaluation || null;
+    const evaluation = evaluationRaw
+      ? {
+        score: evaluationRaw.score ?? null,
+        comment: evaluationRaw.comment ?? '',
+        createdDate: evaluationRaw.createdDate ?? '',
+        lecturer: {
+          id: evaluationRaw.lecturerId ?? null,
+          name: evaluationRaw.fullName ?? '',
+          code: evaluationRaw.lecturerCode ?? '',
+          phone: evaluationRaw.phoneNumber ?? '',
+          avatar: evaluationRaw.avatarImg ?? '',
+        },
+      }
+      : null;
+
     return {
       ...base,
       progress: Math.round(detail?.progress ?? base.progress ?? 0),
       status: normalizeStatus(detail?.statusString ?? detail?.status ?? base.status),
-      requiredAnswers: detail?.milestoneQuestionCount ?? base.requiredAnswers ?? 0,
+      requiredAnswers: detail?.milestoneQuestionCount ?? questions.length ?? base.requiredAnswers ?? 0,
       completedAnswers,
       questions,
       checkpoints,
+      lecturerFiles,
+      returns,
+      evaluation,
       _hasDetails: true,
     };
   };
@@ -169,85 +242,87 @@ const MilestonePage = () => {
     }
   }, [id]);
 
-  // const handleSaveAnswer = (questionId) => {
-  //   if (!selectedMilestone) return;
-  //   const updatedMilestones = milestones.map(milestone => {
-  //     if (milestone.id === selectedMilestone.id) {
-  //       const updatedQuestions = milestone.questions.map(q => {
-  //         if (q.id === questionId) {
-  //           const prev = Array.isArray(q.answers) ? q.answers : [];
-  //           const newEntry = {
-  //             content: answers[questionId] || '',
-  //             answeredBy: 'Current User',
-  //             answeredAt: new Date().toISOString()
-  //           };
-  //           return {
-  //             ...q,
-  //             answers: newEntry.content ? [...prev, newEntry] : prev,
-  //             // keep old single-answer fields for backwards compatibility but do not use them going forward
-  //           };
-  //         }
-  //         return q;
-  //       });
-  //       // completedAnswers: count questions with at least one answer entry
-  //       const completedAnswers = updatedQuestions.filter(q => (Array.isArray(q.answers) ? q.answers.length > 0 : false)).length;
-  //       const progress = Math.round((completedAnswers / milestone.requiredAnswers) * 100);
-        
-  //       return {
-  //         ...milestone,
-  //         questions: updatedQuestions,
-  //         completedAnswers,
-  //         progress
-  //       };
-  //     }
-  //     return milestone;
-  //   });
-    
-  //   setMilestones(updatedMilestones);
-  //   setSelectedMilestone(updatedMilestones.find(m => m.id === selectedMilestone.id));
-  //   setAnswers({ ...answers, [questionId]: "" });
-  // };
+  const handleAnswerChange = (questionId, value) => {
+    setAnswers((prev) => ({ ...prev, [questionId]: value }));
+  };
 
-  const handleCompleteMilestone = () => {
+  const handleSaveAnswer = (questionId) => {
     if (!selectedMilestone) return;
-    if (!isLeader) {
-      alert("Only team leader can mark milestones as complete");
-      return;
-    }
-    
-    if (selectedMilestone.completedAnswers < selectedMilestone.requiredAnswers) {
-      alert("Please answer all questions before completing the milestone");
-      return;
-    }
-    
     const updatedMilestones = milestones.map(milestone => {
       if (milestone.id === selectedMilestone.id) {
+        const updatedQuestions = milestone.questions.map(q => {
+          if (q.id === questionId) {
+            const prev = Array.isArray(q.answers) ? q.answers : [];
+            const newEntry = {
+              content: answers[questionId] || '',
+              answeredBy: 'Current User',
+              answeredAt: new Date().toISOString()
+            };
+            return {
+              ...q,
+              answers: newEntry.content ? [...prev, newEntry] : prev,
+            };
+          }
+          return q;
+        });
+        const completedAnswers = updatedQuestions.filter(q => (Array.isArray(q.answers) ? q.answers.length > 0 : false)).length;
+        const progress = milestone.requiredAnswers > 0 ? Math.round((completedAnswers / milestone.requiredAnswers) * 100) : 0;
         return {
           ...milestone,
-          status: "completed",
-          completedDate: new Date().toISOString(),
-          progress: 100
+          questions: updatedQuestions,
+          completedAnswers,
+          progress
         };
       }
       return milestone;
     });
-    
     setMilestones(updatedMilestones);
     setSelectedMilestone(updatedMilestones.find(m => m.id === selectedMilestone.id));
+    setAnswers({ ...answers, [questionId]: "" });
+  };
+
+  const handleCompleteMilestone = async () => {
+    if (!selectedMilestone) return;
+    if (selectedMilestone.completedAnswers < selectedMilestone.requiredAnswers) {
+      alert("Please answer all questions before completing the milestone");
+      return;
+    }
+
+    try {
+      await patchMarkDoneMilestoneByMilestoneId(selectedMilestone.id, true);
+      console.log(selectedMilestone.id);
+      const updatedMilestones = milestones.map(milestone => {
+        if (milestone.id === selectedMilestone.id) {
+          return {
+            ...milestone,
+            status: "completed",
+            completedDate: new Date().toISOString(),
+            progress: 100
+          };
+        }
+        return milestone;
+      });
+      setMilestones(updatedMilestones);
+      setSelectedMilestone(updatedMilestones.find(m => m.id === selectedMilestone.id));
+    } catch (error) {
+      const msg = error?.response?.data?.message || 'Only leader can mark milestone as done';
+      alert(msg);
+    }
   };
 
   const selectedCheckpoints = useMemo(() => selectedMilestone?.checkpoints || [], [selectedMilestone]);
 
   const isMilestoneReadOnly = useMemo(() => {
     const st = selectedMilestone?.status;
-    return st === 'locked' || st === 'completed';
+    const hasEvaluation = !!selectedMilestone?.evaluation;
+    return hasEvaluation || st === 'locked' || st === 'completed';
   }, [selectedMilestone]);
 
   const checkpointGroups = useMemo(() => {
     const byStatus = { 'in-progress': [], completed: [] };
     const toDate = (d) => (d ? new Date(d).getTime() : Number.MAX_SAFE_INTEGER);
     (selectedCheckpoints || []).forEach((cp) => {
-      const key = cp.status === 'completed' ? 'completed' : 'in-progress';
+      const key = (cp.uiStatus || cp.status) === 'completed' ? 'completed' : 'in-progress';
       byStatus[key].push(cp);
     });
     Object.keys(byStatus).forEach((k) => byStatus[k].sort((a, b) => toDate(a.dueDate) - toDate(b.dueDate)));
@@ -256,11 +331,11 @@ const MilestonePage = () => {
 
   const checkpointProgress = useMemo(() => {
     const total = selectedCheckpoints.length;
-    const completed = selectedCheckpoints.filter((c) => c.status === 'completed').length;
+    const completed = selectedCheckpoints.filter((c) => (c.uiStatus || c.status) === 'completed').length;
     return { total, completed, percent: total ? Math.round((completed / total) * 100) : 0 };
   }, [selectedCheckpoints]);
 
-  const handleCreateCheckpoint = () => {
+  const handleCreateCheckpoint = async () => {
     if (!selectedMilestone) return;
     if (!newCheckpoint.title || !newCheckpoint.dueDate) {
       alert("Please fill in all required fields");
@@ -271,27 +346,38 @@ const MilestonePage = () => {
       alert('This milestone is locked or completed. You cannot create new checkpoints.');
       return;
     }
+    try {
+      console.log(selectedMilestone.id, newCheckpoint);
+      await postCreateCheckpoint(
+        selectedMilestone.id,
+        newCheckpoint.title,
+        newCheckpoint.description || '',
+        (newCheckpoint.complexity || 'LOW').toUpperCase(),
+        newCheckpoint.startDate || null,
+        newCheckpoint.dueDate
+      );
 
-    const checkpoint = {
-      id: Date.now(),
-      ...newCheckpoint,
-      status: 'in-progress',
-      createdBy: 'Current User',
-      createdAt: new Date().toISOString(),
-      submissions: [],
-      comments: ''
-    };
-
-    const updated = milestones.map(m =>
-      m.id === selectedMilestone.id
-        ? { ...m, checkpoints: [...(m.checkpoints || []), checkpoint] }
-        : m
-    );
-    setMilestones(updated);
-    setSelectedMilestone(updated.find(m => m.id === selectedMilestone.id));
-    setNewCheckpoint({ title: '', description: '', dueDate: '' });
-    setShowCreateModal(false);
-    setActiveTab('in-progress');
+      //refresh details
+  await fetchMilestoneDetail(selectedMilestone.id);
+  setNewCheckpoint({ title: '', description: '', startDate: '', dueDate: '', complexity: 'LOW' });
+      setShowCreateModal(false);
+      setActiveTab('in-progress');
+    } catch (error) {
+      // Prefer backend validation messages, which may be an array of { field, message }
+      const data = error?.response?.data;
+      let messages = [];
+      if (Array.isArray(data)) {
+        messages = data.map((e) => e?.message).filter(Boolean);
+      } else if (typeof data === 'object' && data !== null && data.message) {
+        messages = [data.message];
+      } else if (typeof data === 'string') {
+        messages = [data];
+      } else {
+        messages = ['Failed to create checkpoint'];
+      }
+      // Show each message via toast
+      if (messages.length > 0) messages.forEach((m) => toast.error(m));
+    }
   };
 
   const handleUpdateCheckpoint = () => {
@@ -306,7 +392,7 @@ const MilestonePage = () => {
     setMilestones(updated);
     setShowEditModal(false);
     setSelectedCheckpoint(null);
-    setNewCheckpoint({ title: '', description: '', dueDate: '' });
+  setNewCheckpoint({ title: '', description: '', startDate: '', dueDate: '', complexity: 'LOW' });
     setSelectedMilestone(updated.find(m => m.id === selectedMilestone.id));
   };
 
@@ -328,28 +414,51 @@ const MilestonePage = () => {
     }
   };
 
-  const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files || []);
-    setSelectedFiles(files);
-  };
-
-  const handleRemoveFile = (index) => {
-    setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
-  };
-
-  const handleUploadSubmission = () => {
-    if (!selectedMilestone || !selectedCheckpoint) return;
+  const addMilestoneReturns = (files = []) => {
+    if (!selectedMilestone) return;
     if (isMilestoneReadOnly) {
       alert('This milestone is locked or completed. You cannot upload submissions.');
       return;
     }
-
-    if (selectedFiles.length === 0) {
+    if (files.length === 0) {
       alert('Please select files to upload');
       return;
     }
 
-    const newSubmissions = selectedFiles.map((file, index) => ({
+    const newReturns = files.map((file, index) => ({
+      id: Date.now() + index,
+      path: file.name,
+      type: file.name.split('.').pop()?.toUpperCase(),
+      submittedAt: new Date().toISOString(),
+      student: {
+        id: null,
+        name: 'Current User',
+        code: '',
+        avatar: ''
+      }
+    }));
+
+    const updated = milestones.map(m =>
+      m.id === selectedMilestone.id
+        ? { ...m, returns: [...(m.returns || []), ...newReturns] }
+        : m
+    );
+    setMilestones(updated);
+    setSelectedMilestone(updated.find(m => m.id === selectedMilestone.id));
+  };
+
+  const handleUploadCheckpointFiles = (checkpointId, files = []) => {
+    if (!selectedMilestone || !checkpointId) return;
+    if (isMilestoneReadOnly) {
+      alert('This milestone is locked or completed. You cannot upload submissions.');
+      return;
+    }
+    if (files.length === 0) {
+      alert('Please select files to upload');
+      return;
+    }
+
+    const newSubmissions = files.map((file, index) => ({
       id: Date.now() + index,
       fileName: file.name,
       fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
@@ -361,12 +470,13 @@ const MilestonePage = () => {
     const updated = milestones.map(m => {
       if (m.id !== selectedMilestone.id) return m;
       const cps = (m.checkpoints || []).map(cp => {
-        if (cp.id === selectedCheckpoint.id) {
+        if (cp.id === checkpointId) {
           const updatedSubmissions = [...(cp.submissions || []), ...newSubmissions];
+          const nextUiStatus = (cp.uiStatus || cp.status) === 'pending' ? 'in-progress' : (cp.uiStatus || cp.status);
           return {
             ...cp,
             submissions: updatedSubmissions,
-            status: cp.status === 'pending' ? 'in-progress' : cp.status
+            uiStatus: nextUiStatus
           };
         }
         return cp;
@@ -375,9 +485,6 @@ const MilestonePage = () => {
     });
 
     setMilestones(updated);
-    setSelectedFiles([]);
-    setShowUploadModal(false);
-    setSelectedCheckpoint(null);
     setSelectedMilestone(updated.find(m => m.id === selectedMilestone.id));
   };
 
@@ -420,7 +527,7 @@ const MilestonePage = () => {
     const updated = milestones.map(m => {
       if (m.id !== selectedMilestone.id) return m;
       const cps = (m.checkpoints || []).map(c =>
-        c.id === checkpointId ? { ...c, status: 'completed' } : c
+        c.id === checkpointId ? { ...c, uiStatus: 'completed' } : c
       );
       return { ...m, checkpoints: cps };
     });
@@ -430,22 +537,20 @@ const MilestonePage = () => {
 
   const openEditModal = (checkpoint) => {
     setSelectedCheckpoint(checkpoint);
-    setNewCheckpoint({ title: checkpoint.title, description: checkpoint.description, dueDate: checkpoint.dueDate });
+  setNewCheckpoint({ title: checkpoint.title, description: checkpoint.description, startDate: checkpoint.startDate || '', dueDate: checkpoint.dueDate });
     setShowEditModal(true);
   };
 
-  const openUploadModal = (checkpoint) => {
-    setSelectedCheckpoint(checkpoint);
-    setShowUploadModal(true);
+  const openAssignModal = (checkpoint) => {
+    console.info('Assign checkpoint requested:', checkpoint);
   };
+
 
   const resetCheckpointUI = () => {
     setShowCreateModal(false);
     setShowEditModal(false);
-    setShowUploadModal(false);
     setSelectedCheckpoint(null);
-    setNewCheckpoint({ title: '', description: '', dueDate: '' });
-    setSelectedFiles([]);
+  setNewCheckpoint({ title: '', description: '', startDate: '', dueDate: '' });
   };
 
   const closeModals = () => {
@@ -464,7 +569,7 @@ const MilestonePage = () => {
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#D5DADF" }}>
       <ProjectBoardHeader />
-      
+
       <main className="p-6">
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
@@ -500,8 +605,12 @@ const MilestonePage = () => {
             {selectedMilestone && !isLoadingDetail ? (
               <MilestoneHeader
                 milestone={selectedMilestone}
-                isLeader={false}
+                readOnly={isMilestoneReadOnly}
                 onComplete={handleCompleteMilestone}
+                answers={answers}
+                onAnswerChange={handleAnswerChange}
+                onSaveAnswer={handleSaveAnswer}
+                onUploadMilestoneFiles={addMilestoneReturns}
               />
             ) : (
               <div className="bg-white rounded-lg shadow-md p-6">
@@ -531,7 +640,6 @@ const MilestonePage = () => {
               </div>
             )}
 
-            
 
             {/* Checkpoints Section */}
             <section className="space-y-4 bg-white rounded-lg shadow-md p-6">
@@ -540,31 +648,23 @@ const MilestonePage = () => {
                   <h3 className="text-lg font-semibold text-gray-800">Checkpoints</h3>
                   <span className="text-sm text-gray-600">{checkpointProgress.completed}/{checkpointProgress.total} completed ({checkpointProgress.percent}%)</span>
                 </div>
-                {isLeader && !isMilestoneReadOnly && (
-                  <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                  >
-                    <Plus size={18} />
-                    Create Checkpoint
-                  </button>
-                )}
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  disabled={isMilestoneReadOnly}
+                  title={isMilestoneReadOnly
+                    ? 'Milestone is completed or evaluated. Creating checkpoints is disabled'
+                    : undefined
+                  }
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition text-white ${
+                    isMilestoneReadOnly
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  <Plus size={18} />
+                  Create Checkpoint
+                </button>
               </div>
-
-              {/* Info banner when milestone is completed/locked */}
-              {isMilestoneReadOnly && (
-                <div className={`rounded-md border px-4 py-3 ${selectedMilestone?.status === 'completed' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
-                  {selectedMilestone?.status === 'completed' ? (
-                    <div className="text-sm">
-                      This milestone has been marked complete by the lecturer. {checkpointGroups['in-progress'].length > 0 ? 'Remaining in-progress checkpoints are locked and kept as-is for record.' : 'All checkpoints are complete.'}
-                    </div>
-                  ) : (
-                    <div className="text-sm">
-                      This milestone is currently locked by the lecturer. Checkpoints cannot be created or modified.
-                    </div>
-                  )}
-                </div>
-              )}
 
               {isLoadingDetail ? (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -577,7 +677,7 @@ const MilestonePage = () => {
                   ))}
                 </div>
               ) : (
-                <CheckpointSummaryCards checkpoints={selectedCheckpoints.map(cp => cp.status === 'pending' ? { ...cp, status: 'in-progress' } : cp)} />
+                <CheckpointSummaryCards checkpoints={selectedCheckpoints} />
               )}
 
               <div className="space-y-4">
@@ -590,9 +690,8 @@ const MilestonePage = () => {
                     <button
                       key={tab.key}
                       onClick={() => setActiveTab(tab.key)}
-                      className={`flex items-center gap-2 px-3 py-2 -mb-px border-b-2 ${
-                        activeTab === tab.key ? 'border-blue-600' : 'border-transparent hover:border-gray-300'
-                      }`}
+                      className={`flex items-center gap-2 px-3 py-2 -mb-px border-b-2 ${activeTab === tab.key ? 'border-blue-600' : 'border-transparent hover:border-gray-300'
+                        }`}
                     >
                       <Folder size={18} className={activeTab === tab.key ? 'text-blue-600' : 'text-gray-600'} />
                       <span className={`text-sm font-medium ${activeTab === tab.key ? 'text-blue-700' : 'text-gray-700'}`}>{tab.label}</span>
@@ -629,13 +728,13 @@ const MilestonePage = () => {
                       <CheckpointCard
                         key={checkpoint.id}
                         checkpoint={checkpoint}
-                        isLeader={isLeader}
-                        readOnly={isMilestoneReadOnly || checkpoint.status === 'completed'}
-                        onEdit={(cp) => !isMilestoneReadOnly && checkpoint.status !== 'completed' && openEditModal(cp)}
-                        onDelete={(id) => !isMilestoneReadOnly && checkpoint.status !== 'completed' && handleDeleteCheckpoint(id)}
-                        onUpload={(cp) => !isMilestoneReadOnly && checkpoint.status !== 'completed' && openUploadModal(cp)}
-                        onMarkComplete={(id) => !isMilestoneReadOnly && checkpoint.status !== 'completed' && handleMarkComplete(id)}
-                        onDeleteSubmission={(cpId, subId) => !isMilestoneReadOnly && checkpoint.status !== 'completed' && handleDeleteSubmission(cpId, subId)}
+                        readOnly={isMilestoneReadOnly || (checkpoint.uiStatus || checkpoint.status) === 'completed'}
+                        onEdit={(cp) => !isMilestoneReadOnly && (checkpoint.uiStatus || checkpoint.status) !== 'completed' && openEditModal(cp)}
+                        onDelete={(id) => !isMilestoneReadOnly && (checkpoint.uiStatus || checkpoint.status) !== 'completed' && handleDeleteCheckpoint(id)}
+                        onUploadFiles={(id, files) => !isMilestoneReadOnly && (checkpoint.uiStatus || checkpoint.status) !== 'completed' && handleUploadCheckpointFiles(id, files)}
+                        onMarkComplete={(id) => !isMilestoneReadOnly && (checkpoint.uiStatus || checkpoint.status) !== 'completed' && handleMarkComplete(id)}
+                        onDeleteSubmission={(cpId, subId) => !isMilestoneReadOnly && (checkpoint.uiStatus || checkpoint.status) !== 'completed' && handleDeleteSubmission(cpId, subId)}
+                        onAssign={(cp) => openAssignModal(cp)}
                       />
                     ))
                   )}
@@ -646,14 +745,21 @@ const MilestonePage = () => {
                     <CheckSquare className="mx-auto text-gray-300 mb-4" size={64} />
                     <h4 className="text-lg font-medium text-gray-900 mb-2">No Checkpoints Yet</h4>
                     <p className="text-gray-600 mb-4">Create your first checkpoint for this milestone</p>
-                    {isLeader && !isMilestoneReadOnly && (
-                      <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                      >
-                        Create Checkpoint
-                      </button>
-                    )}
+                    <button
+                      onClick={() => setShowCreateModal(true)}
+                      disabled={isMilestoneReadOnly}
+                      title={isMilestoneReadOnly
+                        ? 'Milestone is completed or evaluated. Creating checkpoints is disabled'
+                        : undefined
+                      }
+                      className={`px-6 py-2 rounded-lg transition text-white ${
+                        isMilestoneReadOnly
+                          ? 'bg-gray-400 cursor-not-allowed'
+                          : 'bg-blue-600 hover:bg-blue-700'
+                      }`}
+                    >
+                      Create Checkpoint
+                    </button>
                   </div>
                 )}
               </div>
@@ -679,16 +785,8 @@ const MilestonePage = () => {
         onSubmit={handleUpdateCheckpoint}
         onClose={closeModals}
       />
-
-      <FileUploadModal
-        isOpen={showUploadModal}
-        selectedFiles={selectedFiles}
-        onFileSelect={handleFileSelect}
-        onRemoveFile={handleRemoveFile}
-        onUpload={handleUploadSubmission}
-        onClose={closeModals}
-      />
     </div>
+
 
 
   );
