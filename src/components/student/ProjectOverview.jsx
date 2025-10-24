@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { CalendarClock, BookOpen, User, Info, ChevronRight, ChevronDown } from 'lucide-react';
 
 const statusColor = (statusString, status) => {
@@ -113,9 +113,6 @@ const ProjectOverview = ({ project, loading = false, error = null, className = '
         objectives = [],
     } = project || {};
 
-    useEffect(() => {
-        console.log(updatedAt);
-    }, [updatedAt]);
     return (
         <section className={`bg-white rounded-lg shadow-md overflow-hidden ${className}`}>
             {/* Header */}
