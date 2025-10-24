@@ -44,10 +44,11 @@ const StudentProjectPage = () => {
   }, [studentId]);
 
   const handleCardClick = (team) => {
-    const safeId = team?.teamId;
-    const safeName = team?.projectName;
-    if (!safeId) return;
-    navigate(`/student/project/${safeId}/${encodeURIComponent(safeName)}`);
+    const teamId = team?.teamId;
+    const projectId = team?.projectId;
+    const projectName = team?.projectName || 'project';
+    if (!teamId || !projectId) return;
+    navigate(`/student/project/${projectId}/${encodeURIComponent(projectName)}/${teamId}/team-workspace`);
   };
 
   const classes = useMemo(() => {

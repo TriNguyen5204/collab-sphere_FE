@@ -15,8 +15,7 @@ import StudentProjectPage from '../pages/student/StudentProjectPage';
 import StudentClassPage from '../pages/student/StudentClassPage';
 import StudentProfile from '../pages/student/StudentProfile';
 import ProjectBoard from '../pages/student/project/ProjectBoard';
-import MilestonePage from '../pages/student/project/MilestonePage';
-import CheckpointPage from '../pages/student/project/CheckpointPage';
+import MilestoneCheckpointPage from '../pages/student/project/MilestonePage';
 import PeerEvaluationPage from '../pages/student/project/PeerEvaluationPage';
 import TeamWorkspace from '../pages/student/project/TeamWorkspace';
 import StudentClassMembersPage from '../pages/student/StudentClassMembersPage';
@@ -86,10 +85,10 @@ const studentRoutes = [
   { path: '/student/projects', element: protectRoute(['STUDENT'], <StudentProjectPage />) },
   { path: '/student/classes', element: protectRoute(['STUDENT'], <StudentClassPage />) },
   { path: '/student/profile', element: protectRoute(['STUDENT'], <StudentProfile />) },
-  { path: '/student/project/:id/:projectName', element: protectRoute(['STUDENT'], <ProjectBoard />) },
-  { path: '/student/project/:id/:projectName/milestones&checkpoints', element: protectRoute(['STUDENT'], <MilestonePage />) },
-  { path: '/student/project/:id/:projectName/peer-evaluation', element: protectRoute(['STUDENT'], <PeerEvaluationPage />) },
-  { path: '/student/project/:id/:projectName/team-workspace', element: protectRoute(['STUDENT'], <TeamWorkspace />) },
+  { path: '/student/project/:projectId/:projectName/:teamId', element: protectRoute(['STUDENT'], <ProjectBoard />) },
+  { path: '/student/project/:projectId/:projectName/:teamId/milestones&checkpoints', element: protectRoute(['STUDENT'], <MilestoneCheckpointPage />) },
+  { path: '/student/project/:projectId/:projectName/:teamId/peer-evaluation', element: protectRoute(['STUDENT'], <PeerEvaluationPage />) },
+  { path: '/student/project/:projectId/:projectName/:teamId/team-workspace', element: protectRoute(['STUDENT'], <TeamWorkspace />) },
   { path: '/student/:className/members', element: protectRoute(['STUDENT'], <StudentClassMembersPage />) },
   { path: '/student/:className/projects', element: protectRoute(['STUDENT'], <StudentClassProjectsPage />) },
 ];

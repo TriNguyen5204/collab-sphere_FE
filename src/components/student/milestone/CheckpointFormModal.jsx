@@ -24,6 +24,46 @@ const CheckpointFormModal = ({
         </div>
 
         <div className="p-6 space-y-4">
+          {/* Dates Row: Start Date (left) and Due Date (right) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={checkpoint.startDate || ''}
+                onChange={(e) => onChange({ ...checkpoint, startDate: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Due Date *
+              </label>
+              <input
+                type="date"
+                value={checkpoint.dueDate}
+                onChange={(e) => onChange({ ...checkpoint, dueDate: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Complexity
+            </label>
+            <select
+              value={checkpoint.complexity || 'LOW'}
+              onChange={(e) => onChange({ ...checkpoint, complexity: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="LOW">LOW</option>
+              <option value="MEDIUM">MEDIUM</option>
+              <option value="HIGH">HIGH</option>
+            </select>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Title *
@@ -50,17 +90,6 @@ const CheckpointFormModal = ({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Due Date *
-            </label>
-            <input
-              type="date"
-              value={checkpoint.dueDate}
-              onChange={(e) => onChange({ ...checkpoint, dueDate: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
         </div>
 
         <div className="p-6 border-t flex justify-end gap-3">
