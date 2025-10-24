@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import DashboardLayout from '../../components/DashboardLayout';
 import styles from './ClassDetailPage.module.css';
 import {
@@ -15,6 +16,8 @@ import {
   MagnifyingGlassIcon,
   PlusIcon,
   CheckIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
   ArrowLeftIcon,
   DocumentTextIcon,
   VideoCameraIcon,
@@ -28,7 +31,10 @@ import {
   AcademicCapIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
+import { toast } from 'sonner';
 import { getClassProjects } from '../../services/projectApi';
+import { getClassDetail } from '../../services/userService';
+import { createTeam } from '../../services/teamApi';
 
 const PROJECT_GRADIENTS = [
   'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
@@ -96,6 +102,43 @@ const toNumber = (value) => {
 
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+};
+
+const hasValue = (input) => input !== null && input !== undefined;
+
+const isStudentAssignedToTeam = (student) => {
+  if (!student || typeof student !== 'object') {
+    return false;
+  }
+
+  if (student.team && Object.keys(student.team).length > 0) {
+    return true;
+  }
+
+  if (hasValue(student.teamId) || hasValue(student.team_id)) {
+    return true;
+  }
+
+  const memberRecord = student.classMember ?? student.class_member;
+  if (!memberRecord || typeof memberRecord !== 'object') {
+    return false;
+  }
+
+  return hasValue(memberRecord.teamId) || hasValue(memberRecord.team_id);
+};
+
+const FieldStatusBadge = ({ isValid, validText = 'Ready', invalidText = 'Required', className = '' }) => {
+  const statusClass = isValid ? styles.fieldStatusOk : styles.fieldStatusWarn;
+  return (
+    <span className={`${styles.fieldStatus} ${statusClass} ${className}`.trim()}>
+      {isValid ? (
+        <CheckCircleIcon className={styles.fieldStatusIcon} aria-hidden="true" />
+      ) : (
+        <ExclamationTriangleIcon className={styles.fieldStatusIcon} aria-hidden="true" />
+      )}
+      <span>{isValid ? validText : invalidText}</span>
+    </span>
+  );
 };
 
 const pickFirstFinite = (candidates) => {
@@ -220,7 +263,7 @@ const PROGRESS_COLOR_BY_STATUS = {
   archived: '#94a3b8',
 };
 
-const normaliseClassProject = (item, index) => {
+const normaliseClassProject = (item, index, assignmentLookup = new Map()) => {
   if (!item) {
     return null;
   }
@@ -249,6 +292,27 @@ const normaliseClassProject = (item, index) => {
 
   const summary = item.description?.trim?.() ? item.description : 'Description updating soon.';
 
+  const assignmentCandidates = [
+    item.projectAssignmentId,
+    item.projectAssignmentID,
+    item.assignmentId,
+    item.projectAssignment?.projectAssignmentId,
+    item.projectAssignment?.id,
+  ];
+
+  let projectAssignmentId = null;
+  for (const candidate of assignmentCandidates) {
+    const parsed = toNumber(candidate);
+    if (parsed !== null) {
+      projectAssignmentId = parsed;
+      break;
+    }
+  }
+
+  if (projectAssignmentId === null && assignmentLookup instanceof Map && assignmentLookup.has(id)) {
+    projectAssignmentId = assignmentLookup.get(id);
+  }
+
   return {
     id,
     name: item.projectName ?? 'Untitled project',
@@ -263,6 +327,7 @@ const normaliseClassProject = (item, index) => {
     subjectCode: item.subjectCode ?? '',
     lecturerName: item.lecturerName ?? '',
     objectives: Array.isArray(item.objectives) ? item.objectives : [],
+    projectAssignmentId,
   };
 };
 
@@ -286,197 +351,460 @@ const extractProjectList = (payload) => {
   return [];
 };
 
-const INITIAL_STUDENTS = [
-  {
-    id: 1,
-    name: 'Alice Johnson',
-    email: 'alice.johnson@university.edu',
-    team: 'Team Alpha',
-    teamColor: '#3b82f6',
-    progress: 85,
-    status: 'active',
-    lastSubmission: '2025-09-20',
-    tasksCompleted: 12,
-    totalTasks: 15,
-    avatar: 'AJ',
-    role: 'leader',
-  },
-  {
-    id: 2,
-    name: 'Bob Smith',
-    email: 'bob.smith@university.edu',
-    team: 'Team Beta',
-    teamColor: '#10b981',
-    progress: 72,
-    status: 'active',
-    lastSubmission: '2025-09-19',
-    tasksCompleted: 9,
-    totalTasks: 15,
-    avatar: 'BS',
-    role: 'member',
-  },
-  {
-    id: 3,
-    name: 'Carol Davis',
-    email: 'carol.davis@university.edu',
-    team: 'Team Gamma',
-    teamColor: '#f59e0b',
-    progress: 94,
-    status: 'active',
-    lastSubmission: '2025-09-21',
-    tasksCompleted: 14,
-    totalTasks: 15,
-    avatar: 'CD',
-    role: 'member',
-  },
-  {
-    id: 4,
-    name: 'David Wilson',
-    email: 'david.wilson@university.edu',
-    team: 'Team Alpha',
-    teamColor: '#3b82f6',
-    progress: 58,
-    status: 'behind',
-    lastSubmission: '2025-09-15',
-    tasksCompleted: 7,
-    totalTasks: 15,
-    avatar: 'DW',
-    role: 'member',
-  },
-  {
-    id: 5,
-    name: 'Emma Brown',
-    email: 'emma.brown@university.edu',
-    team: 'Team Beta',
-    teamColor: '#10b981',
-    progress: 91,
-    status: 'active',
-    lastSubmission: '2025-09-21',
-    tasksCompleted: 13,
-    totalTasks: 15,
-    avatar: 'EB',
-    role: 'member',
-  },
-  {
-    id: 6,
-    name: 'Frank Miller',
-    email: 'frank.miller@university.edu',
-    team: 'Team Gamma',
-    teamColor: '#f59e0b',
-    progress: 73,
-    status: 'active',
-    lastSubmission: '2025-09-20',
-    tasksCompleted: 11,
-    totalTasks: 15,
-    avatar: 'FM',
-    role: 'member',
-  },
-  {
-    id: 7,
-    name: 'Grace Lee',
-    email: 'grace.lee@university.edu',
-    team: null,
-    teamColor: null,
-    progress: 64,
-    status: 'active',
-    lastSubmission: '2025-09-18',
-    tasksCompleted: 8,
-    totalTasks: 14,
-    avatar: 'GL',
-    role: 'member',
-  },
-  {
-    id: 8,
-    name: 'Henry Park',
-    email: 'henry.park@university.edu',
-    team: null,
-    teamColor: null,
-    progress: 52,
-    status: 'behind',
-    lastSubmission: '2025-09-12',
-    tasksCompleted: 6,
-    totalTasks: 14,
-    avatar: 'HP',
-    role: 'member',
-  },
-  {
-    id: 9,
-    name: 'Isabella Moore',
-    email: 'isabella.moore@university.edu',
-    team: null,
-    teamColor: null,
-    progress: 0,
-    status: 'active',
-    lastSubmission: '-',
-    tasksCompleted: 0,
-    totalTasks: 10,
-    avatar: 'IM',
-    role: 'member',
-  },
-];
-
-const INITIAL_TEAM_CONFIG = [
-  {
-    id: 'alpha',
-    name: 'Team Alpha',
-    color: '#3b82f6',
-    projectId: 'mobile-app',
-  },
-  {
-    id: 'beta',
-    name: 'Team Beta',
-    color: '#10b981',
-    projectId: 'web-dashboard',
-  },
-  {
-    id: 'gamma',
-    name: 'Team Gamma',
-    color: '#f59e0b',
-    projectId: 'ai-chatbot',
-  },
-];
-
 const TEAM_COLOR_SWATCHES = ['#6366f1', '#0ea5e9', '#fb7185', '#22c55e', '#f97316', '#8b5cf6'];
 
-const buildInitialTeams = (configs, students, projects) =>
-  configs.map((config) => {
-    const members = students.filter((student) => student.team === config.name);
-    const project = projects.find((projectItem) => projectItem.id === config.projectId) || null;
-    const memberProgress = members.reduce((total, member) => total + (member.progress || 0), 0);
+const DEFAULT_CLASS_SUMMARY = {
+  id: null,
+  name: '',
+  term: '',
+  instructor: '',
+  schedule: '',
+  totalStudents: 0,
+  totalModules: 0,
+  totalResources: 0,
+  avgScore: null,
+  completionRate: null,
+  activeLearningHours: null,
+  description: '',
+};
+
+const createEmptyTeamForm = (accent) => ({
+  name: '',
+  color: accent,
+  projectId: '',
+  memberIds: [],
+  leaderId: '',
+  description: '',
+  enrolKey: '',
+  gitLink: '',
+  createdDate: '',
+  endDate: '',
+});
+
+const getInitials = (name = '') => {
+  const segments = String(name)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (segments.length === 0) {
+    return 'NA';
+  }
+
+  if (segments.length === 1) {
+    return segments[0].charAt(0).toUpperCase();
+  }
+
+  const first = segments[0].charAt(0) || '';
+  const last = segments[segments.length - 1].charAt(0) || '';
+  const initials = `${first}${last}`.toUpperCase();
+
+  return initials || segments[0].slice(0, 2).toUpperCase();
+};
+
+const normaliseMemberStatus = (status) => {
+  if (status === null || status === undefined) {
+    return 'active';
+  }
+
+  if (typeof status === 'string') {
+    const token = status.trim().toLowerCase();
+    if (!token) {
+      return 'active';
+    }
+    if (['active', 'behind'].includes(token)) {
+      return token;
+    }
+    if (['pending', 'awaiting', 'on_hold'].includes(token)) {
+      return 'pending';
+    }
+    if (['inactive', 'disabled', 'removed'].includes(token)) {
+      return 'inactive';
+    }
+    return token;
+  }
+
+  const numeric = Number(status);
+  if (!Number.isFinite(numeric)) {
+    return 'active';
+  }
+  if (numeric === 0) {
+    return 'pending';
+  }
+  if (numeric === 1) {
+    return 'active';
+  }
+  if (numeric === 2) {
+    return 'inactive';
+  }
+  return 'active';
+};
+
+const normaliseResourceRecords = (records) =>
+  (Array.isArray(records) ? records : [])
+    .map((record, index) => {
+      const identifier =
+        record.classFileId ??
+        record.fileId ??
+        record.id ??
+        record.resourceId ??
+        index;
+
+      if (identifier === undefined || identifier === null) {
+        return null;
+      }
+
+      const uploadDate =
+        record.uploadDate ??
+        record.uploadedDate ??
+        record.createdAt ??
+        record.createdDate ??
+        record.uploadedAt ??
+        null;
+
+      return {
+        id: identifier,
+        title: record.fileName ?? record.title ?? 'Resource',
+        type: (record.type ?? record.fileType ?? '').toLowerCase(),
+        category: record.category ?? record.fileCategory ?? '',
+        size: record.size ?? record.fileSize ?? '',
+        downloads: toNumber(record.downloads ?? record.downloadCount ?? record.accessCount) ?? 0,
+        views: toNumber(record.views ?? record.viewCount) ?? 0,
+        visits: toNumber(record.visits ?? record.visitCount) ?? 0,
+        duration: record.duration ?? null,
+        uploadDate,
+        description: record.description ?? record.summary ?? '',
+        tags: Array.isArray(record.tags) ? record.tags : [],
+        url: record.url ?? record.fileUrl ?? record.link ?? '',
+      };
+    })
+    .filter(Boolean);
+
+const normaliseProjectAssignments = (records) =>
+  (Array.isArray(records) ? records : [])
+    .map((record) => {
+      const projectAssignmentId = toNumber(
+        record.projectAssignmentId ??
+        record.projectAssignmentID ??
+        record.id ??
+        record.assignmentId
+      );
+      const projectId = toNumber(
+        record.projectId ??
+        record.project?.projectId ??
+        record.project?.id ??
+        record.projectID
+      );
+
+      if (projectAssignmentId === null || projectId === null) {
+        return null;
+      }
+
+      return {
+        projectAssignmentId,
+        projectId,
+        status: record.status ?? record.assignmentStatus ?? '',
+        assignedDate: record.assignedDate ?? record.createdAt ?? null,
+      };
+    })
+    .filter(Boolean);
+
+const normaliseClassDetailPayload = (payload, fallbackClassId) => {
+  const base = payload ?? {};
+  const summarySource =
+    base.class ??
+    base.classInformation ??
+    base.classInfo ??
+    base.summary ??
+    base;
+
+  const classIdentifier = toNumber(
+    summarySource?.classId ??
+    summarySource?.id ??
+    base.classId ??
+    fallbackClassId
+  );
+
+  const rawTeams = Array.isArray(base.teams) ? base.teams : [];
+  const rawMembers = Array.isArray(base.classMembers) ? base.classMembers : [];
+  const rawResources = Array.isArray(base.classFiles) ? base.classFiles : [];
+  const rawAssignments = normaliseProjectAssignments(base.projectAssignments);
+
+  const teams = rawTeams.map((team, index) => {
+    const rawId = toNumber(team.teamId ?? team.id ?? team.TeamId);
+    const color = TEAM_COLOR_SWATCHES[index % TEAM_COLOR_SWATCHES.length];
+
+    const projectAssignmentId = toNumber(
+      team.projectAssignmentId ??
+      team.projectAssignmentID ??
+      team.projectAssignment?.projectAssignmentId ??
+      team.projectAssignment?.id
+    );
+
+    const projectId = toNumber(
+      team.projectId ??
+      team.project?.projectId ??
+      team.project?.id ??
+      team.projectID
+    );
+
+    const leaderId = toNumber(
+      team.leaderId ??
+      team.leader?.studentId ??
+      team.leader?.leaderId ??
+      team.leader?.id
+    );
+
+    const project = projectId
+      ? {
+          id: projectId,
+          name: team.projectName ?? team.project?.projectName ?? team.project?.name ?? '',
+          dueDate: team.project?.dueDate ?? team.dueDate ?? null,
+        }
+      : null;
 
     return {
-      ...config,
-      members,
+      id: rawId ?? `team-${index}`,
+      rawId,
+      name: team.teamName ?? team.name ?? `Team ${index + 1}`,
+      color,
+      projectId,
+      projectAssignmentId,
+      leaderId,
+      gitLink: team.gitLink ?? team.repository ?? '',
+      createdDate: team.createdDate ?? team.startDate ?? team.createdAt ?? null,
+      endDate: team.endDate ?? team.finishDate ?? null,
       project,
-      avgProgress: members.length ? Math.round(memberProgress / members.length) : 0,
+      members: [],
+      avgProgress: 0,
     };
   });
 
+  const teamColorMap = new Map();
+  teams.forEach((team) => {
+    if (team.rawId !== null && team.rawId !== undefined) {
+      teamColorMap.set(team.rawId, team.color);
+    }
+  });
+
+  const students = rawMembers
+    .map((member) => {
+      const studentId = toNumber(
+        member.studentId ??
+        member.student?.studentId ??
+        member.student?.id ??
+        member.uId ??
+        member.userId ??
+        member.id
+      );
+
+      if (studentId === null) {
+        return null;
+      }
+
+      const memberTeamId = toNumber(member.teamId ?? member.team?.teamId ?? member.team?.id);
+      const teamColor = memberTeamId !== null ? teamColorMap.get(memberTeamId) ?? null : null;
+
+      const owningTeam = teams.find(
+        (team) => team.rawId !== null && team.rawId !== undefined && team.rawId === memberTeamId
+      );
+
+      const role =
+        member.isLeader === true ||
+        (typeof member.role === 'string' && member.role.toLowerCase().includes('leader')) ||
+        (owningTeam?.leaderId !== null && owningTeam?.leaderId === studentId)
+          ? 'leader'
+          : 'member';
+
+      const progressValue = toNumber(
+        member.progress ??
+        member.progressPercentage ??
+        member.progressValue ??
+        member.completionRate
+      );
+
+      const tasksCompleted = toNumber(member.tasksCompleted);
+      const totalTasks = toNumber(member.totalTasks);
+
+      return {
+        id: studentId,
+        studentId,
+        classId: toNumber(member.classId ?? classIdentifier),
+        name: member.fullname ?? member.studentName ?? member.name ?? 'Student',
+        email: member.email ?? member.studentEmail ?? '',
+        team: member.teamName ?? member.team?.teamName ?? owningTeam?.name ?? null,
+        teamId: memberTeamId,
+        teamColor,
+        progress: progressValue ?? 0,
+        status: normaliseMemberStatus(member.status),
+        lastSubmission: member.lastSubmission ?? member.lastSubmissionAt ?? member.lastSubmissionDate ?? null,
+        tasksCompleted: tasksCompleted ?? null,
+        totalTasks: totalTasks ?? null,
+        avatar: getInitials(member.fullname ?? member.studentName ?? member.name),
+        role,
+      };
+    })
+    .filter(Boolean);
+
+  const teamsWithMembers = teams.map((team) => {
+    const membersForTeam = students.filter(
+      (student) =>
+        student.teamId !== null &&
+        student.teamId !== undefined &&
+        team.rawId !== null &&
+        team.rawId !== undefined &&
+        student.teamId === team.rawId
+    );
+
+    const avgProgress = membersForTeam.length
+      ? Math.round(
+          membersForTeam.reduce((total, member) => total + (member.progress ?? 0), 0) / membersForTeam.length
+        )
+      : 0;
+
+    const decoratedMembers = membersForTeam.map((member) => ({
+      id: member.studentId,
+      name: member.name,
+      avatar: member.avatar,
+      role: member.role,
+      progress: member.progress ?? 0,
+      teamColor: team.color,
+      studentId: member.studentId,
+    }));
+
+    return {
+      ...team,
+      members: decoratedMembers,
+      avgProgress,
+    };
+  });
+
+  const resources = normaliseResourceRecords(rawResources);
+  const projectAssignments = rawAssignments;
+
+  const summary = {
+    id: classIdentifier,
+    name: summarySource?.className ?? summarySource?.name ?? 'Class Detail',
+    term: summarySource?.term ?? summarySource?.semester ?? summarySource?.semesterName ?? '',
+    instructor: summarySource?.lecturerName ?? base.lecturerName ?? '',
+    schedule: summarySource?.schedule ?? summarySource?.classSchedule ?? '',
+    totalStudents: summarySource?.totalStudents ?? summarySource?.studentCount ?? students.length,
+    totalModules: summarySource?.totalModules ?? projectAssignments.length,
+    totalResources: summarySource?.totalResources ?? resources.length,
+    avgScore: toNumber(summarySource?.avgScore ?? summarySource?.averageScore),
+    completionRate: toNumber(summarySource?.completionRate ?? summarySource?.completionPercentage),
+    activeLearningHours: toNumber(summarySource?.activeLearningHours ?? summarySource?.learningHours),
+    description: summarySource?.description ?? '',
+  };
+
+  return {
+    summary,
+    students,
+    teams: teamsWithMembers,
+    projectAssignments,
+    resources,
+  };
+};
+
 const ClassDetailPage = () => {
   const { classId } = useParams();
+  const lecturerId = useSelector((state) => state.user?.userId);
+  const numericClassId = useMemo(() => toNumber(classId), [classId]);
   const [activeTab, setActiveTab] = useState('students');
   const [selectedStudents, setSelectedStudents] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [students, setStudents] = useState(() => INITIAL_STUDENTS);
+  const [students, setStudents] = useState([]);
   const [classProjects, setClassProjects] = useState([]);
   const [isClassProjectsLoading, setIsClassProjectsLoading] = useState(false);
   const [classProjectsError, setClassProjectsError] = useState('');
-  const [teams, setTeams] = useState(() => buildInitialTeams(INITIAL_TEAM_CONFIG, INITIAL_STUDENTS, []));
+  const [teams, setTeams] = useState([]);
+  const [classSummary, setClassSummary] = useState(DEFAULT_CLASS_SUMMARY);
+  const [projectAssignments, setProjectAssignments] = useState([]);
+  const [resourcesData, setResourcesData] = useState([]);
+  const [isClassDetailLoading, setIsClassDetailLoading] = useState(false);
+  const [classDetailError, setClassDetailError] = useState('');
   const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false);
   const [teamFormError, setTeamFormError] = useState('');
   const [memberSearchTerm, setMemberSearchTerm] = useState('');
   const [projectSearchTerm, setProjectSearchTerm] = useState('');
   const [showTeamToast, setShowTeamToast] = useState(false);
-  const [teamForm, setTeamForm] = useState(() => ({
-    name: '',
-    color: TEAM_COLOR_SWATCHES[0],
-    projectId: '',
-    memberIds: [],
-    leaderId: '',
-    description: '',
-  }));
+  const [isCreateTeamSubmitting, setIsCreateTeamSubmitting] = useState(false);
+  const [teamForm, setTeamForm] = useState(() => createEmptyTeamForm(TEAM_COLOR_SWATCHES[0]));
+  const [hasAttemptedCreateTeam, setHasAttemptedCreateTeam] = useState(false);
+
+  const projectAssignmentLookup = useMemo(() => {
+    const lookup = new Map();
+    projectAssignments.forEach((assignment) => {
+      if (
+        assignment &&
+        assignment.projectId !== null &&
+        assignment.projectId !== undefined &&
+        assignment.projectAssignmentId !== null &&
+        assignment.projectAssignmentId !== undefined
+      ) {
+        lookup.set(assignment.projectId, assignment.projectAssignmentId);
+      }
+    });
+    return lookup;
+  }, [projectAssignments]);
+
+  const refreshClassDetail = useCallback(
+    async (isMounted = () => true) => {
+      if (!classId) {
+        if (isMounted()) {
+          setClassSummary(DEFAULT_CLASS_SUMMARY);
+          setStudents([]);
+          setTeams([]);
+          setProjectAssignments([]);
+          setResourcesData([]);
+        }
+        return;
+      }
+
+      const response = await getClassDetail(classId);
+      if (!isMounted()) {
+        return;
+      }
+
+      const detail = normaliseClassDetailPayload(response, numericClassId);
+      if (!isMounted()) {
+        return;
+      }
+
+      setClassSummary(detail.summary);
+      setStudents(detail.students);
+      setTeams(detail.teams);
+      setProjectAssignments(detail.projectAssignments);
+      setResourcesData(detail.resources);
+      setSelectedStudents(new Set());
+    },
+    [classId, numericClassId]
+  );
+
+  const refreshClassProjects = useCallback(
+    async (isMounted = () => true) => {
+      if (!classId) {
+        if (isMounted()) {
+          setClassProjects([]);
+        }
+        return;
+      }
+
+      const response = await getClassProjects(classId);
+      const projects = extractProjectList(response)
+        .map((item, index) => normaliseClassProject(item, index, projectAssignmentLookup))
+        .filter((project) => project !== null);
+
+      if (!isMounted()) {
+        return;
+      }
+
+      setClassProjects(projects);
+    },
+    [classId, projectAssignmentLookup]
+  );
 
   useEffect(() => {
     if (!showTeamToast) {
@@ -488,46 +816,71 @@ const ClassDetailPage = () => {
 
   useEffect(() => {
     let isSubscribed = true;
+    const isMounted = () => isSubscribed;
 
-    const fetchClassProjects = async () => {
-      if (!classId) {
-        setClassProjects([]);
-        return;
+    const loadClassDetail = async () => {
+      if (isMounted()) {
+        setIsClassDetailLoading(true);
+        setClassDetailError('');
       }
 
-      setIsClassProjectsLoading(true);
-      setClassProjectsError('');
+      try {
+        await refreshClassDetail(isMounted);
+      } catch (error) {
+        console.error('Failed to load class details from /api/class.', error);
+        if (isMounted()) {
+          setClassDetailError('Unable to load class details right now.');
+          setClassSummary(DEFAULT_CLASS_SUMMARY);
+          setStudents([]);
+          setTeams([]);
+          setProjectAssignments([]);
+          setResourcesData([]);
+        }
+      } finally {
+        if (isMounted()) {
+          setIsClassDetailLoading(false);
+        }
+      }
+    };
+
+    loadClassDetail();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [refreshClassDetail]);
+
+  useEffect(() => {
+    let isSubscribed = true;
+    const isMounted = () => isSubscribed;
+
+    const loadClassProjects = async () => {
+      if (isMounted()) {
+        setIsClassProjectsLoading(true);
+        setClassProjectsError('');
+      }
 
       try {
-        const response = await getClassProjects(classId);
-        const projects = extractProjectList(response)
-          .map((item, index) => normaliseClassProject(item, index))
-          .filter((project) => project !== null);
-
-        if (!isSubscribed) {
-          return;
-        }
-
-        setClassProjects(projects);
+        await refreshClassProjects(isMounted);
       } catch (error) {
         console.error('Failed to load class projects from /api/project/class.', error);
-        if (isSubscribed) {
+        if (isMounted()) {
           setClassProjects([]);
           setClassProjectsError('Unable to load class projects right now.');
         }
       } finally {
-        if (isSubscribed) {
+        if (isMounted()) {
           setIsClassProjectsLoading(false);
         }
       }
     };
 
-    fetchClassProjects();
+    loadClassProjects();
 
     return () => {
       isSubscribed = false;
     };
-  }, [classId]);
+  }, [refreshClassProjects]);
 
   useEffect(() => {
     if (!classProjects.length) {
@@ -539,83 +892,19 @@ const ClassDetailPage = () => {
         return current;
       }
 
+      const firstProjectId = classProjects[0]?.id;
+      if (firstProjectId === undefined || firstProjectId === null) {
+        return current;
+      }
+
       return {
         ...current,
-        projectId: classProjects[0].id,
+        projectId: firstProjectId,
       };
     });
   }, [classProjects]);
 
-  // Mock data with enhanced student info
-  const classData = {
-    code: 'SE109',
-    name: 'Object-Oriented Programming',
-    term: 'Fall 2025',
-    instructor: 'Dr. Sarah Chen',
-    schedule: 'Mon, Wed, Fri 10:00-12:00',
-    totalStudents: 42,
-    totalModules: 12,
-    totalResources: 28,
-    avgScore: 84,
-    description: 'Learn fundamental concepts of object-oriented programming including classes, objects, inheritance, and polymorphism.',
-    completionRate: 87,
-    activeLearningHours: 234,
-  };
-
-  // Modules data for LMS-style module management
-  // Resources data for resource library management
-  const resourcesData = [
-    {
-      id: 1,
-      title: 'OOP Fundamentals Textbook',
-      type: 'pdf',
-      category: 'reading',
-      size: '15.2 MB',
-      downloads: 156,
-      uploadDate: '2025-08-15',
-      description: 'Comprehensive guide to object-oriented programming concepts',
-      tags: ['fundamentals', 'theory', 'textbook'],
-      url: '#'
-    },
-    {
-      id: 2,
-      title: 'Java Programming Lecture Series',
-      type: 'video',
-      category: 'lecture',
-      duration: '2h 45m',
-      views: 89,
-      uploadDate: '2025-08-20',
-      description: 'Video lectures covering Java programming basics',
-      tags: ['java', 'programming', 'video'],
-      url: '#'
-    },
-    {
-      id: 3,
-      title: 'Class Diagram Templates',
-      type: 'zip',
-      category: 'template',
-      size: '2.1 MB',
-      downloads: 67,
-      uploadDate: '2025-09-01',
-      description: 'UML class diagram templates for assignments',
-      tags: ['uml', 'templates', 'diagrams'],
-      url: '#'
-    },
-    {
-      id: 4,
-      title: 'Code Examples Repository',
-      type: 'link',
-      category: 'code',
-      link: 'https://github.com/example/oop-examples',
-      visits: 234,
-      uploadDate: '2025-08-25',
-      description: 'GitHub repository with practical code examples',
-      tags: ['code', 'examples', 'github'],
-      url: '#'
-    }
-  ];
-
-  const classTotalStudents = classData.totalStudents ?? 0;
+  const classTotalStudents = classSummary.totalStudents ?? students.length;
 
   const sortedProjectsByDueDate = [...classProjects].sort((a, b) => {
     const left = toValidDate(a.dueDate) ?? new Date(8640000000000000);
@@ -637,7 +926,7 @@ const ClassDetailPage = () => {
   })();
 
   const unassignedStudents = useMemo(
-    () => students.filter((student) => !student.team),
+    () => students.filter((student) => !isStudentAssignedToTeam(student)),
     [students]
   );
 
@@ -743,19 +1032,41 @@ const ClassDetailPage = () => {
     : 0;
   const rosterSignalMessage = behindCount > 0 ? 'Coaching recommended' : 'Momentum sustained';
 
+  const classData = useMemo(
+    () => ({
+      ...classSummary,
+      totalStudents: classSummary.totalStudents ?? students.length,
+      totalModules: classSummary.totalModules ?? projectAssignments.length,
+      totalResources: classSummary.totalResources ?? resourcesData.length,
+      avgScore: (classSummary.avgScore ?? null) === null ? averageStudentProgress : classSummary.avgScore,
+      completionRate:
+        (classSummary.completionRate ?? null) === null ? averageTeamProgress : classSummary.completionRate,
+      activeLearningHours: classSummary.activeLearningHours ?? 0,
+      description: classSummary.description ?? '',
+    }),
+    [
+      classSummary,
+      students.length,
+      projectAssignments.length,
+      resourcesData.length,
+      averageStudentProgress,
+      averageTeamProgress,
+    ]
+  );
+
   // Filter students
   const filteredStudents = useMemo(() => {
     const searchValue = searchTerm.trim().toLowerCase();
     return students.filter((student) => {
-      const matchesSearch =
-        !searchValue ||
-        student.name.toLowerCase().includes(searchValue) ||
-        student.email.toLowerCase().includes(searchValue);
+      const nameValue = (student.name ?? '').toLowerCase();
+      const emailValue = (student.email ?? '').toLowerCase();
+      const statusValue = (student.status ?? '').toLowerCase();
+      const matchesSearch = !searchValue || nameValue.includes(searchValue) || emailValue.includes(searchValue);
       const matchesTeam =
         teamFilter === 'all' ||
         (teamFilter === 'unassigned' && !student.team) ||
         student.team === teamFilter;
-      const matchesStatus = statusFilter === 'all' || student.status === statusFilter;
+      const matchesStatus = statusFilter === 'all' || statusValue === statusFilter;
       return matchesSearch && matchesTeam && matchesStatus;
     });
   }, [students, searchTerm, teamFilter, statusFilter]);
@@ -766,10 +1077,9 @@ const ClassDetailPage = () => {
       if (!searchValue) {
         return true;
       }
-      return (
-        student.name.toLowerCase().includes(searchValue) ||
-        student.email.toLowerCase().includes(searchValue)
-      );
+      const nameValue = (student.name ?? '').toLowerCase();
+      const emailValue = (student.email ?? '').toLowerCase();
+      return nameValue.includes(searchValue) || emailValue.includes(searchValue);
     });
   }, [memberSearchTerm, unassignedStudents]);
 
@@ -796,28 +1106,54 @@ const ClassDetailPage = () => {
     });
   }, [projectSearchTerm, classProjects]);
 
+  const trimmedTeamName = useMemo(() => teamForm.name.trim(), [teamForm.name]);
+  const isTeamNameLengthValid = trimmedTeamName.length >= 3 && trimmedTeamName.length <= 100;
+  const hasLeaderSelected = teamForm.leaderId !== '' && teamForm.leaderId !== null && teamForm.leaderId !== undefined;
+  const resolvedClassIdentifier = useMemo(
+    () => toNumber(classSummary.id ?? numericClassId ?? classId),
+    [classSummary.id, numericClassId, classId]
+  );
+  const resolvedLecturerId = useMemo(() => toNumber(lecturerId), [lecturerId]);
+  const isClassContextValid = resolvedClassIdentifier !== null;
+  const isLecturerContextValid = resolvedLecturerId !== null;
+
   const hasSelectedProject =
     teamForm.projectId !== '' && teamForm.projectId !== null && teamForm.projectId !== undefined;
-  const canSubmitTeam = teamForm.name.trim() && teamForm.memberIds.length >= 2 && hasSelectedProject;
+  const canSubmitTeam = Boolean(
+    isTeamNameLengthValid &&
+      teamForm.memberIds.length >= 2 &&
+      hasSelectedProject &&
+      teamForm.enrolKey.trim() &&
+      hasLeaderSelected &&
+      teamForm.createdDate &&
+      teamForm.endDate &&
+      isClassContextValid &&
+      isLecturerContextValid &&
+      !isCreateTeamSubmitting
+  );
 
   const openCreateTeamPanel = () => {
+    const today = new Date();
+    const defaultProjectId = classProjects[0]?.id ?? '';
+    const accent = TEAM_COLOR_SWATCHES[teams.length % TEAM_COLOR_SWATCHES.length];
     setTeamForm({
-      name: '',
-      color: TEAM_COLOR_SWATCHES[0],
-      projectId: classProjects[0]?.id ?? '',
-      memberIds: [],
-      leaderId: '',
-      description: '',
+      ...createEmptyTeamForm(accent),
+      projectId: defaultProjectId,
+      createdDate: today.toISOString().slice(0, 10),
     });
     setMemberSearchTerm('');
     setProjectSearchTerm('');
     setTeamFormError('');
+    setIsCreateTeamSubmitting(false);
+    setHasAttemptedCreateTeam(false);
     setIsCreateTeamOpen(true);
   };
 
   const closeCreateTeamPanel = () => {
     setIsCreateTeamOpen(false);
     setTeamFormError('');
+    setIsCreateTeamSubmitting(false);
+    setHasAttemptedCreateTeam(false);
   };
 
   const handleTeamInputChange = (field) => (event) => {
@@ -830,14 +1166,16 @@ const ClassDetailPage = () => {
   };
 
   const handleMemberToggle = (studentId) => {
+    const candidateId = toNumber(studentId) ?? studentId;
     setTeamForm((prev) => {
-      const alreadySelected = prev.memberIds.includes(studentId);
+      const alreadySelected = prev.memberIds.includes(candidateId);
       const memberIds = alreadySelected
-        ? prev.memberIds.filter((id) => id !== studentId)
-        : [...prev.memberIds, studentId];
-      const leaderId = alreadySelected && prev.leaderId === studentId
+        ? prev.memberIds.filter((id) => id !== candidateId)
+        : [...prev.memberIds, candidateId];
+      const currentLeaderId = toNumber(prev.leaderId);
+      const leaderId = alreadySelected && currentLeaderId === candidateId
         ? memberIds[0] || ''
-        : prev.leaderId || (!alreadySelected && memberIds.length === 1 ? studentId : prev.leaderId);
+        : prev.leaderId || (!alreadySelected && memberIds.length === 1 ? candidateId : prev.leaderId);
       return {
         ...prev,
         memberIds,
@@ -847,16 +1185,34 @@ const ClassDetailPage = () => {
   };
 
   const handleLeaderSelect = (studentId) => {
-    setTeamForm((prev) => ({ ...prev, leaderId: studentId }));
+    const candidateId = toNumber(studentId) ?? studentId;
+    setTeamForm((prev) => ({ ...prev, leaderId: candidateId }));
   };
 
   const handleProjectSelect = (projectId) => {
-    setTeamForm((prev) => ({ ...prev, projectId }));
+    const candidateId = toNumber(projectId) ?? projectId;
+    setTeamForm((prev) => ({ ...prev, projectId: candidateId }));
   };
 
-  const handleCreateTeam = () => {
-    if (!teamForm.name.trim()) {
+  const handleCreateTeam = async () => {
+    if (isCreateTeamSubmitting) {
+      return;
+    }
+
+    setHasAttemptedCreateTeam(true);
+
+    const trimmedName = teamForm.name.trim();
+
+    if (!trimmedName) {
       setTeamFormError('Provide a team name to continue.');
+      return;
+    }
+    if (trimmedName.length < 3 || trimmedName.length > 100) {
+      setTeamFormError('Team name must be between 3 and 100 characters.');
+      return;
+    }
+    if (!teamForm.enrolKey.trim()) {
+      setTeamFormError('Provide an enrollment key for this team.');
       return;
     }
     if (teamForm.memberIds.length < 2) {
@@ -867,48 +1223,107 @@ const ClassDetailPage = () => {
       setTeamFormError('Choose a project from the class pool.');
       return;
     }
+    if (!teamForm.createdDate) {
+      setTeamFormError('Select a start date for the team.');
+      return;
+    }
+    if (!teamForm.endDate) {
+      setTeamFormError('Select an end date for the team.');
+      return;
+    }
 
     const selectedProject = classProjects.find((project) => project.id === teamForm.projectId) || null;
-    const selectedMembers = students.filter((student) => teamForm.memberIds.includes(student.id));
-    const leaderId = teamForm.leaderId || teamForm.memberIds[0];
-    const color = teamForm.color || TEAM_COLOR_SWATCHES[0];
+    const projectAssignmentId = toNumber(
+      selectedProject?.projectAssignmentId ?? projectAssignmentLookup.get(selectedProject?.id)
+    );
 
-    const newTeam = {
-      id: `${teamForm.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`,
-      name: teamForm.name.trim(),
-      color,
-      project: selectedProject,
-      projectId: selectedProject?.id || null,
-      members: selectedMembers.map((member) => ({
-        ...member,
-        team: teamForm.name.trim(),
-        teamColor: color,
-        role: member.id === leaderId ? 'leader' : 'member',
-      })),
-      avgProgress: selectedMembers.length
-        ? Math.round(
-            selectedMembers.reduce((total, member) => total + (member.progress || 0), 0) /
-              selectedMembers.length
-          )
-        : 0,
+    if (selectedProject && projectAssignmentId === null) {
+      setTeamFormError('Selected project is missing its class assignment reference.');
+      return;
+    }
+
+    const leaderId = toNumber(teamForm.leaderId || teamForm.memberIds[0]);
+    if (leaderId === null) {
+      setTeamFormError('Assign a team leader before continuing.');
+      return;
+    }
+    if (!teamForm.memberIds.includes(leaderId)) {
+      setTeamFormError('The selected leader must also be a team member.');
+      return;
+    }
+
+    const selectedMembers = students.filter((student) => teamForm.memberIds.includes(student.id));
+    const memberPayload = selectedMembers
+      .map((member) => {
+        const memberStudentId = toNumber(member.studentId ?? member.id);
+        const memberClassId = toNumber(
+          member.classId ?? resolvedClassIdentifier ?? numericClassId ?? classSummary.id
+        );
+        if (memberStudentId === null || memberClassId === null) {
+          return null;
+        }
+        return {
+          studentId: memberStudentId,
+          classId: memberClassId,
+        };
+      })
+      .filter(Boolean);
+
+    if (memberPayload.length !== selectedMembers.length) {
+      setTeamFormError('Unable to resolve identifiers for one or more selected students.');
+      return;
+    }
+
+    if (resolvedClassIdentifier === null) {
+      setTeamFormError('Class identifier is missing. Please reopen the class and try again.');
+      return;
+    }
+
+    if (resolvedLecturerId === null) {
+      setTeamFormError('Lecturer context is missing. Please sign in again.');
+      return;
+    }
+
+    if (projectAssignmentId === null) {
+      setTeamFormError('Select a project that is assigned to this class.');
+      return;
+    }
+
+    const payload = {
+      teamName: trimmedName,
+      enrolKey: teamForm.enrolKey.trim(),
+      description: teamForm.description.trim(),
+      gitLink: teamForm.gitLink.trim(),
+      leaderId,
+      classId: resolvedClassIdentifier,
+      projectAssignmentId,
+      lecturerId: resolvedLecturerId,
+      createdDate: teamForm.createdDate,
+      endDate: teamForm.endDate,
+      studentList: memberPayload,
     };
 
-    setTeams((prev) => [...prev, newTeam]);
-    setStudents((prev) => prev.map((student) => {
-      if (!teamForm.memberIds.includes(student.id)) {
-        return student;
-      }
-      return {
-        ...student,
-        team: newTeam.name,
-        teamColor: color,
-        role: student.id === leaderId ? 'leader' : 'member',
-      };
-    }));
+    try {
+      setIsCreateTeamSubmitting(true);
+      setTeamFormError('');
+      await createTeam(payload);
+      toast.success('Team created successfully.');
+      setShowTeamToast(true);
+      setIsCreateTeamOpen(false);
+      setTeamForm(createEmptyTeamForm(TEAM_COLOR_SWATCHES[teams.length % TEAM_COLOR_SWATCHES.length]));
+      setMemberSearchTerm('');
+      setProjectSearchTerm('');
     setSelectedStudents(new Set());
-    setTeamFormError('');
-    setIsCreateTeamOpen(false);
-    setShowTeamToast(true);
+      setHasAttemptedCreateTeam(false);
+      await refreshClassDetail();
+      await refreshClassProjects();
+    } catch (error) {
+      const message = error?.response?.data?.message ?? 'Unable to create team right now.';
+      setTeamFormError(message);
+      toast.error(message);
+    } finally {
+      setIsCreateTeamSubmitting(false);
+    }
   };
 
   const toggleStudentSelection = (studentId) => {
@@ -1055,7 +1470,7 @@ const ClassDetailPage = () => {
           </label>
           <button type="button" className={styles.primaryToolbarButton} onClick={() => setIsCreateTeamOpen(true)}>
             <PlusIcon className="w-4 h-4" />
-            Smart team
+            Create team
           </button>
         </div>
       </div>
@@ -1099,88 +1514,105 @@ const ClassDetailPage = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredStudents.map((student) => (
-                <tr
-                  key={student.id}
-                  className={`${styles.tableRow} ${selectedStudents.has(student.id) ? styles.selected : ''}`}
-                >
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={selectedStudents.has(student.id)}
-                      onChange={() => toggleStudentSelection(student.id)}
-                      className={`${styles.checkbox} ${selectedStudents.has(student.id) ? styles.checked : ''}`}
-                    />
-                  </td>
-                  <td>
-                    <div className={styles.studentIdentity}>
-                      <div 
-                        className={styles.avatar}
-                        style={{ backgroundColor: student.teamColor || '#94a3b8' }}
-                      >
-                        {student.avatar}
+              {filteredStudents.map((student) => {
+                const progressValue = clampPercentage(student.progress ?? 0);
+                const completedTasks = Number.isFinite(Number(student.tasksCompleted))
+                  ? Number(student.tasksCompleted)
+                  : null;
+                const totalTaskCount = Number.isFinite(Number(student.totalTasks))
+                  ? Number(student.totalTasks)
+                  : null;
+                const taskSummary =
+                  completedTasks !== null && totalTaskCount !== null
+                    ? `${completedTasks}/${totalTaskCount}`
+                    : '—';
+                const lastSubmissionLabel = student.lastSubmission
+                  ? new Date(student.lastSubmission).toLocaleDateString()
+                  : '—';
+
+                return (
+                  <tr
+                    key={student.id}
+                    className={`${styles.tableRow} ${selectedStudents.has(student.id) ? styles.selected : ''}`}
+                  >
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedStudents.has(student.id)}
+                        onChange={() => toggleStudentSelection(student.id)}
+                        className={`${styles.checkbox} ${selectedStudents.has(student.id) ? styles.checked : ''}`}
+                      />
+                    </td>
+                    <td>
+                      <div className={styles.studentIdentity}>
+                        <div
+                          className={styles.avatar}
+                          style={{ backgroundColor: student.teamColor || '#94a3b8' }}
+                        >
+                          {student.avatar}
+                        </div>
+                        <div className={styles.studentMeta}>
+                          <span className={styles.studentName}>{student.name}</span>
+                          <span className={styles.studentEmail}>{student.email || 'No email on file'}</span>
+                        </div>
                       </div>
-                      <div className={styles.studentMeta}>
-                        <span className={styles.studentName}>{student.name}</span>
-                        <span className={styles.studentEmail}>{student.email}</span>
+                    </td>
+                    <td>
+                      {student.team ? (
+                        <span
+                          className={styles.teamBadge}
+                          style={{ '--team-color': student.teamColor }}
+                        >
+                          <span className={styles.teamBadgeDot} style={{ backgroundColor: student.teamColor }} />
+                          {student.team}
+                          {student.role === 'leader' && (
+                            <span className={styles.leaderBadge}>Leader</span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className={styles.unassignedBadge}>Unassigned</span>
+                      )}
+                    </td>
+                    <td>
+                      <div className={styles.progressCell}>
+                        <div className={styles.progressBarContainer}>
+                          <div
+                            className={styles.progressBarFill}
+                            style={{
+                              width: `${progressValue}%`,
+                              backgroundColor: getProgressColor(progressValue),
+                            }}
+                          />
+                        </div>
+                        <span className={styles.progressText}>
+                          {progressValue}% · {taskSummary}
+                        </span>
                       </div>
-                    </div>
-                  </td>
-                  <td>
-                    {student.team ? (
-                      <span 
-                        className={styles.teamBadge}
-                        style={{ '--team-color': student.teamColor }}
-                      >
-                        <span className={styles.teamBadgeDot} style={{ backgroundColor: student.teamColor }} />
-                        {student.team}
-                        {student.role === 'leader' && (
-                          <span className={styles.leaderBadge}>Leader</span>
-                        )}
+                    </td>
+                    <td>
+                      <div className={styles.lastSubmission}>
+                        <DocumentTextIcon className="w-4 h-4" />
+                        <span>{lastSubmissionLabel}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`${styles.statusBadge} ${styles[`status-${student.status}`] || ''}`}>
+                        {student.status}
                       </span>
-                    ) : (
-                      <span className={styles.unassignedBadge}>Unassigned</span>
-                    )}
-                  </td>
-                  <td>
-                    <div className={styles.progressCell}>
-                      <div className={styles.progressBarContainer}>
-                        <div 
-                          className={styles.progressBarFill}
-                          style={{
-                            width: `${student.progress}%`,
-                            backgroundColor: getProgressColor(student.progress)
-                          }}
-                        />
-                      </div>
-                      <span className={styles.progressText}>
-                        {student.progress}% · {student.tasksCompleted}/{student.totalTasks}
-                      </span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className={styles.lastSubmission}>
-                      <DocumentTextIcon className="w-4 h-4" />
-                      <span>{new Date(student.lastSubmission).toLocaleDateString()}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`${styles.statusBadge} ${styles[`status-${student.status}`] || ''}`}>
-                      {student.status}
-                    </span>
-                  </td>
-                  <td className={styles.rowActions}>
-                    <button type="button" className={styles.rowActionButton}>
-                      <EyeIcon className="w-4 h-4" />
-                      View
-                    </button>
-                    <button type="button" className={styles.rowActionButton}>
-                      <ShareIcon className="w-4 h-4" />
-                      Notify
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className={styles.rowActions}>
+                      <button type="button" className={styles.rowActionButton}>
+                        <EyeIcon className="w-4 h-4" />
+                        View
+                      </button>
+                      <button type="button" className={styles.rowActionButton}>
+                        <ShareIcon className="w-4 h-4" />
+                        Notify
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -1363,7 +1795,7 @@ const ClassDetailPage = () => {
           Assign Projects
         </Link>
       </div>
-      
+
       <div className="space-y-4">
         {isClassProjectsLoading ? (
           <div className={styles.moduleState}>
@@ -1377,93 +1809,91 @@ const ClassDetailPage = () => {
           </div>
         ) : (
           classProjects.map((project, index) => {
-            const statusVariant = resolveStatusVariant(project.statusToken);
             const stats = extractProjectStats(project, classTotalStudents);
             const progressPercent = calculateProjectProgress(project, stats, classTotalStudents);
             const completionLabel = stats.total > 0
               ? `${Math.min(stats.completed, stats.total)}/${stats.total} completed`
               : `${stats.completed} completed`;
             const dueDateLabel = project.dueDate ? formatDateLabel(project.dueDate) : 'TBA';
+            const estimatedLabel = stats.estimated ? `${stats.estimated} hrs` : null;
+            const statusVariant = resolveStatusVariant(project.statusToken ?? project.status);
             const progressColor = PROGRESS_COLOR_BY_STATUS[statusVariant] ?? '#3b82f6';
             const resourcesLabel = `${stats.resources} resource${stats.resources === 1 ? '' : 's'}`;
             const assignmentsLabel = `${stats.assignments} assignment${stats.assignments === 1 ? '' : 's'}`;
-            const estimatedLabel = stats.estimated !== null ? `${stats.estimated}h estimated` : null;
 
             return (
-              <div key={project.id} className={styles.moduleCard}>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className={`${styles.moduleIndex} ${styles[`status-${statusVariant}`]}`}>
-                      {index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-3 mb-2">
-                        <h4 className={styles.moduleTitle}>{project.name}</h4>
-                        <span className={`${styles.statusBadge} ${styles[`status-${statusVariant}`]}`}>
-                          {project.status}
+              <div key={project.id ?? index} className={styles.moduleCard}>
+                <div className="flex items-start gap-4 flex-1">
+                  <div className={`${styles.moduleIndex} ${styles[`status-${statusVariant}`]}`}>
+                    {index + 1}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-3 mb-2">
+                      <h4 className={styles.moduleTitle}>{project.name}</h4>
+                      <span className={`${styles.statusBadge} ${styles[`status-${statusVariant}`]}`}>
+                        {project.status}
+                      </span>
+                      {(project.tags ?? []).slice(0, 2).map((tag) => (
+                        <span key={tag} className={styles.projectBadge}>
+                          {tag}
                         </span>
-                        {(project.tags ?? []).slice(0, 2).map((tag) => (
-                          <span key={tag} className={styles.projectBadge}>
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                      <p className={styles.moduleDescription}>{project.summary}</p>
+                      ))}
+                    </div>
+                    <p className={styles.moduleDescription}>{project.summary}</p>
 
-                      <div className="flex flex-wrap items-center gap-6 mt-3 text-sm text-slate-600">
-                        <div className="flex items-center gap-1">
-                          <UserGroupIcon className="w-4 h-4" />
-                          <span>{completionLabel}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <FolderIcon className="w-4 h-4" />
-                          <span>{resourcesLabel}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <DocumentTextIcon className="w-4 h-4" />
-                          <span>{assignmentsLabel}</span>
-                        </div>
-                        {estimatedLabel && (
-                          <div className="flex items-center gap-1">
-                            <ClockIcon className="w-4 h-4" />
-                            <span>{estimatedLabel}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1">
-                          <CalendarIcon className="w-4 h-4" />
-                          <span>Due: {dueDateLabel}</span>
-                        </div>
+                    <div className="flex flex-wrap items-center gap-6 mt-3 text-sm text-slate-600">
+                      <div className="flex items-center gap-1">
+                        <UserGroupIcon className="w-4 h-4" />
+                        <span>{completionLabel}</span>
                       </div>
+                      <div className="flex items-center gap-1">
+                        <FolderIcon className="w-4 h-4" />
+                        <span>{resourcesLabel}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <DocumentTextIcon className="w-4 h-4" />
+                        <span>{assignmentsLabel}</span>
+                      </div>
+                      {estimatedLabel && (
+                        <div className="flex items-center gap-1">
+                          <ClockIcon className="w-4 h-4" />
+                          <span>{estimatedLabel}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <CalendarIcon className="w-4 h-4" />
+                        <span>Due: {dueDateLabel}</span>
+                      </div>
+                    </div>
 
-                      <div className="mt-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-slate-700">Progress</span>
-                          <span className="text-sm font-medium text-slate-900">{progressPercent}%</span>
-                        </div>
-                        <div className={styles.progressBarContainer}>
-                          <div
-                            className={styles.progressBarFill}
-                            style={{
-                              width: `${progressPercent}%`,
-                              backgroundColor: progressColor,
-                            }}
-                          />
-                        </div>
+                    <div className="mt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-slate-700">Progress</span>
+                        <span className="text-sm font-medium text-slate-900">{progressPercent}%</span>
+                      </div>
+                      <div className={styles.progressBarContainer}>
+                        <div
+                          className={styles.progressBarFill}
+                          style={{
+                            width: `${progressPercent}%`,
+                            backgroundColor: progressColor,
+                          }}
+                        />
                       </div>
                     </div>
                   </div>
+                </div>
 
-                  <div className="flex items-center gap-2">
-                    <button className={styles.iconButton} aria-label={`View ${project.name} project`}>
-                      <EyeIcon className="w-4 h-4" />
-                    </button>
-                    <button className={styles.iconButton} aria-label={`Edit ${project.name} project`}>
-                      <PencilIcon className="w-4 h-4" />
-                    </button>
-                    <button className={styles.iconButton} aria-label={`Share ${project.name} project`}>
-                      <ShareIcon className="w-4 h-4" />
-                    </button>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <button className={styles.iconButton} aria-label={`View ${project.name} project`}>
+                    <EyeIcon className="w-4 h-4" />
+                  </button>
+                  <button className={styles.iconButton} aria-label={`Edit ${project.name} project`}>
+                    <PencilIcon className="w-4 h-4" />
+                  </button>
+                  <button className={styles.iconButton} aria-label={`Share ${project.name} project`}>
+                    <ShareIcon className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             );
@@ -1625,10 +2055,18 @@ const ClassDetailPage = () => {
       return null;
     }
 
-  const selectedMembersList = students.filter((student) => teamForm.memberIds.includes(student.id));
-  const selectedLeader = selectedMembersList.find((student) => student.id === teamForm.leaderId) || null;
-  const linkedProject = classProjects.find((project) => project.id === teamForm.projectId) || null;
-  const accentHex = teamForm.color ? teamForm.color.toUpperCase() : '--';
+    const selectedMembersList = students.filter((student) => teamForm.memberIds.includes(student.id));
+    const selectedLeader = selectedMembersList.find((student) => student.id === teamForm.leaderId) || null;
+    const linkedProject = classProjects.find((project) => project.id === teamForm.projectId) || null;
+    const accentHex = teamForm.color ? teamForm.color.toUpperCase() : '--';
+    const enrolKeyValue = teamForm.enrolKey.trim();
+    const repositoryLabel = teamForm.gitLink.trim() || 'Link optional';
+    const startDateLabel = teamForm.createdDate || 'Select date';
+    const endDateLabel = teamForm.endDate || 'Select date';
+    const enrolKeyValid = enrolKeyValue.length > 0;
+    const memberCountValid = teamForm.memberIds.length >= 2;
+    const timelineValid = Boolean(teamForm.createdDate && teamForm.endDate);
+    const teamSnapshotReady = memberCountValid && hasLeaderSelected && hasSelectedProject;
 
     return (
       <div className={styles.teamOverlay}>
@@ -1656,19 +2094,55 @@ const ClassDetailPage = () => {
 
           <div className={styles.panelBody}>
             <div className={styles.panelSection}>
-              <label className={styles.sectionLabel} htmlFor="team-name">Team name</label>
+              <div className={styles.fieldHeaderRow}>
+                <label className={styles.sectionLabel} htmlFor="team-name">Team name</label>
+                <FieldStatusBadge
+                  isValid={isTeamNameLengthValid}
+                  validText=""
+                  invalidText={trimmedTeamName.length === 0 ? 'Required' : '3-100 chars'}
+                />
+              </div>
               <input
                 id="team-name"
                 type="text"
                 value={teamForm.name}
                 onChange={handleTeamInputChange('name')}
                 placeholder="e.g. Team Delta"
-                className={styles.panelInput}
+                className={`${styles.panelInput} ${
+                  hasAttemptedCreateTeam && !isTeamNameLengthValid ? styles.inputInvalid : ''
+                }`}
               />
+              {hasAttemptedCreateTeam && !isTeamNameLengthValid && (
+                <p className={styles.fieldErrorMessage}>Team name must be between 3 and 100 characters.</p>
+              )}
             </div>
 
             <div className={styles.panelSection}>
-              <label className={styles.sectionLabel} htmlFor="team-description">Team mission (optional)</label>
+              <div className={styles.fieldHeaderRow}>
+                <label className={styles.sectionLabel} htmlFor="team-enrol-key">Enrollment key</label>
+                <FieldStatusBadge
+                  isValid={enrolKeyValid}
+                  validText=""
+                  invalidText="Required"
+                />
+              </div>
+              <input
+                id="team-enrol-key"
+                type="text"
+                value={teamForm.enrolKey}
+                onChange={handleTeamInputChange('enrolKey')}
+                placeholder="e.g. TEAM-2025-A"
+                className={`${styles.panelInput} ${
+                  hasAttemptedCreateTeam && !enrolKeyValid ? styles.inputInvalid : ''
+                }`}
+              />
+              {hasAttemptedCreateTeam && !enrolKeyValid && (
+                <p className={styles.fieldErrorMessage}>Provide an enrollment key for this team.</p>
+              )}
+            </div>
+
+            <div className={styles.panelSection}>
+              <label className={styles.sectionLabel} htmlFor="team-description">Team Description</label>
               <textarea
                 id="team-description"
                 value={teamForm.description}
@@ -1680,90 +2154,68 @@ const ClassDetailPage = () => {
             </div>
 
             <div className={styles.panelSection}>
-              <span className={styles.sectionLabel}>Accent color</span>
-              <div className={styles.colorRow}>
-                <input
-                  type="color"
-                  value={teamForm.color}
-                  onChange={handleTeamInputChange('color')}
-                  className={styles.colorPicker}
-                  aria-label="Pick a custom color"
-                />
-                <div className={styles.colorSwatches}>
-                  {TEAM_COLOR_SWATCHES.map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => handleColorSwatchSelect(color)}
-                      className={`${styles.colorSwatch} ${teamForm.color === color ? styles.active : ''}`}
-                      style={{ background: color }}
-                      aria-label={`Use ${color} accent`}
-                    />
-                  ))}
-                </div>
-              </div>
+              <label className={styles.sectionLabel} htmlFor="team-git-link">Repository URL</label>
+              <input
+                id="team-git-link"
+                type="url"
+                value={teamForm.gitLink}
+                onChange={handleTeamInputChange('gitLink')}
+                placeholder="https://github.com/org/repo"
+                className={styles.panelInput}
+              />
             </div>
 
-            <div className={styles.panelSection}>
-              <span className={styles.sectionLabel}>Team snapshot</span>
-              <div className={styles.summaryGrid}>
-                <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>Team name</span>
-                  <span className={styles.summaryValue}>{teamForm.name.trim() || 'Not set'}</span>
-                </div>
-                <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>Project</span>
-                  <span className={styles.summaryValue}>
-                    {linkedProject ? linkedProject.name : 'Select a project'}
-                  </span>
-                </div>
-                <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>Leader</span>
-                  <span className={styles.summaryValue}>
-                    {selectedLeader ? selectedLeader.name : 'Assign a leader'}
-                  </span>
-                </div>
-                <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>Members</span>
-                  <div className={styles.summaryMembers}>
-                    {selectedMembersList.length === 0 ? (
-                      <span className={styles.summaryPlaceholder}>No members yet</span>
-                    ) : (
-                      selectedMembersList.slice(0, 4).map((member) => (
-                        <span
-                          key={member.id}
-                          className={styles.summaryMemberChip}
-                          style={{ background: teamForm.color || '#6366f1' }}
-                        >
-                          {member.avatar}
-                        </span>
-                      ))
-                    )}
-                    {selectedMembersList.length > 4 && (
-                      <span className={styles.summaryOverflow}>+{selectedMembersList.length - 4}</span>
-                    )}
-                  </div>
-                </div>
-                <div className={styles.summaryItem}>
-                  <span className={styles.summaryLabel}>Accent</span>
-                  <div className={styles.summaryAccent}>
-                    <span className={styles.summaryColor} style={{ background: teamForm.color || '#6366f1' }} />
-                    <span className={styles.summaryValueMono}>{accentHex}</span>
-                  </div>
-                </div>
-                <div className={`${styles.summaryItem} ${styles.summaryItemWide}`}>
-                  <span className={styles.summaryLabel}>Mission statement</span>
-                  <span className={styles.summaryValueMulti}>
-                    {teamForm.description.trim() ? teamForm.description : 'Add a short mission statement to inspire the team.'}
-                  </span>
-                </div>
+            <div className={`${styles.panelSection} ${styles.panelSectionFull}`}>
+              <div className={styles.fieldHeaderRow}>
+                <span className={styles.sectionLabel}>Timeline</span>
+                <FieldStatusBadge
+                  isValid={timelineValid}
+                  validText=""
+                  invalidText="Set dates"
+                />
               </div>
+              <div className={styles.dateGrid}>
+                <label className={styles.dateField} htmlFor="team-start-date">
+                  <span>Start date</span>
+                  <input
+                    id="team-start-date"
+                    type="date"
+                    value={teamForm.createdDate}
+                    onChange={handleTeamInputChange('createdDate')}
+                    className={`${styles.panelInput} ${
+                      hasAttemptedCreateTeam && !teamForm.createdDate ? styles.inputInvalid : ''
+                    }`}
+                  />
+                </label>
+                <label className={styles.dateField} htmlFor="team-end-date">
+                  <span>End date</span>
+                  <input
+                    id="team-end-date"
+                    type="date"
+                    value={teamForm.endDate}
+                    onChange={handleTeamInputChange('endDate')}
+                    className={`${styles.panelInput} ${
+                      hasAttemptedCreateTeam && !teamForm.endDate ? styles.inputInvalid : ''
+                    }`}
+                  />
+                </label>
+              </div>
+              {hasAttemptedCreateTeam && !timelineValid && (
+                <p className={styles.fieldErrorMessage}>Set both start and end dates for this team.</p>
+              )}
             </div>
 
             <div className={`${styles.panelSection} ${styles.panelSectionFull}`}>
               <div className={styles.sectionHeaderRow}>
-                <span className={styles.sectionLabel}>Select members</span>
-                <span className={styles.sectionHint}>{teamForm.memberIds.length} selected</span>
+                <div className={styles.sectionLabelGroup}>
+                  <span className={styles.sectionLabel}>Select members</span>
+                  <span className={styles.sectionHint}>{teamForm.memberIds.length} selected</span>
+                </div>
+                <FieldStatusBadge
+                  isValid={memberCountValid && hasLeaderSelected}
+                  validText=""
+                  invalidText={memberCountValid ? 'Assign leader' : 'Pick 2+'}
+                />
               </div>
               <input
                 type="text"
@@ -1827,12 +2279,24 @@ const ClassDetailPage = () => {
                   })
                 )}
               </div>
+              {hasAttemptedCreateTeam && memberCountValid === false && (
+                <p className={styles.fieldErrorMessage}>Pick at least two students to form a new team.</p>
+              )}
+              {hasAttemptedCreateTeam && !hasLeaderSelected && (
+                <p className={styles.fieldErrorMessage}>Assign a leader from the selected members.</p>
+              )}
             </div>
 
             <div className={`${styles.panelSection} ${styles.panelSectionFull}`}>
               <div className={styles.sectionHeaderRow}>
-                <span className={styles.sectionLabel}>Link a project</span>
-                <span className={styles.sectionHint}>Required</span>
+                <div className={styles.sectionLabelGroup}>
+                  <span className={styles.sectionLabel}>Link a project</span>
+                </div>
+                <FieldStatusBadge
+                  isValid={hasSelectedProject}
+                  validText=""
+                  invalidText="Select project"
+                />
               </div>
               <input
                 type="text"
@@ -1894,7 +2358,7 @@ const ClassDetailPage = () => {
                 onClick={handleCreateTeam}
                 disabled={!canSubmitTeam}
               >
-                Create Team
+                {isCreateTeamSubmitting ? 'Creating...' : 'Create Team'}
               </button>
             </div>
           </div>
@@ -1913,8 +2377,6 @@ const ClassDetailPage = () => {
               <ArrowLeftIcon className="w-4 h-4 mr-1" />
               Back to Classes
             </a>
-            <span className="text-gray-300">•</span>
-            <span className="font-medium text-gray-600">{classData.code}</span>
           </div>
 
           <div className={styles.headerGrid}>
@@ -1931,7 +2393,7 @@ const ClassDetailPage = () => {
               </div>
 
               <h1 className={styles.title}>
-                {classData.code} · {classData.name}
+                {classData.name}
               </h1>
               <p className={styles.description}>{classData.description}</p>
 
@@ -2022,19 +2484,6 @@ const ClassDetailPage = () => {
                   </span>
                 </div>
               </div>
-              <div className={styles.metricSparkline} aria-hidden="true">
-                {moduleProgressSparkline.map((value, index) => (
-                  <span
-                    key={index}
-                    className={styles.sparklineBar}
-                    style={{ height: `${Math.max(value, 12)}%` }}
-                  />
-                ))}
-              </div>
-              <footer className={styles.metricFooter}>
-                <span className={styles.metricFootnote}>Milestone coverage</span>
-                <span className={styles.metricFootnoteValue}>{averageTaskCompletionRate}% avg task completion</span>
-              </footer>
             </article>
 
             <article className={styles.metricCard} data-tone="sunset">

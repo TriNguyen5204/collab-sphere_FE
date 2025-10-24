@@ -120,11 +120,11 @@ const LoginPage = () => {
                 <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(59,130,246,0.18)_0%,transparent_40%,rgba(99,102,241,0.18)_75%,transparent_100%)]" />
               </div>
               <div className="relative">
-                <div className="inline-flex items-center gap-3 rounded-2xl bg-white/15 px-4 py-2 backdrop-blur-xl">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
+                <div className="inline-flex items-center gap-3 px-4 py-2 backdrop-blur-xl">
+                  <div className="flex h-10 w-10 items-center justify-center">
                     <img src={logo} alt="CollabSphere" className="h-8 w-8" />
                   </div>
-                  <span className="text-sm font-semibold tracking-wide text-blue-50/90 uppercase">CollabSphere OS</span>
+                  <span className="text-sm font-semibold tracking-wide text-blue-50/90 uppercase">CollabSphere</span>
                 </div>
                 <h2 className="mt-8 text-4xl font-semibold leading-tight tracking-tight">Orchestrate collaborative excellence in one space.</h2>
                 <p className="mt-4 max-w-sm text-base text-blue-100/90">
@@ -161,7 +161,7 @@ const LoginPage = () => {
             <div className="relative">
               <div className="px-8 py-10 sm:px-10 lg:px-12 lg:py-12">
                 <div className="mb-8 flex items-center justify-center gap-3 lg:justify-start">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-50/90 via-white/60 to-indigo-50/80 text-indigo-600 shadow-inner shadow-blue-900/10">
+                  <div className="flex h-12 w-12 items-center justify-center from-blue-50/90 via-white/60 to-indigo-50/80 text-indigo-600 shadow-blue-900/10">
                     <img src={logo} alt="CollabSphere" className="h-8 w-8" />
                   </div>
                   <div className="text-center lg:text-left">
