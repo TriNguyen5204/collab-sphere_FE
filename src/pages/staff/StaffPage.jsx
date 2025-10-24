@@ -7,9 +7,9 @@ const StaffPage = () => {
   const navigate = useNavigate();
   const cards = [
     {
-      title: 'Manage lecturer',
+      title: 'Manage account',
       icon: lecturerIcon,
-      description: 'Easily manage lecturer profiles and assignments',
+      description: 'Easily manage lecturer account and student account',
       navigator: '/staff/lecturers',
     },
     {

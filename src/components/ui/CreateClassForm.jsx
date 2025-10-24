@@ -4,8 +4,16 @@ import {
   getAllStudent,
   getAllLecturer,
   getAllSubject,
+  getSemester,
 } from '../../services/userService';
-import { Check, Users, BookOpen, UserCheck, Eye } from 'lucide-react';
+import {
+  Check,
+  Users,
+  BookOpen,
+  UserCheck,
+  Eye,
+  CalendarDays,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 const CreateClassForm = ({ onClose }) => {
@@ -13,10 +21,13 @@ const CreateClassForm = ({ onClose }) => {
   const [students, setStudents] = useState([]);
   const [lecturers, setLecturers] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [semester, setSemester] = useState([]);
+  const [apiErrors, setApiErrors] = useState([]);
 
   const [formData, setFormData] = useState({
     className: '',
     subjectId: '',
+    semesterId: '',
     lecturerId: '',
     enrolKey: '',
     studentIds: [],
@@ -27,14 +38,17 @@ const CreateClassForm = ({ onClose }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [studentsData, lecturersData, subjectsData] = await Promise.all([
-          getAllStudent(),
-          getAllLecturer(),
-          getAllSubject(),
-        ]);
+        const [studentsData, lecturersData, subjectsData, semesterData] =
+          await Promise.all([
+            getAllStudent(),
+            getAllLecturer(),
+            getAllSubject(),
+            getSemester(),
+          ]);
         setStudents(studentsData.list || []);
         setLecturers(lecturersData.list || []);
         setSubjects(subjectsData || []);
+        setSemester(semesterData);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -85,8 +99,12 @@ const CreateClassForm = ({ onClose }) => {
       });
       setStep(1);
     } catch (error) {
-      console.error('❌ Error creating class:', error);
-      toast.error('Failed to create class!');
+      const apiErrorList = error?.response?.data?.errorList || [];
+      setApiErrors(apiErrorList);
+
+      if (!apiErrorList.length) {
+        toast.error(error.message || 'Đã xảy ra lỗi khi import');
+      }
     }
   };
 
@@ -189,6 +207,25 @@ const CreateClassForm = ({ onClose }) => {
                     {subjects.map(subj => (
                       <option key={subj.subjectId} value={subj.subjectId}>
                         {subj.subjectName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {/* Semester */}
+                <div>
+                  <label className='block text-sm font-semibold text-gray-700 mb-2'>
+                    Semester
+                  </label>
+                  <select
+                    name='semesterId'
+                    value={formData.semesterId}
+                    onChange={handleChange}
+                    className='w-full border-2 border-gray-200 rounded-xl p-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none'
+                  >
+                    <option value=''>Select a semester</option>
+                    {semester.map(sem => (
+                      <option key={sem.semesterId} value={sem.semesterId}>
+                        {sem.semesterName}
                       </option>
                     ))}
                   </select>
@@ -359,6 +396,14 @@ const CreateClassForm = ({ onClose }) => {
                   }
                 />
                 <InfoRow
+                  icon={<CalendarDays />}
+                  label='Semester'
+                  value={
+                    semester.find(s => s.semesterId == formData.semesterId)
+                      ?.semesterName || 'N/A'
+                  }
+                />
+                <InfoRow
                   icon={<BookOpen />}
                   label='Join Code'
                   value={formData.enrolKey}
@@ -401,6 +446,19 @@ const CreateClassForm = ({ onClose }) => {
           )}
         </div>
       </div>
+      {/* errorList */}
+      {apiErrors.length > 0 && (
+        <div className='mt-4 p-4 bg-red-50 border border-red-300 rounded-md'>
+          <h3 className='text-red-600 font-semibold mb-2'>Danh sách lỗi:</h3>
+          <ul className='list-disc list-inside text-red-700'>
+            {apiErrors.map((err, index) => (
+              <li key={index}>
+                <strong>{err.field}</strong>: {err.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };

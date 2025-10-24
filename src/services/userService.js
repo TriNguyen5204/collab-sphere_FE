@@ -247,6 +247,15 @@ export const getAllAccount = async () => {
   }
 };
 //head of department
+export const getSemester = async () => {
+  try{
+    const response = await apiClient.get('/semester');
+    return response.data;
+  }catch(error){
+    console.log('Error fetching data', error)
+    throw error
+  }
+}
 export const createMultipleSubjects = async data => {
   try {
     const formData = new FormData();
