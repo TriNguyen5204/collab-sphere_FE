@@ -60,7 +60,7 @@ const StudentHomePage = () => {
   const navigate = useNavigate();
 
   const handleCardClick = (project) => {
-    navigate(`/student/project/${project.ProjectId}/${encodeURIComponent(project.ProjectName)}`);
+    navigate(`/student/project/${project.ProjectId}/${encodeURIComponent(project.ProjectName)}/team-workspace`);
   };
 
 

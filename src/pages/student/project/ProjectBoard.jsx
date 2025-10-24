@@ -6,14 +6,6 @@ import TrelloBoard from '../../../components/student/board/TrelloBoard';
 const ProjectBoard = () => {
   const [selectedRole, setSelectedRole] = useState('all');
 
-
-  const location = useLocation();
-  const params = useParams();
-  const routeProjectId = params.projectId || params.id; // supports :projectId or :id
-  const queryProjectId = new URLSearchParams(location.search).get('projectId');
-  const activeProjectId = routeProjectId || queryProjectId;
-
-
   // Archived items state
   const [archivedItems, setArchivedItems] = useState({ cards: [], lists: [] });
   const boardRef = useRef(null);

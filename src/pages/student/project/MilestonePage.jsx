@@ -12,7 +12,7 @@ import { useSelector } from 'react-redux';
 import { toast } from 'sonner';
 
 const MilestonePage = () => {
-  const { id } = useParams();
+  const { teamId } = useParams();
   const [milestones, setMilestones] = useState([]);
   const [selectedMilestone, setSelectedMilestone] = useState(null);
   const [answers, setAnswers] = useState({});
@@ -94,7 +94,7 @@ const MilestonePage = () => {
     });
     const completedAnswers = questions.filter((q) => (q.answers?.length ?? 0) > 0).length;
 
-  const cpRaw = detail?.checkpoints || detail?.checkpointList || [];
+    const cpRaw = detail?.checkpoints || detail?.checkpointList || [];
     const checkpoints = cpRaw.map((cp) => {
       const submissions = (cp.submissions || cp.attachments || []).map((s, idx) => ({
         id: s.id ?? s.submissionId ?? idx,
@@ -115,14 +115,13 @@ const MilestonePage = () => {
         teamRole: a.teamRole,
         teamRoleString: a.teamRoleString,
       }));
-  // Normalize checkpoint status supporting numeric 0/1 or string variants
-  const statusRaw = cp.statusString ?? cp.status ?? 'NOT_DONE';
-  let statusString;
-  if (statusRaw === 0 || statusRaw === '0' || statusRaw === false) statusString = 'NOT_DONE';
-  else if (statusRaw === 1 || statusRaw === '1' || statusRaw === true) statusString = 'DONE';
-  else statusString = typeof statusRaw === 'string' ? statusRaw : 'NOT_DONE';
-  const uiStatusMap = { NOT_DONE: 'pending', IN_PROGRESS: 'in-progress', COMPLETED: 'completed', DONE: 'completed', LOCKED: 'locked' };
-  const uiStatus = uiStatusMap[statusString] || (typeof statusString === 'string' ? statusString.toLowerCase() : 'pending');
+      const statusRaw = cp.statusString ?? cp.status ?? 'NOT_DONE';
+      let statusString;
+      if (statusRaw === 0 || statusRaw === '0' || statusRaw === false) statusString = 'NOT_DONE';
+      else if (statusRaw === 1 || statusRaw === '1' || statusRaw === true) statusString = 'DONE';
+      else statusString = typeof statusRaw === 'string' ? statusRaw : 'NOT_DONE';
+      const uiStatusMap = { NOT_DONE: 'pending', IN_PROGRESS: 'in-progress', COMPLETED: 'completed', DONE: 'completed', LOCKED: 'locked' };
+      const uiStatus = uiStatusMap[statusString] || (typeof statusString === 'string' ? statusString.toLowerCase() : 'pending');
       return {
         id: cp.id ?? cp.checkpointId,
         title: cp.title ?? cp.name ?? 'Checkpoint',
@@ -237,10 +236,10 @@ const MilestonePage = () => {
   };
 
   useEffect(() => {
-    if (id) {
-      fetchMilestones(id);
+    if (teamId) {
+      fetchMilestones(teamId);
     }
-  }, [id]);
+  }, [teamId]);
 
   const handleAnswerChange = (questionId, value) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -358,12 +357,11 @@ const MilestonePage = () => {
       );
 
       //refresh details
-  await fetchMilestoneDetail(selectedMilestone.id);
-  setNewCheckpoint({ title: '', description: '', startDate: '', dueDate: '', complexity: 'LOW' });
+      await fetchMilestoneDetail(selectedMilestone.id);
+      setNewCheckpoint({ title: '', description: '', startDate: '', dueDate: '', complexity: 'LOW' });
       setShowCreateModal(false);
       setActiveTab('in-progress');
     } catch (error) {
-      // Prefer backend validation messages, which may be an array of { field, message }
       const data = error?.response?.data;
       let messages = [];
       if (Array.isArray(data)) {
@@ -392,7 +390,7 @@ const MilestonePage = () => {
     setMilestones(updated);
     setShowEditModal(false);
     setSelectedCheckpoint(null);
-  setNewCheckpoint({ title: '', description: '', startDate: '', dueDate: '', complexity: 'LOW' });
+    setNewCheckpoint({ title: '', description: '', startDate: '', dueDate: '', complexity: 'LOW' });
     setSelectedMilestone(updated.find(m => m.id === selectedMilestone.id));
   };
 
@@ -537,7 +535,7 @@ const MilestonePage = () => {
 
   const openEditModal = (checkpoint) => {
     setSelectedCheckpoint(checkpoint);
-  setNewCheckpoint({ title: checkpoint.title, description: checkpoint.description, startDate: checkpoint.startDate || '', dueDate: checkpoint.dueDate });
+    setNewCheckpoint({ title: checkpoint.title, description: checkpoint.description, startDate: checkpoint.startDate || '', dueDate: checkpoint.dueDate });
     setShowEditModal(true);
   };
 
@@ -550,7 +548,7 @@ const MilestonePage = () => {
     setShowCreateModal(false);
     setShowEditModal(false);
     setSelectedCheckpoint(null);
-  setNewCheckpoint({ title: '', description: '', startDate: '', dueDate: '' });
+    setNewCheckpoint({ title: '', description: '', startDate: '', dueDate: '' });
   };
 
   const closeModals = () => {
@@ -655,11 +653,10 @@ const MilestonePage = () => {
                     ? 'Milestone is completed or evaluated. Creating checkpoints is disabled'
                     : undefined
                   }
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition text-white ${
-                    isMilestoneReadOnly
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition text-white ${isMilestoneReadOnly
                       ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-blue-600 hover:bg-blue-700'
-                  }`}
+                    }`}
                 >
                   <Plus size={18} />
                   Create Checkpoint
@@ -752,11 +749,10 @@ const MilestonePage = () => {
                         ? 'Milestone is completed or evaluated. Creating checkpoints is disabled'
                         : undefined
                       }
-                      className={`px-6 py-2 rounded-lg transition text-white ${
-                        isMilestoneReadOnly
+                      className={`px-6 py-2 rounded-lg transition text-white ${isMilestoneReadOnly
                           ? 'bg-gray-400 cursor-not-allowed'
                           : 'bg-blue-600 hover:bg-blue-700'
-                      }`}
+                        }`}
                     >
                       Create Checkpoint
                     </button>

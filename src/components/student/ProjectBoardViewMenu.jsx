@@ -6,25 +6,23 @@ import useClickOutside from '../../hooks/useClickOutside';
 const ProjectBoardViewMenu = () => {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
-  const { id, projectName } = useParams();
+  const { projectId, projectName, teamId, id: legacyTeamId } = useParams();
   const location = useLocation();
 
-  // Ensure paths use the encoded project name to match location.pathname
   const encodedProjectName = encodeURIComponent(projectName ?? '');
+  const effectiveTeamId = teamId || legacyTeamId;
 
   const menuItems = [
-    { name: 'Board', icon: Kanban, path: `/student/project/${id}/${encodedProjectName}` },
-    { name: 'Team Workspace', icon: UsersRound, path: `/student/project/${id}/${encodedProjectName}/team-workspace` },
-    { name: 'Milestones & Checkpoints', icon: Flag, path: `/student/project/${id}/${encodedProjectName}/milestones&checkpoints` },
-    { name: 'Communication', icon: MessageSquare, path: `/student/project/${id}/${encodedProjectName}/communication` },
-    { name: 'Peer Evaluation', icon: ClipboardList, path: `/student/project/${id}/${encodedProjectName}/peer-evaluation` },
+    { name: 'Team Workspace', icon: UsersRound, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/team-workspace` },
+    { name: 'Task Board', icon: Kanban, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}` },
+    { name: 'Milestones & Checkpoints', icon: Flag, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/milestones&checkpoints` },
+    { name: 'Peer Evaluation', icon: ClipboardList, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/peer-evaluation` },
+    { name: 'Communication', icon: MessageSquare, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/communication` },
   ];
 
-  // Helpers for robust matching
   const normalizePath = (p) => (p || '').replace(/\/+$/, '');
   const currentPath = normalizePath(location.pathname);
 
-  // Pick the most specific (longest) matching item so "Board" doesn't win on subpaths
   const activeItem =
     [...menuItems]
       .map(i => ({ ...i, path: normalizePath(i.path) }))
