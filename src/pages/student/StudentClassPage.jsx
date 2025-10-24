@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BookOpen, Users, Calendar } from 'lucide-react';
-import { useNavigate } from 'react-router-dom'; // ADD
+import { useLocation, useNavigate } from 'react-router-dom'; // ADD
 import Header from '../../components/layout/Header';
 import StudentSidebar from '../../components/layout/StudentSidebar';
 import { toast } from 'sonner';
@@ -41,6 +41,7 @@ const StudentClassPage = () => {
       .replace(/(^-|-$)+/g, '');
 
   const navigate = useNavigate(); // ADD
+  const location = useLocation();
 
   const handleViewMembers = () => {
     if (!selectedClass) return;
@@ -110,6 +111,14 @@ const StudentClassPage = () => {
     if (selectedClassId) fetchDetails(selectedClassId);
 
   }, [selectedClassId]);
+
+  // Pick class from navigation state (e.g., search selection)
+  useEffect(() => {
+    const target = location.state?.selectClassId;
+    if (target && classes.some(c => c.classId === target)) {
+      setSelectedClassId(target);
+    }
+  }, [location.state, classes]);
 
   return (
     <StudentLayout>

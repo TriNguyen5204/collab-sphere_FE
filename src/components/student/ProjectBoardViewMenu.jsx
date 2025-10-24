@@ -15,8 +15,7 @@ const ProjectBoardViewMenu = () => {
   const menuItems = [
     { name: 'Board', icon: Kanban, path: `/student/project/${id}/${encodedProjectName}` },
     { name: 'Team Workspace', icon: UsersRound, path: `/student/project/${id}/${encodedProjectName}/team-workspace` },
-    { name: 'Milestones', icon: Flag, path: `/student/project/${id}/${encodedProjectName}/milestones` },
-    { name: 'Checkpoints', icon: CheckSquare, path: `/student/project/${id}/${encodedProjectName}/checkpoints` },
+    { name: 'Milestones & Checkpoints', icon: Flag, path: `/student/project/${id}/${encodedProjectName}/milestones&checkpoints` },
     { name: 'Communication', icon: MessageSquare, path: `/student/project/${id}/${encodedProjectName}/communication` },
     { name: 'Peer Evaluation', icon: ClipboardList, path: `/student/project/${id}/${encodedProjectName}/peer-evaluation` },
   ];
@@ -39,23 +38,27 @@ const ProjectBoardViewMenu = () => {
   useClickOutside(menuRef, () => setOpen(false));
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative w-auto" ref={menuRef}>
       <button
         onClick={() => setOpen(!open)}
-        className={`flex items-center px-3 py-2 rounded transition ${
+        className={`flex items-center justify-between px-3 py-2 rounded transition ${
           open ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
         }`}
+        aria-haspopup="menu"
+        aria-expanded={open}
       >
-        <ActiveIcon className="mr-2" size={18} />
-        <span className="mr-2 font-medium">{activeItem.name}</span>
-        <ChevronDown size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+        <div className="flex items-center gap-2 min-w-0">
+          <ActiveIcon className="shrink-0" size={18} />
+          <span className="font-medium truncate text-left">{activeItem.name}</span>
+        </div>
+        <ChevronDown size={16} className={`ml-2 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <ul className="absolute mt-2 w-56 bg-gray-800 text-white shadow-lg rounded-lg border border-gray-700 text-sm z-10">
+        <ul className="absolute right-0 mt-2 bg-gray-800 text-white shadow-lg rounded-lg border border-gray-700 text-sm z-10 w-max min-w-full whitespace-nowrap">
           {menuItems.map(({ name, icon: Icon, path }) => {
             const normalizedPath = normalizePath(path);
-            const isActive = normalizedPath === activePath; // <-- only highlight the computed active item
+            const isActive = normalizedPath === activePath;
 
             return (
               <li key={name}>

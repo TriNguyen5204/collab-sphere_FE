@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, MessageSquare, Crown, CheckCircle } from 'lucide-react';
+import { Calendar, MessageSquare, CheckCircle } from 'lucide-react';
 import { getStatusColor } from '../../../utils/milestoneHelpers';
 
 const MilestoneHeader = ({ milestone, isLeader, onComplete }) => {
@@ -38,13 +38,6 @@ const MilestoneHeader = ({ milestone, isLeader, onComplete }) => {
               <p className="text-sm text-gray-600 mb-1">Completed Date</p>
               <p className="font-semibold text-green-600">
                 {new Date(milestone.completedDate).toLocaleDateString()}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Completed By</p>
-              <p className="font-semibold flex items-center gap-2">
-                <Crown className="text-yellow-500" size={16} />
-                {milestone.completedBy}
               </p>
             </div>
           </>

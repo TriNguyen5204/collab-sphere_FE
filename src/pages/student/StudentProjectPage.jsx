@@ -4,15 +4,13 @@ import { useSelector } from "react-redux";
 import StudentLayout from "../../components/layout/StudentLayout";
 import ProjectFilters from "../../components/student/ProjectFilters";
 import ProjectSection from "../../components/student/ProjectSection";
-import { History, Star } from "lucide-react";
+import { History } from "lucide-react";
 import { getListOfTeamsByStudentId } from "../../services/userService";
 
 const StudentProjectPage = () => {
   const navigate = useNavigate();
   const studentId = useSelector((state) => state.user.userId);
 
-  // Cards state
-  const [starred, setStarred] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Data
@@ -23,30 +21,6 @@ const StudentProjectPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const STAR_KEY = "studentProjectStarred";
-
-  // Safe key for any project item 
-  const getProjectKey = useCallback((p) => {
-    const a = p?.projectId ?? "x";
-    const b = p?.teamId ?? "x";
-    const c = p?.classId ?? "x";
-    return String(`${c}-${b}-${a}`);
-  }, []);
-
-  // Load persisted starred
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(STAR_KEY) || "[]");
-      setStarred(Array.isArray(saved) ? saved.map(String) : []);
-    } catch {
-      setStarred([]);
-    }
-  }, []);
-
-  // Persist starred changes
-  useEffect(() => {
-    localStorage.setItem(STAR_KEY, JSON.stringify(starred));
-  }, [starred]);
 
   const fetchTeams = async () => {
     if (!studentId) return;
@@ -70,18 +44,10 @@ const StudentProjectPage = () => {
   }, [studentId]);
 
   const handleCardClick = (team) => {
-    const safeId = team?.projectId;
+    const safeId = team?.teamId;
     const safeName = team?.projectName;
     if (!safeId) return;
     navigate(`/student/project/${safeId}/${encodeURIComponent(safeName)}`);
-  };
-
-  const toggleStar = (e, keyOrId) => {
-    e?.stopPropagation?.();
-    const key = String(keyOrId);
-    setStarred((prev) =>
-      prev.includes(key) ? prev.filter((id) => id !== key) : [...prev, key]
-    );
   };
 
   const classes = useMemo(() => {
@@ -117,16 +83,6 @@ const StudentProjectPage = () => {
     });
   }, [teams, selectedClass, searchQuery, statusFilter]);
 
-  // Starred teams (support both old stored projectId values and new composite keys)
-  const starredTeams = useMemo(() => {
-    if (!starred?.length) return [];
-    const starredSet = new Set(starred.map(String));
-    return teams.filter((t) => {
-      const key = getProjectKey(t);
-      const legacyId = t?.projectId != null ? String(t.projectId) : null;
-      return starredSet.has(key) || (legacyId && starredSet.has(legacyId));
-    });
-  }, [teams, starred, getProjectKey]);
 
   return (
     <StudentLayout>
@@ -154,18 +110,6 @@ const StudentProjectPage = () => {
           </div>
         )}
 
-        {/* Starred Projects Section */}
-        {!loading && starredTeams.length > 0 && (
-          <ProjectSection
-            title="Starred Projects"
-            icon={Star}
-            projects={starredTeams}
-            starred={starred}
-            onToggleStar={toggleStar}
-            onCardClick={handleCardClick}
-          />
-        )}
-
         {/* All Projects */}
         {!loading && (
           <ProjectSection
@@ -176,8 +120,6 @@ const StudentProjectPage = () => {
             }
             icon={History}
             projects={filteredTeams}
-            starred={starred}
-            onToggleStar={toggleStar}
             onCardClick={handleCardClick}
             emptyMessage={
               filteredTeams.length === 0

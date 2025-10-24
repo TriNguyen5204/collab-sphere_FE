@@ -1,19 +1,30 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { GraduationCap, BookOpen, Award, TrendingUp, Edit2, Save } from "lucide-react";
 
-const AcademicInformation = () => {
+const AcademicInformation = ({ user }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [academicData, setAcademicData] = useState({
-    studentId: "ST2024001",
-    program: "Computer Science",
-    year: "3rd Year",
-    semester: "Fall 2024",
-    gpa: "3.85",
-    major: "Software Engineering",
-    minor: "Data Science",
-    expectedGraduation: "2026-05",
-    academicAdvisor: "Dr. Jane Smith",
+    studentId: user?.code || "",
+    program: user?.major || "",
+    year: "",
+    semester: "",
+    gpa: "",
+    major: user?.major || "",
+    minor: "",
+    expectedGraduation: "",
+    academicAdvisor: "",
+    school: user?.school || "",
   });
+
+  useEffect(() => {
+    setAcademicData((prev) => ({
+      ...prev,
+      studentId: user?.code || "",
+      program: user?.major || "",
+      major: user?.major || "",
+      school: user?.school || "",
+    }));
+  }, [user]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -28,18 +39,9 @@ const AcademicInformation = () => {
     // API call to save academic data
   };
 
-  const courses = [
-    { code: "CS301", name: "Data Structures & Algorithms", credits: 4, grade: "A" },
-    { code: "CS302", name: "Database Management Systems", credits: 3, grade: "A-" },
-    { code: "CS303", name: "Web Development", credits: 3, grade: "A" },
-    { code: "MATH201", name: "Discrete Mathematics", credits: 4, grade: "B+" },
-  ];
+  const courses = [];
 
-  const achievements = [
-    { title: "Dean's List", date: "Fall 2023", icon: Award },
-    { title: "Best Project Award", date: "Spring 2024", icon: Award },
-    { title: "Hackathon Winner", date: "Summer 2024", icon: Award },
-  ];
+  const achievements = [];
 
   return (
     <div className="space-y-6">
@@ -79,7 +81,7 @@ const AcademicInformation = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-blue-600 font-medium">Current GPA</p>
-              <p className="text-3xl font-bold text-blue-700">{academicData.gpa}</p>
+              <p className="text-3xl font-bold text-blue-700">{academicData.gpa || "—"}</p>
             </div>
             <TrendingUp className="text-blue-600" size={32} />
           </div>
@@ -88,8 +90,8 @@ const AcademicInformation = () => {
         <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-purple-600 font-medium">Credits Earned</p>
-              <p className="text-3xl font-bold text-purple-700">94</p>
+              <p className="text-sm text-purple-600 font-medium">School</p>
+              <p className="text-xl font-bold text-purple-700">{academicData.school || "—"}</p>
             </div>
             <BookOpen className="text-purple-600" size={32} />
           </div>
@@ -109,7 +111,7 @@ const AcademicInformation = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-orange-600 font-medium">Year Level</p>
-              <p className="text-2xl font-bold text-orange-700">{academicData.year}</p>
+              <p className="text-2xl font-bold text-orange-700">{academicData.year || "—"}</p>
             </div>
             <GraduationCap className="text-orange-600" size={32} />
           </div>
@@ -121,7 +123,7 @@ const AcademicInformation = () => {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Program Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Student ID</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Student Code</label>
             <input
               type="text"
               name="studentId"
@@ -159,19 +161,7 @@ const AcademicInformation = () => {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Minor</label>
-            <input
-              type="text"
-              name="minor"
-              value={academicData.minor}
-              onChange={handleInputChange}
-              disabled={!isEditing}
-              className={`w-full px-4 py-2 border rounded-lg ${
-                isEditing ? "border-gray-300 focus:border-brand-500" : "border-gray-200 bg-white"
-              }`}
-            />
-          </div>
+          {/* Minor removed as it's not provided by backend */}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Current Semester</label>
@@ -253,6 +243,11 @@ const AcademicInformation = () => {
                   </td>
                 </tr>
               ))}
+              {courses.length === 0 && (
+                <tr>
+                  <td colSpan="4" className="px-6 py-6 text-sm text-gray-500 text-center">No courses to display</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -261,27 +256,31 @@ const AcademicInformation = () => {
       {/* Achievements */}
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Achievements & Awards</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {achievements.map((achievement, index) => {
-            const Icon = achievement.icon;
-            return (
-              <div
-                key={index}
-                className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-4 border border-yellow-200 hover:shadow-md transition"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="bg-yellow-200 p-2 rounded-lg">
-                    <Icon className="text-yellow-700" size={24} />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900">{achievement.title}</h4>
-                    <p className="text-sm text-gray-600">{achievement.date}</p>
+        {achievements.length === 0 ? (
+          <p className="text-sm text-gray-500">No achievements to display</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {achievements.map((achievement, index) => {
+              const Icon = achievement.icon;
+              return (
+                <div
+                  key={index}
+                  className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-4 border border-yellow-200 hover:shadow-md transition"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="bg-yellow-200 p-2 rounded-lg">
+                      <Icon className="text-yellow-700" size={24} />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">{achievement.title}</h4>
+                      <p className="text-sm text-gray-600">{achievement.date}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

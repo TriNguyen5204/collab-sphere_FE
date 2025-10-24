@@ -22,7 +22,7 @@ const MilestoneQuestions = ({
             question={question}
             index={index}
             milestoneStatus={milestone.status}
-            currentAnswer={answers[question.id] !== undefined ? answers[question.id] : question.answer}
+            currentAnswer={answers[question.id] !== undefined ? answers[question.id] : ''}
             onAnswerChange={onAnswerChange}
             onSaveAnswer={onSaveAnswer}
           />

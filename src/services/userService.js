@@ -379,7 +379,7 @@ export const removeProject = async projectId => {
 };
 
 //Student
-export const getClassesByStudentId = async studentId => {
+export const getClassesByStudentId = async (studentId) => {
   try {
     const response = await apiClient.get(`/class/student/${studentId}`);
     const data = response.data;
@@ -390,7 +390,7 @@ export const getClassesByStudentId = async studentId => {
   }
 };
 
-export const getClassDetailsById = async classId => {
+export const getClassDetailsById = async (classId) => {
   try {
     const response = await apiClient.get(`/class/${classId}`);
     return response.data;
@@ -403,7 +403,7 @@ export const getClassDetailsById = async classId => {
   }
 };
 
-export const getListOfTeamsByStudentId = async studentId => {
+export const getListOfTeamsByStudentId = async (studentId) => {
   try {
     const response = await apiClient.get(`/team/student/${studentId}`);
     return response.data;
@@ -413,7 +413,7 @@ export const getListOfTeamsByStudentId = async studentId => {
   }
 };
 
-export const getDetailOfProjectByProjectId = async projectId => {
+export const getDetailOfProjectByProjectId = async (projectId) => {
   try {
     const response = await apiClient.get(`/project/${projectId}`);
     return response.data;
@@ -422,6 +422,36 @@ export const getDetailOfProjectByProjectId = async projectId => {
       `Error fetching project details for project ID ${projectId}:`,
       error
     );
+    throw error;
+  }
+};
+
+export const getUserProfile = async (userId) => {
+  try {
+    const response = await apiClient.get(`/user/profile/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching profile for user ID ${userId}:`, error);
+    throw error;
+  }
+};
+
+export const getAllMilestonesByTeamId = async (teamId) => {
+  try {
+    const response = await apiClient.get(`/milestone/team/${teamId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching milestones for team ID ${teamId}:`, error);
+    throw error;
+  }
+};
+
+export const getDetailOfMilestoneByMilestoneId = async (milestoneId) => {
+  try {
+    const response = await apiClient.get(`/milestone/${milestoneId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching milestone details for milestone ID ${milestoneId}:`, error);
     throw error;
   }
 };

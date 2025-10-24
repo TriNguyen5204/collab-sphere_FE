@@ -11,7 +11,7 @@ const StudentSidebar = () => {
                 label: 'Overview',
                 href: '/student',
                 icon: Home,
-                match: path => path === '/student' || path === '/student/home',
+                match: path => path === '/student',
             },
             {
                 label: 'Projects',
@@ -37,10 +37,17 @@ const StudentSidebar = () => {
 
     return (
         <AppSidebar
-            brand={{ title: 'Student hub', subtitle: 'CollabSphere', to: '/student' }}
+            showBrand={false}
+            style={{
+                ['--bg-card']: 'transparent',
+                ['--border-color']: 'transparent',
+                ['--bg-secondary']: 'rgb(226 232 240)',
+                boxShadow: 'none',
+            }}
+            itemClassName="rounded-md px-3"
+            activeItemClassName="bg-blue-200 border border-blue-500"
             sections={[
                 {
-                    title: 'Navigate',
                     items: navItems.map(item => ({
                         ...item,
                         match: path => (item.match ? item.match(path) : path === item.href),
@@ -49,7 +56,6 @@ const StudentSidebar = () => {
             ]}
             expanded
             mode='inline'
-            className='h-full w-64 border-r border-slate-200 bg-white'
         />
     );
 };
