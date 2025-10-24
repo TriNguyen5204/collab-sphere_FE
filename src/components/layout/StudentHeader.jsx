@@ -73,7 +73,12 @@ const StudentHeader = () => {
     } else if (item.type === 'project') {
       const name = item.raw?.projectName || item.name || 'project';
       const pid = item.raw?.projectId || item.id;
-      navigate(`/student/project/${pid}/${encodeURIComponent(name)}`);
+      const tid = item.raw?.teamId || item.teamId;
+      if (pid && tid) {
+        navigate(`/student/project/${pid}/${encodeURIComponent(name)}/p${tid}/team-workspace`);
+      } else if (pid) {
+        navigate('/student/projects');
+      }
     }
   };
 

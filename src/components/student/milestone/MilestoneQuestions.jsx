@@ -9,12 +9,7 @@ const MilestoneQuestions = ({
   onSaveAnswer 
 }) => {
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-        <MessageSquare size={24} />
-        Milestone Questions
-      </h3>
-
+    <div className="bg-white rounded-lg shadow-md ">
       <div className="space-y-6">
         {milestone.questions.map((question, index) => (
           <QuestionItem
