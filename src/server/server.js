@@ -37,17 +37,28 @@ io.on('connection', socket => {
 
     // Get all users in room (including the new user)
     const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
-    
+
     // Send list of OTHER users to the new user
     const otherUsers = clients.filter(id => id !== socket.id);
     console.log(`Sending to ${socket.id}, other users:`, otherUsers);
     socket.emit('allUsers', otherUsers);
 
-    // Notify ONLY the new user about existing peers
-    // (they will initiate connections to all existing users)
-    
+    // Check if any existing user is sharing screen
+    // Send screen share status of all users to the new user
+    clients.forEach(clientId => {
+      if (clientId !== socket.id) {
+        const clientSocket = io.sockets.sockets.get(clientId);
+        if (clientSocket && clientSocket.isSharing) {
+          console.log(`Notifying ${socket.id} that ${clientId} is sharing`);
+          socket.emit('peerScreenShareStatus', {
+            userId: clientId,
+            isSharing: true,
+          });
+        }
+      }
+    });
+
     // Notify ALL existing users about the new user
-    // (they will wait for connection from the new user)
     socket.to(roomId).emit('userJoined', {
       id: socket.id,
       name: socket.name,
@@ -55,14 +66,28 @@ io.on('connection', socket => {
   });
 
   socket.on('signal', data => {
-    const targetId = data.targetId;
+    console.log(
+      `📨 Signal received on server: from ${socket.id} to ${data.to || data.targetId}`
+    );
+    const targetId = data.to || data.targetId;
     if (targetId) {
-      // Forward the signal to the target peer
       io.to(targetId).emit('signal', {
         from: socket.id,
         signal: data.signal,
       });
     }
+  });
+
+  // Broadcast screen share status
+  socket.on('screenShareStatus', ({ roomId, isSharing, userId }) => {
+    console.log(
+      `${socket.name} (${socket.id}) ${isSharing ? 'started' : 'stopped'} screen sharing`
+    );
+    // Broadcast to ALL users in room (including sender for confirmation)
+    io.in(roomId).emit('peerScreenShareStatus', {
+      userId: socket.id,
+      isSharing: isSharing,
+    });
   });
 
   socket.on('leaveRoom', () => {

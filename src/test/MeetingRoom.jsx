@@ -11,12 +11,14 @@ function MeetingRoom() {
   const [groupPeers, setGroupPeers] = useState([]);
   const [me, setMe] = useState('');
   const [isShare, setIsShare] = useState(false);
+  // const [peersSharingScreen, setPeersSharingScreen] = useState(new Set()); // ✅ Track who is sharing
 
   const myVideo = useRef();
   const screenStreamRef = useRef(null);
   const localStreamRef = useRef(null);
   const peersRef = useRef({});
   const socketRef = useRef(null);
+  const isSharingRef = useRef(false); // ✅ Track sharing state with ref
 
   // Initialize socket and media ONCE
   useEffect(() => {
@@ -82,7 +84,7 @@ function MeetingRoom() {
     // When joining, I get list of existing users
     socket.on('allUsers', users => {
       console.log('👥 Existing users in room:', users);
-
+      
       users.forEach(userId => {
         if (!peersRef.current[userId]) {
           console.log('🤝 Creating INITIATOR peer for:', userId);
@@ -104,47 +106,31 @@ function MeetingRoom() {
 
     // Handle incoming signals
     socket.on('signal', ({ from, signal }) => {
-      console.log(
-        '📡 Signal from:',
-        from.slice(0, 6),
-        '| Type:',
-        signal.type || 'candidate',
-        '| Has SDP:',
-        !!signal.sdp
-      );
-
+      console.log('📡 Signal from:', from.slice(0, 6), '| Type:', signal.type || 'candidate', '| Has SDP:', !!signal.sdp);
+      
       try {
         const existingPeer = peersRef.current[from];
-
+        
         if (existingPeer) {
           // Already have a peer connection
           console.log('✅ Using existing peer for:', from.slice(0, 6));
-
+          
           // Safety check for duplicate answers
           if (signal.type === 'answer' && signal.sdp) {
-            if (
-              existingPeer._pc &&
-              existingPeer._pc.signalingState === 'stable'
-            ) {
-              console.warn(
-                '⚠️ Ignoring duplicate answer from',
-                from.slice(0, 6)
-              );
+            if (existingPeer._pc && existingPeer._pc.signalingState === 'stable') {
+              console.warn('⚠️ Ignoring duplicate answer from', from.slice(0, 6));
               return;
             }
           }
-
+          
           existingPeer.signal(signal);
         } else {
           // New peer connection - check if this is an offer (new connection)
           if (signal.type === 'offer' && signal.sdp) {
-            console.log(
-              '🆕 Creating NON-INITIATOR peer for:',
-              from.slice(0, 6)
-            );
+            console.log('🆕 Creating NON-INITIATOR peer for:', from.slice(0, 6));
             const peer = addPeer(signal, from, stream, socket);
             peersRef.current[from] = peer;
-
+            
             // Only update state once to avoid re-renders
             setGroupPeers(prev => {
               // Check if already exists
@@ -157,19 +143,11 @@ function MeetingRoom() {
               return [...prev, { id: from, peer }];
             });
           } else {
-            console.warn(
-              '⚠️ Received non-offer signal for unknown peer:',
-              from.slice(0, 6)
-            );
+            console.warn('⚠️ Received non-offer signal for unknown peer:', from.slice(0, 6));
           }
         }
       } catch (err) {
-        console.error(
-          '❌ Error processing signal from',
-          from.slice(0, 6),
-          ':',
-          err
-        );
+        console.error('❌ Error processing signal from', from.slice(0, 6), ':', err);
       }
     });
 
@@ -184,11 +162,19 @@ function MeetingRoom() {
 
     // Listen for screen share status from other users
     socket.on('peerScreenShareStatus', ({ userId, isSharing }) => {
-      console.log(
-        `📺 Peer ${userId.slice(0, 6)} ${isSharing ? 'started' : 'stopped'} screen sharing`
-      );
-      // When someone starts sharing, their video track automatically updates
-      // No need to do anything special - SimplePeer handles it
+      console.log(`📺 Peer ${userId.slice(0, 6)} ${isSharing ? 'started' : 'stopped'} screen sharing`);
+      
+      // Force refresh the video element for this peer
+      if (isSharing && peersRef.current[userId]) {
+        const peer = peersRef.current[userId];
+        
+        // Wait a bit for track replacement to complete
+        setTimeout(() => {
+          // Trigger a re-render by updating peer list
+          setGroupPeers(prev => [...prev]);
+          console.log('🔄 Triggered video refresh for peer:', userId.slice(0, 6));
+        }, 500);
+      }
     });
 
     return () => {
@@ -203,16 +189,16 @@ function MeetingRoom() {
 
   const createPeer = (userId, stream, socket) => {
     console.log('⚙️ Creating initiator peer for:', userId);
-    const peer = new SimplePeer({
-      initiator: true,
-      trickle: false,
+    const peer = new SimplePeer({ 
+      initiator: true, 
+      trickle: false, 
       stream,
       config: {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-        ],
-      },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      }
     });
 
     peer.on('signal', signal => {
@@ -241,16 +227,16 @@ function MeetingRoom() {
 
   const addPeer = (incomingSignal, userId, stream, socket) => {
     console.log('⚙️ Creating non-initiator peer for:', userId);
-    const peer = new SimplePeer({
-      initiator: false,
-      trickle: false,
+    const peer = new SimplePeer({ 
+      initiator: false, 
+      trickle: false, 
       stream,
       config: {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-        ],
-      },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      }
     });
 
     peer.on('signal', signal => {
@@ -276,12 +262,7 @@ function MeetingRoom() {
 
     // Signal with the incoming offer
     if (incomingSignal) {
-      console.log(
-        '🔄 Signaling incoming',
-        incomingSignal.type,
-        'from:',
-        userId
-      );
+      console.log('🔄 Signaling incoming', incomingSignal.type, 'from:', userId);
       peer.signal(incomingSignal);
     }
 
@@ -292,13 +273,14 @@ function MeetingRoom() {
     const ref = useRef();
     const [hasStream, setHasStream] = useState(false);
     const streamHandledRef = useRef(false);
+    const trackCheckIntervalRef = useRef(null);
 
     useEffect(() => {
       if (streamHandledRef.current) {
         console.log('⚠️ Stream handler already set for:', userId.slice(0, 6));
         return;
       }
-
+      
       streamHandledRef.current = true;
 
       const handleStream = stream => {
@@ -317,23 +299,70 @@ function MeetingRoom() {
         handleStream(peer.streams[0]);
       }
 
+      // CRITICAL FIX: Poll for track changes (for screen share)
+      // SimplePeer doesn't emit new 'stream' event when tracks are replaced
+      trackCheckIntervalRef.current = setInterval(() => {
+        if (peer._pc) {
+          const receivers = peer._pc.getReceivers();
+          if (receivers && receivers.length > 0) {
+            const videoReceiver = receivers.find(r => r.track && r.track.kind === 'video');
+            if (videoReceiver && videoReceiver.track) {
+              const currentStream = ref.current?.srcObject;
+              const currentVideoTrack = currentStream?.getVideoTracks()[0];
+              
+              // Check if track ID changed (screen share happened)
+              if (currentVideoTrack && currentVideoTrack.id !== videoReceiver.track.id) {
+                console.log('🔄 Video track changed for:', userId.slice(0, 6), 'Old:', currentVideoTrack.id.slice(0, 6), 'New:', videoReceiver.track.id.slice(0, 6));
+                
+                // Update stream with new track
+                const newStream = new MediaStream([videoReceiver.track]);
+                if (ref.current) {
+                  ref.current.srcObject = newStream;
+                  console.log('✅ Video element updated with new track');
+                }
+              }
+            }
+          }
+        }
+      }, 1000); // Check every second
+
       return () => {
         console.log('🧹 Cleaning up stream listener for:', userId.slice(0, 6));
         peer.off('stream', handleStream);
         streamHandledRef.current = false;
+        if (trackCheckIntervalRef.current) {
+          clearInterval(trackCheckIntervalRef.current);
+        }
       };
     }, [peer, userId]);
 
     return (
-      <div className='relative'>
-        <video
-          ref={ref}
-          autoPlay
-          playsInline
-          className='w-64 h-48 rounded-lg shadow-md bg-gray-800 object-cover'
-        />
-        <div className='absolute bottom-2 left-2 bg-black bg-opacity-50 px-2 py-1 rounded text-xs'>
-          {hasStream ? '🟢' : '🔴'} Peer {userId.slice(0, 6)}
+      <div className="relative group">
+        <div className="relative aspect-video rounded-xl overflow-hidden bg-gray-800 shadow-2xl ring-2 ring-gray-700 group-hover:ring-purple-500/50 transition-all">
+          <video
+            ref={ref}
+            autoPlay
+            playsInline
+            className="w-full h-full object-cover"
+          />
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
+          {/* Name Badge */}
+          <div className="absolute bottom-3 left-3 flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${hasStream ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`}></div>
+            <span className="text-sm font-semibold text-white drop-shadow-lg">
+              Peer {userId.slice(0, 6)}
+            </span>
+          </div>
+          {/* Connection Status */}
+          {!hasStream && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-12 h-12 border-4 border-gray-600 border-t-blue-500 rounded-full animate-spin mx-auto mb-2"></div>
+                <p className="text-sm text-gray-400">Connecting...</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -341,38 +370,39 @@ function MeetingRoom() {
 
   const shareScreen = async () => {
     if (!socketRef.current) return;
-
+    
     try {
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: {
-          cursor: 'always',
-          displaySurface: 'monitor',
+          cursor: "always",
+          displaySurface: "monitor",
         },
-        audio: false, // Disable screen audio to avoid issues
+        audio: false,
       });
-
+      
       console.log('🖥️ Screen share started');
       screenStreamRef.current = screenStream;
-
+      isSharingRef.current = true; // ✅ Update ref
+      
       // Update my local video
       if (myVideo.current) {
         myVideo.current.srcObject = screenStream;
       }
       setIsShare(true);
 
-      // Notify others
-      socketRef.current.emit('screenShareStatus', {
-        roomId,
+      // Notify others that I'm sharing (important!)
+      socketRef.current.emit('screenShareStatus', { 
+        roomId, 
         isSharing: true,
+        userId: me
       });
 
       const screenVideoTrack = screenStream.getVideoTracks()[0];
-
-      // Replace video track for all existing peers
+      
       console.log('🔄 Replacing video tracks with screen...');
       let successCount = 0;
       let failCount = 0;
-
+      
       Object.entries(peersRef.current).forEach(([userId, peer]) => {
         if (!peer || !peer._pc) {
           console.warn(`⚠️ No peer connection for ${userId.slice(0, 6)}`);
@@ -381,22 +411,28 @@ function MeetingRoom() {
 
         try {
           const senders = peer._pc.getSenders();
-          const videoSender = senders.find(
-            s => s.track && s.track.kind === 'video'
-          );
-
+          const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+          
           if (videoSender) {
-            videoSender
-              .replaceTrack(screenVideoTrack)
+            videoSender.replaceTrack(screenVideoTrack)
               .then(() => {
                 console.log(`✅ Screen video sent to ${userId.slice(0, 6)}`);
                 successCount++;
+                
+                // CRITICAL FIX: Manually update the video element for this peer
+                // because replaceTrack doesn't trigger 'stream' event
+                const remoteStream = peer._pc.getRemoteStreams()[0];
+                if (remoteStream) {
+                  // Remove old video track
+                  remoteStream.getVideoTracks().forEach(track => {
+                    remoteStream.removeTrack(track);
+                  });
+                  // Add new screen track
+                  remoteStream.addTrack(screenVideoTrack);
+                }
               })
               .catch(err => {
-                console.error(
-                  `❌ Failed to send video to ${userId.slice(0, 6)}:`,
-                  err
-                );
+                console.error(`❌ Failed to send video to ${userId.slice(0, 6)}:`, err);
                 failCount++;
               });
           } else {
@@ -404,21 +440,15 @@ function MeetingRoom() {
             failCount++;
           }
         } catch (err) {
-          console.error(
-            `❌ Error replacing track for ${userId.slice(0, 6)}:`,
-            err
-          );
+          console.error(`❌ Error replacing track for ${userId.slice(0, 6)}:`, err);
           failCount++;
         }
       });
 
       setTimeout(() => {
-        console.log(
-          `📊 Screen share results: ${successCount} success, ${failCount} failed`
-        );
+        console.log(`📊 Screen share results: ${successCount} success, ${failCount} failed`);
       }, 1000);
 
-      // Auto-stop when user stops sharing
       screenVideoTrack.onended = () => {
         console.log('🛑 Screen share ended by user');
         stopScreenShare();
@@ -433,9 +463,9 @@ function MeetingRoom() {
 
   const stopScreenShare = () => {
     if (!socketRef.current) return;
-
+    
     console.log('🛑 Stopping screen share');
-
+    
     const screenStream = screenStreamRef.current;
     if (screenStream) {
       screenStream.getTracks().forEach(track => {
@@ -444,6 +474,8 @@ function MeetingRoom() {
       });
       screenStreamRef.current = null;
     }
+    
+    isSharingRef.current = false; // ✅ Update ref
 
     // Restore camera stream locally
     const cam = localStreamRef.current;
@@ -453,9 +485,9 @@ function MeetingRoom() {
     setIsShare(false);
 
     // Notify others
-    socketRef.current.emit('screenShareStatus', {
-      roomId,
-      isSharing: false,
+    socketRef.current.emit('screenShareStatus', { 
+      roomId, 
+      isSharing: false 
     });
 
     if (!cam) {
@@ -482,22 +514,16 @@ function MeetingRoom() {
 
       try {
         const senders = peer._pc.getSenders();
-        const videoSender = senders.find(
-          s => s.track && s.track.kind === 'video'
-        );
-
+        const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+        
         if (videoSender) {
-          videoSender
-            .replaceTrack(camVideoTrack)
+          videoSender.replaceTrack(camVideoTrack)
             .then(() => {
               console.log(`✅ Camera restored for ${userId.slice(0, 6)}`);
               successCount++;
             })
             .catch(err => {
-              console.error(
-                `❌ Failed to restore for ${userId.slice(0, 6)}:`,
-                err
-              );
+              console.error(`❌ Failed to restore for ${userId.slice(0, 6)}:`, err);
               failCount++;
             });
         } else {
@@ -505,18 +531,13 @@ function MeetingRoom() {
           failCount++;
         }
       } catch (err) {
-        console.error(
-          `❌ Error restoring track for ${userId.slice(0, 6)}:`,
-          err
-        );
+        console.error(`❌ Error restoring track for ${userId.slice(0, 6)}:`, err);
         failCount++;
       }
     });
 
     setTimeout(() => {
-      console.log(
-        `📊 Camera restore results: ${successCount} success, ${failCount} failed`
-      );
+      console.log(`📊 Camera restore results: ${successCount} success, ${failCount} failed`);
     }, 1000);
   };
 
@@ -524,6 +545,7 @@ function MeetingRoom() {
     navigator.clipboard.writeText(text);
     alert('Copied: ' + text);
   };
+
   const toggleAudio = () => {
     if (localStreamRef.current) {
       const audioTrack = localStreamRef.current.getAudioTracks()[0];
@@ -545,27 +567,26 @@ function MeetingRoom() {
   };
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 text-white'>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 text-white">
       {/* Header */}
-      <div className='bg-gray-800/50 backdrop-blur-sm border-b border-gray-700 px-6 py-4'>
-        <div className='max-w-7xl mx-auto flex items-center justify-between'>
+      <div className="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700 px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className='text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent'>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
               Meeting Room
             </h1>
-            <p className='text-sm text-gray-400 mt-1'>Room ID: {roomId}</p>
+            <p className="text-sm text-gray-400 mt-1">Room ID: {roomId}</p>
           </div>
-          <div className='flex items-center gap-4'>
-            <div className='flex items-center gap-2 px-4 py-2 bg-gray-700/50 rounded-lg'>
-              <div className='w-2 h-2 bg-green-500 rounded-full animate-pulse'></div>
-              <span className='text-sm text-gray-300'>
-                {groupPeers.length + 1} participant
-                {groupPeers.length !== 0 ? 's' : ''}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-4 py-2 bg-gray-700/50 rounded-lg">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm text-gray-300">
+                {groupPeers.length + 1} participant{groupPeers.length !== 0 ? 's' : ''}
               </span>
             </div>
             <button
               onClick={() => copyToClipboard(roomId)}
-              className='px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition-all hover:scale-105 active:scale-95 flex items-center gap-2'
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
             >
               <span>📋</span>
               <span>Copy Room ID</span>
@@ -575,31 +596,31 @@ function MeetingRoom() {
       </div>
 
       {/* Main Content */}
-      <div className='max-w-7xl mx-auto px-6 py-8'>
+      <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Video Grid */}
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8'>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
           {/* My Video */}
-          <div className='relative group'>
-            <div className='relative aspect-video rounded-xl overflow-hidden bg-gray-800 shadow-2xl ring-2 ring-blue-500/50'>
+          <div className="relative group">
+            <div className="relative aspect-video rounded-xl overflow-hidden bg-gray-800 shadow-2xl ring-2 ring-blue-500/50">
               <video
                 ref={myVideo}
                 playsInline
                 autoPlay
                 muted
-                className='w-full h-full object-cover'
+                className="w-full h-full object-cover"
               />
               {/* Overlay */}
-              <div className='absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none'></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
               {/* Name Badge */}
-              <div className='absolute bottom-3 left-3 flex items-center gap-2'>
-                <div className='w-2 h-2 bg-green-500 rounded-full'></div>
-                <span className='text-sm font-semibold text-white drop-shadow-lg'>
+              <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-sm font-semibold text-white drop-shadow-lg">
                   You ({myName})
                 </span>
               </div>
               {/* Screen Share Indicator */}
               {isShare && (
-                <div className='absolute top-3 right-3 px-3 py-1 bg-red-500 rounded-full text-xs font-bold animate-pulse'>
+                <div className="absolute top-3 right-3 px-3 py-1 bg-red-500 rounded-full text-xs font-bold animate-pulse">
                   🖥️ Sharing
                 </div>
               )}
@@ -614,49 +635,49 @@ function MeetingRoom() {
 
         {/* Empty State */}
         {groupPeers.length === 0 && (
-          <div className='text-center py-12'>
-            <div className='inline-flex items-center justify-center w-16 h-16 bg-gray-800 rounded-full mb-4'>
-              <span className='text-3xl'>👥</span>
+          <div className="text-center py-12">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-800 rounded-full mb-4">
+              <span className="text-3xl">👥</span>
             </div>
-            <h3 className='text-xl font-semibold text-gray-300 mb-2'>
+            <h3 className="text-xl font-semibold text-gray-300 mb-2">
               Waiting for others to join...
             </h3>
-            <p className='text-gray-500'>
+            <p className="text-gray-500">
               Share the Room ID to invite participants
             </p>
           </div>
         )}
 
         {/* Control Bar */}
-        <div className='fixed bottom-8 left-1/2 -translate-x-1/2 z-50'>
-          <div className='bg-gray-800/90 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-700 px-6 py-4'>
-            <div className='flex items-center gap-3'>
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
+          <div className="bg-gray-800/90 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-700 px-6 py-4">
+            <div className="flex items-center gap-3">
               {/* Microphone */}
               <button
                 onClick={toggleAudio}
-                className='w-12 h-12 rounded-xl bg-gray-700 hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 flex items-center justify-center'
-                title='Toggle Microphone'
+                className="w-12 h-12 rounded-xl bg-gray-700 hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 flex items-center justify-center"
+                title="Toggle Microphone"
               >
-                <span className='text-xl'>🎤</span>
+                <span className="text-xl">🎤</span>
               </button>
 
               {/* Camera */}
               <button
                 onClick={toggleVideo}
-                className='w-12 h-12 rounded-xl bg-gray-700 hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 flex items-center justify-center'
-                title='Toggle Camera'
+                className="w-12 h-12 rounded-xl bg-gray-700 hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 flex items-center justify-center"
+                title="Toggle Camera"
               >
-                <span className='text-xl'>📹</span>
+                <span className="text-xl">📹</span>
               </button>
 
               {/* Divider */}
-              <div className='w-px h-8 bg-gray-600'></div>
+              <div className="w-px h-8 bg-gray-600"></div>
 
               {/* Screen Share */}
               {isShare ? (
                 <button
                   onClick={stopScreenShare}
-                  className='px-6 h-12 rounded-xl bg-red-600 hover:bg-red-700 transition-all hover:scale-110 active:scale-95 flex items-center justify-center gap-2 font-semibold'
+                  className="px-6 h-12 rounded-xl bg-red-600 hover:bg-red-700 transition-all hover:scale-110 active:scale-95 flex items-center justify-center gap-2 font-semibold"
                 >
                   <span>🛑</span>
                   <span>Stop Sharing</span>
@@ -664,7 +685,7 @@ function MeetingRoom() {
               ) : (
                 <button
                   onClick={shareScreen}
-                  className='px-6 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 transition-all hover:scale-110 active:scale-95 flex items-center justify-center gap-2 font-semibold'
+                  className="px-6 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 transition-all hover:scale-110 active:scale-95 flex items-center justify-center gap-2 font-semibold"
                 >
                   <span>🖥️</span>
                   <span>Share Screen</span>
@@ -672,7 +693,7 @@ function MeetingRoom() {
               )}
 
               {/* Divider */}
-              <div className='w-px h-8 bg-gray-600'></div>
+              <div className="w-px h-8 bg-gray-600"></div>
 
               {/* Leave Button */}
               <button
@@ -681,19 +702,18 @@ function MeetingRoom() {
                     window.location.href = '/';
                   }
                 }}
-                className='w-12 h-12 rounded-xl bg-red-600 hover:bg-red-700 transition-all hover:scale-110 active:scale-95 flex items-center justify-center'
-                title='Leave Meeting'
+                className="w-12 h-12 rounded-xl bg-red-600 hover:bg-red-700 transition-all hover:scale-110 active:scale-95 flex items-center justify-center"
+                title="Leave Meeting"
               >
-                <span className='text-xl'>📞</span>
+                <span className="text-xl">📞</span>
               </button>
             </div>
           </div>
         </div>
 
         {/* Info Footer */}
-        <div className='text-center mt-8 text-sm text-gray-500'>
-          Your ID: {me.slice(0, 8)}... | Connections:{' '}
-          {Object.keys(peersRef.current).length}
+        <div className="text-center mt-8 text-sm text-gray-500">
+          Your ID: {me.slice(0, 8)}... | Connections: {Object.keys(peersRef.current).length}
         </div>
       </div>
     </div>
