@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { useSocket } from './hooks/useSocket';
 import { useMediaStream } from './hooks/useMediaStream';
@@ -6,6 +6,7 @@ import { useScreenShare } from './hooks/useScreenShare';
 import { usePeerConnections } from './hooks/usePeerConnection';
 import { ParticipantVideo } from './components/ParticipantVideo';
 import { ControlBar } from './components/ControlBar';
+import ChatBox from './components/ChatBox';
 
 function MeetingRoom() {
   const { roomId } = useParams();
@@ -40,11 +41,12 @@ function MeetingRoom() {
     myName,
     isSharingRef,
     screenStreamRef,
-    peersRef        // ✅ Pass the SAME ref here too!
+    peersRef,
+    me     
   );
 
   // Update my video source
-  React.useEffect(() => {
+  useEffect(() => {
     if (myVideo.current) {
       // Use screen stream if sharing, otherwise use camera
       const videoSource = isSharing && currentScreenStream ? currentScreenStream : stream;
@@ -56,7 +58,7 @@ function MeetingRoom() {
   }, [stream, isSharing, currentScreenStream]);
 
   // Debug: Log refs state
-  React.useEffect(() => {
+  useEffect(() => {
     console.log('🔍 Refs state:', {
       isSharing,
       isSharingRefCurrent: isSharingRef.current,
@@ -170,6 +172,7 @@ function MeetingRoom() {
         <div className="text-center mt-8 text-sm text-gray-500">
           Your ID: {me.slice(0, 8)}... | Connections: {Object.keys(peersRef.current).length}
         </div>
+         <ChatBox socket={socket} roomId={roomId} myName={myName} />
       </div>
     </div>
   );

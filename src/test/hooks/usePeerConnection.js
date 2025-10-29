@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import SimplePeer from 'simple-peer/simplepeer.min.js';
 
 export const usePeerConnections = (
@@ -8,23 +8,29 @@ export const usePeerConnections = (
   myName,
   isSharingRef,
   screenStreamRef,
-  peersRef // ✅ RECEIVE peersRef instead of creating new one
+  peersRef,
+  mySocketId
 ) => {
   const [groupPeers, setGroupPeers] = useState([]);
   const [peersSharingScreen, setPeersSharingScreen] = useState(new Set());
-  // ✅ REMOVED: const peersRef = useRef({});
+  const peersSharingScreenRef = useRef(new Set()); // ✅ Add ref for immediate access
 
-  const createPeer = (userId, stream, socket) => {
-    // CRITICAL: Check if screen sharing is active
+  const createPeer = (userId, stream, socket, isPeerSharing = false) => {
+    // ✅ CRITICAL: If the PEER (not me!) is sharing, we DON'T use screen stream
+    // We just create a normal peer and THEY will send their screen to us
+    // The isPeerSharing param is just for logging/tracking
+
+    // Check if I'M sharing (use my screen stream)
     const isCurrentlySharing = isSharingRef.current;
     const screenStream = screenStreamRef.current;
 
     console.log('⚙️ Creating initiator peer for:', userId.slice(0, 6));
     console.log('🔍 Check sharing status:');
-    console.log('   isSharingRef.current:', isCurrentlySharing);
-    console.log('   screenStreamRef.current:', !!screenStream);
+    console.log('   AM I sharing? isSharingRef.current:', isCurrentlySharing);
+    console.log('   Do I have screenStream?:', !!screenStream);
+    console.log('   Is PEER sharing? (info only):', isPeerSharing);
 
-    // Use screen stream if actively sharing, otherwise use camera
+    // Use MY screen stream if I'M sharing, otherwise use camera
     const currentStream =
       isCurrentlySharing && screenStream ? screenStream : stream;
 
@@ -54,9 +60,63 @@ export const usePeerConnections = (
       socket.emit('signal', { targetId: userId, signal });
     });
 
-    peer.on('connect', () =>
-      console.log('✅ Connected to:', userId.slice(0, 6))
-    );
+    peer.on('connect', () => {
+      console.log('✅ Connected to:', userId.slice(0, 6));
+
+      // ✅ CRITICAL: If I'm sharing screen when peer connects, replace track immediately
+      if (isSharingRef.current && screenStreamRef.current) {
+        console.log(
+          '🔄 I am sharing! Need to replace track for new peer:',
+          userId.slice(0, 6)
+        );
+        console.log('   isSharingRef:', isSharingRef.current);
+        console.log('   screenStreamRef:', !!screenStreamRef.current);
+
+        const replaceTrack = () => {
+          const screenVideoTrack = screenStreamRef.current?.getVideoTracks()[0];
+          if (!peer._pc) {
+            console.warn('   ⚠️ No peer._pc yet');
+            return false;
+          }
+          if (!screenVideoTrack) {
+            console.warn('   ⚠️ No screen video track');
+            return false;
+          }
+
+          const senders = peer._pc.getSenders();
+          const videoSender = senders.find(s => s.track?.kind === 'video');
+
+          if (videoSender) {
+            console.log('   ✅ Found video sender, replacing...');
+            videoSender
+              .replaceTrack(screenVideoTrack)
+              .then(() =>
+                console.log(
+                  `   ✅ Screen track replaced for new peer: ${userId.slice(0, 6)}`
+                )
+              )
+              .catch(err =>
+                console.error(`   ❌ Failed to replace track:`, err.message)
+              );
+            return true;
+          } else {
+            console.warn('   ⚠️ No video sender found');
+            return false;
+          }
+        };
+
+        // Try immediately
+        if (!replaceTrack()) {
+          // Retry after delay
+          setTimeout(() => {
+            console.log('   🔄 Retrying track replacement...');
+            replaceTrack();
+          }, 300);
+        }
+      } else {
+        console.log('   ℹ️ Not sharing screen, no need to replace track');
+      }
+    });
     peer.on('stream', () =>
       console.log('🎥 Received stream from:', userId.slice(0, 6))
     );
@@ -109,7 +169,20 @@ export const usePeerConnections = (
   useEffect(() => {
     if (!stream || !roomId || !socket) return;
 
-    console.log('🚪 Joining room:', roomId, 'as', myName);
+    // ✅ CRITICAL: Wait for mySocketId to be available
+    if (!mySocketId) {
+      console.log('⏳ Waiting for socket ID before joining room...');
+      return;
+    }
+
+    console.log(
+      '🚪 Joining room:',
+      roomId,
+      'as',
+      myName,
+      '| My ID:',
+      mySocketId.slice(0, 6)
+    );
     socket.emit('joinRoom', { roomId, name: myName });
 
     socket.off('allUsers');
@@ -125,38 +198,66 @@ export const usePeerConnections = (
         hasScreenStream: !!screenStreamRef.current,
       });
 
-      users.forEach(userId => {
-        if (!peersRef.current[userId]) {
-          console.log('🤝 Creating INITIATOR peer for:', userId.slice(0, 6));
-          const peer = createPeer(userId, stream, socket);
-          peersRef.current[userId] = peer;
-          setGroupPeers(prev => {
-            if (prev.find(p => p.id === userId)) return prev;
-            return [...prev, { id: userId, peer }];
-          });
-        }
-      });
+      setTimeout(() => {
+        console.log(
+          '⏰ Now creating peers after waiting for screen share status...'
+        );
+        console.log('🔍 Updated sharing state:', {
+          isSharingRef: isSharingRef.current,
+          hasScreenStream: !!screenStreamRef.current,
+        });
+
+        // ✅ Use ref instead of state for immediate access
+        const currentSharers = Array.from(peersSharingScreenRef.current);
+        console.log(
+          '📊 Peers sharing screen:',
+          currentSharers.map(id => id.slice(0, 6))
+        );
+
+        users.forEach(userId => {
+          if (!peersRef.current[userId]) {
+            console.log(
+              `\n🤝 Creating INITIATOR peer for: ${userId.slice(0, 6)}`
+            );
+
+            // ✅ Check ref instead of state
+            const isPeerSharing = peersSharingScreenRef.current.has(userId);
+            console.log(
+              `   Is ${userId.slice(0, 6)} sharing? ${isPeerSharing}`
+            );
+
+            // Trong hàm tạo peer cho user mới, ở phía user đang share màn hình
+            const trueStream =
+              isSharingRef.current && screenStreamRef.current
+                ? screenStreamRef.current
+                : stream;
+
+            // Thêm log label để chắc chắn đang lấy stream màn hình
+            console.log(
+              '[FIX] TẠO PEER track label:',
+              trueStream?.getVideoTracks()?.[0]?.label
+            );
+
+            const peer = createPeer(userId, trueStream, socket, isPeerSharing);
+
+            peersRef.current[userId] = peer;
+            setGroupPeers(prev => {
+              if (prev.find(p => p.id === userId)) return prev;
+              return [...prev, { id: userId, peer }];
+            });
+          }
+        });
+      }, 300);
     });
 
     socket.on('userJoined', ({ id, name }) => {
-      console.log('🆕 User joined:', id, name);
-      // Nếu đang share thì re-send track
-      if (isSharingRef.current && screenStreamRef.current) {
-        console.log(`📺 Re-sending screen to ${id.slice(0, 6)}`);
-        const peer = peersRef.current[id];
-        if (peer && peer._pc) {
-          const screenTrack = screenStreamRef.current.getVideoTracks()[0];
-          const sender = peer._pc
-            .getSenders()
-            .find(s => s.track?.kind === 'video');
-          if (sender && screenTrack) {
-            sender
-              .replaceTrack(screenTrack)
-              .then(() => console.log(`✅ Screen sent to ${id.slice(0, 6)}`))
-              .catch(err => console.error('❌ Screen send error:', err));
-          }
-        }
-      }
+      console.log('🆕 User joined:', id.slice(0, 6), name);
+      console.log('   Current isSharingRef:', isSharingRef.current);
+      console.log('   Current screenStreamRef:', !!screenStreamRef.current);
+      console.log(
+        '   Current peersRef keys:',
+        Object.keys(peersRef.current).map(k => k.slice(0, 6))
+      );
     });
 
     socket.on('signal', ({ from, signal }) => {
@@ -214,15 +315,46 @@ export const usePeerConnections = (
       console.log(
         `📺 Peer ${userId.slice(0, 6)} ${isSharing ? 'started' : 'stopped'} sharing`
       );
+      console.log(`   My socket ID: ${mySocketId?.slice(0, 6) || 'unknown'}`);
+      console.log(`   Is this me? ${userId === mySocketId}`);
 
-      setPeersSharingScreen(prev => {
-        const newSet = new Set(prev);
-        isSharing ? newSet.add(userId) : newSet.delete(userId);
-        return newSet;
-      });
+      // ✅ Update BOTH state and ref
+      const newSet = new Set(peersSharingScreenRef.current);
+      if (isSharing) {
+        newSet.add(userId);
+        console.log(`   ✅ Added ${userId.slice(0, 6)} to sharing set`);
+      } else {
+        newSet.delete(userId);
+        console.log(`   ❌ Removed ${userId.slice(0, 6)} from sharing set`);
+      }
 
+      peersSharingScreenRef.current = newSet; // ✅ Update ref immediately
+      setPeersSharingScreen(newSet); // Update state for UI
+
+      console.log(`   📊 Total sharers:`, newSet.size);
+      console.log(
+        `   📋 Sharers list:`,
+        Array.from(newSet).map(id => id.slice(0, 6))
+      );
+
+      // If this is about ME
+      if (userId === mySocketId) {
+        console.log('🔄 This is MY sharing status, updating MY refs');
+        isSharingRef.current = isSharing;
+        console.log('✅ Updated isSharingRef.current:', isSharingRef.current);
+      } else {
+        console.log(`ℹ️ This is about peer ${userId.slice(0, 6)}, not me`);
+      }
+
+      // Force refresh if peer already exists
       if (isSharing && peersRef.current[userId]) {
-        setTimeout(() => setGroupPeers(prev => [...prev]), 500);
+        setTimeout(() => {
+          setGroupPeers(prev => [...prev]);
+          console.log(
+            '🔄 Triggered video refresh for peer:',
+            userId.slice(0, 6)
+          );
+        }, 500);
       }
     });
 
@@ -235,7 +367,7 @@ export const usePeerConnections = (
       socket.off('userLeft');
       socket.off('peerScreenShareStatus');
     };
-  }, [stream, roomId, myName, socket]);
+  }, [stream, roomId, myName, socket, mySocketId]); // ✅ Add mySocketId to deps
 
   // Cleanup peers on unmount
   useEffect(() => {

@@ -39,6 +39,11 @@ export const ParticipantVideo = ({ peer, userId, isSharing }) => {
             // No stream yet, create one
             console.log('🔄 Creating initial stream for:', userId.slice(0, 6));
             const newStream = new MediaStream([videoReceiver.track]);
+            // Add audio if exists
+            const audioReceiver = receivers?.find(r => r.track?.kind === 'audio');
+            if (audioReceiver?.track) {
+              newStream.addTrack(audioReceiver.track);
+            }
             if (ref.current) {
               ref.current.srcObject = newStream;
               setHasStream(true);
@@ -48,29 +53,47 @@ export const ParticipantVideo = ({ peer, userId, isSharing }) => {
           
           const currentVideoTrack = currentStream.getVideoTracks()[0];
 
-          if (currentVideoTrack && currentVideoTrack.id !== videoReceiver.track.id) {
-            console.log('🔄 Track changed for:', userId.slice(0, 6));
-            console.log('   Old track:', currentVideoTrack.id.slice(0, 8));
-            console.log('   New track:', videoReceiver.track.id.slice(0, 8));
+          // ✅ CRITICAL: Check if track changed by ID OR readyState
+          if (currentVideoTrack) {
+            const trackChanged = currentVideoTrack.id !== videoReceiver.track.id;
+            const trackEnded = currentVideoTrack.readyState === 'ended';
             
-            // Create new stream with updated track
-            const newStream = new MediaStream([videoReceiver.track]);
-            // Also add audio if exists
-            const audioReceiver = receivers?.find(r => r.track?.kind === 'audio');
-            if (audioReceiver?.track) {
-              newStream.addTrack(audioReceiver.track);
-            }
-            
-            if (ref.current) {
-              ref.current.srcObject = newStream;
-              console.log('✅ Video element updated with new track');
+            if (trackChanged || trackEnded) {
+              console.log('🔄 Track changed for:', userId.slice(0, 6));
+              console.log('   Reason:', trackChanged ? 'Different ID' : 'Track ended');
+              console.log('   Old track:', currentVideoTrack.id.slice(0, 8), '| State:', currentVideoTrack.readyState);
+              console.log('   New track:', videoReceiver.track.id.slice(0, 8), '| State:', videoReceiver.track.readyState);
+              
+              // Create new stream with ALL tracks
+              const newStream = new MediaStream();
+              
+              // Add video track
+              newStream.addTrack(videoReceiver.track);
+              
+              // Add audio track if exists
+              const audioReceiver = receivers?.find(r => r.track?.kind === 'audio');
+              if (audioReceiver?.track) {
+                newStream.addTrack(audioReceiver.track);
+              }
+              
+              if (ref.current) {
+                // Force video element to reload
+                ref.current.srcObject = null;
+                setTimeout(() => {
+                  if (ref.current) {
+                    ref.current.srcObject = newStream;
+                    ref.current.play().catch(e => console.warn('Play error:', e));
+                    console.log('✅ Video element updated with new track');
+                  }
+                }, 50);
+              }
             }
           }
         }
       } catch (err) {
         console.error('❌ Error checking tracks for', userId.slice(0, 6), ':', err);
       }
-    }, 500); // Check every 500ms for faster detection
+    }, 300); // ✅ Check every 300ms (faster!)
 
     return () => {
       console.log('🧹 Cleaning up for:', userId.slice(0, 6));

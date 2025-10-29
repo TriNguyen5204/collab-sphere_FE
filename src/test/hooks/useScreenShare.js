@@ -34,13 +34,15 @@ export const useScreenShare = (peersRef, localStreamRef, roomId, socket) => {
 
       // Replace tracks for all peers
       console.log('🔄 Replacing video tracks with screen...');
-      console.log('🔍 Current peers:', Object.keys(peersRef.current));
+      console.log('🔍 Current peers:', Object.keys(peersRef.current).map(id => id.slice(0, 6)));
       console.log('🔍 Peers count:', Object.keys(peersRef.current).length);
       
       let successCount = 0;
+      let attempts = 0;
       
       Object.entries(peersRef.current).forEach(([userId, peer]) => {
-        console.log('🔄 Processing peer:', userId.slice(0, 6));
+        attempts++;
+        console.log(`\n🔄 [${attempts}] Processing peer:`, userId.slice(0, 6));
         
         if (!peer) {
           console.warn(`⚠️ Peer is null for ${userId.slice(0, 6)}`);
@@ -53,21 +55,30 @@ export const useScreenShare = (peersRef, localStreamRef, roomId, socket) => {
         }
 
         const senders = peer._pc.getSenders();
-        console.log('🔍 Senders count:', senders.length);
+        console.log(`   🔍 Senders count:`, senders.length);
+        
+        senders.forEach((sender, idx) => {
+          console.log(`      Sender ${idx}: kind=${sender.track?.kind}, enabled=${sender.track?.enabled}`);
+        });
         
         const videoSender = senders.find(s => s.track?.kind === 'video');
 
         if (videoSender) {
-          console.log('✅ Found video sender for:', userId.slice(0, 6));
+          console.log(`   ✅ Found video sender for: ${userId.slice(0, 6)}`);
+          console.log(`      Old track ID: ${videoSender.track.id.slice(0, 8)}`);
+          console.log(`      New track ID: ${screenVideoTrack.id.slice(0, 8)}`);
+          
           videoSender
             .replaceTrack(screenVideoTrack)
             .then(() => {
-              console.log(`✅ Screen sent to ${userId.slice(0, 6)}`);
+              console.log(`   ✅ Screen sent to ${userId.slice(0, 6)}`);
               successCount++;
             })
-            .catch(err => console.error(`❌ Failed for ${userId.slice(0, 6)}:`, err));
+            .catch(err => {
+              console.error(`   ❌ Failed for ${userId.slice(0, 6)}:`, err.message);
+            });
         } else {
-          console.warn(`⚠️ No video sender for ${userId.slice(0, 6)}`);
+          console.warn(`   ⚠️ No video sender for ${userId.slice(0, 6)}`);
         }
       });
 
