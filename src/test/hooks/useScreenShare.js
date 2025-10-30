@@ -8,87 +8,31 @@ export const useScreenShare = (peersRef, localStreamRef, roomId, socket) => {
 
   const shareScreen = async () => {
     if (!socket) return;
-
     try {
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: { cursor: 'always', displaySurface: 'monitor' },
         audio: false,
       });
 
-      console.log('🖥️ Screen share started');
-      
-      // Update ALL state/refs TOGETHER
       screenStreamRef.current = screenStream;
       isSharingRef.current = true;
       setCurrentScreenStream(screenStream);
       setIsSharing(true);
-      
-      console.log('✅ Refs updated:', {
-        isSharingRef: isSharingRef.current,
-        hasScreenStream: !!screenStreamRef.current
-      });
 
       socket.emit('screenShareStatus', { roomId, isSharing: true, userId: socket.id });
 
       const screenVideoTrack = screenStream.getVideoTracks()[0];
-
-      // Replace tracks for all peers
-      console.log('🔄 Replacing video tracks with screen...');
-      console.log('🔍 Current peers:', Object.keys(peersRef.current).map(id => id.slice(0, 6)));
-      console.log('🔍 Peers count:', Object.keys(peersRef.current).length);
-      
-      let successCount = 0;
-      let attempts = 0;
-      
-      Object.entries(peersRef.current).forEach(([userId, peer]) => {
-        attempts++;
-        console.log(`\n🔄 [${attempts}] Processing peer:`, userId.slice(0, 6));
-        
-        if (!peer) {
-          console.warn(`⚠️ Peer is null for ${userId.slice(0, 6)}`);
-          return;
-        }
-        
-        if (!peer._pc) {
-          console.warn(`⚠️ No peer._pc for ${userId.slice(0, 6)}`);
-          return;
-        }
-
+      Object.values(peersRef.current).forEach(peer => {
+        if (!peer?._pc) return;
         const senders = peer._pc.getSenders();
-        console.log(`   🔍 Senders count:`, senders.length);
-        
-        senders.forEach((sender, idx) => {
-          console.log(`      Sender ${idx}: kind=${sender.track?.kind}, enabled=${sender.track?.enabled}`);
-        });
-        
         const videoSender = senders.find(s => s.track?.kind === 'video');
-
-        if (videoSender) {
-          console.log(`   ✅ Found video sender for: ${userId.slice(0, 6)}`);
-          console.log(`      Old track ID: ${videoSender.track.id.slice(0, 8)}`);
-          console.log(`      New track ID: ${screenVideoTrack.id.slice(0, 8)}`);
-          
-          videoSender
-            .replaceTrack(screenVideoTrack)
-            .then(() => {
-              console.log(`   ✅ Screen sent to ${userId.slice(0, 6)}`);
-              successCount++;
-            })
-            .catch(err => {
-              console.error(`   ❌ Failed for ${userId.slice(0, 6)}:`, err.message);
-            });
-        } else {
-          console.warn(`   ⚠️ No video sender for ${userId.slice(0, 6)}`);
+        if (videoSender && screenVideoTrack) {
+          videoSender.replaceTrack(screenVideoTrack).catch(()=>{});
         }
       });
 
-      setTimeout(() => {
-        console.log(`📊 Screen share: ${successCount}/${Object.keys(peersRef.current).length} peers updated`);
-      }, 1000);
-
       screenVideoTrack.onended = () => stopScreenShare();
     } catch (err) {
-      console.error('❌ getDisplayMedia error:', err);
       if (err.name === 'NotAllowedError') {
         alert('Screen sharing permission denied');
       }
@@ -98,13 +42,11 @@ export const useScreenShare = (peersRef, localStreamRef, roomId, socket) => {
   const stopScreenShare = () => {
     if (!socket) return;
 
-    console.log('🛑 Stopping screen share');
-
     const screenStream = screenStreamRef.current;
     if (screenStream) {
       screenStream.getTracks().forEach(track => track.stop());
       screenStreamRef.current = null;
-      setCurrentScreenStream(null); // ✅ Clear state
+      setCurrentScreenStream(null);
     }
 
     isSharingRef.current = false;
@@ -118,26 +60,20 @@ export const useScreenShare = (peersRef, localStreamRef, roomId, socket) => {
     const camVideoTrack = cam.getVideoTracks()[0];
     if (!camVideoTrack) return;
 
-    // Restore camera for all peers
-    Object.entries(peersRef.current).forEach(([userId, peer]) => {
+    Object.values(peersRef.current).forEach(peer => {
       if (!peer?._pc) return;
-
       const senders = peer._pc.getSenders();
       const videoSender = senders.find(s => s.track?.kind === 'video');
-
       if (videoSender) {
-        videoSender
-          .replaceTrack(camVideoTrack)
-          .then(() => console.log(`✅ Camera restored for ${userId.slice(0, 6)}`))
-          .catch(err => console.error(`❌ Failed for ${userId.slice(0, 6)}:`, err));
+        videoSender.replaceTrack(camVideoTrack).catch(()=>{});
       }
     });
   };
 
   return {
     isSharing,
-    isSharingRef, // ✅ Export ref
-    screenStreamRef, // ✅ Export ref
+    isSharingRef,
+    screenStreamRef,
     currentScreenStream,
     shareScreen,
     stopScreenShare,
