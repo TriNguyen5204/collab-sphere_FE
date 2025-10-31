@@ -1,7 +1,26 @@
 import React from 'react';
 import { Activity } from 'lucide-react';
+import { Skeleton } from '../skeletons/StudentSkeletons';
 
-const ActivityFeed = ({ activities }) => {
+const ActivityFeed = ({ activities = [], loading = false }) => {
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Skeleton className="h-6 w-6 rounded" />
+          <Skeleton className="h-6 w-40" />
+        </div>
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="pb-3 border-b last:border-b-0">
+              <Skeleton className="h-4 w-64 mb-2" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">

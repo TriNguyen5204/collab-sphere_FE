@@ -1,50 +1,36 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Camera, Mail, Phone, MapPin, Calendar, Save, Edit2 } from "lucide-react";
+import { Camera, Edit2 } from "lucide-react";
+import { generateAvatarFromName } from "../../utils/avatar";
 
-const ProfileInformation = ({ user }) => {
+const ProfileInformation = ({ user, avatar}) => {
   const [isEditing, setIsEditing] = useState(false);
 
-  const fallbackAvatar = useMemo(() => {
-    const name = user?.fullname?.trim() || "Student";
-    const encoded = encodeURIComponent(name);
-    return `https://ui-avatars.com/api/?name=${encoded}&background=E5E7EB&color=111827`;
-  }, [user?.fullname]);
-
-  const resolveAvatar = (avatarImg) => {
-    if (!avatarImg) return fallbackAvatar;
-    // Accept only full http/https URLs; otherwise, use name-based fallback
-    if (typeof avatarImg === "string" && /^(https?:)\/\//i.test(avatarImg)) {
-      return avatarImg;
-    }
-    return fallbackAvatar;
-  };
 
   const [profileData, setProfileData] = useState({
-    fullName: user?.fullname || "",
+    fullname: user?.fullname || "",
     email: user?.email || "",
     phone: user?.phoneNumber || "",
-    // Use yob (year of birth) if available; map to a date input friendly format
     dateOfBirth: user?.yob ? `${user.yob}-01-01` : "",
     address: user?.address || "",
     bio: "",
-    avatar: resolveAvatar(user?.avatarImg),
+    avatar: avatar,
     code: user?.code || "",
+    major: user?.major || "",
   });
 
   useEffect(() => {
-    // Keep local state in sync if parent user changes
     setProfileData((prev) => ({
       ...prev,
-      fullName: user?.fullname || "",
+      fullname: user?.fullname || "",
       email: user?.email || "",
       phone: user?.phoneNumber || "",
       dateOfBirth: user?.yob ? `${user.yob}-01-01` : "",
       address: user?.address || "",
-      avatar: resolveAvatar(user?.avatarImg),
+      avatar: avatar,
       code: user?.code || "",
+      major: user?.major || "",
     }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, avatar]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -55,14 +41,13 @@ const ProfileInformation = ({ user }) => {
   };
 
   const handleSave = () => {
-    // API call to save profile data
     setIsEditing(false);
-    // Show success message
   };
+
+  const fallbackAvatar = useMemo(() => generateAvatarFromName(profileData.fullname), [profileData.fullname]);
 
   return (
     <div className="space-y-6">
-      {/* Header with Edit/Save Button */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Profile Information</h2>
         {!isEditing ? (
@@ -91,15 +76,17 @@ const ProfileInformation = ({ user }) => {
           </div>
         )}
       </div>
-
-      {/* Avatar Section */}
       <div className="flex items-center gap-6">
         <div className="relative">
           <img
-            src={profileData.avatar}
+            src={profileData.avatar || fallbackAvatar}
             alt="Profile"
-            onError={() => setProfileData((prev) => ({ ...prev, avatar: fallbackAvatar }))}
-            className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
+            onError={() =>
+              setProfileData((prev) =>
+                prev.avatar === fallbackAvatar ? prev : { ...prev, avatar: fallbackAvatar }
+              )
+            }
+            className="w-32 h-32 rounded-full object-cover border-black"
           />
           {isEditing && (
             <button className="absolute bottom-0 right-0 p-2 bg-brand-600 text-white rounded-full hover:bg-brand-700 transition shadow-lg">
@@ -108,24 +95,21 @@ const ProfileInformation = ({ user }) => {
           )}
         </div>
         <div>
-          <h3 className="text-xl font-semibold text-gray-900">{profileData.fullName || "—"}</h3>
+          <h3 className="text-xl font-semibold text-gray-900">{profileData.fullname || "—"}</h3>
           <p className="text-gray-600">Student ID: {profileData.code || "—"}</p>
-          {/* Member since unknown with current data */}
-          <p className="text-sm text-gray-500 mt-1">Member since: —</p>
+          <p className="text-sm text-gray-500 mt-1">Major: {profileData.major || "—"}</p>
         </div>
       </div>
 
-      {/* Form Fields */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Full Name */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Full Name
           </label>
           <input
             type="text"
-            name="fullName"
-            value={profileData.fullName}
+            name="fullname"
+            value={profileData.fullname}
             onChange={handleInputChange}
             disabled={!isEditing}
             className={`w-full px-4 py-2 border rounded-lg ${
@@ -135,11 +119,8 @@ const ProfileInformation = ({ user }) => {
             } transition`}
           />
         </div>
-
-        {/* Email */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2 items-center gap-2">
-            <Mail size={16} />
             Email Address
           </label>
           <input
@@ -155,11 +136,8 @@ const ProfileInformation = ({ user }) => {
             } transition`}
           />
         </div>
-
-        {/* Phone */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2 items-center gap-2">
-            <Phone size={16} />
             Phone Number
           </label>
           <input
@@ -175,11 +153,8 @@ const ProfileInformation = ({ user }) => {
             } transition`}
           />
         </div>
-
-        {/* Year of Birth (mapped from yob) */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2 items-center gap-2">
-            <Calendar size={16} />
             Year of Birth
           </label>
           <input
@@ -198,11 +173,8 @@ const ProfileInformation = ({ user }) => {
             } transition`}
           />
         </div>
-
-        {/* Address - Full Width */}
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-2 items-center gap-2">
-            <MapPin size={16} />
             Address
           </label>
           <input
@@ -218,8 +190,6 @@ const ProfileInformation = ({ user }) => {
             } transition`}
           />
         </div>
-
-        {/* Bio removed for now as backend does not provide it */}
       </div>
     </div>
   );

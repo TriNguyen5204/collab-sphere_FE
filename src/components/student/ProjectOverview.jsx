@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { CalendarClock, BookOpen, User, Info, ChevronRight, ChevronDown } from 'lucide-react';
+import { Skeleton } from '../skeletons/StudentSkeletons';
 
 const statusColor = (statusString, status) => {
     const key = (statusString || '').toUpperCase();
@@ -78,11 +79,69 @@ const ProjectOverview = ({ project, loading = false, error = null, className = '
     };
     if (loading) {
         return (
-            <div className={`bg-white rounded-lg shadow-md ${compact ? 'p-3' : 'p-5'} animate-pulse ${className}`}>
-                <div className={`${compact ? 'h-5' : 'h-6'} w-48 bg-gray-200 rounded mb-3`}></div>
-                <div className={`${compact ? 'h-3' : 'h-4'} w-full bg-gray-100 rounded mb-2`}></div>
-                <div className={`${compact ? 'h-3' : 'h-4'} w-5/6 bg-gray-100 rounded`}></div>
-            </div>
+            <section className={`bg-white rounded-lg shadow-md overflow-hidden ${className}`}>
+                {/* Header skeleton */}
+                <div className={`${compact ? 'p-3' : 'p-5'} border-b`}>
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Skeleton className={`${compact ? 'h-4 w-4' : 'h-5 w-5'} rounded`} />
+                                <Skeleton className={`${compact ? 'h-4 w-32' : 'h-5 w-40'}`} />
+                            </div>
+                            <Skeleton className={`${compact ? 'h-4 w-48' : 'h-5 w-64'} mb-2`} />
+                            <Skeleton className={`${compact ? 'h-3 w-full' : 'h-4 w-full'} mb-2`} />
+                            <Skeleton className={`${compact ? 'h-3 w-5/6' : 'h-4 w-5/6'}`} />
+                        </div>
+                        <Skeleton className={`${compact ? 'h-4 w-16' : 'h-5 w-20'} rounded-full`} />
+                    </div>
+
+                    <div className={`${compact ? 'mt-2' : 'mt-3'} grid grid-cols-1 sm:grid-cols-3 ${compact ? 'gap-2' : 'gap-3'}`}>
+                        <div className="flex items-center gap-2">
+                            <Skeleton className={`${compact ? 'h-3 w-3' : 'h-4 w-4'} rounded`} />
+                            <Skeleton className={`${compact ? 'h-3 w-40' : 'h-4 w-48'}`} />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Skeleton className={`${compact ? 'h-3 w-3' : 'h-4 w-4'} rounded`} />
+                            <Skeleton className={`${compact ? 'h-3 w-40' : 'h-4 w-48'}`} />
+                        </div>
+                    </div>
+                    <div className={`${compact ? 'mt-2' : 'mt-3'}`}>
+                        <div className="flex items-center gap-3">
+                            <Skeleton className={`${compact ? 'h-3 w-24' : 'h-4 w-28'}`} />
+                            <Skeleton className={`${compact ? 'h-3 w-28' : 'h-4 w-36'}`} />
+                            <Skeleton className={`${compact ? 'h-3 w-24' : 'h-4 w-28'}`} />
+                            <Skeleton className={`${compact ? 'h-3 w-28' : 'h-4 w-36'}`} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Objectives skeleton */}
+                <div className={`${compact ? 'p-3' : 'p-5'}`}>
+                    <div className="flex items-center justify-between mb-3">
+                        <Skeleton className={`${compact ? 'h-3 w-24' : 'h-4 w-28'}`} />
+                        <Skeleton className={`${compact ? 'h-3 w-20' : 'h-4 w-24'}`} />
+                    </div>
+                    <div className={`${compact ? 'space-y-3' : 'space-y-4'}`}>
+                        {Array.from({ length: 3 }).map((_, i) => (
+                            <div key={i} className="border rounded-lg">
+                                <div className={`${compact ? 'p-3' : 'p-4'} bg-slate-50`}>
+                                    <div className="flex items-center gap-2">
+                                        <Skeleton className={`${compact ? 'h-3 w-3' : 'h-4 w-4'} rounded`} />
+                                        <Skeleton className={`${compact ? 'h-4 w-56' : 'h-5 w-64'}`} />
+                                        <Skeleton className={`${compact ? 'h-4 w-16' : 'h-5 w-20'} rounded-full`} />
+                                    </div>
+                                </div>
+                                <div className={`${compact ? 'p-3' : 'p-4'}`}>
+                                    <div className="flex items-center justify-between">
+                                        <Skeleton className={`${compact ? 'h-3 w-40' : 'h-4 w-48'}`} />
+                                        <Skeleton className={`${compact ? 'h-3 w-28' : 'h-4 w-32'}`} />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
         );
     }
 

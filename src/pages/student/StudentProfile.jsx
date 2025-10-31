@@ -4,19 +4,22 @@ import AccountSettings from "../../components/student/AccountSettings";
 import AcademicInformation from "../../components/student/AcademicInformation";
 import { User, Settings, GraduationCap } from "lucide-react";
 import StudentLayout from "../../components/layout/StudentLayout";
-import { getUserProfile } from "../../services/userService";
+import { getUserProfile, getAvatarByPublicId } from "../../services/userService";
 import { useSelector } from "react-redux";
 const StudentProfile = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [publicId, setPublicId] = useState(null);
   const userId = useSelector((state) => state.user.userId);
 
+  // Call api to get user profile
   const fetchUserProfile = async (userId) => {
     try {
       setLoading(true);
       const profileData = await getUserProfile(userId);
       setUserProfile(profileData.user);
+      setPublicId(profileData.user.avatarImg);
       console.log("User data:", profileData.user);
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
@@ -30,6 +33,25 @@ const StudentProfile = () => {
       fetchUserProfile(userId);
     }
   }, [userId]);
+
+  // Call api to get avatar image
+  const [avatar, setAvatar] = useState(null);
+
+  const fetchAvatar = async (publicId) => {
+    try {
+      const avatarData = await getAvatarByPublicId(publicId);
+      setAvatar(avatarData.data);
+      console.log("Avatar data:", avatarData.data);
+    } catch (error) {
+      console.error("Failed to fetch avatar:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (publicId) {
+      fetchAvatar(publicId);
+    }
+  }, [publicId]);
 
   const tabs = [
     { id: "profile", label: "Profile Information", icon: User },
@@ -46,7 +68,7 @@ const StudentProfile = () => {
     }
     switch (activeTab) {
       case "profile":
-        return <ProfileInformation user={userProfile} />;
+        return <ProfileInformation user={userProfile} avatar={avatar} />;
       case "academic":
         return <AcademicInformation user={userProfile} />;
       case "settings":

@@ -486,3 +486,53 @@ export const postCreateCheckpoint = async (teamMilestoneId, title, description, 
     throw error;
   }
 };
+
+export const getDetailOfTeamByTeamId = async (teamId) => {
+  try {
+    const response = await apiClient.get(`/team/${teamId}`);
+    return response.data.teamDetail;
+  } catch (error) {
+    console.error(`Error fetching team details for team ID ${teamId}:`, error);
+    throw error;
+  }
+};
+
+export const getAvatarByPublicId = async (publicId) => {
+  try {
+    const response = await apiClient.get(`/avatar/avatar-url?publicId=${publicId}`);
+    return response;
+  } catch (error) {
+    console.error(`Error fetching avatar for public ID ${publicId}:`, error);
+    throw error;
+  }
+};
+
+export const getEvaluationMemberByTeamId = async (teamId) => {
+  try {
+    const response = await apiClient.get(`/evaluate/member/team/${teamId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching evaluation members for team ID ${teamId}:`, error);
+    throw error;
+  }
+};
+
+export const postSubmitPeerEvaluation = async (teamId, payload) => {
+  try {
+    const response = await apiClient.post(`/evaluate/member/team/${teamId}`, payload);
+    return response.data;
+  } catch (error) {
+    console.error(`Error submitting peer evaluation for team ID ${teamId}:`, error);
+    throw error;
+  }
+};
+
+export const getOwnEvaluationByTeamId = async (teamId) => {
+  try {
+    const response = await apiClient.get(`/evaluate/member/team/${teamId}/own`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching own evaluation for team ID ${teamId}:`, error);
+    throw error;
+  }
+};

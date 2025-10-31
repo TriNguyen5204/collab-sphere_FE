@@ -12,41 +12,40 @@ const iconMap = {
 
 const MilestoneTimeline = ({ milestones, selectedMilestone, onSelectMilestone }) => {
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="bg-white rounded-lg shadow-md p-6 h-fit">
       <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
         <Flag size={24} />
         Milestone Timeline
       </h2>
-      
+
       <div className="space-y-3">
         {milestones.map((milestone, index) => {
           const daysRemaining = getDaysRemaining(milestone.dueDate);
           const isActive = selectedMilestone.id === milestone.id;
           const IconComponent = iconMap[getStatusIcon(milestone.status)];
-          
+
           return (
             <div key={milestone.id} className="relative">
               {/* Connection Line */}
               {index < milestones.length - 1 && (
                 <div className="absolute left-5 top-12 w-0.5 h-8 bg-gray-300" />
               )}
-              
+
               <button
                 onClick={() => milestone.status !== 'locked' && onSelectMilestone(milestone)}
                 disabled={milestone.status === 'locked'}
-                className={`w-full text-left p-4 rounded-lg border-2 transition ${
-                  isActive 
-                    ? 'border-blue-500 bg-blue-50' 
+                className={`w-full text-left p-4 rounded-lg border-2 transition ${isActive
+                    ? 'border-blue-500 bg-blue-50'
                     : milestone.status === 'locked'
-                    ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                }`}
+                      ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
               >
                 <div className="flex items-start gap-3">
                   <div className={`p-2 rounded-full ${getStatusColor(milestone.status)}`}>
                     <IconComponent size={20} />
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-gray-900 truncate">
                       {milestone.title}
@@ -63,7 +62,7 @@ const MilestoneTimeline = ({ milestones, selectedMilestone, onSelectMilestone })
                         </>
                       )}
                     </div>
-                    
+
                     {/* Progress Bar */}
                     <div className="mt-2">
                       <div className="flex justify-between text-xs mb-1">
@@ -72,17 +71,14 @@ const MilestoneTimeline = ({ milestones, selectedMilestone, onSelectMilestone })
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-1.5">
                         <div
-                          className={`h-1.5 rounded-full transition-all ${
-                            milestone.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'
-                          }`}
+                          className={`h-1.5 rounded-full transition-all ${milestone.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'
+                            }`}
                           style={{ width: `${milestone.progress}%` }}
                         />
                       </div>
                     </div>
-
-                    {/* Additional summary moved to Milestone Header */}
                   </div>
-                  
+
                   {isActive && <ChevronRight className="text-blue-500 flex-shrink-0" size={20} />}
                 </div>
               </button>

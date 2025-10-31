@@ -9,6 +9,8 @@ const initialState = storedUser ? JSON.parse(storedUser) : {
   roleName: '',
   accessToken: '',
   refreshToken: '',
+  fullname: '',
+  avatar: '',
 }
 
 const userSlice = createSlice({
@@ -21,6 +23,8 @@ const userSlice = createSlice({
       state.roleName = action.payload.roleName;
       state.accessToken = action.payload.accessToken;
       state.refreshToken = action.payload.refreshToken;
+      state.fullname = action.payload.fullname;
+      state.avatar = action.payload.avatar;
     },
     logout: (state) => {
       state.userId = "";
@@ -28,6 +32,8 @@ const userSlice = createSlice({
       state.roleName = "";
       state.accessToken = "";
       state.refreshToken = "";
+      state.fullname = "";
+      state.avatar = "";
       Cookies.remove("user");
     },
   }

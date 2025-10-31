@@ -69,50 +69,6 @@ const StudentHomePage = () => {
     sampleProjects.reduce((acc, p) => acc + p.Progress, 0) / sampleProjects.length
   );
 
-  const renderProjectCard = (project) => {
-    return (
-      <div
-        key={project.ProjectId}
-        className="bg-white rounded-lg shadow-md w-80 relative group hover:ring-2 hover:ring-brand-500 hover:shadow-lg transition cursor-pointer"
-        onClick={() => handleCardClick(project)}
-      >
-        <div className={`flex justify-end rounded-t-lg w-full h-24 ${statusColors(project.Status)}`} />
-        <div className="p-4">
-          <h2 className="text-xl font-semibold mb-2">{project.ProjectName}</h2>
-          <p className="text-sm text-gray-600 mb-3">{project.Description}</p>
-          
-          {/* Progress Bar */}
-          <div className="mb-2">
-            <div className="flex justify-between text-xs text-gray-600 mb-1">
-              <span>Progress</span>
-              <span>{project.Progress}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className={`h-2 rounded-full transition-all ${
-                  project.Progress === 100 ? "bg-green-500" : "bg-blue-500"
-                }`}
-                style={{ width: `${project.Progress}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Team and Deadline */}
-          <div className="flex justify-between items-center text-xs text-gray-500 mt-3">
-            <div className="flex items-center gap-1">
-              <Users size={14} />
-              <span>{project.Team}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Calendar size={14} />
-              <span>{new Date(project.Deadline).toLocaleDateString()}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <StudentLayout>
       <div className="space-y-6">

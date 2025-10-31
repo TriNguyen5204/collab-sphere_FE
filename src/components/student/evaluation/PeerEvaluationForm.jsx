@@ -1,243 +1,261 @@
-import React, { useState } from 'react';
-import { Star, Send, AlertCircle } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Send, AlertCircle } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import StarRating from './StarRating';
+import { toast } from 'sonner';
+import { postSubmitPeerEvaluation, getOwnEvaluationByTeamId } from '../../../services/userService';
 
-const PeerEvaluationForm = ({ teamMembers }) => {
-  const [selectedMember, setSelectedMember] = useState(null);
-  const [milestone, setMilestone] = useState('');
-  const [ratings, setRatings] = useState({
-    contribution: 0,
-    communication: 0,
-    technical: 0,
-    collaboration: 0,
-    reliability: 0
-  });
-  const [comments, setComments] = useState('');
-  const [hoveredRating, setHoveredRating] = useState({ category: null, value: 0 });
+const CRITERIA = [
+  'Hard-working',
+  'Good knowledge/Skills',
+  'Teamworking',
+];
 
-  const milestones = [
-    'Project Initialization',
-    'Requirements & Design',
-    'Core Development Phase 1',
-    'Integration & Testing'
-  ];
+const buildInitialRatings = (members) => {
+  return members.reduce((acc, m) => {
+    acc[m.id] = CRITERIA.reduce((cAcc, c) => ({ ...cAcc, [c]: 0 }), {});
+    return acc;
+  }, {});
+};
 
-  const ratingCategories = [
-    { id: 'contribution', label: 'Contribution to Project', description: 'Quality and quantity of work delivered' },
-    { id: 'communication', label: 'Communication', description: 'Responsiveness and clarity in team discussions' },
-    { id: 'technical', label: 'Technical Skills', description: 'Proficiency in required technologies' },
-    { id: 'collaboration', label: 'Collaboration', description: 'Teamwork and willingness to help others' },
-    { id: 'reliability', label: 'Reliability', description: 'Meeting deadlines and commitments' }
-  ];
+const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
+  const { userId } = useSelector((s) => s.user);
 
-  const handleRatingChange = (category, value) => {
-    setRatings({ ...ratings, [category]: value });
+  const evaluableMembers = useMemo(
+    () =>
+      teamMembers.filter(
+        (m) => String(m.studentId ?? m.id ?? m.userId ?? m.memberId) !== String(userId) && !m.isCurrentUser
+      ),
+    [teamMembers, userId]
+  );
+
+  // Normalize member keys to ensure uniqueness even if id is missing
+  const members = useMemo(() => {
+    return evaluableMembers.map((m, idx) => {
+      const rawId = m.studentId ?? m.userId ?? m.id ?? m.memberId ?? m.accountId ?? m.receiverId ?? m.user?.id;
+      const key = rawId != null && rawId !== '' ? String(rawId) : `idx_${idx}`;
+      return { ...m, _memberKey: key };
+    });
+  }, [evaluableMembers]);
+
+  const [ratings, setRatings] = useState(() => buildInitialRatings(members.map(m => ({ id: m._memberKey }))));
+  const [submitting, setSubmitting] = useState(false);
+  const [prefilled, setPrefilled] = useState(false);
+
+  // Rebuild ratings if members list shape changes
+  useEffect(() => {
+    setRatings(buildInitialRatings(members.map(m => ({ id: m._memberKey }))));
+  }, [members.length]);
+
+  const setMemberCriterion = (memberKey, criterion, value) => {
+    setRatings((prev) => ({
+      ...prev,
+      [memberKey]: {
+        ...prev[memberKey],
+        [criterion]: value,
+      },
+    }));
   };
 
-  const handleSubmit = (e) => {
+  const totalForMember = (memberKey) => {
+    const r = ratings[memberKey] ?? {};
+    return CRITERIA.reduce((sum, c) => sum + (Number(r[c]) || 0), 0);
+  };
+
+  const validateAllFilled = () => {
+    for (const m of members) {
+      const r = ratings[m._memberKey] || {};
+      for (const c of CRITERIA) {
+        if (!r[c] || r[c] < 1) return false;
+      }
+    }
+    return true;
+  };
+
+  const handleReset = () => {
+    setRatings(buildInitialRatings(members.map(m => ({ id: m._memberKey }))));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!selectedMember || !milestone) {
-      alert('Please select a team member and milestone');
+    if (evaluableMembers.length === 0) return;
+
+    if (!validateAllFilled()) {
+      toast.warning('Please rate all three criteria for each teammate (1-5 stars).');
       return;
     }
 
-    const hasAllRatings = Object.values(ratings).every(r => r > 0);
-    if (!hasAllRatings) {
-      alert('Please provide ratings for all categories');
-      return;
+    const payload = {
+      evaluatorDetails: members.map((m) => ({
+        receiverId: m.studentId ?? m.id ?? m.userId ?? m.memberId ?? m.accountId ?? m.receiverId ?? m.user?.id,
+        scoreDetails: CRITERIA.map((c) => ({
+          scoreDetailName: c,
+          score: Number(ratings[m._memberKey]?.[c] || 0),
+        })),
+      })),
+    };
+
+    // Call api to submit peer evaluation
+    try {
+      setSubmitting(true);
+      const res = await postSubmitPeerEvaluation(teamId, payload);
+      console.log('Submit peer evaluation response:', res);
+      const data = res?.data ?? res;
+
+      if (data?.isSuccess) {
+        toast.success(data?.message || 'Evaluate and give feedback successfully');
+        onSubmitted?.();
+      } else if (Array.isArray(data?.errorList) && data.errorList.length) {
+        const first = data.errorList[0];
+        toast.error(first?.message || 'Evaluation failed');
+      } else {
+        toast.error('Evaluation failed. Please try again.');
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Network error while submitting evaluation');
+    } finally {
+      setSubmitting(false);
     }
-
-    if (!comments.trim()) {
-      alert('Please provide comments');
-      return;
-    }
-
-    console.log('Submitting evaluation:', {
-      selectedMember,
-      milestone,
-      ratings,
-      comments
-    });
-
-    // Reset form
-    setSelectedMember(null);
-    setMilestone('');
-    setRatings({
-      contribution: 0,
-      communication: 0,
-      technical: 0,
-      collaboration: 0,
-      reliability: 0
-    });
-    setComments('');
-    
-    alert('Evaluation submitted successfully!');
   };
 
-  const renderStars = (category, currentRating) => {
-    return (
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <button
-            key={star}
-            type="button"
-            onClick={() => handleRatingChange(category, star)}
-            onMouseEnter={() => setHoveredRating({ category, value: star })}
-            onMouseLeave={() => setHoveredRating({ category: null, value: 0 })}
-            className="focus:outline-none transition-transform hover:scale-110"
-          >
-            <Star
-              size={28}
-              className={`${
-                star <= (hoveredRating.category === category ? hoveredRating.value : currentRating)
-                  ? 'fill-yellow-400 text-yellow-400'
-                  : 'text-gray-300'
-              }`}
-            />
-          </button>
-        ))}
-        <span className="ml-2 text-sm font-medium text-gray-600">
-          {currentRating > 0 ? `${currentRating}/5` : 'Not rated'}
-        </span>
-      </div>
-    );
-  };
 
-  const evaluableMembers = teamMembers.filter(m => !m.isCurrentUser);
+  // Call api get own evaluation to prefill if exists
+  const fetchOwnEvaluation = async () => {
+    try {
+      const response = await getOwnEvaluationByTeamId(teamId);
+      console.log('Own evaluation response:', response);
+      const detailsArr = (
+        response?.ownEvaluations ||
+        []
+      );
+
+      if (Array.isArray(detailsArr) && detailsArr.length) {
+        const map = new Map();
+        for (const item of detailsArr) {
+          const rid = String(
+            item?.receiverId ?? item?.receiverUserId ?? item?.userId ?? item?.studentId ?? item?.accountId ?? ''
+          );
+          const sd = Array.isArray(item?.scoreDetails)
+            ? item?.scoreDetails
+            : Array.isArray(item?.details)
+              ? item?.details
+              : Array.isArray(item?.scores)
+                ? item?.scores
+                : [];
+
+          const row = {};
+          for (const d of sd) {
+            const name = d?.scoreDetailName ?? d?.name ?? d?.criterion ?? '';
+            const val = Number(d?.score ?? d?.value ?? 0);
+            if (name) row[name] = val;
+          }
+          if (rid) map.set(rid, row);
+        }
+
+        // Apply onto current members using their raw ids
+        setRatings((prev) => {
+          const next = { ...prev };
+          members.forEach((m, idx) => {
+            const rawId = String(
+              m.studentId ?? m.userId ?? m.id ?? m.memberId ?? m.accountId ?? m.receiverId ?? m.user?.id ?? ''
+            );
+            const existing = map.get(rawId) || {};
+            const entry = { ...(next[m._memberKey] || {}) };
+            CRITERIA.forEach((c) => {
+              entry[c] = Number(existing[c] ?? entry[c] ?? 0);
+            });
+            next[m._memberKey] = entry;
+          });
+          return next;
+        });
+        setPrefilled(true);
+      } else {
+        setPrefilled(false);
+      }
+    } catch (error) {
+      console.error('Error fetching own evaluation:', error);
+      setPrefilled(false);
+    }
+  };
+  useEffect(() => {
+    if (teamId) {
+      fetchOwnEvaluation();
+    }
+  }, [teamId]);
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Evaluate Team Member</h2>
+      <div className="flex items-start justify-between mb-4">
+        <h2 className="text-2xl font-bold text-gray-900">Evaluate Your Teammates</h2>
+      </div>
 
-      {evaluableMembers.length === 0 ? (
+      {members.length === 0 ? (
         <div className="text-center py-12">
           <AlertCircle className="mx-auto text-gray-400 mb-4" size={48} />
-          <p className="text-gray-600">No team members available to evaluate</p>
+          <p className="text-gray-600">No teammates available to evaluate</p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Member Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Team Member *
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {evaluableMembers.map((member) => (
-                <button
-                  key={member.id}
-                  type="button"
-                  onClick={() => setSelectedMember(member)}
-                  className={`flex items-center gap-3 p-4 rounded-lg border-2 transition ${
-                    selectedMember?.id === member.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
-                    {member.avatar}
-                  </div>
-                  <div className="text-left">
-                    <p className="font-semibold text-gray-900">{member.name}</p>
-                    <p className="text-sm text-gray-600">{member.role}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-separate border-spacing-y-3">
+              <thead>
+                <tr className="text-left text-sm text-gray-600">
+                  <th className="px-3 py-2">Member</th>
+                  {CRITERIA.map((c) => (
+                    <th key={c} className="px-3 py-2 font-medium">{c}</th>
+                  ))}
+                  <th className="px-3 py-2">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {members.map((m) => (
+                  <tr key={m._memberKey} className="bg-gray-50 rounded-xl">
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={m.avatar}
+                          alt="Profile"
+                          className="w-10 h-10 rounded-full object-cover border-black"
+                        />
+                        <div>
+                          <div className="font-semibold text-gray-900">{m.name}</div>
+                          {m.role && <div className="text-xs text-gray-500">{m.role}</div>}
+                        </div>
+                      </div>
+                    </td>
+                    {CRITERIA.map((c) => (
+                      <td key={c} className="px-3 py-3">
+                        <StarRating
+                          value={Number(ratings[m._memberKey]?.[c] || 0)}
+                          onChange={(v) => setMemberCriterion(m._memberKey, c, v)}
+                        />
+                      </td>
+                    ))}
+                    <td className="px-3 py-3 font-semibold text-gray-900">
+                      {totalForMember(m._memberKey)} / 15
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
-          {/* Milestone Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Milestone *
-            </label>
-            <select
-              value={milestone}
-              onChange={(e) => setMilestone(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Select a milestone</option>
-              {milestones.map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Rating Categories */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Rate Performance</h3>
-            <div className="space-y-6">
-              {ratingCategories.map(({ id, label, description }) => (
-                <div key={id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <p className="font-medium text-gray-900">{label}</p>
-                      <p className="text-sm text-gray-600">{description}</p>
-                    </div>
-                  </div>
-                  <div className="mt-3">
-                    {renderStars(id, ratings[id])}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Comments */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Comments & Feedback *
-            </label>
-            <textarea
-              value={comments}
-              onChange={(e) => setComments(e.target.value)}
-              placeholder="Provide detailed feedback about your teammate's performance..."
-              rows={6}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              Be constructive and specific in your feedback
-            </p>
-          </div>
-
-          {/* Average Rating Display */}
-          {Object.values(ratings).some(r => r > 0) && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm font-medium text-gray-700 mb-2">Average Rating</p>
-              <div className="flex items-center gap-2">
-                <div className="text-3xl font-bold text-blue-600">
-                  {(Object.values(ratings).reduce((a, b) => a + b, 0) / 5).toFixed(1)}
-                </div>
-                <div className="text-gray-600">/ 5.0</div>
-              </div>
-            </div>
-          )}
-
-          {/* Submit Button */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex items-center justify-between pt-4 border-t">
             <button
               type="button"
-              onClick={() => {
-                setSelectedMember(null);
-                setMilestone('');
-                setRatings({
-                  contribution: 0,
-                  communication: 0,
-                  technical: 0,
-                  collaboration: 0,
-                  reliability: 0
-                });
-                setComments('');
-              }}
-              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              onClick={handleReset}
+              disabled={submitting}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
             >
-              Reset
+              Reset all
             </button>
             <button
               type="submit"
-              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              disabled={submitting}
+              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
               <Send size={18} />
-              Submit Evaluation
+              {submitting ? (prefilled ? 'Updating...' : 'Submitting...') : (prefilled ? 'Update Evaluation' : 'Submit Evaluation')}
             </button>
           </div>
         </form>

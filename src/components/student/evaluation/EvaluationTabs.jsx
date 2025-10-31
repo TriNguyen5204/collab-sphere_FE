@@ -1,11 +1,10 @@
 import React from 'react';
-import { UserCheck, History, MessageSquare } from 'lucide-react';
+import { UserCheck, Inbox } from 'lucide-react';
 
 const EvaluationTabs = ({ activeTab, onChangeTab }) => {
   const tabs = [
     { id: 'evaluate', label: 'Evaluate Peers', icon: UserCheck },
-    { id: 'history', label: 'Evaluation History', icon: History },
-    { id: 'feedback', label: 'Lecturer Feedback', icon: MessageSquare }
+    { id: 'received', label: 'Received Evaluations', icon: Inbox }
   ];
 
   return (
