@@ -127,44 +127,43 @@ const normaliseClassResponse = (payload) => {
 const renderClassStatSkeleton = (key) => (
   <div
     key={key}
-    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm animate-pulse"
+    className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm animate-pulse"
   >
     <div className="flex items-center justify-between">
       <div className="space-y-3">
-        <div className="h-3 w-24 rounded bg-slate-200" />
-        <div className="h-7 w-16 rounded bg-slate-300" />
+        <div className="h-2.5 w-20 rounded bg-slate-200" />
+        <div className="h-6 w-14 rounded bg-slate-300" />
       </div>
-      <div className="h-12 w-12 rounded-xl bg-slate-200" />
+      <div className="h-10 w-10 rounded-lg bg-slate-200" />
     </div>
-    <div className="mt-4 h-3 w-32 rounded bg-slate-100" />
+    <div className="mt-3 h-2.5 w-28 rounded bg-slate-100" />
   </div>
 );
 
 const renderClassCardSkeleton = (key) => (
   <div
     key={key}
-    className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm animate-pulse"
+    className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm animate-pulse"
   >
     <div className="flex items-start justify-between gap-2">
       <div className="space-y-2">
-        <div className="h-3 w-20 rounded bg-slate-200" />
-        <div className="h-5 w-32 rounded bg-slate-200" />
-        <div className="h-3 w-24 rounded bg-slate-100" />
-        <div className="h-3 w-20 rounded bg-slate-100" />
+        <div className="h-2.5 w-20 rounded bg-slate-200" />
+        <div className="h-4 w-24 rounded bg-slate-200" />
+        <div className="h-2.5 w-20 rounded bg-slate-100" />
       </div>
-      <div className="h-6 w-16 rounded-full bg-slate-200" />
+      <div className="h-4 w-12 rounded-full bg-slate-200" />
     </div>
-    <div className="mt-4 grid grid-cols-2 gap-4 text-sm text-slate-600">
+    <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-slate-600">
       {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="space-y-2">
-          <div className="h-3 w-24 rounded bg-slate-100" />
-          <div className="h-4 w-16 rounded bg-slate-200" />
+        <div key={index} className="space-y-1.5">
+          <div className="h-2.5 w-16 rounded bg-slate-100" />
+          <div className="h-3.5 w-12 rounded bg-slate-200" />
         </div>
       ))}
     </div>
-    <div className="mt-auto flex flex-col gap-2 pt-6 sm:flex-row">
-      <div className="h-10 w-full rounded-xl bg-slate-200" />
-      <div className="h-10 w-full rounded-xl bg-slate-200" />
+    <div className="mt-auto flex flex-col gap-2 pt-3 sm:flex-row">
+      <div className="h-8 w-full rounded-lg bg-slate-200" />
+      <div className="h-8 w-full rounded-lg bg-slate-200" />
     </div>
   </div>
 );
@@ -367,34 +366,34 @@ const ClassManagementDashboard = () => {
   return (
     <DashboardLayout>
       <div className="min-h-screen bg-slate-50">
-        <div className="w-full px-6 py-10 space-y-10 lg:px-8 2xl:px-12">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="w-full px-5 py-8 space-y-8 lg:px-7 2xl:px-10">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wider text-slate-500">Lecturer workspace</p>
-              <h1 className="mt-2 text-3xl font-semibold text-slate-900">Class & Project Dashboard</h1>
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Lecturer workspace</p>
+              <h1 className="mt-1 text-2xl font-semibold text-slate-900">Class & Project Dashboard</h1>
+              <p className="mt-1 text-sm text-slate-500">
                 Review active classes and logistics while we wait for richer milestone data from the backend.
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 2xl:gap-6">
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4 2xl:gap-4">
             {showClassSkeleton
               ? classStatCards.map((card) => renderClassStatSkeleton(card.id))
               : classStatCards.map((card) => {
                   const Icon = card.icon;
                   return (
-                    <div key={card.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div key={card.id} className="rounded-lg border border-slate-200 bg-white p-3.5 shadow-sm">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-xs uppercase tracking-wide text-slate-500">{card.label}</p>
-                          <p className="mt-2 text-2xl font-semibold text-slate-900">{card.value}</p>
+                          <p className="text-[10px] uppercase tracking-wide text-slate-500">{card.label}</p>
+                          <p className="mt-1 text-lg font-semibold text-slate-900">{card.value}</p>
                         </div>
-                        <div className={`rounded-xl p-3 ${card.iconWrapperClass}`}>
-                          <Icon className="h-6 w-6" />
+                        <div className={`rounded-md p-2 ${card.iconWrapperClass}`}>
+                          <Icon className="h-4 w-4" />
                         </div>
                       </div>
-                      <p className="mt-3 text-xs text-slate-500">{card.description}</p>
+                      <p className="mt-1.5 text-[11px] text-slate-500">{card.description}</p>
                     </div>
                   );
                 })}
@@ -402,33 +401,33 @@ const ClassManagementDashboard = () => {
 
           <div className="space-y-8">
             <div className="space-y-6">
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-slate-900">My classes</h2>
-                    <p className="text-xs text-slate-500">Search, filter, and jump into class-level management.</p>
+                    <h2 className="text-base font-semibold text-slate-900">My classes</h2>
+                    <p className="text-[11px] text-slate-500">Search, filter, and jump into class-level management.</p>
                     {isLoadingClasses && (
-                      <p className="mt-1 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-500">
+                      <p className="mt-1 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-500">
                         <SparklesIcon className="h-3 w-3 animate-spin" />
                         Refreshing data…
                       </p>
                     )}
                   </div>
-                  <div className="flex w-full flex-col gap-3 lg:w-auto lg:flex-row lg:items-center">
-                    <div className="relative w-full lg:w-56">
+                  <div className="flex w-full flex-col gap-2.5 lg:w-auto lg:flex-row lg:items-center">
+                    <div className="relative w-full lg:w-48">
                       <input
                         type="text"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder="Search class or subject"
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
                       />
                       <ChartBarIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     </div>
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-600 shadow-sm transition hover:border-slate-300 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 lg:w-40"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm transition hover:border-slate-300 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 lg:w-36"
                     >
                       <option value="all">All statuses</option>
                       <option value="active">Active</option>
@@ -437,7 +436,7 @@ const ClassManagementDashboard = () => {
                     <select
                       value={subjectFilter}
                       onChange={(e) => setSubjectFilter(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-600 shadow-sm transition hover:border-slate-300 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 lg:w-40"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm transition hover:border-slate-300 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 lg:w-36"
                     >
                       <option value="all">All subjects</option>
                       {subjects.map((subject) => (
@@ -448,19 +447,19 @@ const ClassManagementDashboard = () => {
                 </div>
 
                 {showClassSkeleton ? (
-                  <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+                  <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
                     {Array.from({ length: 6 }).map((_, index) =>
                       renderClassCardSkeleton(`class-skeleton-${index}`)
                     )}
                   </div>
                 ) : filteredClasses.length === 0 ? (
-                  <div className="mt-10 rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center">
+                  <div className="mt-10 rounded-xl border border-dashed border-slate-200 bg-slate-50 py-8 text-center">
                     <DocumentTextIcon className="mx-auto h-10 w-10 text-slate-300" />
                     <p className="mt-4 text-sm font-medium text-slate-600">No classes match the selected filters yet.</p>
                     <p className="mt-1 text-xs text-slate-400">Adjust the search parameters or start drafting a new class plan.</p>
                   </div>
                 ) : (
-                  <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+                  <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
                     {[...filteredClasses]
                       .sort((a, b) => {
                         if (a.isActive === b.isActive) {
@@ -477,74 +476,70 @@ const ClassManagementDashboard = () => {
                       return (
                         <div
                           key={cls.classId}
-                          className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-md transition hover:-translate-y-1.5 hover:shadow-xl"
+                          className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                         >
-                          <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 via-indigo-500/90 to-violet-500 px-6 py-6 text-white">
-                            <div className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-white/15 blur-3xl transition group-hover:scale-110" />
-                            <div className="flex items-start justify-between gap-6">
+                          <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 via-indigo-500/90 to-violet-500 px-4 py-3 text-white">
+                            <div className="absolute -right-4 -top-6 h-20 w-20 rounded-full bg-white/15 blur-3xl transition group-hover:scale-110" />
+                            <div className="flex items-start justify-between gap-3">
                               <div>
-                                <span className="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide">
+                                <span className="inline-flex items-center rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
                                   {cls.subjectCode}
                                 </span>
-                                <h3 className="mt-3 text-2xl font-semibold leading-snug">
+                                <h3 className="mt-1.5 text-lg font-semibold leading-snug">
                                   {cls.className}
                                 </h3>
                               </div>
-                              <div className="flex flex-col items-end gap-3">
-                                <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${statusBadgeClass}`}>
+                              <div className="flex flex-col items-end gap-2">
+                                <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${statusBadgeClass}`}>
                                   <CheckCircleIcon className="h-3 w-3" />
                                   {statusLabel}
                                 </span>
-                                <Squares2X2Icon className="h-16 w-16 text-white/25" />
+                                <Squares2X2Icon className="h-10 w-10 text-white/25" />
                               </div>
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-1 gap-6 px-6 py-6 text-sm text-slate-600 xl:grid-cols-2">
-                            <div className="space-y-4">
-                              <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-                                <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Class logistics</h4>
-                                <dl className="mt-3 space-y-2">
-                                  {cls.createdDate && (
-                                    <div className="flex items-center justify-between text-slate-700">
-                                      <dt className="text-xs font-medium text-slate-500">Enrol key</dt>
-                                      <dd className="text-sm font-semibold text-slate-900">{cls.enrolKey}</dd>
-                                    </div>
-                                  )}
-                                  <div className="flex items-center justify-between text-slate-700">
-                                    <dt className="text-xs font-medium text-slate-500">Lecturer</dt>
-                                    <dd className="text-sm font-semibold text-slate-900">{cls.lecturerName ?? '—'}</dd>
-                                  </div>
-                                </dl>
+                          <div className="flex flex-col gap-3 px-4 py-3 text-sm text-slate-600 lg:flex-row lg:items-stretch lg:gap-4">
+                            <dl className="flex flex-1 flex-col gap-2 rounded-lg border border-slate-100 bg-slate-50/80 p-3 text-xs">
+                              <div className="flex items-center justify-between text-slate-700">
+                                <dt className="font-medium uppercase tracking-wide text-slate-500">Enrol key</dt>
+                                <dd className="text-sm font-semibold text-slate-900">{cls.enrolKey}</dd>
                               </div>
-                            </div>
-
-                            <div className="flex flex-col gap-4">
-                              <div className="grid grid-cols-2 gap-3">
-                                <div className="rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-sm">
-                                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Students</p>
-                                  <p className="mt-2 text-xl font-semibold text-slate-900">{cls.memberCount}</p>
-                                </div>
-                                <div className="rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-sm">
-                                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Teams</p>
-                                  <p className="mt-2 text-xl font-semibold text-slate-900">{cls.teamCount}</p>
-                                </div>
+                              <div className="flex items-center justify-between text-slate-700">
+                                <dt className="font-medium uppercase tracking-wide text-slate-500">Lecturer</dt>
+                                <dd className="text-sm font-semibold text-slate-900">{cls.lecturerName ?? '—'}</dd>
                               </div>
+                              {cls.createdDate && (
+                                <div className="flex items-center justify-between text-slate-700">
+                                  <dt className="font-medium uppercase tracking-wide text-slate-500">Created</dt>
+                                  <dd className="text-sm font-semibold text-slate-900">{formatDate(cls.createdDate)}</dd>
+                                </div>
+                              )}
+                            </dl>
 
+                            <div className="flex flex-1 items-center justify-between gap-3 text-center">
+                              <div className="flex-1 rounded-lg border border-slate-100 bg-white p-3 shadow-sm">
+                                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Students</p>
+                                <p className="mt-1 text-base font-semibold text-slate-900">{cls.memberCount}</p>
+                              </div>
+                              <div className="flex-1 rounded-lg border border-slate-100 bg-white p-3 shadow-sm">
+                                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Teams</p>
+                                <p className="mt-1 text-base font-semibold text-slate-900">{cls.teamCount}</p>
+                              </div>
                             </div>
                           </div>
 
-                          <div className="mt-auto flex flex-col gap-3 border-t border-slate-100 bg-slate-50 px-6 py-5 sm:flex-row">
+                          <div className="mt-auto flex flex-col gap-2 border-t border-slate-100 bg-slate-50 px-4 py-3 sm:flex-row">
                             <button
                               onClick={() => handleViewClass(cls.classId)}
-                              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-600"
+                              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-600"
                             >
                               <AcademicCapIcon className="h-4 w-4" />
                               Open class workspace
                             </button>
                             <button
                               onClick={() => navigate(`/lecturer/monitoring/${cls.classId}`)}
-                              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
                             >
                               <ChartBarIcon className="h-4 w-4" />
                               Performance monitor
@@ -557,44 +552,44 @@ const ClassManagementDashboard = () => {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-slate-900">Quick actions</h2>
+                    <h2 className="text-base font-semibold text-slate-900">Quick actions</h2>
                     <SparklesIcon className="h-5 w-5 text-indigo-500" />
                   </div>
                   <p className="mt-1 text-xs text-slate-500">Frequent workflows to keep momentum while APIs finalise.</p>
-                  <div className="mt-5 space-y-4">
+                  <div className="mt-4 space-y-3">
                     {quickActions.map((action) => (
                       <button
                         key={action.id}
                         onClick={action.onClick}
-                        className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm text-slate-700 transition hover:border-indigo-300 hover:bg-white"
+                        className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-left text-sm text-slate-700 transition hover:border-indigo-300 hover:bg-white"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="rounded-lg bg-indigo-100 p-2 text-indigo-600">
-                            <action.icon className="h-5 w-5" />
+                          <span className="rounded-md bg-indigo-100 p-2 text-indigo-600">
+                            <action.icon className="h-4 w-4" />
                           </span>
                           <div>
                             <p className="font-semibold text-slate-800">{action.label}</p>
                             <p className="text-xs text-slate-500">{action.description}</p>
                           </div>
                         </div>
-                        <CheckCircleIcon className="h-5 w-5 text-slate-300" />
+                        <CheckCircleIcon className="h-4 w-4 text-slate-300" />
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-slate-900">Announcements</h2>
+                    <h2 className="text-base font-semibold text-slate-900">Announcements</h2>
                     <MegaphoneIcon className="h-5 w-5 text-indigo-500" />
                   </div>
                   <p className="mt-1 text-xs text-slate-500">Important updates and shared resources.</p>
-                  <div className="mt-5 space-y-4">
+                  <div className="mt-4 space-y-3">
                     {announcements.map((item) => (
-                      <div key={item.id} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                      <div key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5">
                         <p className="text-sm font-semibold text-slate-800">{item.title}</p>
                         <p className="mt-1 text-xs text-slate-500">{item.body}</p>
                         <p className="mt-2 text-[11px] uppercase tracking-wide text-slate-400">{formatDate(item.timestamp)}</p>
