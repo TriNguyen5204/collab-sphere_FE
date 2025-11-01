@@ -63,7 +63,7 @@ import VideoRoom from '../test/VideoRoom';
 import TestKanbanBoard from '../pages/TestKanbanBoard';
 import Layout from '../test/Meeting/Layout'
 import RoomJoinPage from '../test/RoomJoinPage'
-import MeetingRoom from '../test/MeetingRoom';
+import MeetingRoomTest from '../test/MeetingRoomTest'
 // import StreamVideoMeeting from '../test/StreamVideoMeeting';
 
 import RoleProtectedRoute from './RoleProtectedRoute';
@@ -77,11 +77,8 @@ const publicRoutes = [
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
   { path: '/unauthorized', element: <Unauthorized /> },
-  // { path: '/room', element: <ConnectRoom /> },
-  // { path: '/room/:roomId', element: <VideoRoom /> },
   { path: '/room', element: <RoomJoinPage/>},
-  { path: '/room/:roomId', element: <MeetingRoom/>},
-  // { path: '/meeting', element: <StreamVideoMeeting/> },
+  { path: '/room/:roomId', element: <MeetingRoomTest/>},
   { path: '/test/meeting', element: <Layout/> },
   { path: '/test/kanban', element: <TestKanbanBoard /> },
 ];
