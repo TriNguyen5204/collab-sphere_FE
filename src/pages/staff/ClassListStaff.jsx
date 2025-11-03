@@ -39,11 +39,12 @@ export default function ClassListStaff() {
     OrderBy: 'ClassName',
     // Descending: false,
     PageNum: 1,
-    PageSize: 8,
+    PageSize: 9,
     // ViewAll: false,
   });
 
   const [totalPages, setTotalPages] = useState(1);
+  const [totalClasses, setTotalClasses] = useState(1);
   const [isOpen, setIsOpen] = useState(false);
   const [isMultiOpen, setIsMultiOpen] = useState(false);
 
@@ -66,7 +67,7 @@ export default function ClassListStaff() {
   const fetchData = useCallback(async () => {
     try {
       const data = await getClass(filters);
-
+      setTotalClasses(data.itemCount)
       if (data?.list) {
         setClasses(data.list);
         setTotalPages(data.pageCount || 1);
@@ -266,7 +267,7 @@ export default function ClassListStaff() {
             <div>
               <p className='text-sm text-gray-600'>Total Classes</p>
               <p className='text-2xl font-bold text-gray-900'>
-                {classes.length}
+                {totalClasses}
               </p>
             </div>
           </div>

@@ -25,9 +25,17 @@ io.on('connection', socket => {
       console.log(`${socket.name} (${socket.id}) disconnected from ${roomId}`);
       socket.to(roomId).emit('userLeft', socket.id);
     }
+    socket.isSharing = false;
   });
 
-  // ---- GROUP CALL CODE ----
+  socket.on('chatMessage', ({ roomId, sender, message }) => {
+    io.to(roomId).emit('chatMessage', {
+      sender,
+      message,
+      timestamp: Date.now(),
+    });
+  });
+
   socket.on('joinRoom', ({ roomId, name }) => {
     socket.join(roomId);
     socket.roomId = roomId;
@@ -35,19 +43,31 @@ io.on('connection', socket => {
 
     console.log(`${name} (${socket.id}) joined ${roomId}`);
 
-    // Get all users in room (including the new user)
-    const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
+    const clientsInRoom = io.sockets.adapter.rooms.get(roomId);
     
-    // Send list of OTHER users to the new user
-    const otherUsers = clients.filter(id => id !== socket.id);
-    console.log(`Sending to ${socket.id}, other users:`, otherUsers);
-    socket.emit('allUsers', otherUsers);
+    const usersInRoom = [];
+    const usersSharing = [];
 
-    // Notify ONLY the new user about existing peers
-    // (they will initiate connections to all existing users)
+    if (clientsInRoom) {
+      for (const clientId of clientsInRoom) {
+        const clientSocket = io.sockets.sockets.get(clientId);
+
+        if (clientId !== socket.id) {
+          usersInRoom.push({
+            id: clientId,
+            name: clientSocket?.name || 'Anonymous',
+          });
+        }
+
+        if (clientSocket && clientSocket.isSharing) {
+          usersSharing.push(clientId);
+        }
+      }
+    }
+
+    socket.emit('allUsers', { usersInRoom, usersSharing });
     
-    // Notify ALL existing users about the new user
-    // (they will wait for connection from the new user)
+    // Thông báo cho những người cũ trong phòng biết có user mới
     socket.to(roomId).emit('userJoined', {
       id: socket.id,
       name: socket.name,
@@ -57,12 +77,32 @@ io.on('connection', socket => {
   socket.on('signal', data => {
     const targetId = data.targetId;
     if (targetId) {
-      // Forward the signal to the target peer
       io.to(targetId).emit('signal', {
         from: socket.id,
         signal: data.signal,
       });
     }
+  });
+
+  // ✅ Handler mới: Yêu cầu screen track
+  socket.on('requestScreenTrack', ({ targetId }) => {
+    console.log(`${socket.id} requesting screen track from ${targetId}`);
+    io.to(targetId).emit('requestScreenTrack', {
+      requesterId: socket.id,
+    });
+  });
+
+  socket.on('screenShareStatus', ({ roomId, isSharing, userId }) => {
+    console.log(
+      `${socket.name} (${socket.id}) ${isSharing ? 'started' : 'stopped'} screen sharing`
+    );
+
+    socket.isSharing = isSharing;
+
+    io.in(roomId).emit('peerScreenShareStatus', {
+      userId: socket.id,
+      isSharing: isSharing,
+    });
   });
 
   socket.on('leaveRoom', () => {
