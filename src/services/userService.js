@@ -377,6 +377,16 @@ export const removeProject = async projectId => {
     console.error('Error deleting project', error);
   }
 };
+//admin
+export const deactivateAccount = async (userId) => {
+  try{
+    const response = await apiClient.patch(`/admin/user/${userId}/deactivate`);
+    return response.data;
+  }catch(error){
+    console.error(`Error deactivating account with ID ${userId}:`, error);
+    throw error;
+  }
+}
 
 //Student
 export const getClassesByStudentId = async (studentId) => {

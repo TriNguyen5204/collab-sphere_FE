@@ -15,7 +15,8 @@ import {
   Calendar,
 } from 'lucide-react';
 import AdminSidebar from '../../components/layout/AdminSidebar';
-import { getAllAccount } from '../../services/userService';
+import { getAllAccount, deactivateAccount } from '../../services/userService';
+import { toast } from 'sonner';
 
 export default function AccountManagement() {
   const [selectedRole, setSelectedRole] = useState('HeadDepartment');
@@ -89,64 +90,35 @@ export default function AccountManagement() {
     return users;
   }, [selectedRole, data, searchQuery]);
 
-  const handleToggleActive = email => {
-    setData(prev => {
-      const updated = { ...prev };
-      let listKey = '';
-      switch (selectedRole) {
-        case 'HeadDepartment':
-          listKey = 'headDepartmentList';
-          break;
-        case 'Staff':
-          listKey = 'staffList';
-          break;
-        case 'Lecturer':
-          listKey = 'lecturerList';
-          break;
-        case 'Student':
-          listKey = 'studentList';
-          break;
-        default:
-          return prev;
-      }
-      
-      updated[listKey] = updated[listKey].map(u =>
-        u.email === email ? { ...u, isActive: !u.isActive } : u
-      );
-      return updated;
-    });
-  };
+  // const handleToggleActive = email => {
+  //   setData(prev => {
+  //     const updated = { ...prev };
+  //     let listKey = '';
+  //     switch (selectedRole) {
+  //       case 'HeadDepartment':
+  //         listKey = 'headDepartmentList';
+  //         break;
+  //       case 'Staff':
+  //         listKey = 'staffList';
+  //         break;
+  //       case 'Lecturer':
+  //         listKey = 'lecturerList';
+  //         break;
+  //       case 'Student':
+  //         listKey = 'studentList';
+  //         break;
+  //       default:
+  //         return prev;
+  //     }
 
-  const handleBulkDeactivate = () => {
-    setData(prev => {
-      const updated = { ...prev };
-      let listKey = '';
-      switch (selectedRole) {
-        case 'HeadDepartment':
-          listKey = 'headDepartmentList';
-          break;
-        case 'Staff':
-          listKey = 'staffList';
-          break;
-        case 'Lecturer':
-          listKey = 'lecturerList';
-          break;
-        case 'Student':
-          listKey = 'studentList';
-          break;
-        default:
-          return prev;
-      }
-      
-      updated[listKey] = updated[listKey].map(u =>
-        selectedIds.includes(u.email) ? { ...u, isActive: false } : u
-      );
-      return updated;
-    });
-    setSelectedIds([]);
-  };
+  //     updated[listKey] = updated[listKey].map(u =>
+  //       u.email === email ? { ...u, isActive: !u.isActive } : u
+  //     );
+  //     return updated;
+  //   });
+  // };
 
-  const getActiveCount = (role) => {
+  const getActiveCount = role => {
     let list = [];
     switch (role) {
       case 'HeadDepartment':
@@ -167,7 +139,7 @@ export default function AccountManagement() {
     return list.filter(u => u.isActive).length;
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = dateString => {
     if (!dateString) return 'N/A';
     try {
       return new Date(dateString).toLocaleDateString('vi-VN');
@@ -177,14 +149,85 @@ export default function AccountManagement() {
     }
   };
 
-  const getRoleDisplayName = (roleName) => {
+  const getRoleDisplayName = roleName => {
     const roleMap = {
-      'HEAD_DEPARTMENT': 'Head Department',
-      'STAFF': 'Staff',
-      'LECTURER': 'Lecturer',
-      'STUDENT': 'Student',
+      HEAD_DEPARTMENT: 'Head Department',
+      STAFF: 'Staff',
+      LECTURER: 'Lecturer',
+      STUDENT: 'Student',
     };
     return roleMap[roleName] || roleName;
+  };
+
+  const handleDeactivate = user => {
+    if (selectedRole === 'HeadDepartment' || selectedRole === 'Staff') {
+      toast.error('This role cannot be deactivated.');
+      return;
+    }
+
+    // Xác định loại ID tương ứng
+    let id = null;
+    if (selectedRole === 'Lecturer') id = user.lecturerId;
+    else if (selectedRole === 'Student') id = user.studentId;
+
+    if (!id) {
+      toast.error('Cannot change status: missing user ID.');
+      return;
+    }
+
+    // Nếu đang inactive → hỏi để active lại
+    if (user.isActive === false) {
+      const confirm = window.confirm('Do you want to activate this account?');
+      if (!confirm) return;
+
+      deactivateAccount(id)
+        .then(() => {
+          toast.success('Account activated successfully.');
+          setData(prev => {
+            const updated = { ...prev };
+            const listKey =
+              selectedRole === 'Lecturer' ? 'lecturerList' : 'studentList';
+            updated[listKey] = updated[listKey].map(u =>
+              (selectedRole === 'Lecturer' ? u.lecturerId : u.studentId) === id
+                ? { ...u, isActive: true }
+                : u
+            );
+            return updated;
+          });
+        })
+        .catch(error => {
+          console.error('Error activating account:', error);
+          toast.error('Failed to activate account. Please try again.');
+        });
+
+      return;
+    }
+
+    // Nếu đang active → hỏi để deactivate
+    const confirm = window.confirm(
+      'Are you sure you want to deactivate this account?'
+    );
+    if (!confirm) return;
+
+    deactivateAccount(id)
+      .then(() => {
+        toast.success('Account deactivated successfully.');
+        setData(prev => {
+          const updated = { ...prev };
+          const listKey =
+            selectedRole === 'Lecturer' ? 'lecturerList' : 'studentList';
+          updated[listKey] = updated[listKey].map(u =>
+            (selectedRole === 'Lecturer' ? u.lecturerId : u.studentId) === id
+              ? { ...u, isActive: false }
+              : u
+          );
+          return updated;
+        });
+      })
+      .catch(error => {
+        console.error('Error deactivating account:', error);
+        toast.error('Failed to deactivate account. Please try again.');
+      });
   };
 
   return (
@@ -262,20 +305,14 @@ export default function AccountManagement() {
                 <div className='p-4 bg-gradient-to-r from-blue-50 to-white border-b'>
                   <div className='flex items-center justify-between mb-4'>
                     <h2 className='text-xl font-semibold text-gray-800'>
-                      {selectedRole === 'HeadDepartment' ? 'Head Department' : selectedRole} Accounts
+                      {selectedRole === 'HeadDepartment'
+                        ? 'Head Department'
+                        : selectedRole}{' '}
+                      Accounts
                       <span className='ml-2 text-sm font-normal text-gray-500'>
                         ({filteredUsers.length} users)
                       </span>
                     </h2>
-                    {selectedIds.length > 0 && (
-                      <button
-                        className='flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors shadow-md'
-                        onClick={handleBulkDeactivate}
-                      >
-                        <UserMinus className='w-4 h-4' />
-                        Deactivate Selected ({selectedIds.length})
-                      </button>
-                    )}
                   </div>
 
                   {/* Search and Filter */}
@@ -359,7 +396,9 @@ export default function AccountManagement() {
                           <td className='px-6 py-4'>
                             <div className='flex items-center gap-3'>
                               <div className='w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold'>
-                                {(u.fullname || u.email).charAt(0).toUpperCase()}
+                                {(u.fullname || u.email)
+                                  .charAt(0)
+                                  .toUpperCase()}
                               </div>
                               <div>
                                 <p className='font-medium text-gray-800'>
@@ -397,32 +436,29 @@ export default function AccountManagement() {
                             )}
                           </td>
                           <td className='px-6 py-4'>
-                            <div className='flex gap-2'>
-                              <button
-                                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                                  u.isActive
-                                    ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                                    : 'bg-green-50 text-green-600 hover:bg-green-100'
-                                }`}
-                                onClick={() => handleToggleActive(u.email)}
-                              >
-                                {u.isActive ? (
-                                  <>
-                                    <Trash2 className='w-4 h-4' />
-                                    Deactivate
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle className='w-4 h-4' />
-                                    Activate
-                                  </>
-                                )}
-                              </button>
-                              <button className='flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors'>
-                                <Edit3 className='w-4 h-4' />
-                                Edit
-                              </button>
-                            </div>
+                            {selectedRole !== 'HeadDepartment' &&
+                              selectedRole !== 'Staff' && (
+                                <button
+                                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                                    u.isActive
+                                      ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                                      : 'bg-green-50 text-green-600 hover:bg-green-100'
+                                  }`}
+                                  onClick={() => handleDeactivate(u)}
+                                >
+                                  {u.isActive ? (
+                                    <>
+                                      <Trash2 className='w-4 h-4' />
+                                      Deactivate
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircle className='w-4 h-4' />
+                                      Activate
+                                    </>
+                                  )}
+                                </button>
+                              )}
                           </td>
                         </tr>
                       ))}
