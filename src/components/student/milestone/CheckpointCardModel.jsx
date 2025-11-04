@@ -259,32 +259,36 @@ const CheckpointCardModal = ({
                     {!isLoading && !error && hasResolvedData && (
                         <div className="space-y-6">
                             <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                    <History size={20} className="text-gray-600" />
-                                    <h3 className="text-lg font-semibold text-gray-900">Overview</h3>
-                                </div>
-                                <div className="mt-3 grid gap-3 sm:auto-rows-fr sm:[grid-template-columns:minmax(0,0.7fr)_minmax(0,1fr)_minmax(0,1.2fr)]">
-                                    <div className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700 h-full flex flex-col">
-                                        <p className="text-xs uppercase text-gray-500 flex items-center gap-2">
-                                            <Calendar size={13} className="text-gray-500" />
-                                            Start date
-                                        </p>
-                                        <div className="flex-1 flex items-center">
-                                            <p className="font-medium">{formatDate(startDate)}</p>
+                                <div className="flex items-center justify-between">
+                                            <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+                                                <History size={20}/>
+                                                <span>Overview</span>
+                                            </h3>
                                         </div>
-                                    </div>
-                                    <div className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700 h-full flex flex-col">
-                                        <p className="text-xs uppercase text-gray-500 flex items-center gap-2">
-                                            <Clock size={13} className="text-gray-500" />
-                                            Due date
-                                        </p>
-                                        <div className="flex-1 flex items-center">
-                                            <p className={`font-medium ${countTimeRemaining(dueDate).color}`}>
-                                                {countTimeRemaining(dueDate).text}
+                                <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                                    <div className="space-y-3">
+                                        <div className="rounded-lg border border-gray-200 bg-white shadow-sm px-4 py-3 text-sm text-gray-700 flex flex-col">
+                                            <p className="text-xs uppercase text-gray-500 flex items-center gap-2">
+                                                <Calendar size={13} className="text-gray-500" />
+                                                Start date
                                             </p>
+                                            <div className="flex-1 flex items-center">
+                                                <p className="font-medium">{formatDate(startDate)}</p>
+                                            </div>
+                                        </div>
+                                        <div className="rounded-lg border border-gray-200 bg-white shadow-sm px-4 py-3 text-sm text-gray-700 flex flex-col">
+                                            <p className="text-xs uppercase text-gray-500 flex items-center gap-2">
+                                                <Clock size={13} className="text-gray-500" />
+                                                Due date
+                                            </p>
+                                            <div className="flex-1 flex items-center">
+                                                <p className={`font-medium ${countTimeRemaining(dueDate).color}`}>
+                                                    {countTimeRemaining(dueDate).text}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700 h-full flex flex-col">
+                                    <div className="rounded-lg border border-gray-200 bg-white shadow-sm px-4 py-3 text-sm h-full flex flex-col">
                                         <p className="text-xs uppercase text-gray-500 flex items-center gap-2">
                                             <User size={13} className="text-gray-500" />
                                             Assignee
@@ -298,7 +302,7 @@ const CheckpointCardModal = ({
                                                 {assignments.map((assignment) => (
                                                     <li
                                                         key={assignment.checkpointAssignmentId || assignment.classMemberId}
-                                                        className="grid grid-cols-[40px,1fr] items-center gap-3"
+                                                        className="grid grid-cols-[40px,1fr] items-center gap-3 border-b border-gray-200 p-1 mt-1"
                                                     >
                                                         {assignment.avatarImg ? (
                                                             <img
@@ -327,16 +331,15 @@ const CheckpointCardModal = ({
                                 </div>
                             </div>
 
-                            <div className="space-y-3">
-                                <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-                                    <div className="space-y-5 p-5">
+                            <div className="">
+                                <div className="">
+                                    <div className="space-y-5">
                                         <div className="flex items-center justify-between">
                                             <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-                                                <Upload size={20} className="text-blue-600" />
+                                                <Upload size={20} className="" />
                                                 <span>Submissions ({submissionsCount})</span>
                                             </h3>
                                         </div>
-
                                         {submissionsCount === 0 ? (
                                             <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-6 py-8 text-center">
                                                 <p className="text-sm text-gray-600">No submissions yet. Upload your first file to get started.</p>
