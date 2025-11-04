@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { getDetailOfTeamByTeamId } from '../services/studentApi';
 
 
 const STORAGE_KEY = 'teamDetail';
@@ -7,7 +8,7 @@ const TeamContext = createContext({
 	team: null,
 	isLoading: false,
 	setTeam: () => {},
-	updateTeam: () => {},
+	updateTeam: async () => {},
 	clearTeam: () => {},
 });
 
@@ -73,27 +74,77 @@ export function TeamProvider({ children, initialTeam = null }) {
 		setTeamState(next);
 	}, []);
 
-	const updateTeam = useCallback((partial) => {
-		setTeamState((prev) => {
-			if (prev == null) return partial;
-			return {
-				...prev,
-				...partial,
-				// merge nested known shapes when provided in partial
-				teamProgress: partial?.teamProgress ? { ...prev.teamProgress, ...partial.teamProgress } : prev.teamProgress,
-				lecturerInfo: partial?.lecturerInfo ? { ...prev.lecturerInfo, ...partial.lecturerInfo } : prev.lecturerInfo,
-				classInfo: partial?.classInfo ? { ...prev.classInfo, ...partial.classInfo } : prev.classInfo,
-				projectInfo: partial?.projectInfo ? { ...prev.projectInfo, ...partial.projectInfo } : prev.projectInfo,
-				memberInfo: partial?.memberInfo
-					? {
-							...prev.memberInfo,
-							...partial.memberInfo,
-							members: partial.memberInfo.members ?? prev.memberInfo?.members,
-						}
-					: prev.memberInfo,
-			};
-		});
-	}, []);
+	const updateTeam = useCallback(
+		async (partial, options = {}) => {
+			const { refresh = true, teamId: overrideTeamId } = options;
+			let nextTeamSnapshot = partial;
+			setTeamState((prev) => {
+				if (prev == null) {
+					nextTeamSnapshot = partial;
+					return partial;
+				}
+				const merged = {
+					...prev,
+					...(typeof partial === 'object' ? partial : {}),
+					teamProgress:
+						partial?.teamProgress && prev.teamProgress
+							? { ...prev.teamProgress, ...partial.teamProgress }
+						: partial?.teamProgress ?? prev.teamProgress,
+					lecturerInfo:
+						partial?.lecturerInfo && prev.lecturerInfo
+							? { ...prev.lecturerInfo, ...partial.lecturerInfo }
+						: partial?.lecturerInfo ?? prev.lecturerInfo,
+					classInfo:
+						partial?.classInfo && prev.classInfo
+							? { ...prev.classInfo, ...partial.classInfo }
+						: partial?.classInfo ?? prev.classInfo,
+					projectInfo:
+						partial?.projectInfo && prev.projectInfo
+							? { ...prev.projectInfo, ...partial.projectInfo }
+						: partial?.projectInfo ?? prev.projectInfo,
+					memberInfo:
+						partial?.memberInfo && prev.memberInfo
+							? {
+								...prev.memberInfo,
+								...partial.memberInfo,
+								members: partial.memberInfo.members ?? prev.memberInfo?.members,
+							}
+						: partial?.memberInfo ?? prev.memberInfo,
+				};
+				nextTeamSnapshot = merged;
+				return merged;
+			});
+
+			if (!refresh) {
+				return nextTeamSnapshot;
+			}
+
+			const targetTeamId =
+				overrideTeamId ??
+					(typeof partial === 'object' ? partial?.teamId : undefined) ??
+					nextTeamSnapshot?.teamId;
+
+			if (!targetTeamId) {
+				return nextTeamSnapshot;
+			}
+
+			setIsLoading(true);
+			try {
+				const refreshed = await getDetailOfTeamByTeamId(targetTeamId);
+				if (refreshed) {
+					setTeamState(refreshed);
+					nextTeamSnapshot = refreshed;
+				}
+			} catch (error) {
+				console.error(`Failed to refresh team details for team ID ${targetTeamId}:`, error);
+			} finally {
+				setIsLoading(false);
+			}
+
+			return nextTeamSnapshot;
+		},
+		[]
+	);
 
 	const clearTeam = useCallback(() => {
 		setTeamState(null);

@@ -4,7 +4,7 @@ import AccountSettings from "../../components/student/AccountSettings";
 import AcademicInformation from "../../components/student/AcademicInformation";
 import { User, Settings, GraduationCap } from "lucide-react";
 import StudentLayout from "../../components/layout/StudentLayout";
-import { getUserProfile, getAvatarByPublicId } from "../../services/userService";
+import { getUserProfile, getAvatarByPublicId } from "../../services/studentApi";
 import { useSelector } from "react-redux";
 const StudentProfile = () => {
   const [activeTab, setActiveTab] = useState("profile");

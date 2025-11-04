@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Search, BookOpen, FolderKanban, User, LogOut, ChevronDown } from 'lucide-react';
-import { getClassesByStudentId, getListOfTeamsByStudentId } from '../../services/userService';
+import { getClassesByStudentId, getListOfTeamsByStudentId } from '../../services/studentApi';
 import { logout } from '../../store/slices/userSlice';
 import useClickOutside from '../../hooks/useClickOutside';
 import logo from '../../assets/logov1.png';

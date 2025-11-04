@@ -9,7 +9,7 @@ import ActivityFeed from '../../../components/student/ActivityFeed';
 import GitConfigModal from '../../../components/student/GitConfigModal';
 import ProjectOverview from '../../../components/student/ProjectOverview';
 import { Skeleton } from '../../../components/skeletons/StudentSkeletons';
-import { getDetailOfProjectByProjectId, getDetailOfTeamByTeamId } from '../../../services/userService';
+import { getDetailOfProjectByProjectId, getDetailOfTeamByTeamId } from '../../../services/studentApi';
 import { useTeam } from '../../../context/TeamContext.jsx';
 
 const TeamWorkspace = () => {
@@ -221,11 +221,7 @@ const TeamWorkspace = () => {
               <ProgressAnalytics progress={team?.teamProgress} loading={teamLoading} />
 
               {/* 2) Milestone Summary */}
-              <div className="bg-white rounded-lg shadow-md p-3">
-                <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Flag size={16} className="text-blue-500" />
-                  Milestone Summary
-                </h2>
+              <div className="">
                 {teamLoading ? (
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <Skeleton className="h-20 w-full" />

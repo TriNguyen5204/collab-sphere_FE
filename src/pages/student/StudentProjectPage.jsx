@@ -5,7 +5,7 @@ import StudentLayout from "../../components/layout/StudentLayout";
 import ProjectFilters from "../../components/student/ProjectFilters";
 import ProjectSection from "../../components/student/ProjectSection";
 import { History } from "lucide-react";
-import { getListOfTeamsByStudentId } from "../../services/userService";
+import { getListOfTeamsByStudentId } from "../../services/studentApi";
 
 const StudentProjectPage = () => {
   const navigate = useNavigate();
@@ -19,8 +19,7 @@ const StudentProjectPage = () => {
   // Filters state
   const [selectedClass, setSelectedClass] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-
+  const [semesterFilter, setSemesterFilter] = useState("all");
 
   const fetchTeams = async () => {
     if (!studentId) return;
@@ -65,6 +64,19 @@ const StudentProjectPage = () => {
     return Array.from(map.values());
   }, [teams]);
 
+  const semesters = useMemo(() => {
+    const map = new Map();
+    teams.forEach((t) => {
+      const name = t?.semesterName;
+      if (!name) return;
+      const key = String(name);
+      if (!map.has(key)) {
+        map.set(key, { code: key, name });
+      }
+    });
+    return Array.from(map.values());
+  }, [teams]);
+
   // Filter teams (search only on available fields)
   const filteredTeams = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -72,6 +84,9 @@ const StudentProjectPage = () => {
       const matchesClass =
         selectedClass === "all" ||
         (team.classId != null && String(team.classId) === String(selectedClass));
+      const matchesSemester =
+        semesterFilter === "all" ||
+        (team.semesterName != null && String(team.semesterName) === String(semesterFilter));
       const matchesSearch =
         q.length === 0 ||
         team.projectName?.toLowerCase().includes(q) ||
@@ -79,10 +94,9 @@ const StudentProjectPage = () => {
         team.className?.toLowerCase().includes(q) ||
         team.lecturerName?.toLowerCase().includes(q);
 
-      // No Status in API, so status filter is ignored
-      return matchesClass && matchesSearch;
+      return matchesClass && matchesSemester && matchesSearch;
     });
-  }, [teams, selectedClass, searchQuery, statusFilter]);
+  }, [teams, selectedClass, semesterFilter, searchQuery]);
 
 
   return (
@@ -98,9 +112,10 @@ const StudentProjectPage = () => {
             onSearchChange={setSearchQuery}
             selectedClass={selectedClass}
             onClassChange={setSelectedClass}
-            statusFilter={statusFilter}
-            onStatusChange={setStatusFilter}
+            semesterFilter={semesterFilter}
+            onSemesterChange={setSemesterFilter}
             classes={classes}
+            semesters={semesters}
           />
         </div>
 

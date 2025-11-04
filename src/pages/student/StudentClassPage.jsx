@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom'; // ADD
 import Header from '../../components/layout/Header';
 import StudentSidebar from '../../components/layout/StudentSidebar';
 import { toast } from 'sonner';
-import { getClassesByStudentId, getClassDetailsById } from '../../services/userService';
+import { getClassesByStudentId, getClassDetailsById } from '../../services/studentApi';
 import { EnrolledClassesSkeleton, ClassDetailsSkeleton } from '../../components/skeletons/StudentSkeletons';
 import { useSelector } from 'react-redux';
 import StudentLayout from '../../components/layout/StudentLayout';

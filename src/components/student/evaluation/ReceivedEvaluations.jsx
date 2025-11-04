@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getEvaluationMemberByTeamId } from '../../../services/userService';
+import { getEvaluationMemberByTeamId } from '../../../services/studentApi';
 import { Inbox, User, AlertTriangle } from 'lucide-react';
 import StarRating from './StarRating';
 import { toast } from 'sonner';

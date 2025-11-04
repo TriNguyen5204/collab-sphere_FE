@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Calendar, MessageSquare, CheckCircle, Upload, Award, Download, FileText, ChevronDown, ChevronRight, X, ChevronUp } from 'lucide-react';
-import { getStatusColor } from '../../../utils/milestoneHelpers';
+import { Calendar, MessageSquare, CheckCircle, Upload, Award, Download, FileText, ChevronDown, X, ChevronUp } from 'lucide-react';
+import { getStatusColor, normalizeMilestoneStatus } from '../../../utils/milestoneHelpers';
 import MilestoneFilesModal from './MilestoneFilesModal';
 import MilestoneQuestions from './MilestoneQuestions';
 
@@ -16,6 +16,16 @@ const MilestoneHeader = ({
   const [showFilesModal, setShowFilesModal] = useState(false);
   const [showQuestions, setShowQuestions] = useState(false);
   const [localFiles, setLocalFiles] = useState([]);
+
+  const status = normalizeMilestoneStatus(milestone?.statusString ?? milestone?.status);
+  const progress = Math.round(milestone?.progress ?? 0);
+  const dueDate = milestone?.dueDate ?? milestone?.endDate ?? null;
+  const startDate = milestone?.startDate ?? null;
+  const completedDate = milestone?.completedDate ?? null;
+  const lecturerFiles = Array.isArray(milestone?.lecturerFiles) ? milestone.lecturerFiles : [];
+  const returns = Array.isArray(milestone?.returns) ? milestone.returns : [];
+  const completedAnswers = milestone?.completedAnswers ?? 0;
+  const requiredAnswers = milestone?.requiredAnswers ?? milestone?.milestoneQuestionCount ?? 0;
 
   const questionCount = useMemo(() => Array.isArray(milestone?.questions) ? milestone.questions.length : 0, [milestone]);
   const canToggleQuestions = questionCount > 0;
@@ -38,7 +48,7 @@ const MilestoneHeader = ({
   };
 
   const hasEvaluation = !!milestone?.evaluation;
-  const hasMilestoneSubmission = Array.isArray(milestone?.returns) && milestone.returns.length > 0;
+  const hasMilestoneSubmission = returns.length > 0;
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -46,8 +56,8 @@ const MilestoneHeader = ({
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <h2 className="text-2xl font-bold text-gray-900">{milestone.title}</h2>
-            <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(milestone.status)}`}>
-              {milestone.status.replace('-', ' ').toUpperCase()}
+            <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(status)}`}>
+              {status.replace('-', ' ').toUpperCase()}
             </span>
           </div>
           <p className="text-gray-600">{milestone.description}</p>
@@ -59,21 +69,21 @@ const MilestoneHeader = ({
           <p className="text-sm text-gray-600 mb-1">Start Date</p>
           <p className="font-semibold flex items-center gap-2">
             <Calendar size={16} />
-            {milestone.startDate ? new Date(milestone.startDate).toLocaleDateString() : '—'}
+            {startDate ? new Date(startDate).toLocaleDateString() : '—'}
           </p>
         </div>
         <div>
           <p className="text-sm text-gray-600 mb-1">Due Date</p>
           <p className="font-semibold flex items-center gap-2">
             <Calendar size={16} />
-            {new Date(milestone.dueDate).toLocaleDateString()}
+            {dueDate ? new Date(dueDate).toLocaleDateString() : '—'}
           </p>
         </div>
         <div>
           <p className="text-sm text-gray-600 mb-1">Questions Completed</p>
           <p className="font-semibold flex items-center gap-2">
             <MessageSquare size={16} />
-            {milestone.completedAnswers} / {milestone.requiredAnswers}
+            {completedAnswers} / {requiredAnswers}
           </p>
         </div>
         <div>
@@ -87,15 +97,15 @@ const MilestoneHeader = ({
             className="font-semibold flex items-center gap-2"
           >
             <FileText size={16} />
-            {Array.isArray(milestone.lecturerFiles) ? milestone.lecturerFiles.length : 0} - <span className='underline'>View</span>
+            {lecturerFiles.length} - <span className='underline'>View</span>
           </button>
         </div>
-        {milestone.status === 'completed' && (
+  {status === 'completed' && (
           <>
             <div>
               <p className="text-sm text-gray-600 mb-1">Completed Date</p>
               <p className="font-semibold text-green-600">
-                {new Date(milestone.completedDate).toLocaleDateString()}
+                {completedDate ? new Date(completedDate).toLocaleDateString() : '—'}
               </p>
             </div>
           </>
@@ -106,15 +116,15 @@ const MilestoneHeader = ({
       <div className="mt-4 pt-4 border-t">
         <div className="flex justify-between text-sm mb-2">
           <span className="text-gray-600">Overall Progress</span>
-          <span className="font-semibold">{milestone.progress}%</span>
+          <span className="font-semibold">{progress}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
           <div
-            className={`h-3 rounded-full transition-all duration-300 ${milestone.progress < 30 ? 'bg-red-500' :
-                milestone.progress < 70 ? 'bg-yellow-500' :
+            className={`h-3 rounded-full transition-all duration-300 ${progress < 30 ? 'bg-red-500' :
+                progress < 70 ? 'bg-yellow-500' :
                   'bg-green-500'
               }`}
-            style={{ width: `${milestone.progress}%` }}
+            style={{ width: `${progress}%` }}
           />
         </div>
       </div>
@@ -122,7 +132,7 @@ const MilestoneHeader = ({
       <div className="mt-4 pt-4 border-t space-y-4">
         <MilestoneFilesModal
           isOpen={showFilesModal}
-          files={milestone.lecturerFiles || []}
+          files={lecturerFiles}
           onClose={() => setShowFilesModal(false)}
         />
 
@@ -130,11 +140,11 @@ const MilestoneHeader = ({
         <section>
           <h4 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
             <Upload size={16} />
-            Submissions ({Array.isArray(milestone.returns) ? milestone.returns.length : 0})
+            Submissions ({returns.length})
           </h4>
-          {Array.isArray(milestone.returns) && milestone.returns.length > 0 ? (
+          {returns.length > 0 ? (
             <div className="space-y-2">
-              {milestone.returns.map((r) => (
+              {returns.map((r) => (
                 <div key={r.id} className="flex items-center justify-between border rounded-md p-2">
                   <div className="min-w-0">
                     <p className="text-sm text-gray-900 truncate">{r.path?.split('/').pop() || 'Submission'}</p>
@@ -242,9 +252,9 @@ const MilestoneHeader = ({
         <div className="mt-4 pt-4 border-t">
           <button
             onClick={onComplete}
-            disabled={(milestone.completedAnswers < milestone.requiredAnswers) || !hasMilestoneSubmission}
+            disabled={(completedAnswers < requiredAnswers) || !hasMilestoneSubmission}
             title={
-              milestone.completedAnswers < milestone.requiredAnswers
+              completedAnswers < requiredAnswers
                 ? 'Answer all questions before completing this milestone'
                 : (!hasMilestoneSubmission ? 'Upload at least one file to the milestone before marking as complete' : undefined)
             }
@@ -253,12 +263,12 @@ const MilestoneHeader = ({
             <CheckCircle size={20} />
             Mark Milestone as Complete
           </button>
-          {(milestone.completedAnswers < milestone.requiredAnswers) && (
+          {(completedAnswers < requiredAnswers) && (
             <p className="text-sm text-amber-600 mt-2 text-center">
               Answer all questions before completing this milestone
             </p>
           )}
-          {!(milestone.completedAnswers < milestone.requiredAnswers) && !hasMilestoneSubmission && (
+          {!(completedAnswers < requiredAnswers) && !hasMilestoneSubmission && (
             <p className="text-sm text-amber-600 mt-2 text-center">
               Upload at least one file to the milestone before marking as complete
             </p>

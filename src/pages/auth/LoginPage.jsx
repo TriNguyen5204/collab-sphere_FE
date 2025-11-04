@@ -18,7 +18,7 @@ import { setUserRedux } from '../../store/slices/userSlice';
 import Cookies from 'js-cookie';
 import { toast } from 'sonner';
 import { getRoleLandingRoute } from '../../constants/roleRoutes';
-import { getUserProfile, getAvatarByPublicId } from '../../services/userService';
+import { getUserProfile, getAvatarByPublicId } from '../../services/studentApi';
 
 const LoginPage = () => {
   const navigate = useNavigate();

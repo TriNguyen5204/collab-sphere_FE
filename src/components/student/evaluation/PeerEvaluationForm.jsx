@@ -3,7 +3,7 @@ import { Send, AlertCircle } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import StarRating from './StarRating';
 import { toast } from 'sonner';
-import { postSubmitPeerEvaluation, getOwnEvaluationByTeamId } from '../../../services/userService';
+import { postSubmitPeerEvaluation, getOwnEvaluationByTeamId } from '../../../services/studentApi';
 
 const CRITERIA = [
   'Hard-working',
