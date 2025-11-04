@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Calendar, Clock, Users, X, AlertCircle, FileText, Loader2, Edit2, Trash2, } from 'lucide-react';
+import { Calendar, Clock, Users, X, AlertCircle, FileText, Loader2, Edit2, Trash2, History, User, Upload, CheckCircle } from 'lucide-react';
 import useClickOutside from '../../../hooks/useClickOutside';
 
 const formatDate = (value) => {
@@ -31,6 +31,53 @@ const getStatusBadgeStyles = (status) => {
     }
 };
 
+const countTimeRemaining = (dueDate) => {
+    if (!dueDate) {
+        return { text: '—', color: 'text-gray-500' };
+    }
+
+    const due = new Date(dueDate);
+    if (Number.isNaN(due.getTime())) {
+        return { text: 'Invalid date', color: 'text-gray-500' };
+    }
+
+    const now = new Date();
+    const timeDiff = due.getTime() - now.getTime();
+    const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+
+    const formattedDate = due.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+    });
+
+    if (daysDiff < 0) {
+        // Overdue
+        return {
+            text: `${formattedDate} • Overdue`,
+            color: 'text-red-600'
+        };
+    } else if (daysDiff === 0) {
+        // Due today
+        return {
+            text: `${formattedDate} • Due today`,
+            color: 'text-orange-600'
+        };
+    } else if (daysDiff === 1) {
+        // Due tomorrow
+        return {
+            text: `${formattedDate} • 1 day remaining`,
+            color: 'text-green-600'
+        };
+    } else {
+        // Due in multiple days
+        return {
+            text: `${formattedDate} • ${daysDiff} days remaining`,
+            color: 'text-green-600'
+        };
+    }
+};
+
 const CheckpointCardModal = ({
     isOpen,
     onClose,
@@ -38,6 +85,17 @@ const CheckpointCardModal = ({
     isLoading,
     error,
     fallbackTitle,
+    fallbackCheckpoint,
+    canUpload = false,
+    readOnly = false,
+    uiStatus,
+    localFiles = [],
+    onSelectLocalFiles,
+    onRemoveLocalFile,
+    onUploadLocalFiles,
+    uploadDisabled = true,
+    onMarkComplete,
+    onDeleteSubmission,
 }) => {
     const modalRef = useRef(null);
 
@@ -66,11 +124,46 @@ const CheckpointCardModal = ({
         return null;
     }
 
-    const normalizedStatus = (detail?.statusString || '').replace(/_/g, ' ');
-    const assignments = Array.isArray(detail?.checkpointAssignments)
-        ? detail.checkpointAssignments
+    const resolvedDetail = detail ?? fallbackCheckpoint ?? {};
+    const statusRaw = resolvedDetail?.statusString ?? resolvedDetail?.status ?? fallbackCheckpoint?.statusString ?? fallbackCheckpoint?.status ?? '';
+    const statusForBadge = typeof statusRaw === 'string' ? statusRaw : statusRaw?.toString?.() ?? '';
+    const normalizedStatus = statusForBadge
+        ? statusForBadge.toString().replace(/_/g, ' ')
+        : '';
+    const assignments = Array.isArray(resolvedDetail?.checkpointAssignments)
+        ? resolvedDetail.checkpointAssignments
+        : Array.isArray(resolvedDetail?.assignments)
+            ? resolvedDetail.assignments
+            : [];
+    const files = Array.isArray(resolvedDetail?.checkpointFiles)
+        ? resolvedDetail.checkpointFiles
+        : Array.isArray(resolvedDetail?.submissions)
+            ? resolvedDetail.submissions
+            : [];
+    const checkpointId = resolvedDetail?.checkpointId ?? resolvedDetail?.id ?? resolvedDetail?.checkpointID ?? fallbackCheckpoint?.id ?? null;
+    const complexity = resolvedDetail?.complexity ?? fallbackCheckpoint?.complexity ?? '';
+    const description = resolvedDetail?.description ?? fallbackCheckpoint?.description ?? '';
+    const startDate = resolvedDetail?.startDate ?? fallbackCheckpoint?.startDate ?? null;
+    const dueDate = resolvedDetail?.dueDate ?? resolvedDetail?.deadline ?? resolvedDetail?.endDate ?? fallbackCheckpoint?.dueDate ?? null;
+    const normalizedFiles = Array.isArray(files)
+        ? files.map((file, index) => ({
+            id: file.checkpointFileId ?? file.submissionId ?? file.id ?? index,
+            name: file.originalFileName ?? file.fileName ?? file.name ?? `Attachment ${index + 1}`,
+            url: file.fileUrl ?? file.url ?? file.downloadUrl ?? file.path ?? file.filePath ?? null,
+            uploadedBy: file.uploadedByName ?? file.uploadedBy ?? file.userName ?? file.createdBy ?? '',
+            uploadedAt: file.uploadedAt ?? file.createdAt ?? file.submittedAt ?? file.createdDate ?? '',
+            size: file.fileSize ?? file.size ?? null,
+            raw: file,
+        }))
         : [];
-    const files = Array.isArray(detail?.checkpointFiles) ? detail.checkpointFiles : [];
+    const submissionsCount = normalizedFiles.length;
+    const hasLocalFiles = Array.isArray(localFiles) && localFiles.length > 0;
+    const canShowUpload = canUpload && !readOnly;
+    const canRenderMarkComplete = (uiStatus ?? '').toString().toLowerCase() !== 'completed' && !readOnly;
+    const fileInputId = checkpointId ? `cp-file-input-${checkpointId}` : 'cp-file-input';
+    const isMarkCompleteDisabled = submissionsCount === 0;
+    const markCompleteButtonDisabled = isMarkCompleteDisabled || typeof onMarkComplete !== 'function' || checkpointId == null;
+    const hasResolvedData = detail != null || fallbackCheckpoint != null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -82,15 +175,30 @@ const CheckpointCardModal = ({
                 aria-labelledby="checkpoint-modal-title"
             >
                 <div className="flex items-start justify-between border-b px-6 py-4">
-                    <div className="flex">
-                        <h2 id="checkpoint-modal-title" className="text-xl font-semibold text-gray-900">
-                            {detail?.title || fallbackTitle}
-                        </h2>
-                        {normalizedStatus && (
-                            <span className={`rounded-full px-3 py-1 ml-2 text-xs font-semibold uppercase ${getStatusBadgeStyles(detail.statusString)}`}>
-                                {normalizedStatus}
-                            </span>
-                        )}
+                    <div>
+                        <div className="flex">
+                            <h2 id="checkpoint-modal-title" className="text-xl font-semibold text-gray-900">
+                                {resolvedDetail?.title || fallbackTitle}
+                            </h2>
+                            <div className="flex items-center gap-2 ml-2">
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${complexity === 'HIGH' ? 'border-red-300 text-red-700 bg-red-50' :
+                                    complexity === 'MEDIUM' ? 'border-amber-300 text-amber-700 bg-amber-50' :
+                                        'border-green-300 text-green-700 bg-green-50'
+                                    }`}>
+                                    {complexity || ''}
+                                </span>
+                            </div>
+                            {normalizedStatus && (
+                                <span className={`rounded-full px-3 py-1 ml-2 text-xs font-semibold uppercase ${getStatusBadgeStyles(statusForBadge)}`}>
+                                    {normalizedStatus}
+                                </span>
+                            )}
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-500">
+                                Description: {description ? description : 'No description provided.'}
+                            </p>
+                        </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="flex items-center gap-2">
@@ -148,88 +256,225 @@ const CheckpointCardModal = ({
                         </div>
                     )}
 
-                    {!isLoading && !error && detail && (
+                    {!isLoading && !error && hasResolvedData && (
                         <div className="space-y-6">
                             <div className="space-y-2">
-                                <h3 className="text-lg font-semibold text-gray-900">Overview</h3>
-                                <p className="text-sm text-gray-700">{detail.description || 'No description provided.'}</p>
-                                <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                                    <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                                        <Calendar size={18} className="text-gray-500" />
-                                        <div>
-                                            <p className="text-xs uppercase text-gray-500">Start date</p>
-                                            <p className="font-medium">{formatDate(detail.startDate)}</p>
+                                <div className="flex items-center gap-2">
+                                    <History size={20} className="text-gray-600" />
+                                    <h3 className="text-lg font-semibold text-gray-900">Overview</h3>
+                                </div>
+                                <div className="mt-3 grid gap-3 sm:auto-rows-fr sm:[grid-template-columns:minmax(0,0.7fr)_minmax(0,1fr)_minmax(0,1.2fr)]">
+                                    <div className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700 h-full flex flex-col">
+                                        <p className="text-xs uppercase text-gray-500 flex items-center gap-2">
+                                            <Calendar size={13} className="text-gray-500" />
+                                            Start date
+                                        </p>
+                                        <div className="flex-1 flex items-center">
+                                            <p className="font-medium">{formatDate(startDate)}</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                                        <Clock size={18} className="text-gray-500" />
-                                        <div>
-                                            <p className="text-xs uppercase text-gray-500">Due date</p>
-                                            <p className="font-medium">{formatDate(detail.dueDate)}</p>
+                                    <div className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700 h-full flex flex-col">
+                                        <p className="text-xs uppercase text-gray-500 flex items-center gap-2">
+                                            <Clock size={13} className="text-gray-500" />
+                                            Due date
+                                        </p>
+                                        <div className="flex-1 flex items-center">
+                                            <p className={`font-medium ${countTimeRemaining(dueDate).color}`}>
+                                                {countTimeRemaining(dueDate).text}
+                                            </p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                                        <FileText size={18} className="text-gray-500" />
-                                        <div>
-                                            <p className="text-xs uppercase text-gray-500">Complexity</p>
-                                            <p className="font-medium">{(detail.complexity || 'UNKNOWN').replace(/_/g, ' ')}</p>
-                                        </div>
+                                    <div className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700 h-full flex flex-col">
+                                        <p className="text-xs uppercase text-gray-500 flex items-center gap-2">
+                                            <User size={13} className="text-gray-500" />
+                                            Assignee
+                                        </p>
+                                        {assignments.length === 0 ? (
+                                            <div className="flex-1 flex items-center">
+                                                <p className="font-medium text-gray-600">No assignees yet.</p>
+                                            </div>
+                                        ) : (
+                                            <ul className="mt-3 space-y-2">
+                                                {assignments.map((assignment) => (
+                                                    <li
+                                                        key={assignment.checkpointAssignmentId || assignment.classMemberId}
+                                                        className="grid grid-cols-[40px,1fr] items-center gap-3"
+                                                    >
+                                                        {assignment.avatarImg ? (
+                                                            <img
+                                                                src={assignment.avatarImg}
+                                                                alt={assignment.fullname || 'Assignee avatar'}
+                                                                className="h-10 w-10 rounded-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-gray-500">
+                                                                <User size={18} />
+                                                            </div>
+                                                        )}
+                                                        <div>
+                                                            <p className="font-medium text-gray-900">
+                                                                {assignment.fullname || 'Unnamed member'}
+                                                            </p>
+                                                            <p className="text-xs font-medium uppercase text-gray-500">
+                                                                {(assignment.teamRoleString || 'Member').replace(/_/g, ' ')}
+                                                            </p>
+                                                        </div>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
                                     </div>
                                 </div>
                             </div>
 
                             <div className="space-y-3">
-                                <div className="flex items-center gap-2">
-                                    <Users size={20} className="text-gray-600" />
-                                    <h3 className="text-lg font-semibold text-gray-900">Assignees</h3>
-                                </div>
-                                {assignments.length === 0 ? (
-                                    <p className="text-sm text-gray-600">No assignees yet.</p>
-                                ) : (
-                                    <ul className="space-y-2">
-                                        {assignments.map((assignment) => (
-                                            <li
-                                                key={assignment.checkpointAssignmentId || assignment.studentId || assignment.classMemberId}
-                                                className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
-                                            >
-                                                <p className="font-medium text-gray-900">{assignment.fullname || assignment.studentCode || 'Unnamed member'}</p>
-                                                <p className="text-xs text-gray-500">{assignment.studentCode ? `Student Code: ${assignment.studentCode}` : 'Code unavailable'}</p>
-                                                <p className="text-xs text-gray-500">
-                                                    Role: {(assignment.teamRoleString || 'UNKNOWN').replace(/_/g, ' ')}
-                                                </p>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </div>
+                                <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+                                    <div className="space-y-5 p-5">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+                                                <Upload size={20} className="text-blue-600" />
+                                                <span>Submissions ({submissionsCount})</span>
+                                            </h3>
+                                        </div>
 
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-2">
-                                    <FileText size={20} className="text-gray-600" />
-                                    <h3 className="text-lg font-semibold text-gray-900">Attachments</h3>
+                                        {submissionsCount === 0 ? (
+                                            <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-6 py-8 text-center">
+                                                <p className="text-sm text-gray-600">No submissions yet. Upload your first file to get started.</p>
+                                            </div>
+                                        ) : (
+                                            <ul className="space-y-3">
+                                                {normalizedFiles.map((file) => (
+                                                    <li
+                                                        key={file.id}
+                                                        className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                                                    >
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                                                                <FileText size={18} />
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-medium text-gray-900">{file.name}</p>
+                                                                <div className="text-xs text-gray-500 space-x-3">
+                                                                    {file.uploadedBy && <span>by {file.uploadedBy}</span>}
+                                                                    {file.uploadedAt && <span>{formatDate(file.uploadedAt)}</span>}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-3 sm:justify-end">
+                                                            {file.url ? (
+                                                                <a
+                                                                    href={file.url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-sm font-medium text-blue-600 transition hover:text-blue-700"
+                                                                >
+                                                                    View
+                                                                </a>
+                                                            ) : null}
+                                                            {!readOnly && typeof onDeleteSubmission === 'function' && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => checkpointId != null && onDeleteSubmission?.(checkpointId, file.id)}
+                                                                    className="text-red-600 transition hover:text-red-700"
+                                                                    aria-label="Remove submission"
+                                                                >
+                                                                    <Trash2 size={18} />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+
+                                        {canShowUpload && (
+                                            <div className="space-y-4 border-t border-gray-200 pt-4">
+                                                <div className="rounded-lg border-2 border-dashed border-gray-300 p-6 text-center">
+                                                    <Upload className="mx-auto mb-3 text-gray-400" size={32} />
+                                                    <input
+                                                        type="file"
+                                                        multiple
+                                                        onChange={onSelectLocalFiles}
+                                                        id={fileInputId}
+                                                        className="hidden"
+                                                        disabled={typeof onSelectLocalFiles !== 'function'}
+                                                    />
+                                                    <label
+                                                        htmlFor={fileInputId}
+                                                        className={`font-semibold ${typeof onSelectLocalFiles === 'function'
+                                                            ? 'cursor-pointer text-blue-600 hover:text-blue-700'
+                                                            : 'cursor-not-allowed text-gray-400'
+                                                            }`}
+                                                    >
+                                                        Choose files to upload
+                                                    </label>
+                                                    <p className="mt-1 text-xs text-gray-500">or drag and drop files here</p>
+                                                </div>
+
+                                                {hasLocalFiles && (
+                                                    <div className="space-y-2">
+                                                        <h5 className="text-sm font-semibold text-gray-800">
+                                                            Files selected ({localFiles.length}):
+                                                        </h5>
+                                                        <ul className="space-y-2">
+                                                            {localFiles.map((file, index) => (
+                                                                <li
+                                                                    key={`${file.name}-${index}`}
+                                                                    className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2"
+                                                                >
+                                                                    <span className="truncate pr-4 text-sm text-gray-900">{file.name}</span>
+                                                                    {typeof onRemoveLocalFile === 'function' && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => onRemoveLocalFile(index)}
+                                                                            className="p-1 text-red-600 transition hover:text-red-700"
+                                                                            aria-label="Remove selected file"
+                                                                        >
+                                                                            <X size={16} />
+                                                                        </button>
+                                                                    )}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                        <div className="flex justify-end">
+                                                            <button
+                                                                type="button"
+                                                                onClick={onUploadLocalFiles}
+                                                                disabled={uploadDisabled || typeof onUploadLocalFiles !== 'function'}
+                                                                className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                                            >
+                                                                Upload ({localFiles.length})
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
                                 </div>
-                                {files.length === 0 ? (
-                                    <p className="text-sm text-gray-600">No files uploaded yet.</p>
-                                ) : (
-                                    <ul className="space-y-2">
-                                        {files.map((file) => {
-                                            const name = file.originalFileName || file.fileName || file.name || 'Attachment';
-                                            return (
-                                                <li key={file.checkpointFileId || name} className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700">
-                                                    {name}
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                )}
                             </div>
                         </div>
                     )}
-
-                    {!isLoading && !error && !detail && (
-                        <p className="text-center text-sm text-gray-500">No details available for this checkpoint.</p>
-                    )}
                 </div>
+                {canRenderMarkComplete && (
+                    <div className="border-t border-gray-200 bg-gray-50 px-5 py-4">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (!markCompleteButtonDisabled) {
+                                    onMarkComplete?.(checkpointId);
+                                }
+                            }}
+                            disabled={markCompleteButtonDisabled}
+                            title={isMarkCompleteDisabled ? 'Upload at least one file to mark complete' : 'Mark as Complete'}
+                            className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 font-semibold text-white transition hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        >
+                            <CheckCircle size={20} />
+                            Mark as Complete
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
