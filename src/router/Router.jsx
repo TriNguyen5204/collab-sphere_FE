@@ -20,6 +20,7 @@ import PeerEvaluationPage from '../pages/student/project/PeerEvaluationPage';
 import TeamWorkspace from '../pages/student/project/TeamWorkspace';
 import StudentClassMembersPage from '../pages/student/StudentClassMembersPage';
 import StudentClassProjectsPage from '../pages/student/StudentClassProjectsPage';
+import StudentPRAnalysisPage from '../pages/student/StudentPRAnalysisPage';
 
 // lecturer pages
 import ClassManagementDashboard from '../pages/lecturer/ClassManagementDashboard';
@@ -92,6 +93,7 @@ const studentRoutes = [
   { path: '/student/project/:projectId/:projectName/:teamId/milestones&checkpoints', element: protectRoute(['STUDENT'], <MilestoneCheckpointPage />) },
   { path: '/student/project/:projectId/:projectName/:teamId/peer-evaluation', element: protectRoute(['STUDENT'], <PeerEvaluationPage />) },
   { path: '/student/project/:projectId/:projectName/:teamId/team-workspace', element: protectRoute(['STUDENT'], <TeamWorkspace />) },
+  { path: '/student/ai/pr-analysis', element: protectRoute(['STUDENT'], <StudentPRAnalysisPage />) },
   { path: '/student/:className/members', element: protectRoute(['STUDENT'], <StudentClassMembersPage />) },
   { path: '/student/:className/projects', element: protectRoute(['STUDENT'], <StudentClassProjectsPage />) },
 ];

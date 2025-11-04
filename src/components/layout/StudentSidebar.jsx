@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Home, Archive, User, School } from 'lucide-react';
+import { Home, Archive, User, School, Sparkles } from 'lucide-react';
 import AppSidebar from './AppSidebar';
 
 const StudentSidebar = () => {
@@ -24,6 +24,12 @@ const StudentSidebar = () => {
                 href: '/student/classes',
                 icon: School,
                 match: path => path.startsWith('/student/classes'),
+            },
+            {
+                label: 'AI PR Analysis',
+                href: '/student/ai/pr-analysis',
+                icon: Sparkles,
+                match: path => path.startsWith('/student/ai/pr-analysis'),
             },
             {
                 label: 'Profile',
