@@ -12,9 +12,16 @@ const CheckpointCard = ({
   onUploadFiles,
   onMarkComplete,
   onDeleteSubmission,
-  onAssign
+  onAssign,
+  onGenerateFileLink,
 }) => {
-  const uiStatus = checkpoint.uiStatus || checkpoint.status;
+  const resolveUiStatus = (value) => {
+    if (typeof value === 'string') return value.toLowerCase();
+    if (value === 1) return 'completed';
+    return 'processing';
+  };
+
+  const uiStatus = resolveUiStatus(checkpoint.uiStatus ?? checkpoint.statusString ?? checkpoint.status);
   const daysRemaining = getDaysRemaining(checkpoint.dueDate);
   const isOverdue = daysRemaining < 0 && uiStatus !== 'completed';
   const [localFiles, setLocalFiles] = useState([]);
@@ -114,7 +121,7 @@ const CheckpointCard = ({
               <div className="flex items-center gap-3 mb-2">
                 <h3 className="text-xl font-bold text-gray-900">{checkpoint.title}</h3>
                 <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(isOverdue ? 'overdue' : uiStatus)}`}>
-                  {isOverdue ? 'OVERDUE' : (uiStatus || '').replace('-', ' ').toUpperCase()}
+                  {isOverdue ? 'OVERDUE' : uiStatus.replace('-', ' ').toUpperCase()}
                 </span>
               </div>
               <p className="text-gray-600 mb-3">{checkpoint.description}</p>
@@ -163,6 +170,7 @@ const CheckpointCard = ({
         fallbackCheckpoint={checkpoint}
         canUpload={canUpload}
         readOnly={readOnly}
+        canEdit={canEdit}
         uiStatus={uiStatus}
         localFiles={localFiles}
         onSelectLocalFiles={handleFileSelect}
@@ -171,6 +179,12 @@ const CheckpointCard = ({
         uploadDisabled={submitDisabled}
         onMarkComplete={onMarkComplete}
         onDeleteSubmission={onDeleteSubmission}
+        canAssign={canAssign}
+        onAssignMembers={(id, memberIds) => onAssign?.(id, memberIds)}
+        onGenerateFileLink={onGenerateFileLink}
+        onUpdateCheckpoint={(id, payload) => onEdit?.(id, payload)}
+        canDelete={canEdit && typeof onDelete === 'function'}
+        onDeleteCheckpoint={(id) => onDelete?.(id ?? checkpoint.id)}
       />
     </>
   );

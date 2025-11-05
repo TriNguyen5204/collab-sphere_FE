@@ -257,12 +257,28 @@ export const deleteCheckpointByCheckpointId = async (checkpointId) => {
 };
 
 export const postAssignMembersToCheckpoint = async (checkpointId, memberIds) => {
-    try {
-        const response = await apiClient.post(`/checkpoint/${checkpointId}/assignments`, { memberIds });
-        return response.data;
-    } catch (error) {
-        console.error(`Error assigning members to checkpoint ID ${checkpointId}:`, error);
-        throw error;
-    }
+  try {
+    const normalizedIds = Array.isArray(memberIds)
+      ? memberIds
+        .map((value) => Number(value))
+        .filter((value) => !Number.isNaN(value))
+      : [];
+
+    const response = await apiClient.post(
+      `/checkpoint/${checkpointId}/assignments`,
+      null,
+      {
+        params: { classMemberIds: normalizedIds },
+        paramsSerializer: { indexes: null },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error(`Error assigning members to checkpoint ID ${checkpointId}:`, error);
+    throw error;
+  }
 };
+
+
 

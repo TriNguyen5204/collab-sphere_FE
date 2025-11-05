@@ -1,6 +1,9 @@
-import React, { useEffect, useRef } from 'react';
-import { Calendar, Clock, Users, X, AlertCircle, FileText, Loader2, Edit2, Trash2, History, User, Upload, CheckCircle } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Calendar, Clock, X, AlertCircle, FileText, Loader2, Trash2, History, User, Upload, CheckCircle, RefreshCcw } from 'lucide-react';
 import useClickOutside from '../../../hooks/useClickOutside';
+import { useTeam } from '../../../context/TeamContext';
+import CheckpointAssignMenu from './CheckpointAssignMenu';
+import CheckpointEditMenu from './CheckpointEditMenu';
 
 const formatDate = (value) => {
     if (!value) {
@@ -23,6 +26,7 @@ const getStatusBadgeStyles = (status) => {
     switch (status) {
         case 'COMPLETED':
             return 'bg-green-100 text-green-700 border border-green-200';
+        case 'PROCESSING':
         case 'IN_PROGRESS':
             return 'bg-blue-100 text-blue-700 border border-blue-200';
         case 'NOT_DONE':
@@ -78,6 +82,23 @@ const countTimeRemaining = (dueDate) => {
     }
 };
 
+const toDateInputValue = (value) => {
+    if (!value) {
+        return '';
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        // assume the value is already in YYYY-MM-DD format
+        return value;
+    }
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const CheckpointCardModal = ({
     isOpen,
     onClose,
@@ -88,6 +109,8 @@ const CheckpointCardModal = ({
     fallbackCheckpoint,
     canUpload = false,
     readOnly = false,
+    canEdit = false,
+    canDelete = false,
     uiStatus,
     localFiles = [],
     onSelectLocalFiles,
@@ -96,12 +119,136 @@ const CheckpointCardModal = ({
     uploadDisabled = true,
     onMarkComplete,
     onDeleteSubmission,
+    canAssign = false,
+    onAssignMembers,
+    onGenerateFileLink,
+    onUpdateCheckpoint,
+    onDeleteCheckpoint,
 }) => {
     const modalRef = useRef(null);
+    const assignContainerRef = useRef(null);
+    const editContainerRef = useRef(null);
+    const { team } = useTeam();
+    const [isAssignMenuOpen, setIsAssignMenuOpen] = useState(false);
+    const [isEditMenuOpen, setIsEditMenuOpen] = useState(false);
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
+    const [editError, setEditError] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState(null);
+
+    const resolvedDetail = detail ?? fallbackCheckpoint ?? {};
+
+    const defaultEditForm = useMemo(() => {
+        const base = resolvedDetail ?? {};
+        const fallback = fallbackCheckpoint ?? {};
+        const title = base.title ?? fallback.title ?? fallbackTitle ?? '';
+        const description = base.description ?? fallback.description ?? '';
+        const startDate = toDateInputValue(base.startDate ?? fallback.startDate);
+        const dueDate = toDateInputValue(
+            base.dueDate ?? base.deadline ?? base.endDate ?? fallback.dueDate ?? fallback.deadline ?? fallback.endDate
+        );
+        const complexity = (base.complexity ?? fallback.complexity ?? 'LOW').toString().toUpperCase();
+        return {
+            title,
+            description,
+            startDate,
+            dueDate,
+            complexity,
+        };
+    }, [resolvedDetail, fallbackCheckpoint, fallbackTitle]);
+
+    const [editFormState, setEditFormState] = useState(defaultEditForm);
+
+    const assignments = useMemo(() => {
+        if (Array.isArray(resolvedDetail?.checkpointAssignments)) {
+            return resolvedDetail.checkpointAssignments;
+        }
+        if (Array.isArray(resolvedDetail?.assignments)) {
+            return resolvedDetail.assignments;
+        }
+        return [];
+    }, [resolvedDetail]);
+
+    const checkpointFiles = useMemo(() => {
+        if (Array.isArray(resolvedDetail?.checkpointFiles)) {
+            return resolvedDetail.checkpointFiles;
+        }
+        if (Array.isArray(resolvedDetail?.submissions)) {
+            return resolvedDetail.submissions;
+        }
+        return [];
+    }, [resolvedDetail]);
+
+    useEffect(() => {
+        if (!isEditMenuOpen) {
+            setEditFormState(defaultEditForm);
+            setEditError(null);
+            setIsSavingEdit(false);
+        }
+    }, [defaultEditForm, isEditMenuOpen]);
+
+    useEffect(() => {
+        if (!isOpen) {
+            setIsEditMenuOpen(false);
+            setIsSavingEdit(false);
+            setEditError(null);
+        }
+    }, [isOpen]);
+
+    const initialAssignedIds = useMemo(() => {
+        const ids = assignments
+            .map((assignment) => assignment?.classMemberId ?? assignment?.classMemberID ?? assignment?.classmemberId ?? null)
+            .filter((id) => id != null);
+        return Array.from(new Set(ids));
+    }, [assignments]);
+    const initialAssignedKey = [...initialAssignedIds]
+        .map((value) => String(value))
+        .sort()
+        .join('|');
+    const [selectedMemberIds, setSelectedMemberIds] = useState(initialAssignedIds);
+
+    useEffect(() => {
+        if (!isOpen) {
+            return;
+        }
+        setSelectedMemberIds((prev) => {
+            const prevKey = [...prev]
+                .map((value) => String(value))
+                .sort()
+                .join('|');
+            if (prevKey === initialAssignedKey) {
+                return prev;
+            }
+            return initialAssignedIds;
+        });
+    }, [isOpen, initialAssignedIds, initialAssignedKey]);
+
+    useEffect(() => {
+        if (!isOpen) {
+            setIsAssignMenuOpen(false);
+            setIsEditMenuOpen(false);
+            setIsSavingEdit(false);
+            setEditError(null);
+            setIsDeleting(false);
+            setDeleteError(null);
+        }
+    }, [isOpen]);
 
     useClickOutside(modalRef, () => {
         if (isOpen) {
             onClose?.();
+        }
+    });
+
+    useClickOutside(assignContainerRef, () => {
+        if (isAssignMenuOpen) {
+            setIsAssignMenuOpen(false);
+        }
+    });
+
+    useClickOutside(editContainerRef, () => {
+        if (isEditMenuOpen) {
+            setIsEditMenuOpen(false);
         }
     });
 
@@ -120,50 +267,230 @@ const CheckpointCardModal = ({
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose]);
 
+    const teamMembers = useMemo(() => {
+        const members = Array.isArray(team?.memberInfo?.members) ? team.memberInfo.members : [];
+        const generateRole = (roleCode, roleLabel) => {
+            if (roleCode === 1 || roleLabel?.toString?.().toUpperCase?.() === 'LEADER') {
+                return 'Leader';
+            }
+            return 'Member';
+        };
+
+        return members
+            .map((member) => ({
+                classMemberId: member?.classMemberId ?? member?.classMemberID ?? member?.id ?? null,
+                name: member?.fullname ?? member?.fullName ?? member?.studentName ?? member?.name ?? 'Member',
+                avatar: member?.avatar ?? member?.avatarImg ?? member?.profileImg ?? null,
+                role: generateRole(member?.teamRole, member?.teamRoleString),
+            }))
+            .filter((member) => member.classMemberId != null);
+    }, [team]);
+
+    const normalizedFiles = useMemo(
+        () =>
+            checkpointFiles.map((file, index) => {
+                const resolvedId = file.fileId ?? file.checkpointFileId ?? file.submissionId ?? file.id ?? index;
+                return {
+                    id: resolvedId,
+                    fileId: resolvedId,
+                    name: file.originalFileName ?? file.fileName ?? file.name ?? `Attachment ${index + 1}`,
+                    url: file.fileUrl ?? file.url ?? file.downloadUrl ?? file.path ?? file.filePath ?? null,
+                    uploadedBy: file.uploadedByName ?? file.uploadedBy ?? file.userName ?? file.createdBy ?? '',
+                    uploadedAt: file.uploadedAt ?? file.createdAt ?? file.submittedAt ?? file.createdDate ?? '',
+                    size: file.fileSize ?? file.size ?? null,
+                    raw: file,
+                };
+            }),
+        [checkpointFiles]
+    );
+
+    const checkpointId = resolvedDetail?.checkpointId ?? resolvedDetail?.id ?? resolvedDetail?.checkpointID ?? fallbackCheckpoint?.id ?? null;
+
+    const toggleMemberSelection = (memberId) => {
+        setSelectedMemberIds((prev) =>
+            prev.includes(memberId) ? prev.filter((id) => id !== memberId) : [...prev, memberId]
+        );
+    };
+
+    const handleToggleAssignMenu = () => {
+        if (!canAssign || teamMembers.length === 0) {
+            return;
+        }
+        setIsAssignMenuOpen((open) => !open);
+    };
+
+    const handleConfirmAssign = () => {
+        if (typeof onAssignMembers === 'function' && checkpointId != null) {
+            onAssignMembers(checkpointId, selectedMemberIds);
+        }
+        setIsAssignMenuOpen(false);
+    };
+
+    const handleToggleEditMenu = () => {
+        if (!canEdit) {
+            return;
+        }
+        setIsEditMenuOpen((open) => {
+            const next = !open;
+            if (!open) {
+                setEditFormState(defaultEditForm);
+                setEditError(null);
+            }
+            return next;
+        });
+    };
+
+    const handleCloseEditMenu = () => {
+        setIsEditMenuOpen(false);
+        setEditError(null);
+        setIsSavingEdit(false);
+    };
+
+    const handleConfirmEdit = async () => {
+        if (!canEdit || checkpointId == null || typeof onUpdateCheckpoint !== 'function') {
+            return;
+        }
+
+        const trimmedTitle = (editFormState.title ?? '').trim();
+        if (!trimmedTitle) {
+            setEditError('Title is required.');
+            return;
+        }
+
+        const dueDateValue = editFormState.dueDate ?? '';
+        if (!dueDateValue) {
+            setEditError('Due date is required.');
+            return;
+        }
+
+        const normalizedComplexity = (editFormState.complexity ?? 'LOW').toString().toUpperCase();
+        if (!['LOW', 'MEDIUM', 'HIGH'].includes(normalizedComplexity)) {
+            setEditError('Complexity must be Low, Medium, or High.');
+            return;
+        }
+
+        const teamMilestoneCandidates = [
+            resolvedDetail?.teamMilestoneId,
+            resolvedDetail?.teamMilestoneID,
+            resolvedDetail?.milestoneId,
+            resolvedDetail?.teamMilestone?.id,
+            fallbackCheckpoint?.teamMilestoneId,
+            fallbackCheckpoint?.teamMilestoneID,
+            fallbackCheckpoint?.milestoneId,
+        ];
+        const teamMilestoneId = teamMilestoneCandidates.find((value) => value != null);
+
+        if (teamMilestoneId == null) {
+            setEditError('Missing team milestone reference.');
+            return;
+        }
+
+        const payload = {
+            teamMilestoneId,
+            title: trimmedTitle,
+            description: (editFormState.description ?? '').trim(),
+            complexity: normalizedComplexity,
+            startDate: editFormState.startDate ? editFormState.startDate : null,
+            dueDate: dueDateValue,
+        };
+
+        setIsSavingEdit(true);
+        setEditError(null);
+
+        try {
+            await onUpdateCheckpoint(checkpointId, payload);
+            setIsEditMenuOpen(false);
+        } catch (submitError) {
+            const responseData = submitError?.response?.data;
+            let message = submitError?.message ?? 'Failed to update checkpoint.';
+            if (typeof responseData === 'string') {
+                message = responseData;
+            } else if (responseData && typeof responseData === 'object' && responseData.message) {
+                message = responseData.message;
+            } else if (Array.isArray(responseData) && responseData.length > 0) {
+                message = responseData[0]?.message ?? message;
+            }
+            setEditError(message);
+        } finally {
+            setIsSavingEdit(false);
+        }
+    };
+
+    const handleConfirmDelete = async () => {
+        if (readOnly || !canDelete || checkpointId == null || typeof onDeleteCheckpoint !== 'function') {
+            return;
+        }
+
+        const confirmed = window.confirm('Are you sure you want to delete this checkpoint?');
+        if (!confirmed) {
+            return;
+        }
+
+        setIsDeleting(true);
+        setDeleteError(null);
+
+        try {
+            await onDeleteCheckpoint(checkpointId);
+            setIsDeleting(false);
+            onClose?.();
+        } catch (deleteErr) {
+            const responseData = deleteErr?.response?.data;
+            let message = deleteErr?.message ?? 'Failed to delete checkpoint.';
+
+            if (typeof responseData === 'string') {
+                message = responseData;
+            } else if (responseData && typeof responseData === 'object' && responseData.message) {
+                message = responseData.message;
+            } else if (Array.isArray(responseData) && responseData.length > 0) {
+                const nestedMessage = responseData
+                    .map((entry) => (typeof entry === 'string' ? entry : entry?.message))
+                    .filter(Boolean)
+                    .join('\n');
+                if (nestedMessage) {
+                    message = nestedMessage;
+                }
+            }
+
+            setIsDeleting(false);
+            setDeleteError(message);
+        }
+    };
+
     if (!isOpen) {
         return null;
     }
 
-    const resolvedDetail = detail ?? fallbackCheckpoint ?? {};
     const statusRaw = resolvedDetail?.statusString ?? resolvedDetail?.status ?? fallbackCheckpoint?.statusString ?? fallbackCheckpoint?.status ?? '';
     const statusForBadge = typeof statusRaw === 'string' ? statusRaw : statusRaw?.toString?.() ?? '';
     const normalizedStatus = statusForBadge
         ? statusForBadge.toString().replace(/_/g, ' ')
         : '';
-    const assignments = Array.isArray(resolvedDetail?.checkpointAssignments)
-        ? resolvedDetail.checkpointAssignments
-        : Array.isArray(resolvedDetail?.assignments)
-            ? resolvedDetail.assignments
-            : [];
-    const files = Array.isArray(resolvedDetail?.checkpointFiles)
-        ? resolvedDetail.checkpointFiles
-        : Array.isArray(resolvedDetail?.submissions)
-            ? resolvedDetail.submissions
-            : [];
-    const checkpointId = resolvedDetail?.checkpointId ?? resolvedDetail?.id ?? resolvedDetail?.checkpointID ?? fallbackCheckpoint?.id ?? null;
     const complexity = resolvedDetail?.complexity ?? fallbackCheckpoint?.complexity ?? '';
     const description = resolvedDetail?.description ?? fallbackCheckpoint?.description ?? '';
     const startDate = resolvedDetail?.startDate ?? fallbackCheckpoint?.startDate ?? null;
     const dueDate = resolvedDetail?.dueDate ?? resolvedDetail?.deadline ?? resolvedDetail?.endDate ?? fallbackCheckpoint?.dueDate ?? null;
-    const normalizedFiles = Array.isArray(files)
-        ? files.map((file, index) => ({
-            id: file.checkpointFileId ?? file.submissionId ?? file.id ?? index,
-            name: file.originalFileName ?? file.fileName ?? file.name ?? `Attachment ${index + 1}`,
-            url: file.fileUrl ?? file.url ?? file.downloadUrl ?? file.path ?? file.filePath ?? null,
-            uploadedBy: file.uploadedByName ?? file.uploadedBy ?? file.userName ?? file.createdBy ?? '',
-            uploadedAt: file.uploadedAt ?? file.createdAt ?? file.submittedAt ?? file.createdDate ?? '',
-            size: file.fileSize ?? file.size ?? null,
-            raw: file,
-        }))
-        : [];
     const submissionsCount = normalizedFiles.length;
+    const assignmentsCount = assignments.length;
+    const lacksAssignments = assignmentsCount === 0;
+    const lacksSubmissions = submissionsCount === 0;
+    const markCompleteDisabledTitle = lacksAssignments
+        ? 'Assign members before marking this checkpoint complete'
+        : lacksSubmissions
+            ? 'Upload at least one file to mark complete'
+            : 'Mark as Complete';
+    const markCompleteRequirementMissing = lacksAssignments || lacksSubmissions;
     const hasLocalFiles = Array.isArray(localFiles) && localFiles.length > 0;
     const canShowUpload = canUpload && !readOnly;
     const canRenderMarkComplete = (uiStatus ?? '').toString().toLowerCase() !== 'completed' && !readOnly;
     const fileInputId = checkpointId ? `cp-file-input-${checkpointId}` : 'cp-file-input';
-    const isMarkCompleteDisabled = submissionsCount === 0;
-    const markCompleteButtonDisabled = isMarkCompleteDisabled || typeof onMarkComplete !== 'function' || checkpointId == null;
+    const markCompleteButtonDisabled = markCompleteRequirementMissing || typeof onMarkComplete !== 'function' || checkpointId == null;
     const hasResolvedData = detail != null || fallbackCheckpoint != null;
+    const deleteDisabled = !canDelete || readOnly || typeof onDeleteCheckpoint !== 'function' || checkpointId == null || isDeleting;
+    const deleteButtonTitle = isDeleting
+        ? 'Deleting checkpoint...'
+        : !canDelete || readOnly
+            ? 'Deletion locked'
+            : 'Delete checkpoint';
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -202,29 +529,41 @@ const CheckpointCardModal = ({
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="flex items-center gap-2">
+                            <CheckpointAssignMenu
+                                ref={assignContainerRef}
+                                isOpen={isAssignMenuOpen}
+                                canAssign={canAssign}
+                                onToggleMenu={handleToggleAssignMenu}
+                                onConfirm={handleConfirmAssign}
+                                teamMembers={teamMembers}
+                                selectedMemberIds={selectedMemberIds}
+                                onToggleMember={toggleMemberSelection}
+                            />
+                            <CheckpointEditMenu
+                                ref={editContainerRef}
+                                isOpen={isEditMenuOpen}
+                                canEdit={canEdit && !readOnly}
+                                onToggleMenu={handleToggleEditMenu}
+                                onCloseMenu={handleCloseEditMenu}
+                                formState={editFormState}
+                                onChange={setEditFormState}
+                                onSubmit={handleConfirmEdit}
+                                isSubmitting={isSavingEdit}
+                                errorMessage={editError}
+                            />
                             <button
-                                // onClick={() => canAssign && onAssign?.(checkpoint)}
-                                // disabled={!canAssign}
-                                title='Assign Members'
-                                className={'p-2 rounded-lg transition text-purple-600 hover:bg-purple-50'}
+                                type="button"
+                                onClick={handleConfirmDelete}
+                                disabled={deleteDisabled}
+                                title={deleteButtonTitle}
+                                className={`p-2 rounded-lg transition ${
+                                    deleteDisabled
+                                        ? 'cursor-not-allowed text-gray-400'
+                                        : 'text-red-600 hover:bg-red-50'
+                                }`}
+                                aria-label="Delete checkpoint"
                             >
-                                <Users size={18} />
-                            </button>
-                            <button
-                                // onClick={() => canEdit && onEdit(checkpoint)}
-                                // disabled={!canEdit}
-                                title='Edit Checkpoint'
-                                className={'p-2 rounded-lg transition text-blue-600 hover:bg-blue-50'}
-                            >
-                                <Edit2 size={18} />
-                            </button>
-                            <button
-                                // onClick={() => canEdit && onDelete(checkpoint.id)}
-                                // disabled={!canEdit}
-                                title='Delete Checkpoint'
-                                className={'p-2 rounded-lg transition text-red-600 hover:bg-red-50'}
-                            >
-                                <Trash2 size={18} />
+                                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 size={18} />}
                             </button>
                         </div>
                         <button
@@ -252,6 +591,15 @@ const CheckpointCardModal = ({
                             <div>
                                 <p className="font-medium">Something went wrong</p>
                                 <p>{error}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {!isLoading && deleteError && (
+                        <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                            <AlertCircle size={18} className="mt-0.5" />
+                            <div>
+                                <p>{deleteError}</p>
                             </div>
                         </div>
                     )}
@@ -374,10 +722,20 @@ const CheckpointCardModal = ({
                                                                     View
                                                                 </a>
                                                             ) : null}
+                                                            {typeof onGenerateFileLink === 'function' && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => checkpointId != null && onGenerateFileLink(checkpointId, file.fileId ?? file.id)}
+                                                                    className="flex items-center gap-1 rounded-md border border-transparent px-2 py-1 text-sm text-gray-600 transition hover:border-gray-300 hover:text-gray-800"
+                                                                >
+                                                                    <RefreshCcw size={16} />
+                                                                    Refresh link
+                                                                </button>
+                                                            )}
                                                             {!readOnly && typeof onDeleteSubmission === 'function' && (
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => checkpointId != null && onDeleteSubmission?.(checkpointId, file.id)}
+                                                                    onClick={() => checkpointId != null && onDeleteSubmission?.(checkpointId, file.fileId ?? file.id)}
                                                                     className="text-red-600 transition hover:text-red-700"
                                                                     aria-label="Remove submission"
                                                                 >
@@ -470,7 +828,7 @@ const CheckpointCardModal = ({
                                 }
                             }}
                             disabled={markCompleteButtonDisabled}
-                            title={isMarkCompleteDisabled ? 'Upload at least one file to mark complete' : 'Mark as Complete'}
+                            title={markCompleteDisabledTitle}
                             className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 font-semibold text-white transition hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                         >
                             <CheckCircle size={20} />
