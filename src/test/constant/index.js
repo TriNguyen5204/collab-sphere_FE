@@ -3,7 +3,7 @@ import { Home, Users, BookOpen, Settings, LogOut } from "lucide-react";
 export const sidebarLinks = [
   {
     label: "Home",
-    route: "/",
+    route: "/test/meeting",
     icon: Home,
   },
   {

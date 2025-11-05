@@ -65,6 +65,8 @@ import TestKanbanBoard from '../pages/TestKanbanBoard';
 import Layout from '../test/Meeting/Layout'
 import RoomJoinPage from '../test/RoomJoinPage'
 import MeetingRoomTest from '../test/MeetingRoomTest'
+import MeetingHistory from '../test/Meeting/MeetingHistory';
+import MeetingSchedulerFull from '../test/Meeting/MeetingSchedule';
 // import StreamVideoMeeting from '../test/StreamVideoMeeting';
 
 import RoleProtectedRoute from './RoleProtectedRoute';
@@ -81,6 +83,8 @@ const publicRoutes = [
   { path: '/room', element: <RoomJoinPage/>},
   { path: '/room/:roomId', element: <MeetingRoomTest/>},
   { path: '/test/meeting', element: <Layout/> },
+  { path: '/test/meeting/history', element: <MeetingHistory/> },
+  { path: '/test/meeting/schedule', element: <MeetingSchedulerFull/> },
   { path: '/test/kanban', element: <TestKanbanBoard /> },
 ];
 
