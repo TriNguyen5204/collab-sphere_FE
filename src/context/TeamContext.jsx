@@ -1,10 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+/* @refresh reload */
+import { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getDetailOfTeamByTeamId } from '../services/studentApi';
 
 
 const STORAGE_KEY = 'teamDetail';
 
-const TeamContext = createContext({
+export const TeamContext = createContext({
 	team: null,
 	isLoading: false,
 	setTeam: () => {},
@@ -158,11 +159,5 @@ export function TeamProvider({ children, initialTeam = null }) {
 	return <TeamContext.Provider value={value}>{children}</TeamContext.Provider>;
 }
 
-export function useTeam() {
-	const ctx = useContext(TeamContext);
-	if (!ctx) throw new Error('useTeam must be used within a TeamProvider');
-	return ctx;
-}
-
-export default TeamContext;
+export default TeamProvider;
 

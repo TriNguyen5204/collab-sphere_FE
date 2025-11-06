@@ -19,7 +19,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { toast } from "sonner";
-import { useTeam } from "../../context/TeamContext";
+import useTeam from "../../context/useTeam";
 import { putUpdateTeamByTeamId, postAvatarOfTeam } from "../../services/studentApi";
 
 const ProjectBoardSetting = ({ archivedItems, onRestoreArchived, onDeleteArchived }) => {

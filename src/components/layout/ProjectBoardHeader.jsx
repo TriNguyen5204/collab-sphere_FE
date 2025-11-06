@@ -5,7 +5,7 @@ import ProjectMemberAvatars from "../student/ProjectMemberAvatars";
 import ProjectMemberPopover from "../student/ProjectMemberPopover";
 import ProjectBoardSetting from "../student/ProjectBoardSetting";
 import { LogOut } from 'lucide-react';
-import { useTeam } from "../../context/TeamContext";
+import useTeam from "../../context/useTeam";
 
 const ProjectBoardHeader = ({ selectedRole, onRoleChange, archivedItems, onRestoreArchived, onDeleteArchived }) => {
   const { projectName } = useParams();

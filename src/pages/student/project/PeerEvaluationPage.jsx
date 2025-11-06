@@ -4,7 +4,7 @@ import ProjectBoardHeader from '../../../components/layout/ProjectBoardHeader';
 import EvaluationTabs from '../../../components/student/evaluation/EvaluationTabs';
 import PeerEvaluationForm from '../../../components/student/evaluation/PeerEvaluationForm';
 import ReceivedEvaluations from '../../../components/student/evaluation/ReceivedEvaluations';
-import { useTeam } from '../../../context/TeamContext';
+import useTeam from '../../../context/useTeam';
 import { useSelector } from 'react-redux';
 
 const PeerEvaluationPage = () => {

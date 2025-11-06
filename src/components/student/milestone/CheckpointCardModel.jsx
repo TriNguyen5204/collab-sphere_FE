@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Calendar, Clock, X, AlertCircle, FileText, Loader2, Trash2, History, User, Upload, CheckCircle, RefreshCcw } from 'lucide-react';
 import useClickOutside from '../../../hooks/useClickOutside';
-import { useTeam } from '../../../context/TeamContext';
+import useTeam from '../../../context/useTeam';
 import CheckpointAssignMenu from './CheckpointAssignMenu';
 import CheckpointEditMenu from './CheckpointEditMenu';
 
@@ -472,13 +472,10 @@ const CheckpointCardModal = ({
     const submissionsCount = normalizedFiles.length;
     const assignmentsCount = assignments.length;
     const lacksAssignments = assignmentsCount === 0;
-    const lacksSubmissions = submissionsCount === 0;
     const markCompleteDisabledTitle = lacksAssignments
         ? 'Assign members before marking this checkpoint complete'
-        : lacksSubmissions
-            ? 'Upload at least one file to mark complete'
-            : 'Mark as Complete';
-    const markCompleteRequirementMissing = lacksAssignments || lacksSubmissions;
+        : 'Mark as Complete';
+    const markCompleteRequirementMissing = lacksAssignments;
     const hasLocalFiles = Array.isArray(localFiles) && localFiles.length > 0;
     const canShowUpload = canUpload && !readOnly;
     const canRenderMarkComplete = (uiStatus ?? '').toString().toLowerCase() !== 'completed' && !readOnly;

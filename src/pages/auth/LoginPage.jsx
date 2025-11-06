@@ -79,6 +79,7 @@ const LoginPage = () => {
 
     try {
       const response = await login(formData.email, formData.password);
+      console.log('Login response:', response);
       if (response?.userId) {
         dispatch(setUserRedux(response));
         Cookies.set('user', JSON.stringify(response), { expires: 7 });

@@ -10,7 +10,7 @@ import GitConfigModal from '../../../components/student/GitConfigModal';
 import ProjectOverview from '../../../components/student/ProjectOverview';
 import { Skeleton } from '../../../components/skeletons/StudentSkeletons';
 import { getDetailOfProjectByProjectId, getDetailOfTeamByTeamId } from '../../../services/studentApi';
-import { useTeam } from '../../../context/TeamContext.jsx';
+import useTeam from '../../../context/useTeam';
 
 const TeamWorkspace = () => {
   const { projectId, teamId } = useParams();

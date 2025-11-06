@@ -17,7 +17,11 @@ import {
   deleteCheckpointFileByCheckpointIdAndFileId,
   deleteCheckpointByCheckpointId,
   patchGenerateNewCheckpointFileLinkByCheckpointIdAndFileId,
+  patchMarkDoneCheckpointByCheckpointId,
   putUpdateCheckpointByCheckpointId,
+  postUploadMilestoneFilebyMilestoneId,
+  deleteMilestoneFileByMilestoneIdAndMileReturnId,
+  patchGenerateNewReturnFileLinkByMilestoneIdAndMileReturnId,
 } from '../../../services/studentApi';
 import { normalizeMilestoneStatus } from '../../../utils/milestoneHelpers';
 import { useSelector } from 'react-redux';
@@ -27,7 +31,6 @@ const MilestonePage = () => {
   const { teamId } = useParams();
   const [milestones, setMilestones] = useState([]);
   const [selectedMilestone, setSelectedMilestone] = useState(null);
-  const [answers, setAnswers] = useState({});
   const [isLoadingList, setIsLoadingList] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -95,19 +98,25 @@ const MilestonePage = () => {
   const mergeDetailIntoMilestone = (base, detail) => {
     const questionsRaw = detail?.milestoneQuestions || detail?.questions || [];
     const questions = questionsRaw.map((q) => {
-      const answersArray = (q.answers || q.answerList || []).map((a) => ({
+      const rawAnswers = Array.isArray(q.answers || q.answerList)
+        ? (q.answers || q.answerList)
+        : [];
+      const answersArray = rawAnswers.map((a) => ({
+        id: a.id ?? a.answerId ?? a.milestoneQuestionAnsId ?? null,
         content: a.content ?? a.answer ?? '',
-        answeredBy: a.answeredByName ?? a.answeredBy ?? a.userName ?? '',
-        answeredAt: a.answeredAt ?? a.createdAt ?? '',
+        answeredBy: a.answeredByName ?? a.answeredBy ?? a.userName ?? a.studentName ?? '',
+        answeredAt: a.answeredAt ?? a.createdAt ?? a.createTime ?? '',
       }));
+      const answerCount = typeof q.answerCount === 'number' ? q.answerCount : answersArray.length;
       return {
         id: q.id ?? q.questionId ?? q.milestoneQuestionId,
         question: q.content ?? q.text ?? q.question ?? '',
         type: q.type ?? 'text',
         answers: answersArray,
+        answerCount,
       };
     });
-    const completedAnswers = questions.filter((q) => (q.answers?.length ?? 0) > 0).length;
+    const completedAnswers = questions.filter((q) => (q.answerCount ?? q.answers?.length ?? 0) > 0).length;
 
     const cpRaw = detail?.checkpoints || detail?.checkpointList || [];
     const checkpoints = cpRaw.map((cp) => {
@@ -167,12 +176,19 @@ const MilestonePage = () => {
     const returnsRaw = detail?.milestoneReturns || [];
     const returns = returnsRaw.map((r, idx) => ({
       id: r.mileReturnId ?? idx,
-      path: r.filePath ?? '',
+      path: r.filePath ?? r.fileUrl ?? r.path ?? '',
+      fileUrl: r.fileUrl ?? r.path ?? '',
+      fileName: r.fileName ?? r.originalFileName ?? '',
+      fileSize: r.fileSize ?? null,
       type: r.type ?? '',
+      urlExpireTime: r.urlExpireTime ?? r.expireTime ?? '',
       submittedAt: r.submitedDate ?? r.submittedAt ?? r.createdDate ?? '',
+      studentName: r.studentName ?? r.fullname ?? r.fullName ?? '',
+      studentCode: r.studentCode ?? '',
+      avatarImg: r.avatarImg ?? '',
       student: {
         id: r.studentId ?? null,
-        name: r.fullname ?? r.fullName ?? '',
+        name: r.studentName ?? r.fullname ?? r.fullName ?? '',
         code: r.studentCode ?? '',
         avatar: r.avatarImg ?? '',
       },
@@ -273,47 +289,6 @@ const MilestonePage = () => {
     }
   }, [teamId]);
 
-  const handleAnswerChange = (questionId, value) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: value }));
-  };
-
-  const handleSaveAnswer = (questionId) => {
-    if (!selectedMilestone) return;
-    const updatedMilestones = milestones.map(milestone => {
-      if (getMilestoneId(milestone) === getMilestoneId(selectedMilestone)) {
-        const currentQuestions = Array.isArray(milestone.questions) ? milestone.questions : [];
-        const updatedQuestions = currentQuestions.map(q => {
-          if (q.id === questionId) {
-            const prev = Array.isArray(q.answers) ? q.answers : [];
-            const newEntry = {
-              content: answers[questionId] || '',
-              answeredBy: 'Current User',
-              answeredAt: new Date().toISOString()
-            };
-            return {
-              ...q,
-              answers: newEntry.content ? [...prev, newEntry] : prev,
-            };
-          }
-          return q;
-        });
-        const completedAnswers = updatedQuestions.filter(q => (Array.isArray(q.answers) ? q.answers.length > 0 : false)).length;
-        const totalRequired = milestone?.requiredAnswers ?? milestone?.milestoneQuestionCount ?? 0;
-        const progress = totalRequired > 0 ? Math.round((completedAnswers / totalRequired) * 100) : 0;
-        return {
-          ...milestone,
-          questions: updatedQuestions,
-          completedAnswers,
-          progress
-        };
-      }
-      return milestone;
-    });
-    setMilestones(updatedMilestones);
-    setSelectedMilestone(updatedMilestones.find(m => getMilestoneId(m) === getMilestoneId(selectedMilestone)));
-    setAnswers({ ...answers, [questionId]: "" });
-  };
-
   const handleCompleteMilestone = async () => {
     if (!selectedMilestone) return;
     const totalRequired = selectedMilestone?.requiredAnswers ?? selectedMilestone?.milestoneQuestionCount ?? 0;
@@ -344,6 +319,13 @@ const MilestonePage = () => {
       const msg = error?.response?.data?.message || 'Only leader can mark milestone as done';
       alert(msg);
     }
+  };
+
+  const handleQuestionAnswered = async () => {
+    if (!selectedMilestone) return;
+    const milestoneId = getMilestoneId(selectedMilestone);
+    if (!milestoneId) return;
+    await fetchMilestoneDetail(milestoneId);
   };
 
   const selectedCheckpoints = useMemo(() => selectedMilestone?.checkpoints || [], [selectedMilestone]);
@@ -512,33 +494,116 @@ const MilestonePage = () => {
     }
   };
 
-  const addMilestoneReturns = (files = []) => {
+  const handleUploadMilestoneReturns = async (files = []) => {
     if (!selectedMilestone) return;
-    if (files.length === 0) {
-      alert('Please select files to upload');
+    if (!Array.isArray(files) || files.length === 0) {
+      toast.error('Please select files to upload');
       return;
     }
 
-    const newReturns = files.map((file, index) => ({
-      id: Date.now() + index,
-      path: file.name,
-      type: file.name.split('.').pop()?.toUpperCase(),
-      submittedAt: new Date().toISOString(),
-      student: {
-        id: null,
-        name: 'Current User',
-        code: '',
-        avatar: ''
-      }
-    }));
+    const milestoneId = getMilestoneId(selectedMilestone);
+    if (!milestoneId) {
+      toast.error('Unable to upload files: missing milestone reference');
+      return;
+    }
 
-    const updated = milestones.map(m =>
-      getMilestoneId(m) === getMilestoneId(selectedMilestone)
-        ? { ...m, returns: [...(m.returns || []), ...newReturns] }
-        : m
-    );
-    setMilestones(updated);
-    setSelectedMilestone(updated.find(m => getMilestoneId(m) === getMilestoneId(selectedMilestone)));
+    const formData = new FormData();
+    let appended = false;
+    files.forEach((file) => {
+      if (file != null) {
+        formData.append('formFile', file);
+        appended = true;
+      }
+    });
+
+    if (!appended) {
+      toast.error('Files could not be prepared for upload');
+      return;
+    }
+
+    try {
+      await postUploadMilestoneFilebyMilestoneId(milestoneId, formData);
+      toast.success(`${files.length} file${files.length > 1 ? 's' : ''} uploaded successfully`);
+      await fetchMilestoneDetail(milestoneId);
+      return true;
+    } catch (error) {
+      const responseData = error?.response?.data;
+      let message = error?.message ?? 'Failed to upload milestone submissions';
+      if (typeof responseData === 'string') {
+        message = responseData;
+      } else if (responseData && typeof responseData === 'object' && responseData.message) {
+        message = responseData.message;
+      }
+      toast.error(message);
+      throw error;
+    }
+  };
+
+  const handleDeleteMilestoneReturn = async (mileReturnId) => {
+    if (!selectedMilestone) return;
+    if (mileReturnId == null) {
+      toast.error('Unable to delete submission: missing identifier');
+      return;
+    }
+
+    const confirmed = window.confirm('Are you sure you want to delete this submission?');
+    if (!confirmed) {
+      return;
+    }
+
+    const milestoneId = getMilestoneId(selectedMilestone);
+    if (!milestoneId) {
+      toast.error('Unable to delete submission: missing milestone reference');
+      return;
+    }
+
+    try {
+      await deleteMilestoneFileByMilestoneIdAndMileReturnId(milestoneId, mileReturnId);
+      toast.success('Submission deleted');
+      await fetchMilestoneDetail(milestoneId);
+      return true;
+    } catch (error) {
+      const responseData = error?.response?.data;
+      let message = error?.message ?? 'Failed to delete submission';
+      if (typeof responseData === 'string') {
+        message = responseData;
+      } else if (responseData && typeof responseData === 'object' && responseData.message) {
+        message = responseData.message;
+      }
+      toast.error(message);
+      throw error;
+    }
+  };
+
+  const handleRegenerateMilestoneReturnLink = async (mileReturnId) => {
+    if (!selectedMilestone) return;
+    if (mileReturnId == null) {
+      toast.error('Unable to refresh link: missing submission identifier');
+      return;
+    }
+
+    const milestoneId = getMilestoneId(selectedMilestone);
+    if (!milestoneId) {
+      toast.error('Unable to refresh link: missing milestone reference');
+      return;
+    }
+
+    try {
+      await patchGenerateNewReturnFileLinkByMilestoneIdAndMileReturnId(milestoneId, mileReturnId);
+      toast.success('A new download link has been generated');
+      await fetchMilestoneDetail(milestoneId);
+      return true;
+    } catch (error) {
+      const responseData = error?.response?.data;
+      let message = error?.message ?? 'Failed to refresh link';
+      if (typeof responseData === 'string') {
+        message = responseData;
+      } else if (responseData && typeof responseData === 'object' && responseData.message) {
+        message = responseData.message;
+      }
+      toast.error(message);
+      throw error;
+    }
   };
 
   const handleUploadCheckpointFiles = async (checkpointId, files = []) => {
@@ -600,7 +665,7 @@ const MilestonePage = () => {
     }
   };
 
-  const handleMarkComplete = (checkpointId) => {
+  const handleMarkComplete = async (checkpointId) => {
     if (!selectedMilestone) return;
 
     const cp = selectedCheckpoints.find(c => c.id === checkpointId);
@@ -608,12 +673,16 @@ const MilestonePage = () => {
 
     const assignmentsCount = Array.isArray(cp.assignments) ? cp.assignments.length : 0;
     if (assignmentsCount === 0) {
-      alert('Please assign at least one member before marking this checkpoint as complete');
+      toast.error('Please assign at least one member before marking this checkpoint as complete');
       return;
     }
 
-    if ((cp.submissions || []).length === 0) {
-      alert('Please upload at least one file before marking as complete');
+    try {
+      await patchMarkDoneCheckpointByCheckpointId(checkpointId, true);
+      toast.success('Checkpoint marked as complete');
+    } catch (error) {
+      const message = error?.response?.data?.message || 'Failed to mark checkpoint as complete';
+      toast.error(message);
       return;
     }
 
@@ -636,6 +705,11 @@ const MilestonePage = () => {
     });
     setMilestones(updated);
     setSelectedMilestone(updated.find(m => getMilestoneId(m) === getMilestoneId(selectedMilestone)));
+
+    const milestoneId = getMilestoneId(selectedMilestone);
+    if (milestoneId) {
+      await fetchMilestoneDetail(milestoneId);
+    }
   };
 
   const openAssignModal = async (checkpointId, classMemberIds = []) => {
@@ -716,10 +790,10 @@ const MilestonePage = () => {
                   milestone={selectedMilestone}
                   readOnly={false}
                   onComplete={handleCompleteMilestone}
-                  answers={answers}
-                  onAnswerChange={handleAnswerChange}
-                  onSaveAnswer={handleSaveAnswer}
-                  onUploadMilestoneFiles={addMilestoneReturns}
+                  onUploadMilestoneFiles={handleUploadMilestoneReturns}
+                  onDeleteMilestoneReturn={handleDeleteMilestoneReturn}
+                  onRefreshMilestoneReturnLink={handleRegenerateMilestoneReturnLink}
+                  onAnswerSubmitted={handleQuestionAnswered}
                 />
               )
             ) : (

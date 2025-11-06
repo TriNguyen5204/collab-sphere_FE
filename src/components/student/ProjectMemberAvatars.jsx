@@ -1,5 +1,5 @@
 import React from "react";
-import { useTeam } from "../../context/TeamContext";
+import useTeam from "../../context/useTeam";
 
 const ProjectMemberAvatars = ({ onSelect }) => {
   const { team } = useTeam();
