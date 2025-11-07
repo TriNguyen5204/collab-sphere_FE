@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Mic, MicOff, Video, VideoOff, Copy, LogIn } from 'lucide-react';
-import { useMediaStream } from './hooks/useMediaStream'; // ✅ Import hook
+import { useMediaStream } from './hooks/useMediaStream';
 
 function JoinPage() {
   const myName = useSelector((state) => state.user.fullName);
@@ -12,7 +12,7 @@ function JoinPage() {
   const [videoEnabled, setVideoEnabled] = useState(true);
   const navigate = useNavigate();
 
-  const { stream, toggleAudio, toggleVideo } = useMediaStream();
+  const { stream, localStreamRef } = useMediaStream();
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -21,29 +21,54 @@ function JoinPage() {
     }
   }, [stream]);
 
-  const handleToggleAudio = () => {
-    const newState = toggleAudio();
-    setAudioEnabled(newState);
-  };
 
-  const handleToggleVideo = () => {
-    const newState = toggleVideo();
-    setVideoEnabled(newState);
+  // 🆕 Sync state với stream thực tế
+  useEffect(() => {
+    if (localStreamRef.current) {
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+      const videoTrack = localStreamRef.current.getVideoTracks()[0];
+      
+      if (audioTrack) setAudioEnabled(audioTrack.enabled);
+      if (videoTrack) setVideoEnabled(videoTrack.enabled);
+    }
+  }, [stream, localStreamRef]);
+
+  // 🔧 Helper function để cleanup stream trước khi navigate
+  const cleanupAndNavigate = (path, navState) => {
+    // Lưu state hiện tại trước khi cleanup
+    const currentAudioState = audioEnabled;
+    const currentVideoState = videoEnabled;
+
+    // Dừng tất cả tracks trước khi navigate
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        track.stop();
+        console.log('🛑 Stopped track:', track.kind);
+      });
+      localStreamRef.current = null;
+    }
+
+    // Navigate với state đã lưu (không phải Promise)
+    setTimeout(() => {
+      navigate(path, { 
+        state: {
+          ...navState,
+          audioEnabled: currentAudioState,
+          videoEnabled: currentVideoState
+        }
+      });
+    }, 100);
   };
 
   const createRoom = () => {
     const newRoomId = Math.random().toString(36).substring(2, 10);
     setMyRoomId(newRoomId);
-    navigate(`/room/${newRoomId}`, {
-      state: { myName, audioEnabled, videoEnabled },
-    });
+    cleanupAndNavigate(`/room/${newRoomId}`, { myName });
   };
 
   const joinRoom = () => {
     if (groupId) {
-      navigate(`/room/${groupId}`, {
-        state: { myName, audioEnabled, videoEnabled },
-      });
+      cleanupAndNavigate(`/room/${groupId}`, { myName });
     } else {
       alert('Please enter a room ID');
     }
@@ -56,42 +81,6 @@ function JoinPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row items-center justify-center p-6 gap-8">
-      {/* 🎥 Video preview */}
-      <div className="bg-black relative rounded-2xl shadow-xl overflow-hidden w-full md:w-1/2 aspect-video">
-        {videoEnabled && stream ? (
-          <video
-            ref={videoRef}
-            autoPlay
-            muted
-            playsInline
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-white text-2xl font-semibold">
-            Camera Off
-          </div>
-        )}
-
-        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
-          <button
-            onClick={handleToggleAudio}
-            className={`p-3 rounded-full ${
-              audioEnabled ? 'bg-gray-800' : 'bg-red-600'
-            } text-white hover:opacity-80`}
-          >
-            {audioEnabled ? <Mic size={22} /> : <MicOff size={22} />}
-          </button>
-          <button
-            onClick={handleToggleVideo}
-            className={`p-3 rounded-full ${
-              videoEnabled ? 'bg-gray-800' : 'bg-red-600'
-            } text-white hover:opacity-80`}
-          >
-            {videoEnabled ? <Video size={22} /> : <VideoOff size={22} />}
-          </button>
-        </div>
-      </div>
-
       {/* 📋 Info */}
       <div className="bg-white rounded-2xl shadow-lg w-full md:w-1/3 p-6 flex flex-col justify-center gap-4">
         <h1 className="text-2xl font-semibold text-gray-800 text-center mb-4">

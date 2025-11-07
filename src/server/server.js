@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 
 const app = express();
 const server = http.createServer(app);
+const recorders = {};
 const io = new Server(server, {
   cors: {
     origin: 'http://localhost:5173',
@@ -26,6 +27,12 @@ io.on('connection', socket => {
       socket.to(roomId).emit('userLeft', socket.id);
     }
     socket.isSharing = false;
+    for (const [roomId, recorderId] of Object.entries(recorders)) {
+      if (recorderId === socket.id) {
+        delete recorders[roomId];
+        io.to(roomId).emit("recordStopped", { userId: socket.id });
+      }
+    }
   });
 
   socket.on('chatMessage', ({ roomId, sender, message }) => {
@@ -44,7 +51,7 @@ io.on('connection', socket => {
     console.log(`${name} (${socket.id}) joined ${roomId}`);
 
     const clientsInRoom = io.sockets.adapter.rooms.get(roomId);
-    
+
     const usersInRoom = [];
     const usersSharing = [];
 
@@ -66,7 +73,7 @@ io.on('connection', socket => {
     }
 
     socket.emit('allUsers', { usersInRoom, usersSharing });
-    
+
     // Thông báo cho những người cũ trong phòng biết có user mới
     socket.to(roomId).emit('userJoined', {
       id: socket.id,
@@ -103,6 +110,23 @@ io.on('connection', socket => {
       userId: socket.id,
       isSharing: isSharing,
     });
+  });
+  socket.on('requestStartRecord', (roomId, callback) => {
+    // Nếu đã có người record thì từ chối, không thì cho phép và lưu lại ID người record
+    if (recorders[roomId]) {
+      callback({ success: false, message: 'Someone is already recording.' });
+      return;
+    }
+    recorders[roomId] = socket.id;
+    io.to(roomId).emit('recordStarted', { userId: socket.id });
+    callback({ success: true });
+  });
+
+  socket.on('requestStopRecord', roomId => {
+    if (recorders[roomId] === socket.id) {
+      delete recorders[roomId];
+      io.to(roomId).emit('recordStopped', { userId: socket.id });
+    }
   });
 
   socket.on('leaveRoom', () => {
