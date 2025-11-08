@@ -1,119 +1,110 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { Mic, MicOff, Video, VideoOff, Copy, LogIn } from 'lucide-react';
-import { useMediaStream } from './hooks/useMediaStream';
+import React, { useState } from "react";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { LogIn } from "lucide-react";
+import { createMeeting } from "../services/meetingApi";
+import { toast } from "sonner";
 
 function JoinPage() {
   const myName = useSelector((state) => state.user.fullName);
-  const [groupId, setGroupId] = useState('');
-  const [myRoomId, setMyRoomId] = useState('');
-  const [audioEnabled, setAudioEnabled] = useState(true);
-  const [videoEnabled, setVideoEnabled] = useState(true);
+  const [groupId, setGroupId] = useState("");
+  const [myRoomId, setMyRoomId] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const navigate = useNavigate();
 
-  const { stream, localStreamRef } = useMediaStream();
-  const videoRef = useRef(null);
-
-  useEffect(() => {
-    if (stream && videoRef.current) {
-      videoRef.current.srcObject = stream;
-    }
-  }, [stream]);
-
-
-  // 🆕 Sync state với stream thực tế
-  useEffect(() => {
-    if (localStreamRef.current) {
-      const audioTrack = localStreamRef.current.getAudioTracks()[0];
-      const videoTrack = localStreamRef.current.getVideoTracks()[0];
-      
-      if (audioTrack) setAudioEnabled(audioTrack.enabled);
-      if (videoTrack) setVideoEnabled(videoTrack.enabled);
-    }
-  }, [stream, localStreamRef]);
-
-  // 🔧 Helper function để cleanup stream trước khi navigate
+  // 🔧 Hàm điều hướng
   const cleanupAndNavigate = (path, navState) => {
-    // Lưu state hiện tại trước khi cleanup
-    const currentAudioState = audioEnabled;
-    const currentVideoState = videoEnabled;
-
-    // Dừng tất cả tracks trước khi navigate
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => {
-        track.stop();
-        console.log('🛑 Stopped track:', track.kind);
-      });
-      localStreamRef.current = null;
-    }
-
-    // Navigate với state đã lưu (không phải Promise)
     setTimeout(() => {
-      navigate(path, { 
+      navigate(path, {
         state: {
           ...navState,
-          audioEnabled: currentAudioState,
-          videoEnabled: currentVideoState
-        }
+          audioEnabled: true,
+          videoEnabled: true,
+        },
       });
     }, 100);
   };
 
-  const createRoom = () => {
+  // 🆕 Hàm tạo meeting + room
+  const createRoom = async () => {
+    if (!title.trim()) {
+      toast.error("Please enter a meeting title");
+      return;
+    }
+
     const newRoomId = Math.random().toString(36).substring(2, 10);
     setMyRoomId(newRoomId);
-    cleanupAndNavigate(`/room/${newRoomId}`, { myName });
-  };
 
-  const joinRoom = () => {
-    if (groupId) {
-      cleanupAndNavigate(`/room/${groupId}`, { myName });
-    } else {
-      alert('Please enter a room ID');
+    const payload = {
+      teamId: 2,
+      title,
+      description,
+      meetingUrl: `http://localhost:5173/room/${newRoomId}`,
+      scheduleTime: new Date().toISOString(),
+    };
+
+    try {
+      const response = await createMeeting(payload);
+      if (response) {
+        toast.success("✅ Meeting created successfully!");
+        cleanupAndNavigate(`/room/${newRoomId}`, { myName });
+      }
+    } catch (error) {
+      console.error("❌ Failed to create meeting:", error);
+      toast.error("Error creating meeting, please try again.");
     }
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    alert('Copied: ' + text);
+  // 🟢 Join room có sẵn
+  const joinRoom = () => {
+    if (groupId.trim()) {
+      cleanupAndNavigate(`/room/${groupId}`, { myName });
+    } else {
+      toast.error("Please enter a room ID");
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row items-center justify-center p-6 gap-8">
-      {/* 📋 Info */}
       <div className="bg-white rounded-2xl shadow-lg w-full md:w-1/3 p-6 flex flex-col justify-center gap-4">
-        <h1 className="text-2xl font-semibold text-gray-800 text-center mb-4">
-          Ready to join the meeting?
+        <h1 className="text-2xl font-semibold text-gray-800 text-center mb-2">
+          Ready to join or create a meeting?
         </h1>
 
-        {myRoomId ? (
-          <div className="text-center">
-            <p className="text-gray-600 mb-2">
-              Your Room ID: <b>{myRoomId}</b>
-            </p>
-            <button
-              onClick={() => copyToClipboard(myRoomId)}
-              className="flex items-center gap-2 justify-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium mx-auto"
-            >
-              <Copy size={18} /> Copy Room ID
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={createRoom}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold"
-          >
-            Create New Room
-          </button>
-        )}
+        {/* Meeting Info Inputs */}
+        <input
+          type="text"
+          placeholder="Meeting title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
 
+        <textarea
+          placeholder="Meeting description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          rows="3"
+        ></textarea>
+
+        <button
+          onClick={createRoom}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold"
+        >
+          Create New Room
+        </button>
+
+        <div className="border-t border-gray-200 my-2"></div>
+
+        {/* Join existing room */}
         <input
           type="text"
           placeholder="Enter Room ID"
           value={groupId}
           onChange={(e) => setGroupId(e.target.value)}
-          className="px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
         />
         <button
           onClick={joinRoom}
