@@ -71,7 +71,8 @@ export const createStudent = async data => {
     });
     return response.data;
   } catch (error) {
-    console.log('Create failed', error);
+    console.log('Create failed', error.response.data);
+    throw error
   }
 };
 export const importStudentList = async data => {
@@ -246,6 +247,15 @@ export const getAllAccount = async () => {
   }
 };
 //head of department
+export const getSemester = async () => {
+  try{
+    const response = await apiClient.get('/semester');
+    return response.data;
+  }catch(error){
+    console.log('Error fetching data', error)
+    throw error
+  }
+}
 export const createMultipleSubjects = async data => {
   try {
     const formData = new FormData();
@@ -309,20 +319,23 @@ export const getAllProject = async (params = {}) => {
     throw error;
   }
 };
-
-export const getPendingProjects = async ({
-  descriptors,
-  viewAll,
-  pageNum,
-  pageSize,
-}) => {
+export const getProjectById = async (id) => {
+  try{
+    const response = await apiClient.get(`/project/${id}`)
+    return response.data
+  }catch(error){
+    console.log("Get error", error)
+    throw error
+  }
+}
+export const getPendingProjects = async (params = {}) => {
   try {
     const response = await apiClient.get('/project/pending', {
       params: {
-        Descriptors: descriptors,
-        ViewAll: viewAll,
-        PageNum: pageNum,
-        PageSize: pageSize,
+        Descriptors: params.descriptors,
+        ViewAll: params.viewAll,
+        PageNum: params.pageNum,
+        PageSize: params.pageSize,
       },
     });
     return response.data;
@@ -356,9 +369,9 @@ export const handleProject = async (projectId, status) => {
     throw error;
   }
 };
-export const deleteProject = async (projectId) => {
+export const removeProject = async projectId => {
   try {
-    const response = await apiClient.delete(`/project/head/${projectId}`);
+    const response = await apiClient.patch(`/project/${projectId}/public-removal`);
     return response.data;
   } catch (error) {
     console.error('Error deleting project', error);

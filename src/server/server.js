@@ -20,42 +20,54 @@ io.on('connection', socket => {
   socket.emit('me', socket.id);
 
   socket.on('disconnect', () => {
-    socket.broadcast.emit('callEnded');
+    const roomId = socket.roomId;
+    if (roomId) {
+      console.log(`${socket.name} (${socket.id}) disconnected from ${roomId}`);
+      socket.to(roomId).emit('userLeft', socket.id);
+    }
+    socket.isSharing = false;
   });
 
-  socket.on('endCall', data => {
-    io.to(data.to).emit('callEnded');
-  });
-
-  socket.on('callUser', ({ userToCall, signalData, from, name }) => {
-    io.to(userToCall).emit('callUser', {
-      signal: signalData,
-      from: from,
-      name: name,
+  socket.on('chatMessage', ({ roomId, sender, message }) => {
+    io.to(roomId).emit('chatMessage', {
+      sender,
+      message,
+      timestamp: Date.now(),
     });
   });
 
-  socket.on('answerCall', data => {
-    io.to(data.to).emit('callAccepted', data.signal);
-  });
-
-  // ---- NEW GROUP CALL CODE ----
   socket.on('joinRoom', ({ roomId, name }) => {
     socket.join(roomId);
     socket.roomId = roomId;
     socket.name = name || 'Anonymous';
 
-    console.log(name + ' joined ' + roomId);
+    console.log(`${name} (${socket.id}) joined ${roomId}`);
 
-    // Send existing users list to the new user
-    const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
-    const otherUsers = clients.filter(id => id !== socket.id);
+    const clientsInRoom = io.sockets.adapter.rooms.get(roomId);
+    
+    const usersInRoom = [];
+    const usersSharing = [];
 
-    // make sure it's always an array
-    console.log('User list', otherUsers);
-    socket.emit('allUsers', otherUsers);
+    if (clientsInRoom) {
+      for (const clientId of clientsInRoom) {
+        const clientSocket = io.sockets.sockets.get(clientId);
 
-    // Notify others in room that a new user joined
+        if (clientId !== socket.id) {
+          usersInRoom.push({
+            id: clientId,
+            name: clientSocket?.name || 'Anonymous',
+          });
+        }
+
+        if (clientSocket && clientSocket.isSharing) {
+          usersSharing.push(clientId);
+        }
+      }
+    }
+
+    socket.emit('allUsers', { usersInRoom, usersSharing });
+    
+    // Thông báo cho những người cũ trong phòng biết có user mới
     socket.to(roomId).emit('userJoined', {
       id: socket.id,
       name: socket.name,
@@ -63,24 +75,43 @@ io.on('connection', socket => {
   });
 
   socket.on('signal', data => {
-    socket.to(data.to).emit('signal', {
-      from: socket.id,
-      signal: data.signal,
+    const targetId = data.targetId;
+    if (targetId) {
+      io.to(targetId).emit('signal', {
+        from: socket.id,
+        signal: data.signal,
+      });
+    }
+  });
+
+  // ✅ Handler mới: Yêu cầu screen track
+  socket.on('requestScreenTrack', ({ targetId }) => {
+    console.log(`${socket.id} requesting screen track from ${targetId}`);
+    io.to(targetId).emit('requestScreenTrack', {
+      requesterId: socket.id,
     });
   });
 
-  socket.on('disconnect', () => {
-    const roomId = socket.roomId;
-    if (roomId) {
-      socket.to(roomId).emit('userLeft', socket.id);
-    }
+  socket.on('screenShareStatus', ({ roomId, isSharing, userId }) => {
+    console.log(
+      `${socket.name} (${socket.id}) ${isSharing ? 'started' : 'stopped'} screen sharing`
+    );
+
+    socket.isSharing = isSharing;
+
+    io.in(roomId).emit('peerScreenShareStatus', {
+      userId: socket.id,
+      isSharing: isSharing,
+    });
   });
 
   socket.on('leaveRoom', () => {
     const roomId = socket.roomId;
     if (roomId) {
+      console.log(`${socket.name} (${socket.id}) left ${roomId}`);
       socket.leave(roomId);
       socket.to(roomId).emit('userLeft', socket.id);
+      socket.roomId = null;
     }
   });
 });

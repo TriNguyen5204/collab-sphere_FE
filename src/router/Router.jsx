@@ -20,6 +20,7 @@ import PeerEvaluationPage from '../pages/student/project/PeerEvaluationPage';
 import TeamWorkspace from '../pages/student/project/TeamWorkspace';
 import StudentClassMembersPage from '../pages/student/StudentClassMembersPage';
 import StudentClassProjectsPage from '../pages/student/StudentClassProjectsPage';
+import StudentPRAnalysisPage from '../pages/student/StudentPRAnalysisPage';
 
 // lecturer pages
 import ClassManagementDashboard from '../pages/lecturer/ClassManagementDashboard';
@@ -50,6 +51,7 @@ import SubjectDetail from '../pages/headDepartment/SubjectDetail';
 import ProjectManagement from '../pages/headDepartment/ProjectManagement';
 import ProjectApprovals from '../pages/headDepartment/ProjectApprovals';
 import PendingProjectDetail from '../pages/headDepartment/PendingProjectDetail';
+import HeadProjectDetail from '../pages/headDepartment/ProjectDetail';
 
 // admin pages
 import AdminDashboard from '../pages/admin/AdminDashboard';
@@ -60,6 +62,10 @@ import SystemReport from '../pages/admin/SystemReport';
 import ConnectRoom from '../test/ConnectRoom';
 import VideoRoom from '../test/VideoRoom';
 import TestKanbanBoard from '../pages/TestKanbanBoard';
+import Layout from '../test/Meeting/Layout'
+import RoomJoinPage from '../test/RoomJoinPage'
+import MeetingRoomTest from '../test/MeetingRoomTest'
+// import StreamVideoMeeting from '../test/StreamVideoMeeting';
 
 import RoleProtectedRoute from './RoleProtectedRoute';
 
@@ -72,11 +78,9 @@ const publicRoutes = [
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
   { path: '/unauthorized', element: <Unauthorized /> },
-  // { path: '/room', element: <ConnectRoom /> },
-  // { path: '/room/:roomId', element: <VideoRoom /> },
-  // { path: '/room', element: <RoomJoinPage/>},
-  // { path: '/room/:roomId', element: <MeetingRoom/>},
-  // { path: '/meeting', element: <WebRTC/> },
+  { path: '/room', element: <RoomJoinPage/>},
+  { path: '/room/:roomId', element: <MeetingRoomTest/>},
+  { path: '/test/meeting', element: <Layout/> },
   { path: '/test/kanban', element: <TestKanbanBoard /> },
 ];
 
@@ -89,6 +93,7 @@ const studentRoutes = [
   { path: '/student/project/:projectId/:projectName/:teamId/milestones&checkpoints', element: protectRoute(['STUDENT'], <MilestoneCheckpointPage />) },
   { path: '/student/project/:projectId/:projectName/:teamId/peer-evaluation', element: protectRoute(['STUDENT'], <PeerEvaluationPage />) },
   { path: '/student/project/:projectId/:projectName/:teamId/team-workspace', element: protectRoute(['STUDENT'], <TeamWorkspace />) },
+  { path: '/student/ai/pr-analysis', element: protectRoute(['STUDENT'], <StudentPRAnalysisPage />) },
   { path: '/student/:className/members', element: protectRoute(['STUDENT'], <StudentClassMembersPage />) },
   { path: '/student/:className/projects', element: protectRoute(['STUDENT'], <StudentClassProjectsPage />) },
 ];
@@ -127,7 +132,8 @@ const headDepartmentRoutes = [
   { path: '/head-department/subject-management/:id', element: protectRoute(['HEAD_DEPARTMENT'], <SubjectDetail />) },
   { path: '/head-department/project-approvals', element: protectRoute(['HEAD_DEPARTMENT'], <ProjectApprovals />) },
   { path: '/head-department/project-management', element: protectRoute(['HEAD_DEPARTMENT'], <ProjectManagement />) },
-  { path: '/head-department/project-approvals/:id', element: protectRoute(['HEAD_DEPARTMENT'], <PendingProjectDetail/>)}
+  { path: '/head-department/project-approvals/:id', element: protectRoute(['HEAD_DEPARTMENT'], <PendingProjectDetail/>)},
+  { path: '/head-department/project/:id', element: protectRoute(['HEAD_DEPARTMENT'], <HeadProjectDetail />) },
 ];
 
 const adminRoutes = [
