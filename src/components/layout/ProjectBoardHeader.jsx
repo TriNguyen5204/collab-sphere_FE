@@ -1,19 +1,18 @@
 import React, { useState } from "react";
-import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import ProjectBoardViewMenu from "../student/ProjectBoardViewMenu";
 import ProjectMemberAvatars from "../student/ProjectMemberAvatars";
 import ProjectMemberPopover from "../student/ProjectMemberPopover";
 import ProjectBoardSetting from "../student/ProjectBoardSetting";
 import { LogOut } from 'lucide-react';
 import useTeam from "../../context/useTeam";
+import ProjectResourcesMenu from "./ProjectResourcesMenu";
 
 const ProjectBoardHeader = ({ selectedRole, onRoleChange, archivedItems, onRestoreArchived, onDeleteArchived }) => {
   const { projectName } = useParams();
-  const location = useLocation();
   const navigate = useNavigate();
   const [selectedMember, setSelectedMember] = useState(null);
   const [popoverAnchor, setPopoverAnchor] = useState(null);
-  const [showRoleFilter, setShowRoleFilter] = useState(false);
   const { clearTeam, team } = useTeam();
   const handleMemberSelect = (member, anchorEl) => {
     setSelectedMember(member);
@@ -24,7 +23,6 @@ const ProjectBoardHeader = ({ selectedRole, onRoleChange, archivedItems, onResto
     setSelectedMember(null);
     setPopoverAnchor(null);
   };
-
   return (
     <header className="sticky top-0 z-30 bg-white shadow p-4 flex items-center justify-between pl-6 pr-6">
       {/* Left side */}
@@ -41,12 +39,12 @@ const ProjectBoardHeader = ({ selectedRole, onRoleChange, archivedItems, onResto
       {/* Right side */}
       <div className="flex items-center space-x-4">
         <ProjectMemberAvatars onSelect={handleMemberSelect} />
-        <ProjectBoardSetting 
+        <ProjectBoardSetting
           archivedItems={archivedItems}
           onRestoreArchived={onRestoreArchived}
           onDeleteArchived={onDeleteArchived}
         />
-        {/* Exit project */}
+        <ProjectResourcesMenu />
         <button
           onClick={() => navigate('/student/projects')
             .then(() => clearTeam())
