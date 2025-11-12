@@ -10,7 +10,6 @@ import { Toaster } from 'sonner';
 import { TeamProvider } from './context/TeamContext.jsx';
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
     <Provider store={store}>
       <AuthProvider>
         <TeamProvider>
@@ -28,5 +27,4 @@ createRoot(document.getElementById('root')).render(
         />
       </AuthProvider>
     </Provider>
-  </StrictMode>
 );
