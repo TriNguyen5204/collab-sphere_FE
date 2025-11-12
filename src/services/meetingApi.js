@@ -61,3 +61,19 @@ export const deleteMeeting = async meetingId => {
     throw error;
   }
 };
+export const getRecordUrl = async (videoFile) => {
+  const formData = new FormData();
+  formData.append('VideoFile', videoFile);
+
+  try {
+    const response = await apiClient.post('/video/uploadation', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading video file:', error);
+    throw error;
+  }
+};

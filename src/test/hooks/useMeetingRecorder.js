@@ -1,13 +1,22 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import RecordRTC from 'recordrtc';
+import { getRecordUrl } from '../../services/meetingApi';
 
-export const useMeetingRecorder = (socket, roomId, stream) => {
+export const useMeetingRecorder = (
+  socket,
+  roomId,
+  stream,
+  handleRecordingComplete
+) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isRecordingDisabled, setIsRecordingDisabled] = useState(false);
   const [recordingUserId, setRecordingUserId] = useState(null);
   const recorderRef = useRef(null);
   const displayStreamRef = useRef(null);
   const audioContextRef = useRef(null);
+
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Xử lý khi có người bắt đầu record
   useEffect(() => {
@@ -39,7 +48,7 @@ export const useMeetingRecorder = (socket, roomId, stream) => {
   // Cleanup function để đảm bảo resources được giải phóng đúng
   const cleanupResources = useCallback(() => {
     console.log('🧹 Cleaning up recording resources...');
-    
+
     // Stop recorder
     if (recorderRef.current) {
       try {
@@ -74,7 +83,7 @@ export const useMeetingRecorder = (socket, roomId, stream) => {
 
     console.log('✅ Cleanup complete');
   }, []);
-    // Dừng recording
+  // Dừng recording
   const stopRecording = useCallback(() => {
     if (!recorderRef.current || !isRecording) {
       console.log('No active recording to stop');
@@ -83,47 +92,77 @@ export const useMeetingRecorder = (socket, roomId, stream) => {
 
     console.log('🛑 Stopping recording...');
 
-    recorderRef.current.stopRecording(() => {
+    recorderRef.current.stopRecording(async () => {
       const blob = recorderRef.current.getBlob();
-      
+
       console.log('✅ Recording blob created:', {
         size: blob.size,
-        type: blob.type
+        type: blob.type,
       });
-      
-      // Tạo tên file với timestamp
+
       const timestamp = new Date()
         .toISOString()
         .slice(0, 19)
         .replace(/:/g, '-')
         .replace('T', '_');
-      
-      // Download file
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `meeting_${timestamp}.webm`;
-      document.body.appendChild(a);
-      a.click();
-      
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 100);
+
+      // Tạo File object từ blob để upload
+      const videoFile = new File([blob], `meeting_${timestamp}.webm`, {
+        type: 'video/webm',
+      });
+
+      // ---- BẮT ĐẦU LOGIC UPLOAD ----
+      setIsUploading(true);
+      setUploadProgress(0);
+
+      try {
+        console.log('📤 Uploading video file...');
+        setUploadProgress(30); // Mô phỏng tiến độ
+
+        // 1. Gọi API để upload và lấy URL
+        // Giả định response.data là URL string hoặc object { url: '...' }
+        const response = await getRecordUrl(videoFile);
+
+        setUploadProgress(70); // Mô phỏng tiến độ
+
+        // Trích xuất URL. Tùy chỉnh nếu API trả về cấu trúc khác
+        const videoUrl = response.message ;
+
+        if (!videoUrl || typeof videoUrl !== 'string') {
+          throw new Error('Không nhận được URL video hợp lệ từ server');
+        }
+
+        console.log('✅ Video uploaded, URL:', videoUrl);
+
+        // 2. Gọi callback từ MeetingRoomTest để nó gọi updateMeeting
+        if (handleRecordingComplete) {
+          await handleRecordingComplete(videoUrl);
+        }
+
+        setUploadProgress(100); // Hoàn tất
+      } catch (error) {
+        console.error('❌ Video upload or meeting update failed:', error);
+        alert(
+          'Lỗi: Không thể tải video lên hoặc cập nhật meeting. Vui lòng thử lại.'
+        );
+        setUploadProgress(0); // Reset nếu lỗi
+      } finally {
+        setIsUploading(false); // Ẩn modal
+      }
+      // ---- KẾT THÚC LOGIC UPLOAD ----
 
       // Cleanup resources
       cleanupResources();
-      
+
       setIsRecording(false);
-      
+
       if (socket && roomId) {
         socket.emit('requestStopRecord', roomId);
       }
-      
-      console.log('✅ Recording stopped and saved');
+
+      console.log('✅ Recording stopped and process finished');
     });
-  }, [isRecording, socket, roomId, cleanupResources]);
+  }, [isRecording, socket, roomId, cleanupResources, handleRecordingComplete]);
 
   // Bắt đầu recording
   const startRecording = useCallback(async () => {
@@ -135,7 +174,7 @@ export const useMeetingRecorder = (socket, roomId, stream) => {
     // Cleanup trước khi bắt đầu recording mới
     cleanupResources();
 
-    socket.emit('requestStartRecord', roomId, async (response) => {
+    socket.emit('requestStartRecord', roomId, async response => {
       if (!response.success) {
         alert(response.message || 'Không thể bắt đầu ghi.');
         return;
@@ -149,15 +188,15 @@ export const useMeetingRecorder = (socket, roomId, stream) => {
           video: {
             cursor: 'always',
             displaySurface: 'browser',
-            frameRate: { ideal: 30, max: 30 }
+            frameRate: { ideal: 30, max: 30 },
           },
           audio: true, // Bật audio từ tab
-          preferCurrentTab: true
+          preferCurrentTab: true,
         });
 
         console.log('✅ Display stream obtained:', {
           videoTracks: displayStream.getVideoTracks().length,
-          audioTracks: displayStream.getAudioTracks().length
+          audioTracks: displayStream.getAudioTracks().length,
         });
 
         displayStreamRef.current = displayStream;
@@ -213,7 +252,7 @@ export const useMeetingRecorder = (socket, roomId, stream) => {
 
         // Tạo stream cuối cùng
         const finalStream = new MediaStream();
-        
+
         // Add video track
         const videoTrack = displayStream.getVideoTracks()[0];
         finalStream.addTrack(videoTrack);
@@ -239,9 +278,9 @@ export const useMeetingRecorder = (socket, roomId, stream) => {
           audioBitsPerSecond: 128000,
           frameRate: 30,
           // Quan trọng: đảm bảo RecordRTC chờ stream sẵn sàng
-          initCallback: function() {
+          initCallback: function () {
             console.log('RecordRTC initialized');
-          }
+          },
         };
 
         // Fallback mimeType nếu vp9 không được hỗ trợ
@@ -255,20 +294,19 @@ export const useMeetingRecorder = (socket, roomId, stream) => {
         // Bắt đầu recording
         recorderRef.current.startRecording();
         setIsRecording(true);
-        
+
         console.log('✅ Recording started successfully');
         console.log('Stream info:', {
           videoTracks: finalStream.getVideoTracks().length,
           audioTracks: finalStream.getAudioTracks().length,
           videoEnabled: finalStream.getVideoTracks()[0]?.enabled,
-          audioEnabled: finalStream.getAudioTracks()[0]?.enabled
+          audioEnabled: finalStream.getAudioTracks()[0]?.enabled,
         });
-
       } catch (err) {
         console.error('❌ Recording error:', err);
-        
+
         cleanupResources();
-        
+
         if (err.name === 'NotAllowedError') {
           alert('Bạn cần cho phép chia sẻ màn hình để ghi meeting.');
         } else if (err.name === 'NotFoundError') {
@@ -276,13 +314,11 @@ export const useMeetingRecorder = (socket, roomId, stream) => {
         } else {
           alert('Lỗi khi bắt đầu ghi: ' + err.message);
         }
-        
+
         socket.emit('requestStopRecord', roomId);
       }
     });
   }, [socket, roomId, cleanupResources, stream, stopRecording]);
-
-
 
   // Cleanup on unmount
   useEffect(() => {
@@ -303,5 +339,7 @@ export const useMeetingRecorder = (socket, roomId, stream) => {
     recordingUserId,
     startRecording,
     stopRecording,
+    isUploading,
+    uploadProgress,
   };
 };

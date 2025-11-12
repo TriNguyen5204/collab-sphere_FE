@@ -22,6 +22,7 @@ export const ControlBar = ({
   onStartScreenRecording,
   onStopRecording,
   me,
+  isHost,
 }) => {
   const [audioEnabled, setAudioEnabled] = useState(initialAudio);
   const [videoEnabled, setVideoEnabled] = useState(initialVideo);
@@ -128,31 +129,34 @@ export const ControlBar = ({
           >
             {videoEnabled ? '📹' : '🚫'}
           </button>
-          <button
-            onClick={handleToggleRecording}
-            disabled={isRecordingDisabled}
-            className={`p-3 rounded-full transition-colors relative ${
-              isRecording
-                ? 'bg-red-600 hover:bg-red-700 animate-pulse'
-                : isRecordingDisabled
-                  ? 'bg-gray-600 cursor-not-allowed opacity-50'
-                  : 'bg-gray-700 hover:bg-gray-600'
-            }`}
-            title={
-              isRecordingDisabled
-                ? 'Có người khác đang ghi'
-                : isRecording
-                  ? 'Dừng ghi'
-                  : 'Bắt đầu ghi'
-            }
-          >
-            <svg className='w-6 h-6' fill='currentColor' viewBox='0 0 20 20'>
-              <circle cx='10' cy='10' r='6' />
-            </svg>
-            {isRecording && (
-              <span className='absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full'></span>
-            )}
-          </button>
+          {/* Recording */}
+          {isHost && (
+            <button
+              onClick={handleToggleRecording}
+              disabled={isRecordingDisabled}
+              className={`p-3 rounded-full transition-colors relative ${
+                isRecording
+                  ? 'bg-red-600 hover:bg-red-700 animate-pulse'
+                  : isRecordingDisabled
+                    ? 'bg-gray-600 cursor-not-allowed opacity-50'
+                    : 'bg-gray-700 hover:bg-gray-600'
+              }`}
+              title={
+                isRecordingDisabled
+                  ? 'Có người khác đang ghi'
+                  : isRecording
+                    ? 'Dừng ghi'
+                    : 'Bắt đầu ghi'
+              }
+            >
+              <svg className='w-6 h-6' fill='currentColor' viewBox='0 0 20 20'>
+                <circle cx='10' cy='10' r='6' />
+              </svg>
+              {isRecording && (
+                <span className='absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full'></span>
+              )}
+            </button>
+          )}
 
           {/* Share Screen */}
           {!isSharing ? (

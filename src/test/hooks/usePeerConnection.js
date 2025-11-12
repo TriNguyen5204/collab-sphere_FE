@@ -14,6 +14,7 @@ export const usePeerConnections = (
   const [groupPeers, setGroupPeers] = useState([]);
   const [peersSharingScreen, setPeersSharingScreen] = useState(new Set());
   const peersSharingScreenRef = useRef(new Set());
+  const peerNamesRef = useRef({}); // 🆕 Lưu trữ tên của các peers
 
   const createPeer = (userId, stream, socket, isPeerSharing) => {
     console.log(`🔧 Creating peer for ${userId.slice(0,6)} | isPeerSharing: ${isPeerSharing} | I'm sharing: ${isSharingRef.current}`);
@@ -166,15 +167,19 @@ export const usePeerConnections = (
 
     socket.on('allUsers', ({ usersInRoom, usersSharing }) => {
       console.log('📋 Received allUsers:', {
-        usersInRoom: usersInRoom?.map(u => u.id.slice(0,6)),
+        usersInRoom: usersInRoom?.map(u => `${u.name} (${u.id.slice(0,6)})`),
         usersSharing: usersSharing?.map(id => id.slice(0,6))
       });
       
       (usersInRoom || []).forEach(user => {
         const id = user.id;
+        const name = user.name || 'Anonymous';
         const isPeerSharing = usersSharing ? usersSharing.includes(id) : false;
 
-        console.log(`👤 Processing user ${id.slice(0,6)} | Sharing: ${isPeerSharing}`);
+        // 🆕 Lưu tên của peer
+        peerNamesRef.current[id] = name;
+
+        console.log(`👤 Processing user ${name} (${id.slice(0,6)}) | Sharing: ${isPeerSharing}`);
 
         if (!peersRef.current[id]) {
           const peer = createPeer(id, stream, socket, isPeerSharing);
@@ -182,7 +187,7 @@ export const usePeerConnections = (
 
           setGroupPeers(prev => {
             if (prev.find(p => p.id === id)) return prev;
-            return [...prev, { id, peer }];
+            return [...prev, { id, peer, name }]; // 🆕 Thêm name vào state
           });
         }
       });
@@ -192,8 +197,11 @@ export const usePeerConnections = (
       setPeersSharingScreen(sharingSet);
     });
 
-    socket.on('userJoined', ({ id }) => {
-      console.log('👤 New user joined:', id.slice(0, 6));
+    socket.on('userJoined', ({ id, name }) => {
+      console.log('👤 New user joined:', name, `(${id.slice(0, 6)})`);
+      
+      // 🆕 Lưu tên của peer mới
+      peerNamesRef.current[id] = name || 'Anonymous';
       
       // Nếu MÌNH đang share screen, cần gửi screen track cho user mới
       if (isSharingRef.current && screenStreamRef.current) {
@@ -269,9 +277,13 @@ export const usePeerConnections = (
           if (signal.type === 'offer' && signal.sdp) {
             const peer = addPeer(signal, from, stream, socket);
             peersRef.current[from] = peer;
+            
+            // 🆕 Lấy tên từ ref (đã lưu từ userJoined hoặc allUsers)
+            const peerName = peerNamesRef.current[from] || 'Anonymous';
+            
             setGroupPeers(prev => {
               if (prev.find(p => p.id === from)) return prev;
-              return [...prev, { id: from, peer }];
+              return [...prev, { id: from, peer, name: peerName }]; // 🆕 Thêm name
             });
           }
         }
@@ -281,16 +293,19 @@ export const usePeerConnections = (
     });
 
     socket.on('userLeft', id => {
-      console.log('👋 User left:', id.slice(0, 6));
+      console.log('👋 User left:', peerNamesRef.current[id], `(${id.slice(0, 6)})`);
       if (peersRef.current[id]) {
         peersRef.current[id].destroy();
         delete peersRef.current[id];
       }
+      // 🆕 Xóa tên
+      delete peerNamesRef.current[id];
+      
       setGroupPeers(prev => prev.filter(user => user.id !== id));
     });
 
     socket.on('peerScreenShareStatus', ({ userId, isSharing }) => {
-      console.log(`🖥️ Screen share status from ${userId.slice(0,6)}: ${isSharing ? 'STARTED' : 'STOPPED'}`);
+      console.log(`🖥️ Screen share status from ${peerNamesRef.current[userId] || userId.slice(0,6)}: ${isSharing ? 'STARTED' : 'STOPPED'}`);
       
       const newSet = new Set(peersSharingScreenRef.current);
       if (isSharing) {

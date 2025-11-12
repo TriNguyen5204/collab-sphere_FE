@@ -19,22 +19,38 @@ export const useScreenShare = (peersRef, localStreamRef, roomId, socket) => {
       setCurrentScreenStream(screenStream);
       setIsSharing(true);
 
+      console.log('🖥️ Starting screen share...');
+
+      // Emit screen share status
       socket.emit('screenShareStatus', { roomId, isSharing: true, userId: socket.id });
 
+      // Replace video track cho tất cả peers
       const screenVideoTrack = screenStream.getVideoTracks()[0];
       Object.values(peersRef.current).forEach(peer => {
         if (!peer?._pc) return;
         const senders = peer._pc.getSenders();
         const videoSender = senders.find(s => s.track?.kind === 'video');
         if (videoSender && screenVideoTrack) {
-          videoSender.replaceTrack(screenVideoTrack).catch(()=>{});
+          videoSender.replaceTrack(screenVideoTrack)
+            .then(() => {
+              console.log('✅ Screen track sent to peer');
+            })
+            .catch((err) => {
+              console.error('❌ Failed to replace track:', err);
+            });
         }
       });
 
-      screenVideoTrack.onended = () => stopScreenShare();
+      // Xử lý khi user tự stop share từ browser
+      screenVideoTrack.onended = () => {
+        console.log('🛑 Screen share ended by user');
+        stopScreenShare();
+      };
     } catch (err) {
       if (err.name === 'NotAllowedError') {
         alert('Screen sharing permission denied');
+      } else {
+        console.error('❌ Screen share error:', err);
       }
     }
   };
@@ -42,32 +58,58 @@ export const useScreenShare = (peersRef, localStreamRef, roomId, socket) => {
   const stopScreenShare = () => {
     if (!socket) return;
 
+    console.log('🛑 Stopping screen share...');
+
+    // Stop tất cả tracks của screen stream
     const screenStream = screenStreamRef.current;
     if (screenStream) {
-      screenStream.getTracks().forEach(track => track.stop());
+      screenStream.getTracks().forEach(track => {
+        track.stop();
+        console.log('⏹️ Stopped screen track:', track.id.slice(0, 8));
+      });
       screenStreamRef.current = null;
       setCurrentScreenStream(null);
     }
 
+    // Update state
     isSharingRef.current = false;
     setIsSharing(false);
 
+    // Emit screen share stopped
     socket.emit('screenShareStatus', { roomId, isSharing: false });
 
+    // Restore camera track cho tất cả peers
     const cam = localStreamRef.current;
-    if (!cam) return;
+    if (!cam) {
+      console.warn('⚠️ No camera stream to restore!');
+      return;
+    }
 
     const camVideoTrack = cam.getVideoTracks()[0];
-    if (!camVideoTrack) return;
+    if (!camVideoTrack) {
+      console.warn('⚠️ No camera video track found!');
+      return;
+    }
 
+    console.log('📹 Restoring camera track:', camVideoTrack.id.slice(0, 8));
+
+    // Replace track cho tất cả peers
     Object.values(peersRef.current).forEach(peer => {
       if (!peer?._pc) return;
       const senders = peer._pc.getSenders();
       const videoSender = senders.find(s => s.track?.kind === 'video');
       if (videoSender) {
-        videoSender.replaceTrack(camVideoTrack).catch(()=>{});
+        videoSender.replaceTrack(camVideoTrack)
+          .then(() => {
+            console.log('✅ Camera track restored for peer');
+          })
+          .catch((err) => {
+            console.error('❌ Failed to restore camera track:', err);
+          });
       }
     });
+
+    console.log('✅ Screen share stopped successfully');
   };
 
   return {
