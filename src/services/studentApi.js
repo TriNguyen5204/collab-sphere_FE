@@ -104,6 +104,30 @@ export const getAvatarByPublicId = async (publicId) => {
   }
 };
 
+export const putUpdateUserProfile = async (userId, payload) => {
+  try {
+    console.log('Updating user profile with payload:', payload);
+    const response = await apiClient.put(`/user/profile/${userId}`, payload);
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating profile for user ID ${userId}:`, error);
+    throw error;
+  }
+};
+
+export const postUploadUserAvatar = async (formData) => {
+  try {
+    console.log('Uploading user avatar with formData:', formData);
+    const response = await apiClient.post(`/user/avatar`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading user avatar:', error);
+    throw error;
+  }
+};
+
 // Checkpoint API (Student-flow)
 export const getDetailOfCheckpointByCheckpointId = async (checkpointId) => {
   try {

@@ -18,7 +18,6 @@ import { setUserRedux } from '../../store/slices/userSlice';
 import Cookies from 'js-cookie';
 import { toast } from 'sonner';
 import { getRoleLandingRoute } from '../../constants/roleRoutes';
-import { getUserProfile, getAvatarByPublicId } from '../../services/studentApi';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -86,27 +85,6 @@ const LoginPage = () => {
         if (response.accessToken) {
           apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.accessToken}`;
         }
-        // Fetch profile
-        let name = '';
-        let avatarUrl = '';
-        try {
-          const profileData = await getUserProfile(response.userId);
-          name = profileData?.user?.fullname || '';
-          const publicId = profileData?.user?.avatarImg;
-          if (publicId) {
-            try {
-              const avatarResp = await getAvatarByPublicId(publicId);
-              avatarUrl = avatarResp?.data || '';
-            } catch (e) {
-              console.warn('Avatar fetch failed, will use fallback.', e);
-            }
-          }
-        } catch (e) {
-          console.warn('Profile fetch failed, proceeding without profile.', e);
-        }
-        const enrichedUser = { ...response, fullname: name, avatar: avatarUrl };
-        dispatch(setUserRedux(enrichedUser));
-        Cookies.set('user', JSON.stringify(enrichedUser), { expires: 7 });
         toast.success('Login successful!');
         const targetRoute = getRoleLandingRoute(response.roleName);
         navigate(targetRoute, { replace: true });
