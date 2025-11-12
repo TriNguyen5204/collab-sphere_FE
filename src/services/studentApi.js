@@ -83,6 +83,16 @@ export const postAvatarOfTeam = async (formData) => {
   }
 };
 
+export const getAssignedTeamByClassId = async (classId) => {
+  try {
+    const response = await apiClient.get(`/team/student/class/${classId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching assigned team for class ID ${classId}:`, error);
+    throw error;
+  }
+};
+
 // User API (Student-flow)
 export const getUserProfile = async (userId) => {
   try {
