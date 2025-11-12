@@ -1,21 +1,40 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Users, GraduationCap, CheckCircle, Flag, CheckSquare } from 'lucide-react';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { Users, GraduationCap, CheckCircle, Flag, CheckSquare, LayoutDashboard, Bot, X } from 'lucide-react';
 import ProjectBoardHeader from '../../../components/layout/ProjectBoardHeader';
 import StatCard from '../../../components/student/StatCard';
-import GitRepoCard from '../../../components/student/GitRepoCard';
 import ProgressAnalytics from '../../../components/student/ProgressAnalytics';
 import ActivityFeed from '../../../components/student/ActivityFeed';
-import GitConfigModal from '../../../components/student/GitConfigModal';
 import ProjectOverview from '../../../components/student/ProjectOverview';
 import { Skeleton } from '../../../components/skeletons/StudentSkeletons';
 import { getDetailOfProjectByProjectId, getDetailOfTeamByTeamId } from '../../../services/studentApi';
 import useTeam from '../../../context/useTeam';
+import AICodeReviewTab from './AICodeReviewTab';
 
 const TeamWorkspace = () => {
-  const { projectId, teamId } = useParams();
+  const { projectId, teamId, projectName } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedRole, setSelectedRole] = useState('all');
+  const [activeTab, setActiveTab] = useState('overview');
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
   const { setTeam, team } = useTeam();
+
+  // Handle query parameters for tab switching and success toast
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'ai-review') {
+      setActiveTab('ai-review');
+    }
+
+    const firstConnect = searchParams.get('firstConnect');
+    if (firstConnect === 'true') {
+      setShowSuccessToast(true);
+      // Clear query params after handling
+      setSearchParams({});
+      // Auto-hide toast after 5 seconds
+      setTimeout(() => setShowSuccessToast(false), 5000);
+    }
+  }, [searchParams, setSearchParams]);
 
   // Call api to get team details
   const [teamLoading, setTeamLoading] = useState(false);
@@ -159,7 +178,6 @@ const TeamWorkspace = () => {
   //   }
   // ]);
   const [aiInput, setAiInput] = useState('');
-  const [showGitConfig, setShowGitConfig] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
 
   const getStatusColor = (status) => {
@@ -195,10 +213,6 @@ const TeamWorkspace = () => {
   //   }
   // };
 
-  const handleSaveGitConfig = (config) => {
-    console.log('Saving Git configuration:', config);
-  };
-
   const convertTeamRole = (teamRole) => {
     switch (teamRole) {
       case 1:
@@ -213,8 +227,59 @@ const TeamWorkspace = () => {
       <div className="min-h-screen" style={{ backgroundColor: "#D5DADF" }}>
         <ProjectBoardHeader selectedRole={selectedRole} onRoleChange={setSelectedRole} />
 
-        <main className="p-4 space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Success Toast */}
+        {showSuccessToast && (
+          <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 z-50 animate-slide-in-right">
+            <CheckCircle className="w-5 h-5 flex-shrink-0" />
+            <span className="font-medium">
+              GitHub connected! AI will now review your Pull Requests.
+            </span>
+            <button 
+              onClick={() => setShowSuccessToast(false)} 
+              className="ml-2 hover:bg-green-600 rounded p-1 transition"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Tab Navigation */}
+        <nav className="bg-white border-b border-gray-200 px-4">
+          <ul className="flex space-x-8">
+            <li>
+              <button 
+                onClick={() => setActiveTab('overview')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition ${
+                  activeTab === 'overview' 
+                    ? 'border-blue-500 text-blue-600' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                Overview
+              </button>
+            </li>
+            <li>
+              <button 
+                onClick={() => setActiveTab('ai-review')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition ${
+                  activeTab === 'ai-review' 
+                    ? 'border-blue-500 text-blue-600' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Bot className="w-4 h-4" />
+                AI Code Review
+              </button>
+            </li>
+          </ul>
+        </nav>
+
+        <main className="p-4">
+          {/* Tab Content */}
+          {activeTab === 'overview' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Left Column - Analytics, Milestones, Activity */}
             <div className="space-y-4">
               {/* 1) Progress Analytics */}
@@ -346,43 +411,20 @@ const TeamWorkspace = () => {
                   </div>
                 )}
               </div> */}
-
-              {/* 4) Git Repository */}
-              <div className="bg-white rounded-lg shadow-md p-3">
-                {teamLoading || projectLoading ? (
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Skeleton className="h-5 w-5" />
-                      <Skeleton className="h-5 w-28" />
-                    </div>
-                    <div className="space-y-3">
-                      <Skeleton className="h-14 w-full" />
-                      <div className="grid grid-cols-2 gap-3">
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                      </div>
-                      <Skeleton className="h-12 w-full" />
-                      <Skeleton className="h-10 w-full" />
-                    </div>
-                  </div>
-                ) : (
-                  <GitRepoCard
-                    gitRepo={teamData.gitRepo}
-                    onConfigClick={() => setShowGitConfig(true)}
-                  />
-                )}
-              </div>
             </div>
           </div>
-        </main>
+            </div>
+          )}
 
-        {/* Git Config Modal */}
-        <GitConfigModal
-          isOpen={showGitConfig}
-          onClose={() => setShowGitConfig(false)}
-          currentConfig={teamData.gitRepo}
-          onSave={handleSaveGitConfig}
-        />
+          {/* AI Code Review Tab Content */}
+          {activeTab === 'ai-review' && (
+            <AICodeReviewTab 
+              projectId={projectId} 
+              teamId={teamId} 
+              projectName={projectName}
+            />
+          )}
+        </main>
       </div>
       {/* Floating AI Chat
     <button

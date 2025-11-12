@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Home, Archive, User, School, Sparkles } from 'lucide-react';
+import { Home, Archive, User, School, Sparkles, GitBranch } from 'lucide-react';
 import AppSidebar from './AppSidebar';
 
 const StudentSidebar = () => {

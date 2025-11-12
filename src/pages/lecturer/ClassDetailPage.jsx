@@ -863,7 +863,7 @@ const ClassDetailPage = () => {
       try {
         await refreshClassProjects(isMounted);
       } catch (error) {
-        console.error('Failed to load class projects from /api/project/class.', error);
+        console.error('Failed to load class projects from /project/class.', error);
         if (isMounted()) {
           setClassProjects([]);
           setClassProjectsError('Unable to load class projects right now.');
