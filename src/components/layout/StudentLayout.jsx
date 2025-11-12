@@ -7,12 +7,9 @@ const StudentLayout = ({ children }) => {
     <div className='min-h-screen w-full bg-slate-50'>
       <StudentHeader />
       <div className='flex'>
-        {/* Static sidebar with right border */}
         <div className=''>
           <StudentSidebar />
         </div>
-
-        {/* Main content */}
         <main className='flex-1 min-w-0 px-4 py-6 md:px-6 lg:px-8'>
           {children}
         </main>

@@ -1,4 +1,3 @@
-import React from 'react';
 import { CheckCircle, Clock, AlertCircle, Lock, Flag } from 'lucide-react';
 
 export const getStatusColor = (status) => {
@@ -27,4 +26,21 @@ export const getDaysRemaining = (dueDate) => {
   const diffTime = due - today;
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
+};
+
+export const normalizeMilestoneStatus = (raw) => {
+  if (raw === 0 || raw === "0" || raw === false) return "pending";
+  if (raw === 1 || raw === "1" || raw === true) return "completed";
+
+  const s = typeof raw === "string" ? raw.trim().toUpperCase() : "";
+  const map = {
+    NOT_DONE: "pending",
+    IN_PROGRESS: "in-progress",
+    COMPLETED: "completed",
+    DONE: "completed",
+    LOCKED: "locked",
+  };
+
+  if (s) return map[s] || s.toLowerCase();
+  return "pending";
 };

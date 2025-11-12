@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { Lock, Bell, Shield, Eye, EyeOff, Save, Trash2 } from "lucide-react";
+import { Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
-const AccountSettings = () => {
+const AccountSettings = ({ onChangePassword, isSaving }) => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -12,20 +13,6 @@ const AccountSettings = () => {
     confirmPassword: "",
   });
 
-  const [notificationSettings, setNotificationSettings] = useState({
-    emailNotifications: true,
-    projectUpdates: true,
-    taskReminders: true,
-    weeklyReport: false,
-    marketingEmails: false,
-  });
-
-  const [privacySettings, setPrivacySettings] = useState({
-    profileVisibility: "team",
-    showEmail: false,
-    showPhone: false,
-  });
-
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
     setPasswordData((prev) => ({
@@ -34,38 +21,27 @@ const AccountSettings = () => {
     }));
   };
 
-  const handleNotificationToggle = (setting) => {
-    setNotificationSettings((prev) => ({
-      ...prev,
-      [setting]: !prev[setting],
-    }));
-  };
-
-  const handlePrivacyChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setPrivacySettings((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
-
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert("Passwords do not match!");
+      toast.error("Passwords do not match.");
       return;
     }
-    // API call to change password
-    alert("Password changed successfully!");
-    setPasswordData({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
-  };
 
-  const handleSaveSettings = () => {
-    // API call to save settings
-    alert("Settings saved successfully!");
+    if (!onChangePassword) {
+      toast.error("Unable to update password at this time.");
+      return;
+    }
+
+    try {
+      await onChangePassword({
+        oldPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+        confirmNewPassword: passwordData.confirmPassword,
+      });
+      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (error) {
+      // Parent already surfaced toast; keep form data so the user can retry.
+    }
   };
 
   const isPasswordDirty = useMemo(() => {
@@ -175,9 +151,9 @@ const AccountSettings = () => {
             <button
               type="button"
               onClick={handleCancelPassword}
-              disabled={!isPasswordDirty}
+              disabled={!isPasswordDirty || isSaving}
               className={`px-4 py-2 rounded-lg transition border ${
-                !isPasswordDirty
+                !isPasswordDirty || isSaving
                   ? "bg-white text-gray-400 cursor-not-allowed border-gray-200"
                   : "bg-white text-red-600 border-red-300 hover:bg-red-50"
               }`}
@@ -187,14 +163,21 @@ const AccountSettings = () => {
             <button
               type="button"
               onClick={handleChangePassword}
-              disabled={!isPasswordValid}
+              disabled={!isPasswordValid || isSaving}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
-                !isPasswordValid
+                !isPasswordValid || isSaving
                   ? "bg-white text-gray-400 cursor-not-allowed border-gray-200 border"
                   : "bg-blue-600 text-white hover:bg-blue-700"
               }`}
             >
-              Save Changes
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>Save Changes</span>
+              )}
             </button>
           </div>
         </div>

@@ -1,24 +1,104 @@
 import React, { useMemo, useState } from 'react';
-import { Calendar, MessageSquare, CheckCircle, Upload, Award, Download, FileText, ChevronDown, ChevronRight, X, ChevronUp } from 'lucide-react';
-import { getStatusColor } from '../../../utils/milestoneHelpers';
+import { Calendar, MessageSquare, CheckCircle, Upload, Award, Download, FileText, ChevronDown, X, ChevronUp, Trash2, RefreshCcw, Loader2, User } from 'lucide-react';
+import { getStatusColor, normalizeMilestoneStatus } from '../../../utils/milestoneHelpers';
 import MilestoneFilesModal from './MilestoneFilesModal';
 import MilestoneQuestions from './MilestoneQuestions';
+
+const formatFileSize = (bytes) => {
+  if (typeof bytes !== 'number' || Number.isNaN(bytes) || bytes <= 0) {
+    return '';
+  }
+
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let size = bytes;
+  let unitIndex = 0;
+
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+
+  const precision = size < 10 && unitIndex > 0 ? 1 : 0;
+  return `${size.toFixed(precision)} ${units[unitIndex]}`;
+};
+
+const formatSubmittedAt = (value) => {
+  if (!value) {
+    return '';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return date.toLocaleString();
+};
 
 const MilestoneHeader = ({
   milestone,
   onComplete,
   readOnly = false,
-  answers = {},
-  onAnswerChange = () => { },
-  onSaveAnswer = () => { },
-  onUploadMilestoneFiles = () => { }
+  onUploadMilestoneFiles = () => { },
+  onDeleteMilestoneReturn = () => { },
+  onRefreshMilestoneReturnLink = () => { },
+  onAnswerSubmitted = () => { },
 }) => {
   const [showFilesModal, setShowFilesModal] = useState(false);
   const [showQuestions, setShowQuestions] = useState(false);
   const [localFiles, setLocalFiles] = useState([]);
+  const [isUploadingReturns, setIsUploadingReturns] = useState(false);
+
+  const status = normalizeMilestoneStatus(milestone?.statusString ?? milestone?.status);
+  const progress = Math.round(milestone?.progress ?? 0);
+  const dueDate = milestone?.dueDate ?? milestone?.endDate ?? null;
+  const startDate = milestone?.startDate ?? null;
+  const completedDate = milestone?.completedDate ?? null;
+  const lecturerFiles = Array.isArray(milestone?.lecturerFiles) ? milestone.lecturerFiles : [];
+  const returns = Array.isArray(milestone?.returns) ? milestone.returns : [];
+  const completedAnswers = milestone?.completedAnswers ?? 0;
+  const requiredAnswers = milestone?.requiredAnswers ?? milestone?.milestoneQuestionCount ?? 0;
 
   const questionCount = useMemo(() => Array.isArray(milestone?.questions) ? milestone.questions.length : 0, [milestone]);
   const canToggleQuestions = questionCount > 0;
+  const hasEvaluation = !!milestone?.evaluation;
+  const normalizedReturns = useMemo(() => (
+    returns.map((r, index) => {
+      const resolvedId = r.id ?? r.mileReturnId ?? r.mileReturnID ?? index;
+      const rawPath = r.path ?? '';
+      const rawUrl = r.fileUrl ?? r.file_url ?? r.url ?? '';
+      const fileUrl = rawUrl || rawPath;
+      const fileName = r.fileName ?? r.originalFileName ?? r.name ?? (rawPath ? rawPath.split('/').pop() : null);
+      const submittedAt = r.submitedDate ?? r.submittedDate ?? r.submittedAt ?? r.createdDate ?? r.createdAt ?? r.submittedAtLabel ?? '';
+      const nestedStudentName = r.student?.name ?? r.student?.fullName ?? r.student?.fullname ?? '';
+      const fallbackStudentName = r.studentName ?? r.fullname ?? r.fullName ?? '';
+      const nestedStudentCode = r.student?.code ?? r.student?.studentCode ?? '';
+      const fallbackStudentCode = r.studentCode ?? '';
+      const nestedAvatar = r.student?.avatar ?? r.student?.avatarImg ?? '';
+      const fallbackAvatar = r.avatarImg ?? r.studentAvatar ?? '';
+      const resolvedStudentName = (nestedStudentName || fallbackStudentName || '').trim();
+      const resolvedStudentCode = (nestedStudentCode || fallbackStudentCode || '').trim();
+      const resolvedAvatar = nestedAvatar || fallbackAvatar;
+      const fileSize = typeof r.fileSize === 'number' ? r.fileSize : null;
+      const sizeLabel = formatFileSize(fileSize);
+      const metaLabel = [r.type ?? '', sizeLabel].filter(Boolean).join(' • ');
+      return {
+        id: resolvedId,
+        name: fileName || r.type || `Submission ${index + 1}`,
+        url: fileUrl,
+        type: r.type ?? '',
+        size: fileSize,
+        sizeLabel,
+        metaLabel,
+        submittedAt,
+        submittedAtLabel: formatSubmittedAt(submittedAt),
+        studentName: resolvedStudentName,
+        studentCode: resolvedStudentCode,
+        avatar: resolvedAvatar,
+      };
+    })
+  ), [returns]);
+  const canManageReturns = !readOnly && !hasEvaluation;
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files || []);
@@ -28,17 +108,27 @@ const MilestoneHeader = ({
   };
 
   const handleRemoveFile = (index) => {
+    if (isUploadingReturns) return;
     setLocalFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
+    if (isUploadingReturns) return;
     if (localFiles.length === 0) return;
-    onUploadMilestoneFiles(localFiles);
-    setLocalFiles([]);
+    if (typeof onUploadMilestoneFiles !== 'function') return;
+
+    try {
+      setIsUploadingReturns(true);
+      await onUploadMilestoneFiles(localFiles);
+      setLocalFiles([]);
+    } catch (error) {
+      console.error('Failed to upload milestone submissions', error);
+    } finally {
+      setIsUploadingReturns(false);
+    }
   };
 
-  const hasEvaluation = !!milestone?.evaluation;
-  const hasMilestoneSubmission = Array.isArray(milestone?.returns) && milestone.returns.length > 0;
+  const hasMilestoneSubmission = normalizedReturns.length > 0;
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -46,8 +136,8 @@ const MilestoneHeader = ({
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <h2 className="text-2xl font-bold text-gray-900">{milestone.title}</h2>
-            <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(milestone.status)}`}>
-              {milestone.status.replace('-', ' ').toUpperCase()}
+            <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(status)}`}>
+              {status.replace('-', ' ').toUpperCase()}
             </span>
           </div>
           <p className="text-gray-600">{milestone.description}</p>
@@ -59,21 +149,21 @@ const MilestoneHeader = ({
           <p className="text-sm text-gray-600 mb-1">Start Date</p>
           <p className="font-semibold flex items-center gap-2">
             <Calendar size={16} />
-            {milestone.startDate ? new Date(milestone.startDate).toLocaleDateString() : '—'}
+            {startDate ? new Date(startDate).toLocaleDateString() : '—'}
           </p>
         </div>
         <div>
           <p className="text-sm text-gray-600 mb-1">Due Date</p>
           <p className="font-semibold flex items-center gap-2">
             <Calendar size={16} />
-            {new Date(milestone.dueDate).toLocaleDateString()}
+            {dueDate ? new Date(dueDate).toLocaleDateString() : '—'}
           </p>
         </div>
         <div>
           <p className="text-sm text-gray-600 mb-1">Questions Completed</p>
           <p className="font-semibold flex items-center gap-2">
             <MessageSquare size={16} />
-            {milestone.completedAnswers} / {milestone.requiredAnswers}
+            {completedAnswers} / {requiredAnswers}
           </p>
         </div>
         <div>
@@ -87,15 +177,15 @@ const MilestoneHeader = ({
             className="font-semibold flex items-center gap-2"
           >
             <FileText size={16} />
-            {Array.isArray(milestone.lecturerFiles) ? milestone.lecturerFiles.length : 0} - <span className='underline'>View</span>
+            {lecturerFiles.length} - <span className='underline'>View</span>
           </button>
         </div>
-        {milestone.status === 'completed' && (
+  {status === 'completed' && (
           <>
             <div>
               <p className="text-sm text-gray-600 mb-1">Completed Date</p>
               <p className="font-semibold text-green-600">
-                {new Date(milestone.completedDate).toLocaleDateString()}
+                {completedDate ? new Date(completedDate).toLocaleDateString() : '—'}
               </p>
             </div>
           </>
@@ -106,15 +196,15 @@ const MilestoneHeader = ({
       <div className="mt-4 pt-4 border-t">
         <div className="flex justify-between text-sm mb-2">
           <span className="text-gray-600">Overall Progress</span>
-          <span className="font-semibold">{milestone.progress}%</span>
+          <span className="font-semibold">{progress}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
           <div
-            className={`h-3 rounded-full transition-all duration-300 ${milestone.progress < 30 ? 'bg-red-500' :
-                milestone.progress < 70 ? 'bg-yellow-500' :
+            className={`h-3 rounded-full transition-all duration-300 ${progress < 30 ? 'bg-red-500' :
+                progress < 70 ? 'bg-yellow-500' :
                   'bg-green-500'
               }`}
-            style={{ width: `${milestone.progress}%` }}
+            style={{ width: `${progress}%` }}
           />
         </div>
       </div>
@@ -122,7 +212,7 @@ const MilestoneHeader = ({
       <div className="mt-4 pt-4 border-t space-y-4">
         <MilestoneFilesModal
           isOpen={showFilesModal}
-          files={milestone.lecturerFiles || []}
+          files={lecturerFiles}
           onClose={() => setShowFilesModal(false)}
         />
 
@@ -130,71 +220,149 @@ const MilestoneHeader = ({
         <section>
           <h4 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
             <Upload size={16} />
-            Submissions ({Array.isArray(milestone.returns) ? milestone.returns.length : 0})
+            Submissions ({normalizedReturns.length})
           </h4>
-          {Array.isArray(milestone.returns) && milestone.returns.length > 0 ? (
-            <div className="space-y-2">
-              {milestone.returns.map((r) => (
-                <div key={r.id} className="flex items-center justify-between border rounded-md p-2">
-                  <div className="min-w-0">
-                    <p className="text-sm text-gray-900 truncate">{r.path?.split('/').pop() || 'Submission'}</p>
-                    <p className="text-xs text-gray-500 truncate">
-                      {r.type}
-                      {r.student?.name ? ` • ${r.student.name}` : ''}
-                      {r.submittedAt ? ` • ${new Date(r.submittedAt).toLocaleString()}` : ''}
-                    </p>
+          {normalizedReturns.length > 0 ? (
+            <ul className="space-y-3">
+              {normalizedReturns.map((item) => (
+                <li
+                  key={item.id}
+                  className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-start gap-3">
+                      {item.avatar ? (
+                        <img
+                          src={item.avatar}
+                          alt={`${item.studentName || 'Student'} avatar`}
+                          className="h-12 w-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200 text-gray-500">
+                          <User size={20} />
+                        </div>
+                      )}
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {item.studentName || 'Unknown student'}
+                        </p>
+                        {item.studentCode && (
+                          <p className="text-xs text-gray-500">Code: {item.studentCode}</p>
+                        )}
+                        {item.submittedAtLabel && (
+                          <p className="text-xs text-gray-500">Submitted {item.submittedAtLabel}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                        <FileText size={18} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 break-words">{item.name}</p>
+                        
+                      </div>
+                    </div>
                   </div>
-                  {r.path && (
-                    <a href={r.path} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm px-2 py-1 border rounded hover:bg-gray-50">
-                      <Download size={14} /> View
-                    </a>
-                  )}
-                </div>
+                  <div className="flex items-center gap-3 sm:justify-end">
+                    {item.url && (
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 transition hover:text-blue-700"
+                      >
+                        <Download size={16} />
+                        View
+                      </a>
+                    )}
+                    {typeof onRefreshMilestoneReturnLink === 'function' && canManageReturns && (
+                      <button
+                        type="button"
+                        onClick={() => onRefreshMilestoneReturnLink(item.id)}
+                        className="flex items-center gap-1 rounded-md border border-transparent px-2 py-1 text-sm text-gray-600 transition hover:border-gray-300 hover:text-gray-800"
+                      >
+                        <RefreshCcw size={16} />
+                        Refresh link
+                      </button>
+                    )}
+                    {typeof onDeleteMilestoneReturn === 'function' && canManageReturns && (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteMilestoneReturn(item.id)}
+                        className="text-red-600 transition hover:text-red-700"
+                        aria-label="Delete submission"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    )}
+                  </div>
+                </li>
               ))}
-            </div>
+            </ul>
           ) : (
-            <p className="text-sm text-gray-600">None</p>
+            <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-6 py-6 text-center text-sm text-gray-600">
+              No submissions yet. Upload your first file to get started.
+            </div>
           )}
 
-          {/* Submit file section */}
-          {!readOnly && !hasEvaluation && (
-            <div className="mt-3 border-t pt-3">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                <Upload className="mx-auto text-gray-400 mb-2" size={32} />
-                <input type="file" multiple onChange={handleFileSelect} id="mile-file-input" className="hidden" />
-                <label htmlFor="mile-file-input" className="cursor-pointer text-blue-600 hover:text-blue-700 font-medium">
+          {canManageReturns && (
+            <div className="mt-4 border-t border-gray-200 pt-4">
+              <div className="rounded-lg border-2 border-dashed border-gray-300 p-6 text-center">
+                <Upload className="mx-auto mb-3 text-gray-400" size={32} />
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleFileSelect}
+                  id="mile-file-input"
+                  className="hidden"
+                  disabled={isUploadingReturns}
+                />
+                <label
+                  htmlFor="mile-file-input"
+                  className={`font-semibold ${isUploadingReturns ? 'cursor-not-allowed text-gray-400' : 'cursor-pointer text-blue-600 hover:text-blue-700'}`}
+                >
                   Choose files to upload
                 </label>
-                <p className="text-xs text-gray-500 mt-1">or drag and drop files here</p>
+                <p className="mt-1 text-xs text-gray-500">or drag and drop files here</p>
               </div>
 
-              {/* Files which have been selected */}
               {localFiles.length > 0 && (
                 <div className="mt-3">
                   <h5 className="text-sm font-semibold text-gray-800 mb-2">Files selected ({localFiles.length}):</h5>
                   <ul className="space-y-2">
                     {localFiles.map((file, idx) => (
-                      <li key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                        <span className="text-sm text-gray-900 truncate">{file.name}</span>
+                      <li key={`${file.name}-${idx}`} className="flex items-center justify-between rounded bg-gray-50 px-3 py-2">
+                        <span className="truncate pr-3 text-sm text-gray-900">{file.name}</span>
                         <button
                           type="button"
                           onClick={() => handleRemoveFile(idx)}
-                          className="text-red-600 hover:text-red-700 p-1"
+                          className="p-1 text-red-600 transition hover:text-red-700 disabled:text-gray-400"
                           aria-label="remove file"
+                          disabled={isUploadingReturns}
                         >
                           <X size={16} />
                         </button>
                       </li>
                     ))}
                   </ul>
-                  <div className="mt-2 flex justify-end">
+                  <div className="mt-3 flex justify-end">
                     <button
                       type="button"
                       onClick={handleUpload}
-                      disabled={localFiles.length === 0}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      disabled={isUploadingReturns || localFiles.length === 0}
+                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
-                      Upload ({localFiles.length})
+                      {isUploadingReturns ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          Upload ({localFiles.length})
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -242,9 +410,9 @@ const MilestoneHeader = ({
         <div className="mt-4 pt-4 border-t">
           <button
             onClick={onComplete}
-            disabled={(milestone.completedAnswers < milestone.requiredAnswers) || !hasMilestoneSubmission}
+            disabled={(completedAnswers < requiredAnswers) || !hasMilestoneSubmission}
             title={
-              milestone.completedAnswers < milestone.requiredAnswers
+              completedAnswers < requiredAnswers
                 ? 'Answer all questions before completing this milestone'
                 : (!hasMilestoneSubmission ? 'Upload at least one file to the milestone before marking as complete' : undefined)
             }
@@ -253,12 +421,12 @@ const MilestoneHeader = ({
             <CheckCircle size={20} />
             Mark Milestone as Complete
           </button>
-          {(milestone.completedAnswers < milestone.requiredAnswers) && (
+          {(completedAnswers < requiredAnswers) && (
             <p className="text-sm text-amber-600 mt-2 text-center">
               Answer all questions before completing this milestone
             </p>
           )}
-          {!(milestone.completedAnswers < milestone.requiredAnswers) && !hasMilestoneSubmission && (
+          {!(completedAnswers < requiredAnswers) && !hasMilestoneSubmission && (
             <p className="text-sm text-amber-600 mt-2 text-center">
               Upload at least one file to the milestone before marking as complete
             </p>
@@ -283,9 +451,9 @@ const MilestoneHeader = ({
             <div className="mt-3">
               <MilestoneQuestions
                 milestone={milestone}
-                answers={answers}
-                onAnswerChange={onAnswerChange}
-                onSaveAnswer={onSaveAnswer}
+                milestoneStatus={status}
+                readOnly={readOnly}
+                onAnswerSubmitted={onAnswerSubmitted}
               />
             </div>
           )}

@@ -12,6 +12,7 @@ import {
 import AuthInput from '../../components/ui/AuthInput';
 import logo from '../../assets/logov1.png';
 import { login } from '../../services/authService';
+import apiClient from '../../services/apiClient';
 import { useDispatch, useSelector } from 'react-redux';
 import { setUserRedux } from '../../store/slices/userSlice';
 import Cookies from 'js-cookie';
@@ -44,7 +45,6 @@ const LoginPage = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -78,9 +78,13 @@ const LoginPage = () => {
 
     try {
       const response = await login(formData.email, formData.password);
+      console.log('Login response:', response);
       if (response?.userId) {
         dispatch(setUserRedux(response));
         Cookies.set('user', JSON.stringify(response), { expires: 7 });
+        if (response.accessToken) {
+          apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.accessToken}`;
+        }
         toast.success('Login successful!');
         const targetRoute = getRoleLandingRoute(response.roleName);
         navigate(targetRoute, { replace: true });

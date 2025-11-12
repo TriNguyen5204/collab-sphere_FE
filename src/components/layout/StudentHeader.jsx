@@ -2,22 +2,25 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Search, BookOpen, FolderKanban, User, LogOut, ChevronDown } from 'lucide-react';
-import { getClassesByStudentId, getListOfTeamsByStudentId } from '../../services/userService';
+import { getClassesByStudentId, getListOfTeamsByStudentId } from '../../services/studentApi';
 import { logout } from '../../store/slices/userSlice';
 import useClickOutside from '../../hooks/useClickOutside';
 import logo from '../../assets/logov1.png';
+import { generateAvatarFromName } from '../../utils/avatar';
 
 const StudentHeader = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const studentId = useSelector((state) => state.user.userId);
-  const userName = useSelector((state) => state.user.fullName) || 'Student';
-
+  const userId = useSelector((state) => state.user.userId);
+  const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
   const [classes, setClasses] = useState([]);
   const [projects, setProjects] = useState([]);
   const [openSearch, setOpenSearch] = useState(false);
   const [openProfile, setOpenProfile] = useState(false);
+  const avatar = useSelector((state) => state.user.avatar);
+  const fullname = useSelector((state) => state.user.fullname);
 
   const searchRef = useRef(null);
   useClickOutside(searchRef, () => setOpenSearch(false));
@@ -25,21 +28,18 @@ const StudentHeader = () => {
   const profileRef = useRef(null);
   useClickOutside(profileRef, () => setOpenProfile(false));
 
+  const fallbackAvatar = useMemo(() => generateAvatarFromName(fullname), [fullname]);
+
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       if (!studentId) return;
       try {
-        const [cls, teamResp] = await Promise.all([
-          getClassesByStudentId(studentId),
-          getListOfTeamsByStudentId(studentId),
-        ]);
         if (cancelled) return;
         setClasses(Array.isArray(cls) ? cls : []);
         const list = teamResp?.paginatedTeams?.list ?? [];
         setProjects(Array.isArray(list) ? list : []);
       } catch (e) {
-        // fail silently in header
         setClasses([]);
         setProjects([]);
       }
@@ -68,7 +68,6 @@ const StudentHeader = () => {
     setOpenSearch(false);
     setQuery('');
     if (item.type === 'class') {
-      // Navigate to classes page and preselect class via state
       navigate('/student/classes', { state: { selectClassId: item.id } });
     } else if (item.type === 'project') {
       const name = item.raw?.projectName || item.name || 'project';
@@ -154,10 +153,15 @@ const StudentHeader = () => {
               onClick={() => setOpenProfile((v) => !v)}
               className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-white text-xs font-semibold">
-                {String(userName).charAt(0).toUpperCase()}
-              </div>
-              <span className="hidden sm:inline max-w-[120px] truncate">{userName}</span>
+              <img
+                src={avatar || fallbackAvatar}
+                alt="Profile"
+                onError={(e) => {
+                  e.target.src = fallbackAvatar;
+                }}
+                className="w-7 h-7 rounded-full object-cover border-black"
+              />            
+                <span className="hidden sm:inline max-w-[120px] truncate">{fullname ?? 'Student'}</span>
               <ChevronDown className="w-4 h-4 text-slate-400" />
             </button>
 

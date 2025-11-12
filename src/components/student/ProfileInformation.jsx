@@ -1,225 +1,236 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Camera, Mail, Phone, MapPin, Calendar, Save, Edit2 } from "lucide-react";
-
-const ProfileInformation = ({ user }) => {
-  const [isEditing, setIsEditing] = useState(false);
-
-  const fallbackAvatar = useMemo(() => {
-    const name = user?.fullname?.trim() || "Student";
-    const encoded = encodeURIComponent(name);
-    return `https://ui-avatars.com/api/?name=${encoded}&background=E5E7EB&color=111827`;
-  }, [user?.fullname]);
-
-  const resolveAvatar = (avatarImg) => {
-    if (!avatarImg) return fallbackAvatar;
-    // Accept only full http/https URLs; otherwise, use name-based fallback
-    if (typeof avatarImg === "string" && /^(https?:)\/\//i.test(avatarImg)) {
-      return avatarImg;
-    }
-    return fallbackAvatar;
-  };
-
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Edit2, Loader2 } from "lucide-react";
+import { generateAvatarFromName } from "../../utils/avatar";
+const ProfileInformation = ({
+  user,
+  avatar,
+  onUpdateProfile,
+  isSaving,
+  onUploadAvatar,
+  isUploadingAvatar,
+}) => {
+  const fileInputRef = useRef(null);
   const [profileData, setProfileData] = useState({
-    fullName: user?.fullname || "",
+    fullname: user?.fullname || "",
     email: user?.email || "",
     phone: user?.phoneNumber || "",
-    // Use yob (year of birth) if available; map to a date input friendly format
-    dateOfBirth: user?.yob ? `${user.yob}-01-01` : "",
     address: user?.address || "",
-    bio: "",
-    avatar: resolveAvatar(user?.avatarImg),
+    avatar,
     code: user?.code || "",
+    major: user?.major || "",
+    school: user?.school || "",
   });
 
   useEffect(() => {
-    // Keep local state in sync if parent user changes
     setProfileData((prev) => ({
       ...prev,
-      fullName: user?.fullname || "",
+      fullname: user?.fullname || "",
       email: user?.email || "",
       phone: user?.phoneNumber || "",
-      dateOfBirth: user?.yob ? `${user.yob}-01-01` : "",
       address: user?.address || "",
-      avatar: resolveAvatar(user?.avatarImg),
+      avatar,
       code: user?.code || "",
+      major: user?.major || "",
+      school: user?.school || "",
     }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, avatar]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
+  const initialEditable = useMemo(
+    () => ({
+      email: user?.email || "",
+      phone: user?.phoneNumber || "",
+      address: user?.address || "",
+    }),
+    [user]
+  );
+
+  const isDirty = useMemo(() => {
+    return (
+      profileData.email !== initialEditable.email ||
+      profileData.phone !== initialEditable.phone ||
+      profileData.address !== initialEditable.address
+    );
+  }, [profileData, initialEditable]);
+
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
     setProfileData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  const handleSave = () => {
-    // API call to save profile data
-    setIsEditing(false);
-    // Show success message
+  const handleCancel = () => {
+    setProfileData((prev) => ({
+      ...prev,
+      email: initialEditable.email,
+      phone: initialEditable.phone,
+      address: initialEditable.address,
+    }));
   };
+
+  const handleSave = async () => {
+    if (!onUpdateProfile) return;
+    try {
+      await onUpdateProfile({
+        email: profileData.email,
+        phoneNumber: profileData.phone,
+        address: profileData.address,
+      });
+    } catch (error) {
+      // Intentionally swallow to keep form data so the user can retry
+    }
+  };
+
+  const fallbackAvatar = useMemo(
+    () => generateAvatarFromName(profileData.fullname),
+    [profileData.fullname]
+  );
+
+  const triggerAvatarUpload = () => {
+    if (isUploadingAvatar) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !onUploadAvatar) {
+      event.target.value = "";
+      return;
+    }
+    try {
+      await onUploadAvatar(file);
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const editableFieldClasses = "border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200";
+  const readOnlyFieldClasses = "border-gray-200 bg-gray-50";
 
   return (
     <div className="space-y-6">
-      {/* Header with Edit/Save Button */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Profile Information</h2>
-        {!isEditing ? (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition"
-          >
-            <Edit2 size={16} />
-            Edit Profile
-          </button>
-        ) : (
+        {isDirty && (
           <div className="flex gap-2">
             <button
-              onClick={() => setIsEditing(false)}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+              type="button"
+              onClick={handleCancel}
+              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 transition"
             >
               Cancel
             </button>
             <button
+              type="button"
               onClick={handleSave}
-              className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition"
+              disabled={isSaving}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-600 text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              <Save size={16} />
-              Save Changes
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>Save Changes</span>
+              )}
             </button>
           </div>
         )}
       </div>
 
-      {/* Avatar Section */}
       <div className="flex items-center gap-6">
-        <div className="relative">
+        <div className="relative group">
           <img
-            src={profileData.avatar}
+            src={profileData.avatar || fallbackAvatar}
             alt="Profile"
-            onError={() => setProfileData((prev) => ({ ...prev, avatar: fallbackAvatar }))}
-            className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
+            onError={() =>
+              setProfileData((prev) =>
+                prev.avatar === fallbackAvatar ? prev : { ...prev, avatar: fallbackAvatar }
+              )
+            }
+            className="h-32 w-32 rounded-full object-cover border border-gray-200"
           />
-          {isEditing && (
-            <button className="absolute bottom-0 right-0 p-2 bg-brand-600 text-white rounded-full hover:bg-brand-700 transition shadow-lg">
-              <Camera size={20} />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={triggerAvatarUpload}
+            disabled={isUploadingAvatar}
+            className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          >
+            {isUploadingAvatar ? (
+              <Loader2 className="h-6 w-6 animate-spin" />
+            ) : (
+              <Edit2 className="h-6 w-6" />
+            )}
+          </button>
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleAvatarChange}
+            className="hidden"
+          />
         </div>
         <div>
-          <h3 className="text-xl font-semibold text-gray-900">{profileData.fullName || "—"}</h3>
+          <h3 className="text-xl font-semibold text-gray-900">{profileData.fullname || "—"}</h3>
           <p className="text-gray-600">Student ID: {profileData.code || "—"}</p>
-          {/* Member since unknown with current data */}
-          <p className="text-sm text-gray-500 mt-1">Member since: —</p>
+          <p className="mt-1 text-sm text-gray-500">Major: {profileData.major || "—"}</p>
+          <p className="mt-1 text-sm text-gray-500">School: {profileData.school || "—"}</p>
         </div>
       </div>
 
-      {/* Form Fields */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Full Name */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Full Name
-          </label>
+          <label className="mb-2 block text-sm font-medium text-gray-700">Full Name</label>
           <input
             type="text"
-            name="fullName"
-            value={profileData.fullName}
-            onChange={handleInputChange}
-            disabled={!isEditing}
-            className={`w-full px-4 py-2 border rounded-lg ${
-              isEditing
-                ? "border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                : "border-gray-200 bg-gray-50"
-            } transition`}
+            name="fullname"
+            value={profileData.fullname}
+            disabled
+            className={`w-full px-4 py-2 border rounded-lg transition ${readOnlyFieldClasses}`}
           />
         </div>
-
-        {/* Email */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2 items-center gap-2">
-            <Mail size={16} />
-            Email Address
-          </label>
+          <label className="mb-2 block text-sm font-medium text-gray-700">Email Address</label>
           <input
             type="email"
             name="email"
             value={profileData.email}
             onChange={handleInputChange}
-            disabled={!isEditing}
-            className={`w-full px-4 py-2 border rounded-lg ${
-              isEditing
-                ? "border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                : "border-gray-200 bg-gray-50"
-            } transition`}
+            className={`w-full px-4 py-2 border rounded-lg transition ${editableFieldClasses}`}
           />
         </div>
-
-        {/* Phone */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2 items-center gap-2">
-            <Phone size={16} />
-            Phone Number
-          </label>
+          <label className="mb-2 block text-sm font-medium text-gray-700">Phone Number</label>
           <input
             type="tel"
             name="phone"
             value={profileData.phone}
             onChange={handleInputChange}
-            disabled={!isEditing}
-            className={`w-full px-4 py-2 border rounded-lg ${
-              isEditing
-                ? "border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                : "border-gray-200 bg-gray-50"
-            } transition`}
+            className={`w-full px-4 py-2 border rounded-lg transition ${editableFieldClasses}`}
           />
         </div>
-
-        {/* Year of Birth (mapped from yob) */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2 items-center gap-2">
-            <Calendar size={16} />
-            Year of Birth
-          </label>
+          <label className="mb-2 block text-sm font-medium text-gray-700">School</label>
           <input
-            type="number"
-            name="yob"
-            value={profileData.dateOfBirth ? profileData.dateOfBirth.slice(0, 4) : ""}
-            onChange={(e) => {
-              const year = e.target.value;
-              setProfileData((prev) => ({ ...prev, dateOfBirth: year ? `${year}-01-01` : "" }));
-            }}
-            disabled={!isEditing}
-            className={`w-full px-4 py-2 border rounded-lg ${
-              isEditing
-                ? "border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                : "border-gray-200 bg-gray-50"
-            } transition`}
+            type="text"
+            name="school"
+            value={profileData.school}
+            disabled
+            className={`w-full px-4 py-2 border rounded-lg transition ${readOnlyFieldClasses}`}
           />
         </div>
-
-        {/* Address - Full Width */}
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2 items-center gap-2">
-            <MapPin size={16} />
-            Address
-          </label>
+          <label className="mb-2 block text-sm font-medium text-gray-700">Address</label>
           <input
             type="text"
             name="address"
             value={profileData.address}
             onChange={handleInputChange}
-            disabled={!isEditing}
-            className={`w-full px-4 py-2 border rounded-lg ${
-              isEditing
-                ? "border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                : "border-gray-200 bg-gray-50"
-            } transition`}
+            className={`w-full px-4 py-2 border rounded-lg transition ${editableFieldClasses}`}
           />
         </div>
-
-        {/* Bio removed for now as backend does not provide it */}
       </div>
     </div>
   );

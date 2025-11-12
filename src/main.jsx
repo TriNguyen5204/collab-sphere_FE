@@ -7,12 +7,14 @@ import { Provider } from 'react-redux';
 import { store } from './store';
 import AuthProvider from './components/layout/AuthProvider.jsx';
 import { Toaster } from 'sonner';
+import { TeamProvider } from './context/TeamContext.jsx';
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
     <Provider store={store}>
       <AuthProvider>
-        <Router />
+        <TeamProvider>
+          <Router />
+        </TeamProvider>
         <Toaster
           position='top-right'
           richColors
@@ -25,5 +27,4 @@ createRoot(document.getElementById('root')).render(
         />
       </AuthProvider>
     </Provider>
-  </StrictMode>
 );

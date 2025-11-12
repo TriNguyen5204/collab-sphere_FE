@@ -1,13 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BookOpen, Users, Calendar } from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router-dom'; // ADD
-import Header from '../../components/layout/Header';
-import StudentSidebar from '../../components/layout/StudentSidebar';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { getClassesByStudentId, getClassDetailsById } from '../../services/userService';
+import { getClassesByStudentId, getClassDetailsById, getAssignedTeamByClassId } from '../../services/studentApi';
 import { EnrolledClassesSkeleton, ClassDetailsSkeleton } from '../../components/skeletons/StudentSkeletons';
 import { useSelector } from 'react-redux';
 import StudentLayout from '../../components/layout/StudentLayout';
+import ProjectCard from '../../components/student/ProjectCard';
 
 const StudentClassPage = () => {
   const [classes, setClasses] = useState([]);
@@ -15,9 +14,10 @@ const StudentClassPage = () => {
 
   const [loadingList, setLoadingList] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [loadingAssignedTeamId, setLoadingAssignedTeamId] = useState(null);
 
-  // cache class details by id
   const [detailsById, setDetailsById] = useState({});
+  const [assignedTeamByClassId, setAssignedTeamByClassId] = useState({});
 
   const studentId = useSelector(state => state.user.userId);
 
@@ -32,7 +32,6 @@ const StudentClassPage = () => {
   );
   const selectedDetails = detailsById[selectedClassId] || null;
 
-  // Slugify for route paths: /student/theclassname/...
   const slugify = (str = '') =>
     String(str)
       .toLowerCase()
@@ -40,7 +39,7 @@ const StudentClassPage = () => {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)+/g, '');
 
-  const navigate = useNavigate(); // ADD
+  const navigate = useNavigate();
   const location = useLocation();
 
   const handleViewMembers = () => {
@@ -63,6 +62,30 @@ const StudentClassPage = () => {
     }
   };
 
+  const fetchAssignedTeam = async (classId, force = false) => {
+    if (!classId) return null;
+    if (!force && Object.prototype.hasOwnProperty.call(assignedTeamByClassId, classId)) {
+      return assignedTeamByClassId[classId];
+    }
+    try {
+      setLoadingAssignedTeamId(classId);
+      const response = await getAssignedTeamByClassId(classId);
+      const team = response?.studentTeam ?? null;
+      setAssignedTeamByClassId((prev) => ({ ...prev, [classId]: team }));
+      return team;
+    } catch (error) {
+      toast.error('Failed to fetch assigned team');
+      setAssignedTeamByClassId((prev) => {
+        const next = { ...prev };
+        delete next[classId];
+        return next;
+      });
+      return null;
+    } finally {
+      setLoadingAssignedTeamId((prev) => (prev === classId ? null : prev));
+    }
+  };
+
   const fetchClasses = async () => {
     if (!studentId) {
       toast.error('Missing student id');
@@ -76,6 +99,8 @@ const StudentClassPage = () => {
       console.log('Class IDs:', ids);
       if (!ids.includes(selectedClassId) && ids.length) {
         setSelectedClassId(ids[0]);
+      } else if (selectedClassId) {
+        fetchAssignedTeam(selectedClassId, true);
       }
       return list;
     } finally {
@@ -84,8 +109,7 @@ const StudentClassPage = () => {
   };
 
   const fetchDetails = async (classId) => {
-    if (!classId) return;
-    // use cache
+    if (!classId) return null;
     if (detailsById[classId]) return detailsById[classId];
     try {
       setLoadingDetails(true);
@@ -93,6 +117,9 @@ const StudentClassPage = () => {
       console.log('Fetched details for classId', classId, details);
       setDetailsById((prev) => ({ ...prev, [classId]: details }));
       return details;
+    } catch (error) {
+      toast.error('Failed to fetch class details');
+      return null;
     } finally {
       setLoadingDetails(false);
     }
@@ -108,17 +135,36 @@ const StudentClassPage = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedClassId) fetchDetails(selectedClassId);
-
+    if (selectedClassId) {
+      fetchDetails(selectedClassId);
+      fetchAssignedTeam(selectedClassId);
+    }
   }, [selectedClassId]);
 
-  // Pick class from navigation state (e.g., search selection)
   useEffect(() => {
     const target = location.state?.selectClassId;
     if (target && classes.some(c => c.classId === target)) {
       setSelectedClassId(target);
     }
   }, [location.state, classes]);
+
+  const handleAssignedTeamClick = (team) => {
+    const teamId = team?.teamId;
+    const projectId = team?.projectId;
+    const projectName = team?.projectName || 'project';
+    if (!teamId || !projectId) return;
+    navigate(`/student/project/${projectId}/${encodeURIComponent(projectName)}/${teamId}/team-workspace`);
+  };
+
+  const assignedTeam = assignedTeamByClassId[selectedClassId];
+  const isAssignedTeamLoading = loadingAssignedTeamId === selectedClassId && !assignedTeam;
+  const assignedTeamCardData = assignedTeam
+    ? {
+        ...assignedTeam,
+        className: assignedTeam.className ?? selectedDetails?.className,
+        lecturerName: assignedTeam.lecturerName ?? selectedDetails?.lecturerName,
+      }
+    : null;
 
   return (
     <StudentLayout>
@@ -275,6 +321,23 @@ const StudentClassPage = () => {
                           </span>
                         </p>
                       </div>
+                    </div>
+
+                    <div className="mt-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Assigned Team</h3>
+                      {isAssignedTeamLoading ? (
+                        <div className="rounded-md border border-gray-200 p-4 animate-pulse text-sm text-gray-500">
+                          Loading assigned team...
+                        </div>
+                      ) : assignedTeamCardData ? (
+                        <div className="flex">
+                          <ProjectCard project={assignedTeamCardData} onClick={() => handleAssignedTeamClick(assignedTeam)} />
+                        </div>
+                      ) : (
+                        <div className="rounded-md border border-dashed border-gray-300 p-4 text-sm text-gray-500">
+                          No team assigned for this class.
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
