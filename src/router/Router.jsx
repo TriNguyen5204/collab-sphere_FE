@@ -21,6 +21,7 @@ import TeamWorkspace from '../pages/student/project/TeamWorkspace';
 import GitHubAppCallback from '../pages/student/project/GitHubAppCallback';
 import StudentClassMembersPage from '../pages/student/StudentClassMembersPage';
 import StudentClassProjectsPage from '../pages/student/StudentClassProjectsPage';
+import StudentClassSyllabusPage from '../pages/student/StudentClassSyllabusPage';
 import StudentPRAnalysisPage from '../pages/student/StudentPRAnalysisPage';
 
 // lecturer pages
@@ -98,6 +99,7 @@ const studentRoutes = [
   { path: '/student/ai/pr-analysis', element: protectRoute(['STUDENT'], <StudentPRAnalysisPage />) },
   { path: '/student/:className/members', element: protectRoute(['STUDENT'], <StudentClassMembersPage />) },
   { path: '/student/:className/projects', element: protectRoute(['STUDENT'], <StudentClassProjectsPage />) },
+  { path: '/student/:className/syllabus', element: protectRoute(['STUDENT'], <StudentClassSyllabusPage />) },
 ];
 
 const lecturerRoutes = [

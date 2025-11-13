@@ -1,10 +1,11 @@
 import React from 'react';
-import { UserCheck, Inbox } from 'lucide-react';
+import { UserCheck, Inbox, Award } from 'lucide-react';
 
 const EvaluationTabs = ({ activeTab, onChangeTab }) => {
   const tabs = [
     { id: 'evaluate', label: 'Evaluate Peers', icon: UserCheck },
-    { id: 'received', label: 'Received Evaluations', icon: Inbox }
+    { id: 'received', label: 'Received Evaluations', icon: Inbox },
+    { id: 'lecturer', label: 'Lecturer Evaluation', icon: Award }
   ];
 
   return (
@@ -16,7 +17,7 @@ const EvaluationTabs = ({ activeTab, onChangeTab }) => {
             onClick={() => onChangeTab(id)}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition ${
               activeTab === id
-                ? 'bg-blue-600 text-white'
+                ? 'bg-orange-600 text-white'
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
           >

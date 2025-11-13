@@ -20,43 +20,12 @@ const ReceivedEvaluations = ({ teamId }) => {
 
   const grouped = useMemo(() => items, [items]);
 
-  // useEffect(() => {
-  //   let mounted = true;
-  //   async function run() {
-  //     setLoading(true);
-  //     try {
-  //       const res = await getEvaluationMemberByTeamId(teamId);
-
-  //       console.log('Received evaluations response:', res);
-  //       const data = res?.data ?? res;
-  //       if (data?.isSuccess) {
-  //         if (mounted) setItems(data.otherEvaluations || []);
-  //       } else if (Array.isArray(data?.errorList) && data.errorList.length) {
-  //         toast.warning(data.errorList[0]?.message || 'Unable to load evaluations for you');
-  //         if (mounted) setItems([]);
-  //       } else {
-  //         if (mounted) setItems([]);
-  //       }
-  //     } catch (e) {
-  //       if (mounted) setItems([]);
-  //     } finally {
-  //       if (mounted) setLoading(false);
-  //     }
-  //   }
-  //   if (teamId && userId) run();
-  //   return () => {
-  //     mounted = false;
-  //   };
-  // }, [teamId, userId]);
-
-
   // Call api to get received evaluations 
   const fetchReceivedEvaluations = async () => {
     setLoading(true);
     try {
       const data = await getEvaluationMemberByTeamId(teamId);
       console.log('Received evaluations response:', data);
-      // New API returns an array of evaluation objects; keep backward compatibility
       const list = Array.isArray(data)
         ? data
         : data?.otherEvaluations || data?.evaluations || data?.data || [];
@@ -77,7 +46,10 @@ const ReceivedEvaluations = ({ teamId }) => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow p-8 text-center text-gray-600">Loading evaluations...</div>
+      <div className="bg-white rounded-lg shadow p-8 text-center">
+        <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-gray-600">Loading received evaluations...</p>
+      </div>
     );
   }
 
@@ -101,9 +73,12 @@ const ReceivedEvaluations = ({ teamId }) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="flex items-start justify-between mb-4">
+        <h2 className="text-2xl font-bold text-gray-900">Your Received Evaluations</h2>
+      </div>
       {grouped.map((ev, idx) => (
-        <div key={idx} className="bg-white rounded-lg shadow-md p-6">
+        <div key={idx} className="bg-white rounded-lg shadow-md p-6 my-4 border border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <img
@@ -118,7 +93,10 @@ const ReceivedEvaluations = ({ teamId }) => {
             </div>
             <div className="text-right">
               <div className="text-sm text-gray-500">Total</div>
-              <div className="text-2xl font-bold text-gray-900">{totalFor(ev.scoreDetails)} / 15</div>
+              <div className='flex items-baseline gap-1'>
+                <span className="text-orange-600 font-bold text-2xl">{totalFor(ev.scoreDetails)}</span>
+                <span className="text-gray-500 text-xl">/ 15</span>
+              </div>
             </div>
           </div>
 

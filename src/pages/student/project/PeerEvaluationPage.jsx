@@ -4,6 +4,7 @@ import ProjectBoardHeader from '../../../components/layout/ProjectBoardHeader';
 import EvaluationTabs from '../../../components/student/evaluation/EvaluationTabs';
 import PeerEvaluationForm from '../../../components/student/evaluation/PeerEvaluationForm';
 import ReceivedEvaluations from '../../../components/student/evaluation/ReceivedEvaluations';
+import LecturerTeamEvaluation from '../../../components/student/evaluation/LecturerTeamEvaluation';
 import useTeam from '../../../context/useTeam';
 import { useSelector } from 'react-redux';
 
@@ -55,6 +56,9 @@ const PeerEvaluationPage = () => {
 
           {activeTab === 'received' && (
             <ReceivedEvaluations teamId={teamId} />
+          )}
+          {activeTab === 'lecturer' && (
+            <LecturerTeamEvaluation teamId={teamId} />
           )}
         </div>
       </main>

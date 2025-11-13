@@ -396,7 +396,7 @@ const ProjectSettingsModal = ({
                 <div>
                   <label className="block text-sm font-medium mb-2">Team Avatar</label>
                   <div
-                    className="w-full h-auto rounded-lg overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center text-gray-500 cursor-pointer group"
+                    className="w-64 h-64 sm:w-56 sm:h-56 rounded-full overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center text-gray-500 cursor-pointer group relative"
                     onClick={() => fileInputRef.current?.click()}
                     role="button"
                     tabIndex={0}
@@ -412,12 +412,20 @@ const ProjectSettingsModal = ({
                       <img
                         src={currentAvatar}
                         alt="Team avatar preview"
-                        className="w-full h-full object-cover transition-opacity group-hover:opacity-80"
+                        className="w-full h-full object-cover transition-opacity group-hover:opacity-80 rounded-full"
                         title="Upload"
                       />
                     ) : (
                       <span className="text-xs">No Image</span>
                     )}
+
+                    {/* Hover edit icon */}
+                    <span className="absolute inset-0 flex items-center justify-center rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="p-2 bg-white bg-opacity-90 rounded-full">
+                        <Upload size={16} className="text-gray-700" />
+                      </span>
+                    </span>
+
                     <input
                       id="team-avatar-upload"
                       type="file"

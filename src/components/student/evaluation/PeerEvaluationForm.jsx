@@ -40,6 +40,7 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
 
   const [ratings, setRatings] = useState(() => buildInitialRatings(members.map(m => ({ id: m._memberKey }))));
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
 
   // Rebuild ratings if members list shape changes
@@ -121,12 +122,12 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
 
   // Call api get own evaluation to prefill if exists
   const fetchOwnEvaluation = async () => {
+    setLoading(true);
     try {
       const response = await getOwnEvaluationByTeamId(teamId);
       console.log('Own evaluation response:', response);
       const detailsArr = (
-        response?.ownEvaluations ||
-        []
+        response?.ownEvaluations ?? response?.data ?? []
       );
 
       if (Array.isArray(detailsArr) && detailsArr.length) {
@@ -175,6 +176,8 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
     } catch (error) {
       console.error('Error fetching own evaluation:', error);
       setPrefilled(false);
+    } finally {
+      setLoading(false);
     }
   };
   useEffect(() => {
@@ -182,6 +185,15 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
       fetchOwnEvaluation();
     }
   }, [teamId]);
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow p-8 text-center">
+        <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-gray-600">Loading peer evaluations...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -231,8 +243,9 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
                         />
                       </td>
                     ))}
-                    <td className="px-3 py-3 font-semibold text-gray-900">
-                      {totalForMember(m._memberKey)} / 15
+                    <td className="flex items-baseline gap-1 px-3 py-3">
+                      <span className="text-orange-600 font-bold text-xl">{totalForMember(m._memberKey)}</span>
+                      <span className="text-gray-500 text-sm">/ 15</span>
                     </td>
                   </tr>
                 ))}
@@ -252,7 +265,7 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
             <button
               type="submit"
               disabled={submitting}
-              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
             >
               <Send size={18} />
               {submitting ? (prefilled ? 'Updating...' : 'Submitting...') : (prefilled ? 'Update Evaluation' : 'Submit Evaluation')}

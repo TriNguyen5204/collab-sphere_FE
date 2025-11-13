@@ -2,6 +2,17 @@ import apiClient from './apiClient';
 
 // Student-specific API 
 
+// Subject API (Student-flow)
+export const getSyllabusOfSubjectBySubjectId = async (subjectId) => {
+  try {
+    const response = await apiClient.get(`/subject/${subjectId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching syllabus for subject ID ${subjectId}:`, error);
+    throw error;
+  }
+};
+
 // Class API (Student-flow)
 export const getClassesByStudentId = async (studentId) => {
   try {
@@ -284,6 +295,16 @@ export const getOwnEvaluationByTeamId = async (teamId) => {
   }
 };
 
+export const getLecturerEvaluationByTeamId = async (teamId) => {
+  try {
+    const response = await apiClient.get(`/evaluate/lecturer/team/${teamId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching lecturer evaluation for team ID ${teamId}:`, error);
+    throw error;
+  }
+};
+
 // Milestone API (Student-flow)
 export const getAllMilestonesByTeamId = async (teamId) => {
   try {
@@ -411,8 +432,8 @@ export const postEvaluateAndFeedbackMilestoneAnswer = async (answerId, feedbackP
       feedbackPayload && typeof feedbackPayload === 'object'
         ? feedbackPayload
         : { feedback: feedbackPayload };
-
     const response = await apiClient.post(`/evaluate/answer/${answerId}`, payload);
+    console.log('Feedback submitted:', response.data);
     return response.data;
   } catch (error) {
     console.error(`Error submitting feedback for answer ID ${answerId}:`, error);
