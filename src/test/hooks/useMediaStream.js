@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-export const useMediaStream = () => {
+export const useMediaStream = (defaultVideo = true, defaultAudio = true) => {
   const [stream, setStream] = useState(null);
   const localStreamRef = useRef(null);
 
@@ -10,14 +10,16 @@ export const useMediaStream = () => {
     const initMedia = async () => {
       try {
         const mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
+          video: defaultVideo,
+          audio: defaultAudio,
         });
 
         if (!mounted) {
           mediaStream.getTracks().forEach(track => track.stop());
           return;
         }
+        mediaStream.getVideoTracks().forEach(t => (t.enabled = defaultVideo));
+        mediaStream.getAudioTracks().forEach(t => (t.enabled = defaultAudio));
 
         setStream(mediaStream);
         localStreamRef.current = mediaStream;
@@ -35,7 +37,7 @@ export const useMediaStream = () => {
         localStreamRef.current.getTracks().forEach(track => track.stop());
       }
     };
-  }, []);
+  }, [defaultAudio, defaultVideo]);
 
   const toggleAudio = () => {
     if (localStreamRef.current) {

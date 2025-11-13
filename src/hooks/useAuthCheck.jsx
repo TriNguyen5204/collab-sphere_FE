@@ -47,5 +47,5 @@ export function useAuthCheck() {
     const interval = setInterval(handleRefreshToken, CHECK_INTERVAL_MS);
 
     return () => clearInterval(interval);
-  }, [user, dispatch]);
+  }, [user, dispatch, CHECK_INTERVAL_MS]);
 }

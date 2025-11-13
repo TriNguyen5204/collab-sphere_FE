@@ -1,104 +1,128 @@
 import React from "react";
-import { FileText, User, Clock, CheckCircle, XCircle, ChevronRight} from 'lucide-react';
+import {
+  FileText,
+  User,
+  Target,
+  Flag,
+  ClipboardList,
+  Info,
+  BookOpen,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function ProjectApprovalList({ projects }) {
   const navigate = useNavigate();
 
   const handleSelectProject = (project) => {
-    navigate(`/head-department/project-approvals/${project.projectId}`, { state: { project } });
+    navigate(`/head-department/project-approvals/${project.projectId}`, {
+      state: { project },
+    });
   };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-8 px-4">
-      <div className="max-w-6xl mx-auto space-y-8">
-        {/* Projects List */}
+    <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="max-w-6xl mx-auto">
         {projects.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-xl p-16 text-center">
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Folder className="w-16 h-16 text-gray-400" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">No Projects Yet</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">
+              No Projects Yet
+            </h3>
             <p className="text-gray-500 text-lg">
               There are currently no project submissions to review
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {projects.map((project, index) => {
-              const statusConfig = project.status;
-              // const StatusIcon = statusConfig.icon;
-              
-              return (
-                <div
-                  key={project.projectId}
-                  onClick={() => handleSelectProject(project)}
-                  className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer overflow-hidden border-2 border-transparent hover:border-indigo-200 transform hover:scale-[1.01] group"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <div className="p-6">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                      {/* Left Content */}
-                      <div className="flex-1">
-                        <div className="flex items-start gap-4">
-                          {/* Project Icon */}
-                          <div className="bg-gradient-to-br from-indigo-100 to-purple-100 p-4 rounded-xl flex-shrink-0 group-hover:scale-110 transition-transform">
-                            <FileText className="w-8 h-8 text-indigo-600" />
-                          </div>
-                          
-                          {/* Project Details */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start gap-3 mb-2">
-                              <h3 className="text-2xl font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                                {project.projectName}
-                              </h3>
-                            </div>
-                            
-                            {/* Subject Badge */}
-                            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-50 to-purple-50 px-4 py-2 rounded-full mb-3 border border-indigo-100">
-                              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
-                              <span className="font-bold text-indigo-700 text-sm">
-                                {project.subjectName}
-                              </span>
-                            </div>
-                            
-                            {/* Description */}
-                            <p className="text-gray-600 leading-relaxed mb-4 text-base">
-                              {project.description}
-                            </p>
-                            
-                            {/* Lecturer Info */}
-                            <div className="items-center gap-3 bg-gray-50 px-4 py-3 rounded-lg inline-flex">
-                              <div className="bg-indigo-100 p-2 rounded-lg">
-                                <User className="w-5 h-5 text-indigo-600" />
-                              </div>
-                              <div>
-                                <p className="text-xs text-gray-500 font-medium">Lecturer</p>
-                                <p className="font-bold text-gray-900">
-                                  {project.lecturerName}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {projects.map((project) => (
+              <div
+                key={project.projectId}
+                className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 p-6 flex flex-col justify-between"
+              >
+                {/* Header */}
+                <div>
+                  {/* Subject */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <BookOpen className="w-4 h-4 text-indigo-600" />
+                    <p className="text-indigo-600 font-semibold text-sm">
+                      {project.subjectName}
+                    </p>
+                  </div>
 
-                      {/* Right Side - Status & Action */}
-                      <div className="flex flex-col items-end gap-4 flex-shrink-0">
-                        
-                        {/* Action Button */}
-                        <button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all transform group-hover:scale-105">
-                          View Details
-                          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                        </button>
+                  {/* Project name */}
+                  <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-gray-700" />
+                    {project.projectName}
+                  </h2>
+
+                  {/* Description */}
+                  <div className="flex items-start gap-2 mb-3 text-gray-600">
+                    <Info className="w-4 h-4 text-gray-400 mt-1" />
+                    <p className="leading-relaxed text-sm">
+                      {project.description}
+                    </p>
+                  </div>
+
+                  {/* Lecturer */}
+                  <div className="flex items-center gap-2 text-sm mb-4">
+                    <User className="w-4 h-4 text-indigo-500" />
+                    <span className="font-medium text-gray-700">
+                      {project.lecturerName}
+                    </span>
+                  </div>
+
+                  {/* Objectives & Milestones */}
+                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-700 mt-2">
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-1 mb-1">
+                        <Target className="w-4 h-4 text-gray-500" />
+                        <p className="text-xs text-gray-400 font-semibold">
+                          OBJECTIVES
+                        </p>
                       </div>
+                      <p className="text-lg font-semibold">
+                        {project.objectiveCount || 0}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-1 mb-1">
+                        <Flag className="w-4 h-4 text-gray-500" />
+                        <p className="text-xs text-gray-400 font-semibold">
+                          MILESTONES
+                        </p>
+                      </div>
+                      <p className="text-lg font-semibold">
+                        {project.milestoneCount || 0}
+                      </p>
                     </div>
                   </div>
-                  
-                  {/* Bottom Accent Line */}
-                  <div className={`h-1.5 bg-gradient-to-r ${statusConfig.dotColor === 'bg-amber-500' ? 'from-amber-400 to-amber-600' : statusConfig.dotColor === 'bg-green-500' ? 'from-green-400 to-green-600' : statusConfig.dotColor === 'bg-red-500' ? 'from-red-400 to-red-600' : 'from-blue-400 to-blue-600'}`}></div>
+
+                  {/* Recent Objective */}
+                  <div className="mt-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <ClipboardList className="w-4 h-4 text-gray-500" />
+                      <p className="text-xs text-gray-400 font-semibold">
+                        RECENT OBJECTIVE
+                      </p>
+                    </div>
+                    <p className="text-sm text-gray-700 line-clamp-2">
+                      {project.recentObjective || "—"}
+                    </p>
+                  </div>
                 </div>
-              );
-            })}
+
+                {/* Action */}
+                <div className="flex items-center justify-between gap-2 mt-6">
+                  <button
+                    onClick={() => handleSelectProject(project)}
+                    className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 rounded-xl transition-all flex items-center justify-center gap-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    Open project detail
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
