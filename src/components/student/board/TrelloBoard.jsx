@@ -9,7 +9,7 @@ import UndoNotification from "./UndoNotification";
 
 // ────────────────────────────────────────────────────────────────────────────────
 // Fake members (re‑use across cards)
-export const members = [
+const members = [
   { id: 1, name: "Alice", role: "Leader", avatar: "https://i.pravatar.cc/40?u=1", tags: ["Frontend", "UI/UX"] },
   { id: 2, name: "Bob", role: "Member", avatar: "https://i.pravatar.cc/40?u=2", tags: ["Backend"] },
   { id: 3, name: "Charlie", role: "Member", avatar: "https://i.pravatar.cc/40?u=3", tags: ["Frontend"] },

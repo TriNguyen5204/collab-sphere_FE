@@ -14,8 +14,8 @@ import {
   UserCheck,
   BookCopy,
 } from 'lucide-react';
-import CreateClassForm from '../../components/ui/CreateClassForm';
-import CreateMultipleClassForm from '../../components/ui/CreateMultipleClassForm';
+import CreateClassForm from '../../components/staff/CreateClassForm';
+import CreateMultipleClassForm from '../../components/staff/CreateMultipleClassForm';
 import ModalWrapper from '../../components/layout/ModalWrapper';
 import { useNavigate } from 'react-router-dom';
 import {
