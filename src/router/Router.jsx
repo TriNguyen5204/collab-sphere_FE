@@ -19,6 +19,7 @@ import MilestoneCheckpointPage from '../pages/student/project/MilestonePage';
 import PeerEvaluationPage from '../pages/student/project/PeerEvaluationPage';
 import TeamWorkspace from '../pages/student/project/TeamWorkspace';
 import GitHubAppCallback from '../pages/student/project/GitHubAppCallback';
+import ProfessionalAnalysisView from '../pages/student/project/ProfessionalAnalysisView';
 import StudentClassMembersPage from '../pages/student/StudentClassMembersPage';
 import StudentClassProjectsPage from '../pages/student/StudentClassProjectsPage';
 import StudentPRAnalysisPage from '../pages/student/StudentPRAnalysisPage';
@@ -97,6 +98,7 @@ const studentRoutes = [
   { path: '/student/project/:projectId/:projectName/:teamId/milestones&checkpoints', element: protectRoute(['STUDENT'], <MilestoneCheckpointPage />) },
   { path: '/student/project/:projectId/:projectName/:teamId/peer-evaluation', element: protectRoute(['STUDENT'], <PeerEvaluationPage />) },
   { path: '/student/project/:projectId/:projectName/:teamId/team-workspace', element: protectRoute(['STUDENT'], <TeamWorkspace />) },
+  { path: '/student/project/:projectId/:projectName/:teamId/pr-analysis/:analysisId', element: protectRoute(['STUDENT'], <ProfessionalAnalysisView />) },
   { path: '/projects/github-callback', element: protectRoute(['STUDENT'], <GitHubAppCallback />) },
   { path: '/student/ai/pr-analysis', element: protectRoute(['STUDENT'], <StudentPRAnalysisPage />) },
   { path: '/student/:className/members', element: protectRoute(['STUDENT'], <StudentClassMembersPage />) },
