@@ -42,7 +42,7 @@ const LecturerTeamEvaluation = ({ teamId }) => {
     if (loading) {
         return (
             <div className="bg-white rounded-lg shadow p-8 text-center">
-                <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <div className="w-12 h-12 border-4 border-orangeFpt-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
                 <p className="text-gray-600">Loading lecturer evaluation...</p>
             </div>
         );
@@ -52,7 +52,7 @@ const LecturerTeamEvaluation = ({ teamId }) => {
         return (
             <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-start gap-3">
-                    <AlertTriangle className="text-orange-500" />
+                    <AlertTriangle className="text-orangeFpt-500" />
                     <div>
                         <p className="font-semibold text-gray-900">Failed to load evaluation</p>
                         <p className="text-sm text-gray-600">Please try again later.</p>
@@ -86,9 +86,9 @@ const LecturerTeamEvaluation = ({ teamId }) => {
                 {/* Overall + Comment Section */}
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
                     {/* Overall Score */}
-                    <div className="flex flex-col items-center justify-center text-center bg-orange-50 rounded-xl p-6 flex-shrink-0 w-full md:w-1/3 shadow-sm">
-                        <p className="text-sm font-medium text-orange-600 uppercase tracking-wide">Overall Score</p>
-                        <div className="text-orange-600 font-extrabold text-6xl mt-3">
+                    <div className="flex flex-col items-center justify-center text-center bg-orangeFpt-100 rounded-xl p-6 flex-shrink-0 w-full md:w-1/3 shadow-sm">
+                        <p className="text-sm font-medium text-orangeFpt-500 uppercase tracking-wide">Overall Score</p>
+                        <div className="text-orangeFpt-500 font-extrabold text-6xl mt-3">
                             {overall !== null && overall !== undefined ? Number(overall).toFixed(1) : '-'}
                         </div>
                         <p className="text-gray-500 text-sm mt-1">out of 10</p>
@@ -125,7 +125,7 @@ const LecturerTeamEvaluation = ({ teamId }) => {
                                         <div className="flex items-center justify-between mb-2">
                                             <div className="font-semibold text-gray-900">{name}</div>
                                             <div className="flex items-baseline gap-1">
-                                                <span className="text-orange-600 font-bold text-xl">{score ?? '-'}</span>
+                                                <span className="text-orangeFpt-500 font-bold text-xl">{score ?? '-'}</span>
                                                 <span className="text-gray-500 text-sm">/10</span>
                                             </div>
                                         </div>

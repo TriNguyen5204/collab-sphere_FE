@@ -9,7 +9,7 @@ const EvaluationTabs = ({ activeTab, onChangeTab }) => {
   ];
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-2">
+    <div className="bg-white rounded-lg shadow-md">
       <div className="flex gap-2">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
@@ -17,7 +17,7 @@ const EvaluationTabs = ({ activeTab, onChangeTab }) => {
             onClick={() => onChangeTab(id)}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition ${
               activeTab === id
-                ? 'bg-orange-600 text-white'
+                ? 'bg-orangeFpt-500 shadow-soft text-white'
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
           >

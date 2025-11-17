@@ -29,7 +29,6 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
     [teamMembers, userId]
   );
 
-  // Normalize member keys to ensure uniqueness even if id is missing
   const members = useMemo(() => {
     return evaluableMembers.map((m, idx) => {
       const rawId = m.studentId ?? m.userId ?? m.id ?? m.memberId ?? m.accountId ?? m.receiverId ?? m.user?.id;
@@ -43,7 +42,6 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
   const [loading, setLoading] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
 
-  // Rebuild ratings if members list shape changes
   useEffect(() => {
     setRatings(buildInitialRatings(members.map(m => ({ id: m._memberKey }))));
   }, [members.length]);
@@ -153,7 +151,6 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
           if (rid) map.set(rid, row);
         }
 
-        // Apply onto current members using their raw ids
         setRatings((prev) => {
           const next = { ...prev };
           members.forEach((m, idx) => {
@@ -189,7 +186,7 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow p-8 text-center">
-        <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <div className="w-12 h-12 border-4 border-orangeFpt-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
         <p className="text-gray-600">Loading peer evaluations...</p>
       </div>
     );
@@ -244,7 +241,7 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
                       </td>
                     ))}
                     <td className="flex items-baseline gap-1 px-3 py-3">
-                      <span className="text-orange-600 font-bold text-xl">{totalForMember(m._memberKey)}</span>
+                      <span className="text-orangeFpt-500 font-bold text-xl">{totalForMember(m._memberKey)}</span>
                       <span className="text-gray-500 text-sm">/ 15</span>
                     </td>
                   </tr>
@@ -265,7 +262,7 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
             <button
               type="submit"
               disabled={submitting}
-              className="flex items-center gap-2 px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-2 bg-orangeFpt-500 text-white rounded-lg hover:bg-orangeFpt-600 disabled:opacity-50"
             >
               <Send size={18} />
               {submitting ? (prefilled ? 'Updating...' : 'Submitting...') : (prefilled ? 'Update Evaluation' : 'Submit Evaluation')}

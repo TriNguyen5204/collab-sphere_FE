@@ -309,6 +309,7 @@ export const getLecturerEvaluationByTeamId = async (teamId) => {
 export const getAllMilestonesByTeamId = async (teamId) => {
   try {
     const response = await apiClient.get(`/milestone/team/${teamId}`);
+    console.log('Milestones data:', response.data);
     return response.data;
   } catch (error) {
     console.error(`Error fetching milestones for team ID ${teamId}:`, error);

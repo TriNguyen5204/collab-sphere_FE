@@ -265,22 +265,33 @@ const MilestonePage = () => {
   };
 
   const fetchMilestoneDetail = async (milestoneId) => {
+    if (!milestoneId) return null;
+    let mergedFromList = null;
+    let mergedFromSelected = null;
     try {
-      if (!milestoneId) return;
       setIsLoadingDetail(true);
       const detail = await getDetailOfMilestoneByMilestoneId(milestoneId);
       console.log(detail);
-      setMilestones((prev) => prev.map((m) => (getMilestoneId(m) === milestoneId ? mergeDetailIntoMilestone(m, detail) : m)));
+      setMilestones((prev) => prev.map((m) => {
+        if (getMilestoneId(m) !== milestoneId) return m;
+        const merged = mergeDetailIntoMilestone(m, detail);
+        mergedFromList = merged;
+        return merged;
+      }));
       setSelectedMilestone((prev) => {
         if (!prev) return prev;
         if (getMilestoneId(prev) !== milestoneId) return prev;
-        return mergeDetailIntoMilestone(prev, detail);
+        const merged = mergeDetailIntoMilestone(prev, detail);
+        mergedFromSelected = merged;
+        return merged;
       });
+      return mergedFromSelected || mergedFromList;
     } catch (error) {
       console.error("Error fetching milestone detail:", error);
     } finally {
       setIsLoadingDetail(false);
     }
+    return mergedFromSelected || mergedFromList;
   };
 
   useEffect(() => {
@@ -591,8 +602,9 @@ const MilestonePage = () => {
     try {
       await patchGenerateNewReturnFileLinkByMilestoneIdAndMileReturnId(milestoneId, mileReturnId);
       toast.success('A new download link has been generated');
-      await fetchMilestoneDetail(milestoneId);
-      return true;
+      const updated = await fetchMilestoneDetail(milestoneId);
+      const refreshed = updated?.returns?.find((item) => item.id === mileReturnId);
+      return refreshed?.url || refreshed?.path || '';
     } catch (error) {
       const responseData = error?.response?.data;
       let message = error?.message ?? 'Failed to refresh link';

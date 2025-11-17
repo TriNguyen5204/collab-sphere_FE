@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Calendar, MessageSquare, CheckCircle, Upload, Award, Download, FileText, ChevronDown, X, ChevronUp, Trash2, RefreshCcw, Loader2, User } from 'lucide-react';
+import { Calendar, MessageSquare, CheckCircle, Upload, Award, FileText, ChevronDown, X, ChevronUp, Trash2, Loader2, User } from 'lucide-react';
 import { getStatusColor, normalizeMilestoneStatus } from '../../../utils/milestoneHelpers';
 import MilestoneFilesModal from './MilestoneFilesModal';
 import MilestoneQuestions from './MilestoneQuestions';
@@ -48,10 +48,10 @@ const MilestoneHeader = ({
   const [showQuestions, setShowQuestions] = useState(false);
   const [localFiles, setLocalFiles] = useState([]);
   const [isUploadingReturns, setIsUploadingReturns] = useState(false);
-
-  const status = normalizeMilestoneStatus(milestone?.statusString ?? milestone?.status);
-  const progress = Math.round(milestone?.progress ?? 0);
-  const dueDate = milestone?.dueDate ?? milestone?.endDate ?? null;
+  const [refreshingReturnId, setRefreshingReturnId] = useState(null);
+  const status = normalizeMilestoneStatus(milestone?.status);
+  const isMilestoneCompleted = status === 'Completed';
+  const dueDate = milestone?.endDate;
   const startDate = milestone?.startDate ?? null;
   const completedDate = milestone?.completedDate ?? null;
   const lecturerFiles = Array.isArray(milestone?.lecturerFiles) ? milestone.lecturerFiles : [];
@@ -128,23 +128,63 @@ const MilestoneHeader = ({
     }
   };
 
-  const hasMilestoneSubmission = normalizedReturns.length > 0;
+  const handleOpenReturn = async (returnItem) => {
+    if (!returnItem) return;
+    const { id, url } = returnItem;
+
+    if (typeof onRefreshMilestoneReturnLink !== 'function' || !id) {
+      if (url) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+      return;
+    }
+
+    try {
+      setRefreshingReturnId(id);
+      const refreshedUrl = await onRefreshMilestoneReturnLink(id);
+      const sanitizedRefreshedUrl = typeof refreshedUrl === 'string' ? refreshedUrl.trim() : '';
+      const finalUrl = sanitizedRefreshedUrl
+        ? sanitizedRefreshedUrl
+        : normalizedReturns.find((item) => item.id === id)?.url || url;
+      if (finalUrl) {
+        window.open(finalUrl, '_blank', 'noopener,noreferrer');
+      }
+    } catch (error) {
+      console.error('Failed to refresh submission link', error);
+      if (url) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    } finally {
+      setRefreshingReturnId(null);
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <h2 className="text-2xl font-bold text-gray-900">{milestone.title}</h2>
-            <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(status)}`}>
-              {status.replace('-', ' ').toUpperCase()}
+            <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(milestone.status)}`}>
+              {milestone.status}
             </span>
           </div>
           <p className="text-gray-600">{milestone.description}</p>
         </div>
+        <button
+          type="button"
+          onClick={() => setShowFilesModal(true)}
+          className="relative inline-flex flex-shrink-0 items-center justify-center self-start rounded-full border p-2 transition border-gray-200 text-black hover:border-gray-300 hover:bg-gray-50"
+          aria-label="View milestone files"
+        >
+          <FileText size={20} />
+          <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full  bg-black px-1 text-[10px] font-semibold leading-none text-white">
+            {lecturerFiles.length}
+          </span>
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 pt-4 border-t">
+      <div className="grid grid-cols-1 gap-4 mt-4 pt-4 border-t md:grid-cols-3">
         <div>
           <p className="text-sm text-gray-600 mb-1">Start Date</p>
           <p className="font-semibold flex items-center gap-2">
@@ -166,21 +206,7 @@ const MilestoneHeader = ({
             {completedAnswers} / {requiredAnswers}
           </p>
         </div>
-        <div>
-          <div>
-            <p className="text-sm text-gray-600 mb-1">Files</p>
-
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowFilesModal(true)}
-            className="font-semibold flex items-center gap-2"
-          >
-            <FileText size={16} />
-            {lecturerFiles.length} - <span className='underline'>View</span>
-          </button>
-        </div>
-  {status === 'completed' && (
+        {status === 'completed' && (
           <>
             <div>
               <p className="text-sm text-gray-600 mb-1">Completed Date</p>
@@ -190,23 +216,6 @@ const MilestoneHeader = ({
             </div>
           </>
         )}
-      </div>
-
-      {/* Progress Overview */}
-      <div className="mt-4 pt-4 border-t">
-        <div className="flex justify-between text-sm mb-2">
-          <span className="text-gray-600">Overall Progress</span>
-          <span className="font-semibold">{progress}%</span>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-          <div
-            className={`h-3 rounded-full transition-all duration-300 ${progress < 30 ? 'bg-red-500' :
-                progress < 70 ? 'bg-yellow-500' :
-                  'bg-green-500'
-              }`}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
       </div>
 
       <div className="mt-4 pt-4 border-t space-y-4">
@@ -227,76 +236,65 @@ const MilestoneHeader = ({
               {normalizedReturns.map((item) => (
                 <li
                   key={item.id}
-                  className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                  className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm"
                 >
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-start gap-3">
-                      {item.avatar ? (
-                        <img
-                          src={item.avatar}
-                          alt={`${item.studentName || 'Student'} avatar`}
-                          className="h-12 w-12 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200 text-gray-500">
-                          <User size={20} />
-                        </div>
-                      )}
-                      <div className="space-y-1">
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div>
+                        {item.avatar ? (
+                          <img
+                            src={item.avatar}
+                            alt={`${item.studentName || 'Student'} avatar`}
+                            className="h-12 w-12 flex-shrink-0 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-500">
+                            <User size={20} />
+                          </div>
+                        )}
+                      </div>
+                      <div>
                         <p className="text-sm font-semibold text-gray-900">
                           {item.studentName || 'Unknown student'}
                         </p>
                         {item.studentCode && (
-                          <p className="text-xs text-gray-500">Code: {item.studentCode}</p>
-                        )}
-                        {item.submittedAtLabel && (
-                          <p className="text-xs text-gray-500">Submitted {item.submittedAtLabel}</p>
+                          <p className="text-xs text-gray-500">{item.studentCode}</p>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-                        <FileText size={18} />
+                    <button
+                      type="button"
+                      onClick={() => handleOpenReturn(item)}
+                      className="flex w-full items-start gap-3 rounded-md border border-transparent bg-gray-50 p-3 text-left transition hover:border-blue-200 hover:bg-blue-50"
+                    >
+                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                        {refreshingReturnId === item.id ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <FileText size={18} />
+                        )}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 break-words">{item.name}</p>
-                        
+                        <p className="truncate text-sm font-semibold text-blue-600">
+                          {item.name}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-x-3 text-xs text-gray-500">
+                          {item.submittedAtLabel && <span>Submitted {item.submittedAtLabel}</span>}
+                          
+                        </div>
                       </div>
-                    </div>
+                    </button>
                   </div>
-                  <div className="flex items-center gap-3 sm:justify-end">
-                    {item.url && (
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 transition hover:text-blue-700"
-                      >
-                        <Download size={16} />
-                        View
-                      </a>
-                    )}
-                    {typeof onRefreshMilestoneReturnLink === 'function' && canManageReturns && (
-                      <button
-                        type="button"
-                        onClick={() => onRefreshMilestoneReturnLink(item.id)}
-                        className="flex items-center gap-1 rounded-md border border-transparent px-2 py-1 text-sm text-gray-600 transition hover:border-gray-300 hover:text-gray-800"
-                      >
-                        <RefreshCcw size={16} />
-                        Refresh link
-                      </button>
-                    )}
-                    {typeof onDeleteMilestoneReturn === 'function' && canManageReturns && (
-                      <button
-                        type="button"
-                        onClick={() => onDeleteMilestoneReturn(item.id)}
-                        className="text-red-600 transition hover:text-red-700"
-                        aria-label="Delete submission"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    )}
-                  </div>
+                  {typeof onDeleteMilestoneReturn === 'function' && canManageReturns && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteMilestoneReturn(item.id)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-red-600 transition hover:bg-red-50 hover:text-red-700"
+                      aria-label="Delete submission"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -410,11 +408,11 @@ const MilestoneHeader = ({
         <div className="mt-4 pt-4 border-t">
           <button
             onClick={onComplete}
-            disabled={(completedAnswers < requiredAnswers) || !hasMilestoneSubmission}
+            disabled={(completedAnswers < requiredAnswers) || isMilestoneCompleted}
             title={
               completedAnswers < requiredAnswers
                 ? 'Answer all questions before completing this milestone'
-                : (!hasMilestoneSubmission ? 'Upload at least one file to the milestone before marking as complete' : undefined)
+                : (isMilestoneCompleted ? 'This milestone has already been marked as completed' : undefined)
             }
             className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold"
           >
@@ -426,38 +424,38 @@ const MilestoneHeader = ({
               Answer all questions before completing this milestone
             </p>
           )}
-          {!(completedAnswers < requiredAnswers) && !hasMilestoneSubmission && (
+          {!(completedAnswers < requiredAnswers) && isMilestoneCompleted && (
             <p className="text-sm text-amber-600 mt-2 text-center">
-              Upload at least one file to the milestone before marking as complete
+              This milestone has already been marked as completed
             </p>
           )}
         </div>
       )}
 
       {/* Questions */}
-        <section className="mt-6 pt-6 border-t">
-          <button
-            type="button"
-            onClick={() => canToggleQuestions && setShowQuestions((v) => !v)}
-            className={`w-full flex items-center justify-between px-3 py-2 rounded ${canToggleQuestions ? 'hover:bg-gray-50' : 'opacity-60 cursor-not-allowed'}`}
-          >
-            <span className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-              <MessageSquare size={16} />
-              Milestone Questions ({questionCount})
-            </span>
-            {canToggleQuestions && (showQuestions ? <ChevronUp size={18} /> : <ChevronDown size={18} />)}
-          </button>
-          {showQuestions && canToggleQuestions && (
-            <div className="mt-3">
-              <MilestoneQuestions
-                milestone={milestone}
-                milestoneStatus={status}
-                readOnly={readOnly}
-                onAnswerSubmitted={onAnswerSubmitted}
-              />
-            </div>
-          )}
-        </section>
+      <section className="mt-6 pt-6 border-t">
+        <button
+          type="button"
+          onClick={() => canToggleQuestions && setShowQuestions((v) => !v)}
+          className={`w-full flex items-center justify-between px-3 py-2 rounded ${canToggleQuestions ? 'hover:bg-gray-50' : 'opacity-60 cursor-not-allowed'}`}
+        >
+          <span className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+            <MessageSquare size={20} />
+            Milestone Questions ({questionCount})
+          </span>
+          {canToggleQuestions && (showQuestions ? <ChevronUp size={18} /> : <ChevronDown size={18} />)}
+        </button>
+        {showQuestions && canToggleQuestions && (
+          <div className="mt-3">
+            <MilestoneQuestions
+              milestone={milestone}
+              milestoneStatus={status}
+              readOnly={readOnly}
+              onAnswerSubmitted={onAnswerSubmitted}
+            />
+          </div>
+        )}
+      </section>
     </div>
   );
 };

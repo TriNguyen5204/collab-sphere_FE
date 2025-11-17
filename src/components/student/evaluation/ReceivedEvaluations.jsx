@@ -47,7 +47,7 @@ const ReceivedEvaluations = ({ teamId }) => {
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow p-8 text-center">
-        <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <div className="w-12 h-12 border-4 border-orangeFpt-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
         <p className="text-gray-600">Loading received evaluations...</p>
       </div>
     );
@@ -94,7 +94,7 @@ const ReceivedEvaluations = ({ teamId }) => {
             <div className="text-right">
               <div className="text-sm text-gray-500">Total</div>
               <div className='flex items-baseline gap-1'>
-                <span className="text-orange-600 font-bold text-2xl">{totalFor(ev.scoreDetails)}</span>
+                <span className="text-orangeFpt-500 font-bold text-2xl">{totalFor(ev.scoreDetails)}</span>
                 <span className="text-gray-500 text-xl">/ 15</span>
               </div>
             </div>
