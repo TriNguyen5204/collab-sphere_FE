@@ -25,7 +25,7 @@ export const getProjectDetail = async (projectId) => {
 	}
 
 	const response = await apiClient.get(`/project/${projectId}`);
-	console.log(response.data)
+	console.log("project detail response:", response.data);
 	return response.data;
 };
 

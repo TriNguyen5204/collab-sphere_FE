@@ -1,5 +1,6 @@
 import apiClient from './apiClient';
 import { cleanParams } from '../utils/cleanParam';
+export { getMilestonesByTeam as getAllMilestonesByTeamId, getMilestoneDetail as getDetailOfMilestoneByMilestoneId } from './milestoneApi';
 
 //staff
 export const getClass = async filters => {
@@ -446,25 +447,7 @@ export const getUserProfile = async (userId) => {
   }
 };
 
-export const getAllMilestonesByTeamId = async (teamId) => {
-  try {
-    const response = await apiClient.get(`/milestone/team/${teamId}`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching milestones for team ID ${teamId}:`, error);
-    throw error;
-  }
-};
-
-export const getDetailOfMilestoneByMilestoneId = async (milestoneId) => {
-  try {
-    const response = await apiClient.get(`/milestone/${milestoneId}`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching milestone details for milestone ID ${milestoneId}:`, error);
-    throw error;
-  }
-};
+// Milestone helpers are re-exported at the top of this file to avoid duplicate implementations.
 
 export const getDetailOfCheckpointByCheckpointId = async (checkpointId) => {
   try {
