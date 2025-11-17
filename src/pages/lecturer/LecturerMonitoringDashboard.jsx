@@ -1,651 +1,451 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+  ArrowPathIcon,
+  ArrowTrendingUpIcon,
+  ClipboardDocumentListIcon,
+  Squares2X2Icon,
+  UserGroupIcon,
+  AcademicCapIcon,
+  ExclamationTriangleIcon,
+} from '@heroicons/react/24/outline';
 import DashboardLayout from '../../components/DashboardLayout';
 import styles from './LecturerMonitoringDashboard.module.css';
-import {
-  ChevronDownIcon,
-  BellIcon,
-  QrCodeIcon,
-  DocumentChartBarIcon,
-  MegaphoneIcon,
-  CalendarDaysIcon,
-  ExclamationTriangleIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  EyeIcon,
-  ChartBarIcon,
-  UserGroupIcon,
-  BookOpenIcon,
-  AcademicCapIcon,
-  ArrowTrendingUpIcon,
-  PresentationChartLineIcon,
-  ClipboardDocumentListIcon,
-  ShieldCheckIcon
-} from '@heroicons/react/24/outline';
-import {
-  BellIcon as BellIconSolid,
-  CheckCircleIcon as CheckCircleIconSolid
-} from '@heroicons/react/24/solid';
+import { getClassDetail } from '../../services/userService';
+import { normaliseClassDetailPayload } from './classDetailNormalizer';
+
+const formatDate = (value) => {
+  if (!value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? '—'
+    : date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+};
+
+const SectionTitle = ({ title, action }) => (
+  <div className="flex items-center justify-between gap-4">
+    <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+    {action}
+  </div>
+);
+
+const EmptyState = ({ title, description }) => (
+  <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-6 text-center">
+    <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-400">{title}</p>
+    <p className="mt-3 text-sm text-slate-500">{description}</p>
+  </div>
+);
 
 const LecturerMonitoringDashboard = () => {
   const { classId } = useParams();
   const navigate = useNavigate();
-  
-  // State Management
-  const [selectedClass, setSelectedClass] = useState(null);
-  const [notifications, setNotifications] = useState([]);
-  const [projectHealthData, setProjectHealthData] = useState({});
-  const [learningOutcomes, setLearningOutcomes] = useState([]);
-  const [assessmentData, setAssessmentData] = useState([]);
-  const [interventionAlerts, setInterventionAlerts] = useState([]);
-  const [performanceMetrics, setPerformanceMetrics] = useState({});
-  
-  // Mock Data - Replace with actual API calls
-  const [classes] = useState([
-    {
-      id: '201',
-      code: 'SE109',
-      name: 'SE109 - Software Engineering Fundamentals',
-      enrollmentCount: 42,
-      qrStatus: 'active',
-      projectHealth: 'good', // good, warning, critical
-      projects: [
-        {
-          id: 'proj-1',
-          name: 'AI Study Companion',
-          teams: 3,
-          completion: 75,
-          riskLevel: 'low',
-          status: 'on-track'
-        },
-        {
-          id: 'proj-2',
-          name: 'Code Quality Toolkit',
-          teams: 3,
-          completion: 45,
-          riskLevel: 'medium',
-          status: 'at-risk'
-        },
-        {
-          id: 'proj-3',
-          name: 'Automated Testing Coach',
-          teams: 3,
-          completion: 88,
-          riskLevel: 'low',
-          status: 'ahead'
-        }
-      ]
-    },
-    {
-      id: '202',
-      code: 'SE203',
-      name: 'SE203 - Advanced Database Systems',
-      enrollmentCount: 36,
-      qrStatus: 'active',
-      projectHealth: 'warning',
-      projects: [
-        {
-          id: 'proj-4',
-          name: 'Intelligent Query Assistant',
-          teams: 3,
-          completion: 62,
-          riskLevel: 'medium',
-          status: 'on-track'
-        },
-        {
-          id: 'proj-5',
-          name: 'Distributed Caching Dashboard',
-          teams: 3,
-          completion: 48,
-          riskLevel: 'medium',
-          status: 'at-risk'
-        },
-        {
-          id: 'proj-6',
-          name: 'Database Observability Hub',
-          teams: 2,
-          completion: 30,
-          riskLevel: 'high',
-          status: 'behind'
-        }
-      ]
-    },
-    {
-      id: '203',
-      code: 'SE301',
-      name: 'SE301 - Software Architecture & Design',
-      enrollmentCount: 0,
-      qrStatus: 'inactive',
-      projectHealth: 'critical',
-      projects: [
-        {
-          id: 'proj-7',
-          name: 'Microservices Reference Architecture',
-          teams: 0,
-          completion: 10,
-          riskLevel: 'high',
-          status: 'draft'
-        }
-      ]
-    }
-  ]);
+  const numericClassId = Number.isFinite(Number(classId)) ? Number(classId) : undefined;
 
-  const [mockLearningOutcomes] = useState([
-    {
-      id: 'lo-1',
-      title: 'Full-stack Development',
-      coverage: 85,
-      teamsAchieving: 7,
-      totalTeams: 9,
-      status: 'on-track'
-    },
-    {
-      id: 'lo-2',
-      title: 'Database Design',
-      coverage: 92,
-      teamsAchieving: 8,
-      totalTeams: 9,
-      status: 'excellent'
-    },
-    {
-      id: 'lo-3',
-      title: 'API Development',
-      coverage: 68,
-      teamsAchieving: 6,
-      totalTeams: 9,
-      status: 'needs-attention'
-    },
-    {
-      id: 'lo-4',
-      title: 'Testing & Quality Assurance',
-      coverage: 55,
-      teamsAchieving: 4,
-      totalTeams: 9,
-      status: 'critical'
-    }
-  ]);
+  const [classDetail, setClassDetail] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const [mockAssessmentData] = useState({
-    gradeDistribution: {
-      excellent: 23,
-      good: 45,
-      satisfactory: 25,
-      needsImprovement: 7
-    },
-    peerEvaluations: {
-      completed: 78,
-      pending: 22,
-      averageScore: 4.2
-    },
-    aiRecommendations: [
-      {
-        type: 'intervention',
-        priority: 'high',
-        message: 'Team Alpha requires immediate support with testing practices',
-        teamId: 'team-alpha'
-      },
-      {
-        type: 'resource',
-        priority: 'medium',
-        message: 'Consider additional database design resources for 3 teams',
-        count: 3
-      }
-    ]
-  });
-
-  // Initialize selected class
   useEffect(() => {
-    if (classId && classes.length > 0) {
-      const foundClass = classes.find(c => c.id === classId);
-      setSelectedClass(foundClass || classes[0]);
-    } else if (classes.length > 0) {
-      setSelectedClass(classes[0]);
-    }
-  }, [classId, classes]);
+    let ignore = false;
 
-  // Mock notification data
-  useEffect(() => {
-    setNotifications([
-      {
-        id: 1,
-        type: 'alert',
-        message: 'Team Alpha is 2 days behind schedule',
-        priority: 'high',
-        timestamp: new Date()
-      },
-      {
-        id: 2,
-        type: 'success',
-        message: 'Team Beta completed milestone ahead of schedule',
-        priority: 'low',
-        timestamp: new Date()
+    const fetchDetail = async () => {
+      if (!classId) {
+        setClassDetail(null);
+        setError('');
+        return;
       }
-    ]);
-  }, []);
 
-  const getHealthColor = (health) => {
-    switch (health) {
-      case 'good': return '#10b981';
-      case 'warning': return '#f59e0b';
-      case 'critical': return '#ef4444';
-      default: return '#6b7280';
-    }
-  };
+      setLoading(true);
+      setError('');
 
-  const getRiskLevelColor = (risk) => {
-    switch (risk) {
-      case 'low': return '#10b981';
-      case 'medium': return '#f59e0b';
-      case 'high': return '#ef4444';
-      default: return '#6b7280';
-    }
-  };
+      try {
+        const response = await getClassDetail(classId);
+        if (ignore) {
+          return;
+        }
+        const detail = normaliseClassDetailPayload(response, numericClassId);
+        setClassDetail(detail);
+      } catch (err) {
+        if (ignore) {
+          return;
+        }
+        console.error('Failed to load lecturer monitoring data.', err);
+        setClassDetail(null);
+        setError(err?.message ?? 'Unable to load class metrics right now.');
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
 
-  const getOutcomeStatusColor = (status) => {
-    switch (status) {
-      case 'excellent': return '#10b981';
-      case 'on-track': return '#3b82f6';
-      case 'needs-attention': return '#f59e0b';
-      case 'critical': return '#ef4444';
-      default: return '#6b7280';
+    fetchDetail();
+
+    return () => {
+      ignore = true;
+    };
+  }, [classId, numericClassId, reloadKey]);
+
+  const metrics = useMemo(() => {
+    if (!classDetail) {
+      return null;
     }
+
+    const students = classDetail.students ?? [];
+    const teams = classDetail.teams ?? [];
+    const resources = classDetail.resources ?? [];
+    const assignments = classDetail.projectAssignments ?? [];
+
+    const studentsWithTeam = students.filter(
+      (student) => student.teamId !== null && student.teamId !== undefined,
+    ).length;
+
+    const avgProgress = teams.length
+      ? Math.round(
+          teams.reduce((total, team) => {
+            const progress = Number(team.avgProgress);
+            return total + (Number.isFinite(progress) ? progress : 0);
+          }, 0) / teams.length,
+        )
+      : null;
+
+    return {
+      studentCount: students.length,
+      studentsWithTeam,
+      unassignedStudents: Math.max(students.length - studentsWithTeam, 0),
+      teamCount: teams.length,
+      idleTeams: teams.filter((team) => !team.projectId).length,
+      resourceCount: resources.length,
+      assignmentCount: assignments.length,
+      avgProgress,
+    };
+  }, [classDetail]);
+
+  const summary = classDetail?.summary;
+  const teams = classDetail?.teams ?? [];
+  const resources = classDetail?.resources ?? [];
+  const assignments = classDetail?.projectAssignments ?? [];
+
+  const statCards = [
+    {
+      label: 'Students',
+      value: metrics?.studentCount ?? '—',
+      helper:
+        metrics && metrics.studentCount > 0
+          ? `${metrics.studentsWithTeam} assigned · ${metrics.unassignedStudents} pending`
+          : 'Awaiting class data',
+      icon: UserGroupIcon,
+    },
+    {
+      label: 'Teams',
+      value: metrics?.teamCount ?? '—',
+      helper:
+        metrics && metrics.teamCount > 0
+          ? `${metrics.idleTeams} without project`
+          : 'Create teams from Class Detail',
+      icon: Squares2X2Icon,
+    },
+    {
+      label: 'Avg team progress',
+      value: metrics?.avgProgress !== null && metrics?.avgProgress !== undefined ? `${metrics.avgProgress}%` : '—',
+      helper: 'Calculated from student progress snapshots',
+      icon: ArrowTrendingUpIcon,
+    },
+    {
+      label: 'Resources',
+      value: metrics?.resourceCount ?? '—',
+      helper: 'Class files available to students',
+      icon: ClipboardDocumentListIcon,
+    },
+  ];
+
+  const renderHeader = () => (
+    <header className={`${styles.headerSection} flex-wrap gap-4`}>
+      <div className="min-w-[260px]">
+        <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-400">Lecturer Monitoring</p>
+        <h1 className="mt-2 text-2xl font-semibold text-slate-900">
+          {summary?.name || 'Class Monitoring'}
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">
+          {summary?.code ? `${summary.code} · ${summary.term || 'Term TBD'}` : summary?.term || 'Term not provided'}
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setReloadKey((key) => key + 1)}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300"
+        >
+          <ArrowPathIcon className="h-4 w-4" /> Refresh data
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate(`/lecturer/classes/${classId}`)}
+          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-indigo-700"
+        >
+          Open class detail
+        </button>
+      </div>
+    </header>
+  );
+
+  const renderStats = () => (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {statCards.map((stat) => {
+        const Icon = stat.icon;
+        return (
+          <div
+            key={stat.label}
+            className="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm transition hover:-translate-y-0.5"
+          >
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-indigo-50 p-3 text-indigo-600">
+                <Icon className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">{stat.label}</p>
+                <p className="text-2xl font-semibold text-slate-900">{stat.value}</p>
+              </div>
+            </div>
+            <p className="mt-3 text-sm text-slate-500">{stat.helper}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const renderTeams = () => (
+    <div className="rounded-2xl border border-slate-200 bg-white/85 p-5 shadow-sm">
+      <SectionTitle
+        title="Team snapshot"
+        action={
+          <button
+            type="button"
+            className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
+            onClick={() => navigate(`/lecturer/classes/${classId}`)}
+          >
+            Manage teams
+          </button>
+        }
+      />
+      {teams.length ? (
+        <ul className="mt-4 space-y-3">
+          {teams.map((team) => (
+            <li key={team.id} className="rounded-2xl border border-slate-100 bg-white/90 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-base font-semibold text-slate-900">{team.name}</p>
+                  <p className="text-sm text-slate-500">
+                    {team.project?.name ? team.project.name : 'No project assigned'}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Avg progress</p>
+                  <p className="text-lg font-semibold text-slate-900">{team.avgProgress ?? '—'}%</p>
+                </div>
+              </div>
+              <div className="mt-3 h-2 w-full rounded-full bg-slate-100">
+                <div
+                  className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-sky-400"
+                  style={{ width: `${Math.min(Math.max(team.avgProgress ?? 0, 0), 100)}%` }}
+                />
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                {team.members.length} members · Created {formatDate(team.createdDate)}
+              </p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <EmptyState title="No teams" description="Teams will appear after students are grouped in Class Detail." />
+      )}
+    </div>
+  );
+
+  const renderAssignments = () => (
+    <div className="rounded-2xl border border-slate-200 bg-white/85 p-5 shadow-sm">
+      <SectionTitle
+        title="Project assignments"
+        action={
+          <button
+            type="button"
+            className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
+            onClick={() => navigate(`/lecturer/classes/${classId}/projects`)}
+          >
+            Assign projects
+          </button>
+        }
+      />
+      {assignments.length ? (
+        <ul className="mt-4 space-y-3">
+          {assignments.slice(0, 6).map((assignment) => (
+            <li
+              key={assignment.projectAssignmentId}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 bg-white/90 px-4 py-3"
+            >
+              <div>
+                <p className="text-sm font-semibold text-slate-800">Project #{assignment.projectId}</p>
+                <p className="text-xs text-slate-500">Assigned {formatDate(assignment.assignedDate)}</p>
+              </div>
+              <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                {assignment.status || 'pending'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <EmptyState title="No assignments" description="Use Assign projects to connect approved ideas with teams." />
+      )}
+    </div>
+  );
+
+  const renderResources = () => (
+    <div className="rounded-2xl border border-slate-200 bg-white/85 p-5 shadow-sm">
+      <SectionTitle
+        title="Class resources"
+        action={
+          <button
+            type="button"
+            className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
+            onClick={() => navigate(`/lecturer/classes/${classId}`)}
+          >
+            Manage resources
+          </button>
+        }
+      />
+      {resources.length ? (
+        <ul className="mt-4 space-y-3">
+          {resources.slice(0, 6).map((resource) => (
+            <li key={resource.id} className="rounded-xl border border-slate-100 bg-white/90 px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">{resource.title}</p>
+                  <p className="text-xs text-slate-500">
+                    Uploaded {formatDate(resource.uploadDate)} · {resource.type || 'file'}
+                  </p>
+                </div>
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {resource.downloads} downloads
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <EmptyState title="No resources" description="Upload reference files from Class Detail to support students." />
+      )}
+    </div>
+  );
+
+  const renderInterventions = () => (
+    <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-5 shadow-sm">
+      <SectionTitle
+        title="Interventions & alerts"
+        action={
+          <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-amber-500">
+            <ExclamationTriangleIcon className="h-4 w-4" /> Pending API
+          </span>
+        }
+      />
+      <p className="mt-3 text-sm text-slate-600">
+        This panel will surface milestone risks, checkpoint blockers, and evaluation follow-ups once the
+        `/api/class/{classId}/progress`, `/api/class/{classId}/intervention-alerts`, and `/api/evaluate/*` endpoints are wired in.
+        For now, open the class detail view to review milestones manually.
+      </p>
+      <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-slate-500">
+        <li>Team milestone completion rates (FE-05.5)</li>
+        <li>Checkpoint delays and member contribution gaps (FE-05.6)</li>
+        <li>Pending evaluation tasks per lecturer rubric (FE-05.7)</li>
+      </ul>
+    </div>
+  );
+
+  const renderBody = () => (
+    <div className="space-y-6 p-6">
+      {renderStats()}
+      <div className="grid gap-6 xl:grid-cols-3">
+        <div className="space-y-6 xl:col-span-2">
+          {renderTeams()}
+          {renderAssignments()}
+        </div>
+        <div className="space-y-6">
+          {renderResources()}
+          {renderInterventions()}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderContent = () => {
+    if (!classId) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+          <AcademicCapIcon className="h-12 w-12 text-indigo-400" />
+          <p className="text-base text-slate-600">
+            Select a class from the Class Management dashboard to open the monitoring workspace.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/lecturer/classes')}
+            className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm"
+          >
+            Go to classes
+          </button>
+        </div>
+      );
+    }
+
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-3 py-16 text-center text-slate-500">
+          <ArrowPathIcon className="h-10 w-10 animate-spin" />
+          <p>Loading class insights…</p>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+          <p className="text-base font-semibold text-rose-600">{error}</p>
+          <button
+            type="button"
+            onClick={() => setReloadKey((key) => key + 1)}
+            className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white/80 px-4 py-2 text-sm font-semibold text-rose-600"
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+
+    if (!classDetail) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-3 py-16 text-center text-slate-500">
+          <p>We could not find class data for this ID. Try refreshing or return to Class Management.</p>
+          <button
+            type="button"
+            onClick={() => navigate('/lecturer/classes')}
+            className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm"
+          >
+            Back to classes
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        {renderHeader()}
+        {renderBody()}
+      </>
+    );
   };
 
   return (
     <DashboardLayout>
-      <div className={styles.lecturerDashboard}>
-        {/* Header Section */}
-        <div className={styles.headerSection}>
-          <div className={styles.classSelector}>
-            <div className={styles.selectorWrapper}>
-              <select 
-                value={selectedClass?.id || ''}
-                onChange={(e) => {
-                  const selected = classes.find(c => c.id === e.target.value);
-                  setSelectedClass(selected);
-                  navigate(`/lecturer/monitoring/${e.target.value}`);
-                }}
-                className={styles.classDropdown}
-              >
-                {classes.map(cls => (
-                  <option key={cls.id} value={cls.id}>
-                    {cls.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDownIcon className={styles.dropdownIcon} />
-            </div>
-            {selectedClass && (
-              <div className={styles.classInfo}>
-                <span className={styles.enrollmentCount}>
-                  {selectedClass.enrollmentCount} students
-                </span>
-                <div className={styles.qrStatus}>
-                  <QrCodeIcon className={styles.qrIcon} />
-                  <span className={styles.qrText}>QR Active</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className={styles.healthIndicator}>
-            <div 
-              className={styles.healthLight}
-              style={{ backgroundColor: getHealthColor(selectedClass?.projectHealth) }}
-            ></div>
-            <span className={styles.healthText}>
-              Project Health: {selectedClass?.projectHealth?.toUpperCase()}
-            </span>
-          </div>
-
-          <div className={styles.actionToolbar}>
-            <button className={styles.actionButton}>
-              <DocumentChartBarIcon className={styles.actionIcon} />
-              Generate Reports
-            </button>
-            <button className={styles.actionButton}>
-              <MegaphoneIcon className={styles.actionIcon} />
-              Send Announcements
-            </button>
-            <button className={styles.actionButton}>
-              <CalendarDaysIcon className={styles.actionIcon} />
-              Schedule Consultations
-            </button>
-          </div>
-
-          <div className={styles.notificationBell}>
-            <button className={styles.bellButton}>
-              {notifications.length > 0 ? (
-                <BellIconSolid className={styles.bellIcon} />
-              ) : (
-                <BellIcon className={styles.bellIcon} />
-              )}
-              {notifications.length > 0 && (
-                <span className={styles.notificationBadge}>
-                  {notifications.length}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Main Dashboard Grid */}
-        <div className={styles.mainGrid}>
-          {/* Left Column - Project Overview Cards */}
-          <div className={styles.leftColumn}>
-            <div className={styles.sectionHeader}>
-              <h2>Project Overview</h2>
-              <span className={styles.projectCount}>
-                {selectedClass?.projects?.length || 0} Projects
-              </span>
-            </div>
-
-            <div className={styles.projectCards}>
-              {selectedClass?.projects?.map(project => (
-                <div 
-                  key={project.id} 
-                  className={styles.projectCard}
-                  onClick={() => navigate(`/lecturer/projects/${project.id}`)}
-                >
-                  <div className={styles.projectHeader}>
-                    <h3 className={styles.projectName}>{project.name}</h3>
-                    <div 
-                      className={styles.riskIndicator}
-                      style={{ backgroundColor: getRiskLevelColor(project.riskLevel) }}
-                    >
-                      {project.riskLevel}
-                    </div>
-                  </div>
-                  
-                  <div className={styles.projectMetrics}>
-                    <div className={styles.metric}>
-                      <UserGroupIcon className={styles.metricIcon} />
-                      <span>{project.teams} teams</span>
-                    </div>
-                    <div className={styles.metric}>
-                      <ChartBarIcon className={styles.metricIcon} />
-                      <span>{project.completion}% complete</span>
-                    </div>
-                  </div>
-
-                  <div className={styles.progressBar}>
-                    <div 
-                      className={styles.progressFill}
-                      style={{ 
-                        width: `${project.completion}%`,
-                        backgroundColor: getRiskLevelColor(project.riskLevel)
-                      }}
-                    ></div>
-                  </div>
-
-                  <div className={styles.projectStatus}>
-                    Status: <span className={styles.statusText}>{project.status}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Right Column - Academic Analytics Panel */}
-          <div className={styles.rightColumn}>
-            {/* Learning Outcomes Achievement Tracker */}
-            <div className={styles.analyticsPanel}>
-              <div className={styles.panelHeader}>
-                <h2>Learning Outcomes Achievement</h2>
-                <ArrowTrendingUpIcon className={styles.panelIcon} />
-              </div>
-
-              <div className={styles.outcomesGrid}>
-                {mockLearningOutcomes.map(outcome => (
-                  <div key={outcome.id} className={styles.outcomeCard}>
-                    <div className={styles.outcomeHeader}>
-                      <h4>{outcome.title}</h4>
-                      <div 
-                        className={styles.outcomeStatus}
-                        style={{ backgroundColor: getOutcomeStatusColor(outcome.status) }}
-                      >
-                        {outcome.coverage}%
-                      </div>
-                    </div>
-                    
-                    <div className={styles.outcomeProgress}>
-                      <div 
-                        className={styles.outcomeProgressBar}
-                        style={{ 
-                          width: `${outcome.coverage}%`,
-                          backgroundColor: getOutcomeStatusColor(outcome.status)
-                        }}
-                      ></div>
-                    </div>
-
-                    <div className={styles.outcomeTeams}>
-                      {outcome.teamsAchieving} / {outcome.totalTeams} teams achieving
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className={styles.curriculumHeatmap}>
-                <h3>Curriculum Coverage Heat Map</h3>
-                <div className={styles.heatmapGrid}>
-                  {/* Simplified heat map representation */}
-                  {Array.from({ length: 20 }, (_, i) => (
-                    <div 
-                      key={i}
-                      className={styles.heatmapCell}
-                      style={{ 
-                        backgroundColor: `rgba(16, 185, 129, ${Math.random() * 0.8 + 0.2})` 
-                      }}
-                    ></div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Assessment Compilation Interface */}
-            <div className={styles.assessmentPanel}>
-              <div className={styles.panelHeader}>
-                <h2>Assessment Overview</h2>
-                <AcademicCapIcon className={styles.panelIcon} />
-              </div>
-
-              <div className={styles.assessmentGrid}>
-                <div className={styles.gradeDistribution}>
-                  <h4>Grade Distribution</h4>
-                  <div className={styles.distributionBars}>
-                    {Object.entries(mockAssessmentData.gradeDistribution).map(([grade, percentage]) => (
-                      <div key={grade} className={styles.distributionBar}>
-                        <span className={styles.gradeLabel}>{grade}</span>
-                        <div className={styles.barContainer}>
-                          <div 
-                            className={styles.bar}
-                            style={{ width: `${percentage}%` }}
-                          ></div>
-                        </div>
-                        <span className={styles.percentage}>{percentage}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={styles.peerEvaluations}>
-                  <h4>Peer Evaluations</h4>
-                  <div className={styles.peerStats}>
-                    <div className={styles.stat}>
-                      <span className={styles.statValue}>
-                        {mockAssessmentData.peerEvaluations.completed}%
-                      </span>
-                      <span className={styles.statLabel}>Completed</span>
-                    </div>
-                    <div className={styles.stat}>
-                      <span className={styles.statValue}>
-                        {mockAssessmentData.peerEvaluations.averageScore}
-                      </span>
-                      <span className={styles.statLabel}>Avg Score</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className={styles.aiRecommendations}>
-                  <h4>AI Recommendations</h4>
-                  {mockAssessmentData.aiRecommendations.map((rec, index) => (
-                    <div key={index} className={styles.recommendation}>
-                      <div className={styles.recIcon}>
-                        {rec.priority === 'high' ? (
-                          <ExclamationTriangleIcon className={styles.highPriority} />
-                        ) : (
-                          <CheckCircleIcon className={styles.mediumPriority} />
-                        )}
-                      </div>
-                      <span className={styles.recText}>{rec.message}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className={styles.assessmentActions}>
-                <button 
-                  className={styles.assessmentButton}
-                  onClick={() => navigate('/lecturer/assessment-center')}
-                >
-                  <AcademicCapIcon className={styles.buttonIcon} />
-                  Access Assessment Center
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Academic Supervision & Intervention Panel */}
-        <div className={styles.supervisionSection}>
-          <div className={styles.interventionPanel}>
-            <div className={styles.panelHeader}>
-              <h2>AI-Powered Intervention Recommendations</h2>
-              <ShieldCheckIcon className={styles.panelIcon} />
-            </div>
-
-            <div className={styles.interventionGrid}>
-              <div className={styles.urgentAlerts}>
-                <h3>Urgent Interventions</h3>
-                {mockAssessmentData.aiRecommendations
-                  .filter(rec => rec.priority === 'high')
-                  .map((rec, index) => (
-                    <div key={index} className={styles.urgentAlert}>
-                      <ExclamationTriangleIcon className={styles.urgentIcon} />
-                      <div className={styles.alertContent}>
-                        <span className={styles.alertText}>{rec.message}</span>
-                        <button className={styles.actionButton}>
-                          Schedule Meeting
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                }
-              </div>
-
-              <div className={styles.performanceInsights}>
-                <h3>Performance Insights</h3>
-                <div className={styles.insightCards}>
-                  <div className={styles.insightCard}>
-                    <PresentationChartLineIcon className={styles.insightIcon} />
-                    <div className={styles.insightContent}>
-                      <span className={styles.insightValue}>23%</span>
-                      <span className={styles.insightLabel}>Teams Above Average</span>
-                    </div>
-                  </div>
-                  <div className={styles.insightCard}>
-                    <ClipboardDocumentListIcon className={styles.insightIcon} />
-                    <div className={styles.insightContent}>
-                      <span className={styles.insightValue}>78%</span>
-                      <span className={styles.insightLabel}>Milestones On Track</span>
-                    </div>
-                  </div>
-                  <div className={styles.insightCard}>
-                    <UserGroupIcon className={styles.insightIcon} />
-                    <div className={styles.insightContent}>
-                      <span className={styles.insightValue}>4.2/5</span>
-                      <span className={styles.insightLabel}>Avg Team Collaboration</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.academicOversight}>
-                <h3>Academic Standards Compliance</h3>
-                <div className={styles.complianceMetrics}>
-                  <div className={styles.complianceItem}>
-                    <div className={styles.complianceHeader}>
-                      <span>Curriculum Coverage</span>
-                      <span className={styles.complianceScore}>94%</span>
-                    </div>
-                    <div className={styles.complianceBar}>
-                      <div 
-                        className={styles.complianceFill}
-                        style={{ width: '94%', backgroundColor: '#10b981' }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className={styles.complianceItem}>
-                    <div className={styles.complianceHeader}>
-                      <span>Learning Outcomes Met</span>
-                      <span className={styles.complianceScore}>87%</span>
-                    </div>
-                    <div className={styles.complianceBar}>
-                      <div 
-                        className={styles.complianceFill}
-                        style={{ width: '87%', backgroundColor: '#3b82f6' }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className={styles.complianceItem}>
-                    <div className={styles.complianceHeader}>
-                      <span>Assessment Quality</span>
-                      <span className={styles.complianceScore}>76%</span>
-                    </div>
-                    <div className={styles.complianceBar}>
-                      <div 
-                        className={styles.complianceFill}
-                        style={{ width: '76%', backgroundColor: '#f59e0b' }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.supervisoryActions}>
-            <button 
-              className={styles.supervisoryButton}
-              onClick={() => navigate('/lecturer/class-management')}
-            >
-              <UserGroupIcon className={styles.supervisoryIcon} />
-              Class Management
-            </button>
-            <button 
-              className={styles.supervisoryButton}
-              onClick={() => navigate(`/lecturer/classes/${selectedClass?.id}/projects`)}
-            >
-              <EyeIcon className={styles.supervisoryIcon} />
-              Team Analytics
-            </button>
-            <button 
-              className={styles.supervisoryButton}
-              onClick={() => navigate('/lecturer/assessment-center')}
-            >
-              <AcademicCapIcon className={styles.supervisoryIcon} />
-              Assessment Center
-            </button>
-            <button 
-              className={styles.supervisoryButton}
-              onClick={() => navigate('/lecturer/projects')}
-            >
-              <BookOpenIcon className={styles.supervisoryIcon} />
-              Project Library
-            </button>
-          </div>
-        </div>
-      </div>
+      <div className={styles.lecturerDashboard}>{renderContent()}</div>
     </DashboardLayout>
   );
 };
