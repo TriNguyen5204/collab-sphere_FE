@@ -517,17 +517,20 @@ const StatusBadge = ({ isActive }) => (
   </span>
 );
 
-const MetricChip = ({ icon: Icon, label, value }) => (
-  <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/70 px-3 py-2">
-    <div className="rounded-xl bg-slate-100 p-2 text-slate-500">
-      <Icon className="h-4 w-4" aria-hidden="true" />
+const MetricChip = ({ icon, label, value }) => {
+  const Icon = icon;
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/70 px-3 py-2">
+      <div className="rounded-xl bg-slate-100 p-2 text-slate-500">
+        <Icon className="h-4 w-4" aria-hidden="true" />
+      </div>
+      <div>
+        <p className="text-base font-semibold text-slate-900">{value}</p>
+        <p className="text-xs text-slate-500">{label}</p>
+      </div>
     </div>
-    <div>
-      <p className="text-base font-semibold text-slate-900">{value}</p>
-      <p className="text-xs text-slate-500">{label}</p>
-    </div>
-  </div>
-);
+  );
+};
 
 const ClassCard = ({ cls, onView, subjectGradient }) => {
   const handleClick = () => {

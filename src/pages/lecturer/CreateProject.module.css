@@ -64,13 +64,8 @@
 	 z-index: 1;
  }
 
-.heroNav {
-	 display: flex;
-	 flex-wrap: wrap;
-	 align-items: center;
-	 gap: 10px;
-	 font-size: 13px;
-	 color: rgba(15, 23, 42, 0.55);
+.breadcrumbSlot {
+	 margin-bottom: 20px;
 }
 
 .subjectSummary {
@@ -121,25 +116,6 @@
 	 font-weight: 600;
 }
 
- .breadcrumbLink {
-	 font-weight: 600;
-	 color: rgba(15, 23, 42, 0.72);
-	 text-decoration: none;
-	 transition: color 0.2s ease;
- }
-
- .breadcrumbLink:hover {
-	 color: var(--accent-primary);
- }
-
- .breadcrumbSeparator {
-	 color: rgba(148, 163, 184, 0.7);
- }
-
- .breadcrumbCurrent {
-	 color: var(--accent-primary);
-	 font-weight: 600;
- }
 
  .heroContent {
 	 display: grid;

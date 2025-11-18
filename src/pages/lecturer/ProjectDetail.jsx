@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { getProjectDetail } from '../../services/projectApi';
+import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
 
 const glassPanelClass = 'backdrop-blur-[18px] bg-white/85 border border-white/70 shadow-[0_10px_45px_rgba(15,23,42,0.08)]';
 
@@ -16,6 +17,10 @@ const statusTokens = {
   denied: {
     label: 'Denied',
     badge: 'bg-rose-100/70 text-rose-800 border border-rose-200/70',
+  },
+  removed: {
+    label: 'Removed',
+    badge: 'bg-slate-200/80 text-slate-700 border border-slate-300/70',
   },
 };
 
@@ -85,64 +90,64 @@ const InfoStat = ({ label, value, accent = 'from-slate-50 to-white', pill }) => 
   </div>
 );
 
-const ObjectiveCard = ({ objective, index }) => (
-  <div className={`${glassPanelClass} flex flex-col gap-4 rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-sky-50 p-6`}>
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-indigo-400">Objective {index + 1}</p>
-        <h4 className="mt-2 text-xl font-semibold text-slate-900">{objective.title || 'Untitled Objective'}</h4>
+const ObjectiveCard = ({ objective, index }) => {
+  const rawTitle = objective?.title?.trim();
+  const rawDescription = objective?.description?.trim();
+  const resolvedTitle = rawTitle || rawDescription || 'Untitled Objective';
+  const shouldRenderDescription = Boolean(rawTitle && rawDescription);
+  const shouldRenderFallback = !rawDescription;
+
+  return (
+    <div className={`${glassPanelClass} flex flex-col gap-4 rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-sky-50 p-6`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-indigo-400">Objective {index + 1}</p>
+          <h4 className="mt-2 text-xl font-semibold text-slate-900">{resolvedTitle}</h4>
+        </div>
+        {objective.priority && (
+          <span className="rounded-full border border-indigo-200 bg-white/70 px-3 py-1 text-xs font-semibold text-indigo-700">
+            Priority: {objective.priority}
+          </span>
+        )}
       </div>
-      {objective.priority && (
-        <span className="rounded-full border border-indigo-200 bg-white/70 px-3 py-1 text-xs font-semibold text-indigo-700">
-          Priority: {objective.priority}
-        </span>
+      {(shouldRenderDescription || shouldRenderFallback) && (
+        <p className="text-sm text-slate-600">
+          {shouldRenderDescription ? rawDescription : 'Description coming soon.'}
+        </p>
+      )}
+      {Array.isArray(objective.objectiveMilestones) && objective.objectiveMilestones.length > 0 && (
+        <div className="rounded-2xl border border-slate-200/60 bg-white/70 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Milestones</p>
+          <ul className="mt-3 grid gap-3 text-sm text-slate-600">
+            {objective.objectiveMilestones.map((milestone, milestoneIndex) => {
+              const milestoneDescription = milestone?.description?.trim();
+
+              return (
+                <li
+                  key={milestone.id ?? milestoneIndex}
+                  className="rounded-2xl border border-slate-200/60 bg-gradient-to-br from-slate-50 via-white to-sky-50 p-4 shadow-[0_6px_18px_rgba(15,23,42,0.05)]"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-semibold text-slate-800">{milestone.title || 'Untitled milestone'}</p>
+                    <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                      {formatDate(milestone.startDate)} — {formatDate(milestone.endDate)}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-slate-600">
+                    {milestoneDescription || 'Details coming soon.'}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
     </div>
-    <p className="text-sm text-slate-600">{objective.description || 'Description coming soon.'}</p>
-    {Array.isArray(objective.objectiveMilestones) && objective.objectiveMilestones.length > 0 && (
-      <div className="rounded-2xl border border-slate-200/60 bg-white/70 p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Milestones</p>
-        <ul className="mt-3 space-y-2 text-sm text-slate-600">
-          {objective.objectiveMilestones.map((milestone, milestoneIndex) => (
-            <li key={milestone.id ?? milestoneIndex} className="flex items-start gap-2">
-              <span className="mt-1 h-1.5 w-1.5 rounded-full bg-sky-400" />
-              <div>
-                <p className="font-semibold text-slate-800">{milestone.title || 'Untitled milestone'}</p>
-                <p className="text-xs text-slate-500">
-                  {formatDate(milestone.startDate)} — {formatDate(milestone.endDate)}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-    )}
-  </div>
-);
-
-const Breadcrumbs = ({ classId }) => (
-  <nav className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
-    <Link to="/lecturer/classes" className="font-semibold text-slate-600 transition hover:text-slate-900">
-      Classes
-    </Link>
-    {classId && (
-      <>
-        <span>→</span>
-        <Link
-          to={`/lecturer/classes/${classId}`}
-          className="font-semibold text-slate-600 transition hover:text-slate-900"
-        >
-          Class Detail
-        </Link>
-      </>
-    )}
-    <span>→</span>
-    <span className="font-semibold text-slate-900">Project Detail</span>
-  </nav>
-);
+  );
+};
 
 const useProjectStatus = (project) => {
-  const normalized = project?.statusString?.toLowerCase() ?? project?.status?.toString().toLowerCase();
+  const normalized = project?.statusString?.trim().toLowerCase();
   return statusTokens[normalized] ?? statusTokens.pending;
 };
 
@@ -199,6 +204,18 @@ const ProjectDetail = () => {
     [project]
   );
 
+  const breadcrumbItems = useMemo(() => {
+    const items = [{ label: 'Project Library', href: '/lecturer/projects' }];
+
+    if (project?.classId) {
+      items.push({ label: 'Class Detail', href: `/lecturer/classes/${project.classId}` });
+    }
+
+    items.push({ label: project?.projectName ?? 'Project Detail' });
+
+    return items;
+  }, [project?.classId, project?.projectName]);
+
   if (isLoading) {
     return <LoadingShell />;
   }
@@ -224,7 +241,7 @@ const ProjectDetail = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 py-10">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4">
-        <Breadcrumbs classId={project?.classId} />
+        <LecturerBreadcrumbs items={breadcrumbItems} className="mb-2" />
 
         <section className={`${glassPanelClass} rounded-3xl border border-indigo-100/50 bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-8`}>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import styles from "./CreateProject.module.css";
 import { createProject } from "../../services/projectApi";
 import { getAllSubject } from "../../services/userService";
+import LecturerBreadcrumbs from "../../features/lecturer/components/LecturerBreadcrumbs";
 
 const PRIORITY_OPTIONS = [
   { label: "High impact", value: "HIGH" },
@@ -126,6 +127,19 @@ const CreateProject = () => {
   const [formErrors, setFormErrors] = useState({});
   const [submissionError, setSubmissionError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const breadcrumbItems = useMemo(() => {
+    if (classId) {
+      return [
+        { label: "Classes", href: "/lecturer/classes" },
+        { label: "Class detail", href: `/lecturer/classes/${classId}` },
+        { label: "Create project" },
+      ];
+    }
+    return [
+      { label: "Projects", href: "/lecturer/projects" },
+      { label: "Create project" },
+    ];
+  }, [classId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -616,28 +630,7 @@ const CreateProject = () => {
     <div className={styles.page}>
       <header className={styles.hero}>
         <div className={styles.heroInner}>
-          <div className={styles.heroNav}>
-            {classId ? (
-              <>
-                <Link to="/lecturer/classes" className={styles.breadcrumbLink}>
-                  Classes
-                </Link>
-                <span className={styles.breadcrumbSeparator}>/</span>
-                <Link to={`/lecturer/classes/${classId}`} className={styles.breadcrumbLink}>
-                  Class detail
-                </Link>
-                <span className={styles.breadcrumbSeparator}>/</span>
-              </>
-            ) : (
-              <>
-                <Link to="/lecturer/projects" className={styles.breadcrumbLink}>
-                  Projects
-                </Link>
-                <span className={styles.breadcrumbSeparator}>/</span>
-              </>
-            )}
-            <span className={styles.breadcrumbCurrent}>Create project</span>
-          </div>
+          <LecturerBreadcrumbs items={breadcrumbItems} className={styles.breadcrumbSlot} />
 
           <div className={styles.heroContent}>
             <div className={styles.heroText}>

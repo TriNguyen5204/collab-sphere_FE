@@ -36,6 +36,10 @@
   margin-bottom: 24px;
 }
 
+.breadcrumbSlot {
+  margin-bottom: 16px;
+}
+
 .headerNav {
   display: flex;
   align-items: center;

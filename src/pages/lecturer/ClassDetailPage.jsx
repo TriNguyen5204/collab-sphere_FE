@@ -4,6 +4,7 @@ import DashboardLayout from '../../components/DashboardLayout';
 import styles from './ClassDetailPage.module.css';
 import { getClassDetail } from '../../services/userService';
 import { normaliseClassDetailPayload } from './classDetailNormalizer';
+import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
 
 const formatDate = (value, fallback = '—') => {
   if (!value) {
@@ -122,24 +123,20 @@ const ClassDetailPage = () => {
   const assignments = detail?.projectAssignments ?? [];
   const members = detail?.classMembers ?? [];
 
-  const breadcrumbs = [
-    { label: 'Classes', href: '/lecturer/classes' },
-    { label: detail?.className ?? 'Class workspace', href: `/lecturer/classes/${classId}` },
-  ];
+  const breadcrumbItems = useMemo(
+    () => [
+      { label: 'Classes', href: '/lecturer/classes' },
+      { label: detail?.className ?? 'Class workspace' },
+    ],
+    [detail?.className]
+  );
 
   const showEmptyState = !loading && !detail && !error;
 
   return (
     <DashboardLayout>
       <div className={styles.screen}>
-        <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
-          {breadcrumbs.map((crumb, index) => (
-            <React.Fragment key={crumb.label}>
-              {crumb.href ? <Link to={crumb.href}>{crumb.label}</Link> : <span>{crumb.label}</span>}
-              {index < breadcrumbs.length - 1 && <span className={styles.separator}>›</span>}
-            </React.Fragment>
-          ))}
-        </nav>
+        <LecturerBreadcrumbs items={breadcrumbItems} className={styles.breadcrumbSlot} />
 
         {error && <div className={styles.errorBanner}>{error}</div>}
         {loading && <div className={styles.placeholder}>Loading class workspace…</div>}
@@ -179,7 +176,7 @@ const ClassDetailPage = () => {
                   <strong>{formatDate(detail.createdDate)}</strong>
                 </div>
                 <Link to={`/lecturer/classes/${classId}/projects`} className={styles.primaryAction}>
-                  Open project overview
+                  Class project overview
                 </Link>
               </div>
             </header>
@@ -252,7 +249,6 @@ const ClassDetailPage = () => {
                         <article key={assignment.projectAssignmentId} className={styles.assignmentCard}>
                           <div className={styles.assignmentHeader}>
                             <span className={styles.assignmentId}>#{assignment.projectAssignmentId}</span>
-                            <span className={`${styles.statusBadge} ${styles[status.token]}`}>{status.label}</span>
                           </div>
                           <h3>{assignment.projectName}</h3>
                           <p className={styles.assignmentDescription}>{assignment.description ?? 'Description updating soon.'}</p>
@@ -260,10 +256,6 @@ const ClassDetailPage = () => {
                             <div>
                               <dt>Assigned</dt>
                               <dd>{formatDate(assignment.assignedDate)}</dd>
-                            </div>
-                            <div>
-                              <dt>Project</dt>
-                              <dd>{assignment.projectId ?? '—'}</dd>
                             </div>
                           </dl>
                         </article>

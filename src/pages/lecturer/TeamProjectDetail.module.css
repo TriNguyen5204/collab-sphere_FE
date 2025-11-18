@@ -31,30 +31,8 @@
   margin-bottom: 32px;
 }
 
-.breadcrumb {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  font-size: 14px;
-  color: #64748b;
-}
-
-.breadcrumbLink {
-  color: inherit;
-  text-decoration: none;
-}
-
-.breadcrumbLink:hover {
-  color: #0f172a;
-}
-
-.breadcrumbSeparator {
-  color: #cbd5f5;
-}
-
-.breadcrumbCurrent {
-  color: #0f172a;
-  font-weight: 600;
+.breadcrumbSlot {
+  margin-bottom: 4px;
 }
 
 .hero {
@@ -799,6 +777,84 @@
   backdrop-filter: blur(12px);
 }
 
+.memberMeta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px 18px;
+  margin: 0;
+}
+
+.memberMeta dt {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #94a3b8;
+  letter-spacing: 0.08em;
+}
+
+.memberMeta dd {
+  margin: 0;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.memberMetaPlaceholder {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.memberActions {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.profileButton {
+  position: relative;
+  padding: 6px 22px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(129, 140, 248, 0.35));
+  color: #0f172a;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(14px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  overflow: hidden;
+}
+
+.profileButton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.45), transparent 55%),
+    radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.25), transparent 45%);
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
+}
+
+.profileButton span {
+  position: relative;
+  z-index: 1;
+}
+
+.profileButton:hover:not(:disabled),
+.profileButton:focus-visible:not(:disabled) {
+  box-shadow: 0 25px 60px rgba(15, 23, 42, 0.22);
+  border-color: rgba(255, 255, 255, 0.9);
+}
+
+.profileButton:hover::after,
+.profileButton:focus-visible::after {
+  opacity: 1;
+}
+
+.profileButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 .modalBackdrop {
   position: fixed;
   inset: 0;
@@ -934,6 +990,15 @@
   align-items: center;
   justify-content: center;
   font-weight: 700;
+  overflow: hidden;
+}
+
+.memberAvatarImage,
+.profileAvatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
 }
 
 .memberEmail {
@@ -950,6 +1015,73 @@
   color: #3730a3;
   font-size: 12px;
   font-weight: 600;
+}
+
+.profileBody {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profileHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.profileAvatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #38bdf8, #c084fc);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+  overflow: hidden;
+}
+
+.profileSubtext {
+  margin: 2px 0;
+  font-size: 13px;
+  color: #475569;
+}
+
+.profileMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px 24px;
+  margin: 0;
+}
+
+.profileMetaGrid dt {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+}
+
+.profileMetaGrid dd {
+  margin: 0;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.profileLink {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.profileLink:hover {
+  text-decoration: underline;
+}
+
+.profileRetryRow {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 @media (max-width: 900px) {

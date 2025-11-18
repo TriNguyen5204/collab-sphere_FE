@@ -110,7 +110,7 @@ const lecturerRoutes = [
   { path: '/lecturer/classes/:classId', element: protectRoute(['LECTURER'], <ClassDetailPage />) },
   { path: '/lecturer/classes/:classId/projects', element: protectRoute(['LECTURER'], <ClassProjectOverview />) },
   { path: '/lecturer/classes/:classId/project-assignments', element: protectRoute(['LECTURER'], <ClassProjectAssignment />) },
-  { path: '/lecturer/classes/:classId/projects/:projectId', element: protectRoute(['LECTURER'], <TeamProjectDetail />) },
+  { path: '/lecturer/classes/:classId/team/:teamId', element: protectRoute(['LECTURER'], <TeamProjectDetail />) },
   { path: '/lecturer/create-project', element: protectRoute(['LECTURER'], <CreateProject />) },
   { path: '/lecturer/classes/:classId/create-project', element: protectRoute(['LECTURER'], <CreateProject />) },
   { path: '/lecturer/projects', element: protectRoute(['LECTURER'], <ProjectLibrary />) },
