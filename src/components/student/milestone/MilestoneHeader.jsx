@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Calendar, MessageSquare, CheckCircle, Upload, Award, FileText, ChevronDown, X, ChevronUp, Trash2, Loader2, User } from 'lucide-react';
+import { Calendar, MessageSquare, CheckCircle, Award, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { getStatusColor, normalizeMilestoneStatus } from '../../../utils/milestoneHelpers';
 import MilestoneFilesModal from './MilestoneFilesModal';
 import MilestoneQuestions from './MilestoneQuestions';
+import MilestoneReturns from './MilestoneReturns';
 
 const formatFileSize = (bytes) => {
   if (typeof bytes !== 'number' || Number.isNaN(bytes) || bytes <= 0) {
@@ -46,9 +47,6 @@ const MilestoneHeader = ({
 }) => {
   const [showFilesModal, setShowFilesModal] = useState(false);
   const [showQuestions, setShowQuestions] = useState(false);
-  const [localFiles, setLocalFiles] = useState([]);
-  const [isUploadingReturns, setIsUploadingReturns] = useState(false);
-  const [refreshingReturnId, setRefreshingReturnId] = useState(null);
   const status = normalizeMilestoneStatus(milestone?.status);
   const isMilestoneCompleted = status === 'Completed';
   const dueDate = milestone?.endDate;
@@ -76,6 +74,7 @@ const MilestoneHeader = ({
       const fallbackStudentCode = r.studentCode ?? '';
       const nestedAvatar = r.student?.avatar ?? r.student?.avatarImg ?? '';
       const fallbackAvatar = r.avatarImg ?? r.studentAvatar ?? '';
+      const rawExpireTime = r.urlExpireTime ?? r.expireTime ?? r.expiredAt ?? '';
       const resolvedStudentName = (nestedStudentName || fallbackStudentName || '').trim();
       const resolvedStudentCode = (nestedStudentCode || fallbackStudentCode || '').trim();
       const resolvedAvatar = nestedAvatar || fallbackAvatar;
@@ -95,73 +94,15 @@ const MilestoneHeader = ({
         studentName: resolvedStudentName,
         studentCode: resolvedStudentCode,
         avatar: resolvedAvatar,
+        urlExpireTime: rawExpireTime,
       };
     })
   ), [returns]);
   const canManageReturns = !readOnly && !hasEvaluation;
 
-  const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-    setLocalFiles((prev) => [...prev, ...files]);
-    e.target.value = null;
-  };
-
-  const handleRemoveFile = (index) => {
-    if (isUploadingReturns) return;
-    setLocalFiles((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleUpload = async () => {
-    if (isUploadingReturns) return;
-    if (localFiles.length === 0) return;
-    if (typeof onUploadMilestoneFiles !== 'function') return;
-
-    try {
-      setIsUploadingReturns(true);
-      await onUploadMilestoneFiles(localFiles);
-      setLocalFiles([]);
-    } catch (error) {
-      console.error('Failed to upload milestone submissions', error);
-    } finally {
-      setIsUploadingReturns(false);
-    }
-  };
-
-  const handleOpenReturn = async (returnItem) => {
-    if (!returnItem) return;
-    const { id, url } = returnItem;
-
-    if (typeof onRefreshMilestoneReturnLink !== 'function' || !id) {
-      if (url) {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      }
-      return;
-    }
-
-    try {
-      setRefreshingReturnId(id);
-      const refreshedUrl = await onRefreshMilestoneReturnLink(id);
-      const sanitizedRefreshedUrl = typeof refreshedUrl === 'string' ? refreshedUrl.trim() : '';
-      const finalUrl = sanitizedRefreshedUrl
-        ? sanitizedRefreshedUrl
-        : normalizedReturns.find((item) => item.id === id)?.url || url;
-      if (finalUrl) {
-        window.open(finalUrl, '_blank', 'noopener,noreferrer');
-      }
-    } catch (error) {
-      console.error('Failed to refresh submission link', error);
-      if (url) {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      }
-    } finally {
-      setRefreshingReturnId(null);
-    }
-  };
-
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4">
+    <div className="bg-white rounded-lg shadow-md">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between p-6">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <h2 className="text-2xl font-bold text-gray-900">{milestone.title}</h2>
@@ -184,7 +125,7 @@ const MilestoneHeader = ({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 mt-4 pt-4 border-t md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 border-t md:grid-cols-3 p-6">
         <div>
           <p className="text-sm text-gray-600 mb-1">Start Date</p>
           <p className="font-semibold flex items-center gap-2">
@@ -218,7 +159,7 @@ const MilestoneHeader = ({
         )}
       </div>
 
-      <div className="mt-4 pt-4 border-t space-y-4">
+      <div className="border-t space-y-4 p-6">
         <MilestoneFilesModal
           isOpen={showFilesModal}
           files={lecturerFiles}
@@ -226,148 +167,13 @@ const MilestoneHeader = ({
         />
 
         {/* Returns */}
-        <section>
-          <h4 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
-            <Upload size={16} />
-            Submissions ({normalizedReturns.length})
-          </h4>
-          {normalizedReturns.length > 0 ? (
-            <ul className="space-y-3">
-              {normalizedReturns.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm"
-                >
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div>
-                        {item.avatar ? (
-                          <img
-                            src={item.avatar}
-                            alt={`${item.studentName || 'Student'} avatar`}
-                            className="h-12 w-12 flex-shrink-0 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-500">
-                            <User size={20} />
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {item.studentName || 'Unknown student'}
-                        </p>
-                        {item.studentCode && (
-                          <p className="text-xs text-gray-500">{item.studentCode}</p>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenReturn(item)}
-                      className="flex w-full items-start gap-3 rounded-md border border-transparent bg-gray-50 p-3 text-left transition hover:border-blue-200 hover:bg-blue-50"
-                    >
-                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-                        {refreshingReturnId === item.id ? (
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                        ) : (
-                          <FileText size={18} />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-blue-600">
-                          {item.name}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-x-3 text-xs text-gray-500">
-                          {item.submittedAtLabel && <span>Submitted {item.submittedAtLabel}</span>}
-                          
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-                  {typeof onDeleteMilestoneReturn === 'function' && canManageReturns && (
-                    <button
-                      type="button"
-                      onClick={() => onDeleteMilestoneReturn(item.id)}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-red-600 transition hover:bg-red-50 hover:text-red-700"
-                      aria-label="Delete submission"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-6 py-6 text-center text-sm text-gray-600">
-              No submissions yet. Upload your first file to get started.
-            </div>
-          )}
-
-          {canManageReturns && (
-            <div className="mt-4 border-t border-gray-200 pt-4">
-              <div className="rounded-lg border-2 border-dashed border-gray-300 p-6 text-center">
-                <Upload className="mx-auto mb-3 text-gray-400" size={32} />
-                <input
-                  type="file"
-                  multiple
-                  onChange={handleFileSelect}
-                  id="mile-file-input"
-                  className="hidden"
-                  disabled={isUploadingReturns}
-                />
-                <label
-                  htmlFor="mile-file-input"
-                  className={`font-semibold ${isUploadingReturns ? 'cursor-not-allowed text-gray-400' : 'cursor-pointer text-blue-600 hover:text-blue-700'}`}
-                >
-                  Choose files to upload
-                </label>
-                <p className="mt-1 text-xs text-gray-500">or drag and drop files here</p>
-              </div>
-
-              {localFiles.length > 0 && (
-                <div className="mt-3">
-                  <h5 className="text-sm font-semibold text-gray-800 mb-2">Files selected ({localFiles.length}):</h5>
-                  <ul className="space-y-2">
-                    {localFiles.map((file, idx) => (
-                      <li key={`${file.name}-${idx}`} className="flex items-center justify-between rounded bg-gray-50 px-3 py-2">
-                        <span className="truncate pr-3 text-sm text-gray-900">{file.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveFile(idx)}
-                          className="p-1 text-red-600 transition hover:text-red-700 disabled:text-gray-400"
-                          aria-label="remove file"
-                          disabled={isUploadingReturns}
-                        >
-                          <X size={16} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-3 flex justify-end">
-                    <button
-                      type="button"
-                      onClick={handleUpload}
-                      disabled={isUploadingReturns || localFiles.length === 0}
-                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    >
-                      {isUploadingReturns ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          Upload ({localFiles.length})
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </section>
+        <MilestoneReturns
+          submissions={normalizedReturns}
+          canManageReturns={canManageReturns}
+          onUploadMilestoneFiles={onUploadMilestoneFiles}
+          onDeleteMilestoneReturn={onDeleteMilestoneReturn}
+          onRefreshMilestoneReturnLink={onRefreshMilestoneReturnLink}
+        />
 
         {/* Evaluation */}
         {milestone.evaluation && (
@@ -405,7 +211,7 @@ const MilestoneHeader = ({
 
       {/* Complete Milestone Button */}
       {!hasEvaluation && (
-        <div className="mt-4 pt-4 border-t">
+        <div className="mt-4 pt-4 border-t p-6">
           <button
             onClick={onComplete}
             disabled={(completedAnswers < requiredAnswers) || isMilestoneCompleted}
@@ -433,7 +239,7 @@ const MilestoneHeader = ({
       )}
 
       {/* Questions */}
-      <section className="mt-6 pt-6 border-t">
+      <section className="p-4 border-t">
         <button
           type="button"
           onClick={() => canToggleQuestions && setShowQuestions((v) => !v)}

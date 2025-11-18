@@ -778,17 +778,21 @@ const MilestonePage = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
           {/* Left Sidebar - Milestone Timeline */}
-          {isLoadingList && milestones.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-md p-6 flex items-center justify-center min-h-[220px]">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+          <div className="lg:col-span-1">
+            <div className="lg:sticky lg:top-6 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto">
+              {isLoadingList && milestones.length === 0 ? (
+                <div className="bg-white rounded-lg shadow-md p-6 flex items-center justify-center min-h-[220px]">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+                </div>
+              ) : (
+                <MilestoneTimeline
+                  milestones={milestones}
+                  selectedMilestone={selectedMilestone}
+                  onSelectMilestone={handleSelectMilestone}
+                />
+              )}
             </div>
-          ) : (
-            <MilestoneTimeline
-              milestones={milestones}
-              selectedMilestone={selectedMilestone}
-              onSelectMilestone={handleSelectMilestone}
-            />
-          )}
+          </div>
 
           {/* Main Content - Milestone Details */}
           <div className="lg:col-span-2 space-y-6">

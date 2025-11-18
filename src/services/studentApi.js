@@ -2,6 +2,15 @@ import apiClient from './apiClient';
 
 // Student-specific API 
 
+const normalizePathPrefix = (rawValue) => {
+  if (typeof rawValue !== 'string') return '/';
+  const trimmed = rawValue.trim();
+  if (!trimmed || trimmed === '/') return '/';
+  const withoutLeading = trimmed.replace(/^\/+/, '');
+  const withoutTrailing = withoutLeading.replace(/\/+$/, '');
+  return withoutTrailing ? `${withoutTrailing}/` : '/';
+};
+
 // Subject API (Student-flow)
 export const getSyllabusOfSubjectBySubjectId = async (subjectId) => {
   try {
@@ -100,6 +109,71 @@ export const getAssignedTeamByClassId = async (classId) => {
     return response.data;
   } catch (error) {
     console.error(`Error fetching assigned team for class ID ${classId}:`, error);
+    throw error;
+  }
+};
+
+export const getTeamResourcesByTeamId = async (teamId) => {
+  try {
+    const response = await apiClient.get(`/team/${teamId}/files`);
+    console.log('Team resources data:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching resources for team ID ${teamId}:`, error);
+    throw error;
+  }
+};
+
+export const postTeamResourceFilebyTeamId = async (teamId, formData) => {
+  try {
+    const response = await apiClient.post(`/team/${teamId}/files`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error uploading resource for team ID ${teamId}:`, error);
+    throw error;
+  }
+};
+
+export const patchChangeTeamResourceFilePathByTeamIdAndFileId = async (teamId, fileId, newPath) => {
+  try {
+    const normalizedPath = normalizePathPrefix(newPath);
+    const formData = new FormData();
+    formData.append('pathPrefix', normalizedPath);
+    formData.append('newPath', normalizedPath);
+    const response = await apiClient.patch(`/team/${teamId}/files/${fileId}/file-path`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    const data = response.data;
+    if (data?.isSuccess === false) {
+      const error = new Error(data?.message || 'Unable to move resource to the selected folder.');
+      error.responseData = data;
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    console.error(`Error changing file path for team ID ${teamId} and file ID ${fileId}:`, error);
+    throw error;
+  }
+};
+
+export const patchGenerateNewTeamResourceFileLinkByTeamIdAndFileId = async (teamId, fileId) => {
+  try {
+    const response = await apiClient.patch(`/team/${teamId}/files/${fileId}/new-url`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error regenerating file link for team ID ${teamId} and file ID ${fileId}:`, error);
+    throw error;
+  }
+};
+
+export const deleteTeamResourceFileByTeamIdAndFileId = async (teamId, fileId) => {
+  try {
+    const response = await apiClient.delete(`/team/${teamId}/files/${fileId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error deleting file for team ID ${teamId} and file ID ${fileId}:`, error);
     throw error;
   }
 };
