@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import BoardCard from './BoardCard';
 import useClickOutside from '../../../hooks/useClickOutside';
-import TaskModal from './TaskModal';
+import CreateCardModal from './CreateCardModal.jsx';
 
 const BoardList = ({
   list,
@@ -29,7 +29,6 @@ const BoardList = ({
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [newCardTitle, setNewCardTitle] = useState('');
   const [showMenu, setShowMenu] = useState(false);
-  const [isOpenTask, setIsOpenTask] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(list.title);
 
@@ -60,11 +59,7 @@ const BoardList = ({
   };
 
   const handleAddCard = () => {
-    const title = newCardTitle.trim();
-    if (!title) return;
-    onAddCard(list.id, title);
-    setNewCardTitle('');
-    setIsAddingCard(false);
+    setIsAddingCard(true)
   };
 
   return (
@@ -251,13 +246,6 @@ const BoardList = ({
                 Add card
               </button>
               <button
-                onClick={() => setIsOpenTask(true)}
-                className='rounded-md bg-green-600 px-3 py-1.5 text-white text-sm hover:bg-green-700'
-                type='button'
-              >
-                Add task
-              </button>
-              <button
                 onClick={() => {
                   setIsAddingCard(false);
                   setNewCardTitle('');
@@ -279,11 +267,14 @@ const BoardList = ({
           </button>
         )}
       </div>
-      {/* Task Modal */}
-      {isOpenTask && (
-        <TaskModal
-          isOpen={isOpenTask === true}
-          onClose={() => setIsOpenTask(false)}
+      {isAddingCard && (
+        <CreateCardModal
+          isOpen={isAddingCard}
+          onClose={() => setIsAddingCard(false)}
+          onCreate={(title, subtasks) => {
+            onAddCard(list.id, title, subtasks);
+            setIsAddingCard(false);
+          }}
         />
       )}
     </div>
