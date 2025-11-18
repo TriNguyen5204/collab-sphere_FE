@@ -1,16 +1,25 @@
 import { useEffect, useState } from 'react';
-import { Search, Plus, Edit3, Trash2, Filter, ChevronDown, User, GraduationCap } from 'lucide-react';
+import {
+  Search,
+  Plus,
+  Edit3,
+  Trash2,
+  Filter,
+  ChevronDown,
+  User,
+  GraduationCap,
+} from 'lucide-react';
 import ModalWrapper from '../../components/layout/ModalWrapper';
-import CreateLecturerForm from '../../components/ui/CreateLecturerForm';
-import CreateMultipleLecturerForm from '../../components/ui/CreateMultipleLecturerForm';
-import CreateStudentForm from '../../components/ui/CreateStudentForm';
-import CreateMultipleStudentForm from '../../components/ui/CreateMultipleStudent';
+import CreateLecturerForm from '../../components/staff/CreateLecturerForm';
+import CreateMultipleLecturerForm from '../../components/staff/CreateMultipleLecturerForm';
+import CreateStudentForm from '../../components/staff/CreateStudentForm';
+import CreateMultipleStudentForm from '../../components/staff/CreateMultipleStudent';
+import EditAccountForm from '../../components/staff/EditAccountForm';
 import Header from '../../components/layout/Header';
 import { getAllLecturer, getAllStudent } from '../../services/userService';
 
 export default function ImprovedAccountsTable() {
   const [accountType, setAccountType] = useState('lecturer');
-  const [selectedAccounts, setSelectedAccounts] = useState(new Set());
   const [searchFilters, setSearchFilters] = useState({
     Email: '',
     FullName: '',
@@ -24,11 +33,13 @@ export default function ImprovedAccountsTable() {
   const [isMultipleOpen, setIsMultipleOpen] = useState(false);
   const [isStudentOpen, setIsStudentOpen] = useState(false);
   const [isMultipleStudentOpen, setIsMultipleStudentOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [accounts, setAccounts] = useState([]);
   const [pageNum, setPageNum] = useState(1);
   const [pageCount, setPageCount] = useState(0);
   const [itemCount, setItemCount] = useState(0);
-  const pageSize = 5
+  const pageSize = 5;
 
   useEffect(() => {
     const fetchLecturer = async () => {
@@ -62,11 +73,20 @@ export default function ImprovedAccountsTable() {
       }
     };
     fetchLecturer();
-  }, [appliedFilters.Email, appliedFilters.FullName, appliedFilters.LecturerCode, appliedFilters.Major, appliedFilters.Yob, accountType, appliedFilters, pageNum]);
+  }, [
+    appliedFilters.Email,
+    appliedFilters.FullName,
+    appliedFilters.LecturerCode,
+    appliedFilters.Major,
+    appliedFilters.Yob,
+    accountType,
+    appliedFilters,
+    pageNum,
+  ]);
 
   const handleApplyFilters = () => {
     setAppliedFilters(searchFilters);
-    setPageNum(1)
+    setPageNum(1);
   };
 
   const handlePrevPage = () => {
@@ -75,20 +95,6 @@ export default function ImprovedAccountsTable() {
 
   const handleNextPage = () => {
     if (pageNum < pageCount) setPageNum(pageNum + 1);
-  };
-
-  const handleSelectAll = () => {
-    if (selectedAccounts.size === accounts.length) {
-      setSelectedAccounts(new Set());
-    } else {
-      setSelectedAccounts(new Set(accounts.map(lec => lec.uId)));
-    }
-  };
-
-  const handleSelectAccount = id => {
-    const newSelected = new Set(selectedAccounts);
-    newSelected.has(id) ? newSelected.delete(id) : newSelected.add(id);
-    setSelectedAccounts(newSelected);
   };
 
   const handleFilterChange = e => {
@@ -156,17 +162,6 @@ export default function ImprovedAccountsTable() {
 
               {/* Right side - Actions */}
               <div className='flex items-center gap-3'>
-                {selectedAccounts.size > 0 && (
-                  <div className='flex items-center gap-2'>
-                    <span className='text-sm text-gray-600'>
-                      {selectedAccounts.size} selected
-                    </span>
-                    <button className='px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors'>
-                      Delete Selected
-                    </button>
-                  </div>
-                )}
-
                 {/* Create Lecturer Dropdown */}
                 <div className='relative group'>
                   <button className='flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg shadow-sm hover:bg-blue-700 transition-all hover:shadow-md'>
@@ -243,13 +238,6 @@ export default function ImprovedAccountsTable() {
             <table className='min-w-full divide-y divide-gray-200'>
               <thead className='bg-gray-50'>
                 <tr>
-                  <th className='px-6 py-3'>
-                    <input
-                      type='checkbox'
-                      checked={selectedAccounts.size === accounts.length}
-                      onChange={handleSelectAll}
-                    />
-                  </th>
                   <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase'>
                     {accountType === 'lecturer' ? 'Lecturer' : 'Student'}
                   </th>
@@ -257,7 +245,9 @@ export default function ImprovedAccountsTable() {
                     Email
                   </th>
                   <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase'>
-                    {accountType === 'lecturer' ? 'Lecturer Code' : 'Student Code'}
+                    {accountType === 'lecturer'
+                      ? 'Lecturer Code'
+                      : 'Student Code'}
                   </th>
                   <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase'>
                     Major
@@ -268,18 +258,14 @@ export default function ImprovedAccountsTable() {
                   <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase'>
                     Status
                   </th>
+                  <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase'>
+                    Action
+                  </th>
                 </tr>
               </thead>
               <tbody className='divide-y divide-gray-100'>
                 {accounts.map(acc => (
                   <tr key={acc.uId} className='hover:bg-gray-50'>
-                    <td className='px-6 py-4'>
-                      <input
-                        type='checkbox'
-                        checked={selectedAccounts.has(acc.uId)}
-                        onChange={() => handleSelectAccount(acc.uId)}
-                      />
-                    </td>
                     <td className='px-6 py-4 font-medium text-gray-800'>
                       {acc.fullname}
                     </td>
@@ -290,7 +276,9 @@ export default function ImprovedAccountsTable() {
                         : acc.studentCode}
                     </td>
                     <td className='px-6 py-4 text-gray-600'>{acc.major}</td>
-                    <td className='px-6 py-4 text-gray-600'>{acc.yob || '-'}</td>
+                    <td className='px-6 py-4 text-gray-600'>
+                      {acc.yob || '-'}
+                    </td>
                     <td className='px-6 py-4'>
                       <span
                         className={`px-2 py-1 text-xs rounded-full font-semibold ${
@@ -301,6 +289,18 @@ export default function ImprovedAccountsTable() {
                       >
                         {acc.isActive ? 'Active' : 'Inactive'}
                       </span>
+                    </td>
+                    <td className='px-6 py-4 flex items-center gap-3'>
+                      {/* Edit button */}
+                      <button
+                        className='p-2 rounded-md hover:bg-blue-100 text-blue-600 transition'
+                        onClick={() => {
+                          setSelectedAccountId(acc.uId);
+                          setIsEditOpen(true);
+                        }}
+                      >
+                        <Edit3 className='w-4 h-4' />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -381,6 +381,16 @@ export default function ImprovedAccountsTable() {
       >
         <CreateMultipleStudentForm
           onClose={() => setIsMultipleStudentOpen(false)}
+        />
+      </ModalWrapper>
+      <ModalWrapper
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        title='Edit Account'
+      >
+        <EditAccountForm
+          id={selectedAccountId}
+          onClose={() => setIsEditOpen(false)}
         />
       </ModalWrapper>
     </>

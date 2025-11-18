@@ -1,51 +1,69 @@
-import { useEffect } from 'react';
-import { refreshToken } from '../services/authService';
-import { useDispatch, useSelector } from 'react-redux';
-import Cookies from 'js-cookie';
-import { logout, setUserRedux } from '../store/slices/userSlice';
-import { isTokenExpired } from '../utils/tokenUtils';
+import { useEffect, useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import Cookies from "js-cookie";
+import { refreshToken } from "../services/authService";
+import { logout, setUserRedux } from "../store/slices/userSlice";
 
 export function useAuthCheck() {
   const dispatch = useDispatch();
-  const user = useSelector(state => state.user);
-  const CHECK_INTERVAL_MS = 60 * 1000;
+  const user = useSelector((state) => state.user);
+
+  const REFRESH_INTERVAL_MS = 30 * 60 * 1000; 
+  const intervalRef = useRef(null); // ngăn tạo interval trùng
 
   useEffect(() => {
-    if (!user?.accessToken || !user?.refreshToken || !user?.userId) {
-      return undefined;
-    }
+    if (!user?.accessToken || !user?.refreshToken || !user?.userId) return;
 
-    const handleRefreshToken = async () => {
-      if (!isTokenExpired(user.accessToken)) {
+    const runRefresh = async () => {
+      const now = Date.now();
+      const expiry = new Date(user.refreshTokenExpiryTime).getTime();
+
+      // ⛔ Refresh token hết hạn → logout
+      if (now >= expiry) {
+        dispatch(logout());
+        Cookies.remove("user");
+        window.location.href = "/login";
+        console.log("⛔ Refresh token expired. Logging out.");
         return;
       }
 
+      // 🔄 Gọi refresh token
       try {
-        const response = await refreshToken(user.userId, user.refreshToken);
-        if (response?.isSuccess) {
-          const updatedUser = {
+        const res = await refreshToken(user.userId, user.refreshToken);
+
+        if (res?.isSuccess) {
+          const updated = {
             ...user,
-            accessToken: response.accessToken,
-            refreshToken: response.refreshToken,
+            accessToken: res.accessToken,
+            refreshToken: res.refreshToken,
           };
-          dispatch(setUserRedux(updatedUser));
-          Cookies.set('user', JSON.stringify(updatedUser), { expires: 7 });
-        } else {
-          throw new Error('Token refresh failed');
+
+          dispatch(setUserRedux(updated));
+          Cookies.set("user", JSON.stringify(updated), { expires: 7 });
+
+          console.log("🔄 Token refreshed");
+        }else{
+          dispatch(logout());
+          Cookies.remove("user");
+          window.location.href = "/login";
+          console.log("⛔ Refresh token invalid. Logging out.");
         }
-      } catch (error) {
-        console.error('Token refresh error:', error);
+      } catch (err) {
+        console.error(err);
         dispatch(logout());
-        Cookies.remove('user');
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
+        Cookies.remove("user");
+        window.location.href = "/login";
       }
     };
 
-    handleRefreshToken();
-    const interval = setInterval(handleRefreshToken, CHECK_INTERVAL_MS);
+    // 🛑 Nếu interval đã tồn tại → không tạo lại nữa
+    if (!intervalRef.current) {
+      intervalRef.current = setInterval(runRefresh, REFRESH_INTERVAL_MS);
+    }
 
-    return () => clearInterval(interval);
-  }, [user, dispatch, CHECK_INTERVAL_MS]);
+    return () => {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    };
+  }, [user]);
 }

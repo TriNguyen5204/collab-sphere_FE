@@ -17,11 +17,6 @@ export const sidebarLinks = [
     icon: Users,
   },
   {
-    label: "Settings",
-    route: "/settings",
-    icon: Settings,
-  },
-  {
     label: "Logout",
     route: "/logout",
     icon: LogOut,

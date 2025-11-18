@@ -26,7 +26,6 @@ const userSlice = createSlice({
       state.roleName = action.payload.roleName;
       state.accessToken = action.payload.accessToken;
       state.refreshToken = action.payload.refreshToken;
-      state.fullname = action.payload.fullname;
       state.avatar = action.payload.avatar;
       state.refreshTokenExpiryTime = action.payload.refreshTokenExpiryTime;
     },
@@ -37,7 +36,6 @@ const userSlice = createSlice({
       state.roleName = "";
       state.accessToken = "";
       state.refreshToken = "";
-      state.fullname = "";
       state.avatar = "";
       state.refreshTokenExpiryTime = "";
       Cookies.remove("user");

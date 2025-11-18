@@ -12,8 +12,8 @@ import {
   Filter
 } from 'lucide-react';
 import ModalWrapper from '../../components/layout/ModalWrapper';
-import CreateMultipleSubjectForm from '../../components/ui/CreateMultipleSubjectForm';
-import UpdateSubjectForm from '../../components/ui/UpdateSubjectForm';
+import CreateMultipleSubjectForm from '../../components/staff/CreateMultipleSubjectForm';
+import UpdateSubjectForm from '../../components/staff/UpdateSubjectForm';
 import {
   getAllSubject
 } from '../../services/userService';
