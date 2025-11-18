@@ -4,6 +4,7 @@ import DashboardLayout from '../../components/DashboardLayout';
 import styles from './ClassProjectOverview.module.css';
 import { getClassDetail } from '../../services/userService';
 import { normaliseClassDetailPayload } from './classDetailNormalizer';
+import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
 
 const toNumber = (value) => {
   if (value === null || value === undefined) return null;
@@ -90,6 +91,14 @@ const ClassProjectOverview = () => {
   const assignments = detail?.projectAssignments ?? [];
 
   const classTitle = summary?.name ?? detail?.className ?? 'Class Project Overview';
+  const breadcrumbItems = useMemo(
+    () => [
+      { label: 'Classes', href: '/lecturer/classes' },
+      { label: classTitle, href: `/lecturer/classes/${classId}` },
+      { label: 'Project overview' },
+    ],
+    [classId, classTitle]
+  );
   const subjectName = summary?.subjectName ?? detail?.subjectName ?? '';
   const subjectCode = summary?.subjectCode ?? detail?.subjectCode ?? '';
   const termLabel = summary?.term ?? detail?.semesterName ?? 'Term TBA';
@@ -212,13 +221,7 @@ const ClassProjectOverview = () => {
     <DashboardLayout>
       <div className={styles.screen}>
         <header className={styles.pageHeader}>
-          <div className={styles.breadcrumbs}>
-            <Link to="/lecturer/classes">Classes</Link>
-            <span>›</span>
-            <Link to={`/lecturer/classes/${classId}`}>{classTitle}</Link>
-            <span>›</span>
-            <p>Project Overview</p>
-          </div>
+          <LecturerBreadcrumbs items={breadcrumbItems} className={styles.breadcrumbSlot} />
           <div className={styles.headerContent}>
             <div>
               <p className={styles.eyebrow}>Lecturer workspace · Projects</p>
@@ -323,7 +326,7 @@ const ClassProjectOverview = () => {
                       )}
                     </div>
                     <div className={styles.cardActions}>
-                      <Link to={`/lecturer/classes/${classId}/projects/${card.teamId}`} className={styles.primaryAction}>
+                      <Link to={`/lecturer/classes/${classId}/team/${card.teamId}`} className={styles.primaryAction}>
                         View board
                       </Link>
                       {card.repo ? (

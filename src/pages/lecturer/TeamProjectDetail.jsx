@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import styles from './TeamProjectDetail.module.css';
 import { getTeamDetail } from '../../services/teamApi';
 import { getProjectDetail } from '../../services/projectApi';
 import { getMilestonesByTeam, getMilestoneDetail, createMilestone, updateMilestone, deleteMilestone } from '../../services/milestoneApi';
+import { getUserProfile } from '../../services/userService';
 import { normalizeMilestoneStatus } from '../../utils/milestoneHelpers';
 import { toast } from 'sonner';
+import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
 
 const Modal = ({ title, onClose, children, disableClose = false }) => (
   <div className={styles.modalBackdrop} role="dialog" aria-modal="true">
@@ -138,8 +140,8 @@ const getInitials = (name = '') => {
 };
 
 const TeamProjectDetail = () => {
-  const { classId, projectId: routeProjectId } = useParams();
-  const teamId = routeProjectId;
+  const { classId, teamId: routeTeamId } = useParams();
+  const teamId = routeTeamId;
 
   const [teamDetail, setTeamDetail] = useState(null);
   const [projectRaw, setProjectRaw] = useState(null);
@@ -154,6 +156,10 @@ const TeamProjectDetail = () => {
   const [confirmState, setConfirmState] = useState(null);
   const [mutationLoading, setMutationLoading] = useState({ milestone: false, delete: false });
   const [openMilestoneMenuId, setOpenMilestoneMenuId] = useState(null);
+  const [memberProfileModal, setMemberProfileModal] = useState(null);
+  const [memberProfilesCache, setMemberProfilesCache] = useState({});
+  const [memberProfileLoading, setMemberProfileLoading] = useState(false);
+  const [memberProfileError, setMemberProfileError] = useState(null);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -503,8 +509,7 @@ const TeamProjectDetail = () => {
       status: formatStatusLabel(statusString),
       statusToken: statusString,
       progress,
-      startDate: projectRaw?.startDate ?? teamDetail?.teamProgress?.startDate ?? null,
-      dueDate: projectRaw?.dueDate ?? projectRaw?.endDate ?? teamDetail?.teamProgress?.endDate ?? null,
+      createdDate: projectRaw?.createdAt ?? teamDetail?.teamProgress?.createdAt ?? null,
       lastUpdate: projectRaw?.updatedAt ?? teamDetail?.teamProgress?.updatedAt ?? null,
       repositoryUrl: teamDetail?.gitLink ?? projectRaw?.repositoryUrl ?? null,
       subjectName: projectRaw?.subjectName ?? teamDetail?.classInfo?.subjectName ?? '',
@@ -516,14 +521,68 @@ const TeamProjectDetail = () => {
 
   const teamMembers = useMemo(() => {
     return (teamMembersRaw || []).map((member, index) => {
+      const studentId = member?.studentId ?? member?.userId ?? member?.id ?? member?.classMemberId ?? index;
+      const classMemberId = member?.classMemberId ?? member?.teamMemberId ?? null;
+      const identifier = classMemberId ?? studentId ?? `member-${index}`;
       return {
-        id: member?.studentId ?? member?.id ?? member?.classMemberId ?? index,
+        id: identifier,
+        studentId,
+        classMemberId,
         name: member?.studentName ?? member?.fullName ?? member?.fullname ?? 'Unnamed Member',
         role: convertTeamRole(member?.teamRole),
         email: member?.studentEmail ?? member?.email ?? '',
+        avatar: member?.avatar ?? member?.avatarUrl ?? member?.avatarImgUrl ?? null,
+        studentCode: member?.studentCode ?? member?.code ?? '',
+        major: member?.major ?? member?.studyMajor ?? member?.faculty ?? '',
+        phoneNumber: member?.phoneNumber ?? member?.phone ?? '',
+        school: member?.school ?? member?.campus ?? '',
+        address: member?.address ?? '',
       };
     });
   }, [teamMembersRaw]);
+
+  const openMemberProfile = useCallback(
+    async (member) => {
+      if (!member) return;
+      const userId = member.studentId ?? member.userId ?? member.id;
+      setMemberProfileError(null);
+      setMemberProfileModal({
+        member,
+        userId,
+        profile: userId ? memberProfilesCache[userId] ?? null : null,
+      });
+
+      if (!userId || memberProfilesCache[userId]) return;
+
+      setMemberProfileLoading(true);
+      try {
+        const response = await getUserProfile(userId);
+        const profile = response?.user ?? response ?? null;
+        if (!isMountedRef.current) return;
+        setMemberProfilesCache((prev) => ({ ...prev, [userId]: profile }));
+        setMemberProfileModal((prev) => {
+          if (!prev || prev.userId !== userId) return prev;
+          return { ...prev, profile };
+        });
+      } catch (error) {
+        console.error('Failed to load student profile.', error);
+        if (isMountedRef.current) {
+          setMemberProfileError(error);
+          toast.error('Unable to load student profile.');
+        }
+      } finally {
+        if (isMountedRef.current) {
+          setMemberProfileLoading(false);
+        }
+      }
+    },
+    [memberProfilesCache]
+  );
+
+  const closeMemberProfile = useCallback(() => {
+    setMemberProfileModal(null);
+    setMemberProfileError(null);
+  }, []);
 
   const assignmentLabel = projectData.assignmentId ? `#${projectData.assignmentId}` : 'Not linked';
 
@@ -604,14 +663,13 @@ const TeamProjectDetail = () => {
   const projectMeta = [
     { label: 'Subject', value: projectData.subjectName || '—' },
     { label: 'Lecturer', value: projectData.lecturerName || '—' },
-    { label: 'Start date', value: formatDate(projectData.startDate) },
-    { label: 'Last updated', value: formatDate(projectData.lastUpdate) },
+    { label: 'Created date', value: formatDate(projectData.createdDate) },
+    { label: 'Updated at', value: formatDate(projectData.lastUpdate) },
   ];
 
   const teamMeta = [
     { label: 'Class', value: projectData.className || '—' },
     { label: 'Assignment', value: assignmentLabel },
-    { label: 'Due date', value: formatDate(projectData.dueDate) },
     {
       label: 'Repository',
       value: projectData.repositoryUrl ? (
@@ -626,17 +684,23 @@ const TeamProjectDetail = () => {
 
   const hasObjectiveGroups = objectiveGroups.length > 0;
 
+  const breadcrumbItems = useMemo(() => {
+    const items = [{ label: 'Classes', href: '/lecturer/classes' }];
+
+    if (classId) {
+      items.push({ label: projectData.className ?? 'Class detail', href: `/lecturer/classes/${classId}` });
+    }
+
+    items.push({ label: projectData.title || 'Team Project Detail' });
+
+    return items;
+  }, [classId, projectData.className, projectData.title]);
+
   return (
     <>
       <div className={styles.page}>
       <header className={styles.header}>
-        <div className={styles.breadcrumb}>
-          <Link to={`/lecturer/classes/${classId}`} className={styles.breadcrumbLink}>
-            Class Details
-          </Link>
-          <span className={styles.breadcrumbSeparator}>→</span>
-          <span className={styles.breadcrumbCurrent}>Team Project Detail</span>
-        </div>
+        <LecturerBreadcrumbs items={breadcrumbItems} className={styles.breadcrumbSlot} />
 
         <div className={styles.hero}>
           <div className={styles.heroContent}>
@@ -649,7 +713,7 @@ const TeamProjectDetail = () => {
                   {badge}
                 </span>
               ))}
-              <span className={styles.heroBadge}>Due {formatDate(projectData.dueDate)}</span>
+              <span className={styles.heroBadge}>Updated {formatDate(projectData.lastUpdate)}</span>
             </div>
             {projectData.repositoryUrl && (
               <a href={projectData.repositoryUrl} target="_blank" rel="noopener noreferrer" className={styles.heroLink}>
@@ -1018,21 +1082,157 @@ const TeamProjectDetail = () => {
               <p>No team members available for this team yet.</p>
             </div>
           )}
-          {teamMembers.map((member) => (
-            <div key={member.id} className={styles.memberCard}>
-              <div className={styles.memberHeader}>
-                <div className={styles.memberAvatar}>{getInitials(member.name)}</div>
-                <div>
-                  <h4>{member.name}</h4>
-                  {member.email && <p className={styles.memberEmail}>{member.email}</p>}
+          {teamMembers.map((member) => {
+            const hasMetadata = Boolean(member.studentCode || member.major || member.phoneNumber);
+            return (
+              <article key={member.id} className={styles.memberCard}>
+                <div className={styles.memberHeader}>
+                  <div className={styles.memberAvatar} aria-hidden="true">
+                    {member.avatar ? (
+                      <img src={member.avatar} alt={member.name} className={styles.memberAvatarImage} />
+                    ) : (
+                      getInitials(member.name)
+                    )}
+                  </div>
+                  <div>
+                    <h4>{member.name}</h4>
+                    {member.email && (
+                      <a href={`mailto:${member.email}`} className={styles.memberEmail}>
+                        {member.email}
+                      </a>
+                    )}
+                  </div>
+                  <span className={styles.roleBadge}>{member.role}</span>
                 </div>
-                <span className={styles.roleBadge}>{member.role}</span>
-              </div>
-            </div>
-          ))}
+                {hasMetadata ? (
+                  <dl className={styles.memberMeta}>
+                    {member.studentCode && (
+                      <div>
+                        <dt>Student ID</dt>
+                        <dd>{member.studentCode}</dd>
+                      </div>
+                    )}
+                    {member.major && (
+                      <div>
+                        <dt>Major</dt>
+                        <dd>{member.major}</dd>
+                      </div>
+                    )}
+                    {member.phoneNumber && (
+                      <div>
+                        <dt>Phone</dt>
+                        <dd>{member.phoneNumber}</dd>
+                      </div>
+                    )}
+                  </dl>
+                ) : (
+                  <p className={styles.memberMetaPlaceholder}>Profile data will appear once the student updates their information.</p>
+                )}
+                <div className={styles.memberActions}>
+                  <button
+                    type="button"
+                    className={styles.profileButton}
+                    onClick={() => openMemberProfile(member)}
+                    disabled={!member.studentId}
+                  >
+                    <span>View profile</span>
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
       </div>
+
+      {memberProfileModal && (
+        <Modal
+          title="Student profile"
+          onClose={memberProfileLoading ? undefined : closeMemberProfile}
+          disableClose={memberProfileLoading}
+        >
+          {(() => {
+            const profile = memberProfileModal.profile ?? null;
+            const fallback = memberProfileModal.member ?? {};
+            const displayName = profile?.fullName ?? profile?.fullname ?? fallback.name;
+            const studentCode = profile?.code ?? profile?.studentCode ?? fallback.studentCode ?? '';
+            const major = profile?.major ?? fallback.major ?? '';
+            const email = profile?.email ?? fallback.email ?? '';
+            const phoneNumber = profile?.phoneNumber ?? fallback.phoneNumber ?? '';
+            const school = profile?.school ?? fallback.school ?? '';
+            const address = profile?.address ?? fallback.address ?? '';
+            const accountStatus =
+              profile?.isActive === undefined ? null : profile.isActive ? 'Active' : 'Inactive';
+            const avatar = profile?.avatarUrl ?? profile?.avatar ?? fallback.avatar ?? null;
+            return (
+              <div className={styles.profileBody}>
+                <div className={styles.profileHeader}>
+                  <div className={styles.profileAvatar} aria-hidden="true">
+                    {avatar ? (
+                      <img src={avatar} alt={displayName} className={styles.profileAvatarImage} />
+                    ) : (
+                      getInitials(displayName)
+                    )}
+                  </div>
+                  <div>
+                    <h4>{displayName}</h4>
+                    {studentCode && <p className={styles.profileSubtext}>Student ID {studentCode}</p>}
+                    {major && <p className={styles.profileSubtext}>{major}</p>}
+                  </div>
+                  <span className={styles.roleBadge}>{fallback.role}</span>
+                </div>
+                {memberProfileError && !memberProfileLoading && (
+                  <div className={styles.inlineError}>
+                    Unable to load additional profile details. Please try again.
+                    <div className={styles.profileRetryRow}>
+                      <button type="button" className={styles.secondaryButton} onClick={() => openMemberProfile(fallback)}>
+                        Retry
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {memberProfileLoading && !profile && <p className={styles.panelBody}>Loading profile details…</p>}
+                <dl className={styles.profileMetaGrid}>
+                  {email && (
+                    <div>
+                      <dt>Email</dt>
+                      <dd>
+                        <a href={`mailto:${email}`} className={styles.profileLink}>
+                          {email}
+                        </a>
+                      </dd>
+                    </div>
+                  )}
+                  {phoneNumber && (
+                    <div>
+                      <dt>Phone</dt>
+                      <dd>{phoneNumber}</dd>
+                    </div>
+                  )}
+                  {school && (
+                    <div>
+                      <dt>School</dt>
+                      <dd>{school}</dd>
+                    </div>
+                  )}
+                  {address && (
+                    <div>
+                      <dt>Address</dt>
+                      <dd>{address}</dd>
+                    </div>
+                  )}
+                  {accountStatus && (
+                    <div>
+                      <dt>Status</dt>
+                      <dd>{accountStatus}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            );
+          })()}
+        </Modal>
+      )}
 
       {milestoneModal && (
         <Modal

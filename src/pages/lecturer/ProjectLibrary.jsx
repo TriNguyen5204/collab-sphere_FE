@@ -13,6 +13,56 @@ import {
   SparklesIcon
 } from '@heroicons/react/24/outline';
 import { getLecturerProjects } from '../../services/projectApi';
+import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
+
+const glassPanelClass =
+  'backdrop-blur-[18px] bg-white/85 border border-white/70 shadow-[0_10px_45px_rgba(15,23,42,0.08)]';
+
+const statAccentTokens = [
+  {
+    background: 'from-sky-50/80 via-white/40 to-cyan-50/80',
+    iconBg: 'from-sky-200 to-cyan-200',
+    iconText: 'text-sky-700',
+    glow: 'shadow-[0_20px_55px_rgba(14,165,233,0.35)]'
+  },
+  {
+    background: 'from-indigo-50/80 via-white/40 to-violet-50/80',
+    iconBg: 'from-indigo-200 to-violet-200',
+    iconText: 'text-indigo-700',
+    glow: 'shadow-[0_20px_55px_rgba(99,102,241,0.32)]'
+  },
+  {
+    background: 'from-emerald-50/80 via-white/40 to-lime-50/80',
+    iconBg: 'from-emerald-200 to-lime-200',
+    iconText: 'text-emerald-700',
+    glow: 'shadow-[0_20px_55px_rgba(16,185,129,0.32)]'
+  },
+  {
+    background: 'from-amber-50/80 via-white/40 to-orange-50/80',
+    iconBg: 'from-amber-200 to-orange-200',
+    iconText: 'text-amber-700',
+    glow: 'shadow-[0_20px_55px_rgba(251,191,36,0.35)]'
+  }
+];
+
+const subjectGradientPalettes = [
+  'from-sky-100 via-white to-cyan-50',
+  'from-indigo-100 via-white to-purple-50',
+  'from-emerald-100 via-white to-lime-50',
+  'from-amber-100 via-white to-orange-50'
+];
+
+// Deterministic gradient selection keeps project cards color-consistent per subject.
+const getSubjectGradient = (subjectCode = '') => {
+  const normalized = subjectCode.trim().toUpperCase();
+  if (!normalized) {
+    return subjectGradientPalettes[0];
+  }
+  const hash = normalized
+    .split('')
+    .reduce((total, char) => total + char.charCodeAt(0), 0);
+  return subjectGradientPalettes[hash % subjectGradientPalettes.length];
+};
 
 const REQUIRED_PROJECT_FIELDS = {
   projectId: 'Used as the unique key for navigation and actions.',
@@ -217,13 +267,13 @@ const formatDate = (value) => {
 const statusBadgeStyles = (status) => {
   switch (status) {
     case 'APPROVED':
-      return 'bg-emerald-100 text-emerald-700 border border-emerald-200';
+      return 'border border-emerald-200/70 bg-emerald-50/80 text-emerald-700 shadow-[0_8px_24px_rgba(16,185,129,0.18)]';
     case 'PENDING':
-      return 'bg-amber-100 text-amber-700 border border-amber-200';
+      return 'border border-amber-200/70 bg-amber-50/80 text-amber-700 shadow-[0_8px_24px_rgba(251,191,36,0.2)]';
     case 'REJECTED':
-      return 'bg-rose-100 text-rose-700 border border-rose-200';
+      return 'border border-rose-200/70 bg-rose-50/80 text-rose-700 shadow-[0_8px_24px_rgba(244,63,94,0.18)]';
     default:
-      return 'bg-slate-100 text-slate-600 border border-slate-200';
+      return 'border border-slate-200/70 bg-white/70 text-slate-600 shadow-[0_8px_24px_rgba(148,163,184,0.18)]';
   }
 };
 
@@ -345,7 +395,7 @@ const ProjectLibrary = () => {
       value: stats.totalProjects,
       description: '',
       icon: BookOpenIcon,
-      iconWrapperClass: 'bg-indigo-100 text-indigo-600'
+      accent: statAccentTokens[0]
     },
     {
       id: 'projectsWithObjectives',
@@ -353,7 +403,7 @@ const ProjectLibrary = () => {
       value: stats.projectsWithObjectives,
       description: 'Projects enriched with at least one learning objective.',
       icon: CheckCircleIcon,
-      iconWrapperClass: 'bg-emerald-100 text-emerald-600'
+      accent: statAccentTokens[2]
     },
     {
       id: 'totalObjectives',
@@ -361,7 +411,7 @@ const ProjectLibrary = () => {
       value: stats.totalObjectives,
       description: 'Total number of objectives across all projects.',
       icon: SparklesIcon,
-      iconWrapperClass: 'bg-blue-100 text-blue-600'
+      accent: statAccentTokens[1]
     },
     {
       id: 'totalMilestones',
@@ -369,7 +419,7 @@ const ProjectLibrary = () => {
       value: stats.totalMilestones,
       description: 'Milestones exposed by objectives for planning timelines.',
       icon: CalendarDaysIcon,
-      iconWrapperClass: 'bg-amber-100 text-amber-600'
+      accent: statAccentTokens[3]
     }
   ];
 
@@ -399,221 +449,239 @@ const ProjectLibrary = () => {
     navigate(`/lecturer/projects/${projectId}`);
   };
 
+
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-slate-50">
-        <div className="w-full px-6 py-10 space-y-10 lg:px-8 2xl:px-12">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-wider text-slate-500">Lecturer workspace</p>
-              <h1 className="mt-2 text-3xl font-semibold text-slate-900">Project Library</h1>
-              <p className="mt-2 text-sm text-slate-500">
-                Browse projects sourced from the API and review objectives and milestones without relying on mock data.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <button
-                onClick={handleCreateProject}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-700"
-              >
-                <PlusIcon className="h-4 w-4" />
-                New Project
-              </button>
-            </div>
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100">
+        <div className="relative w-full px-6 py-12 lg:px-10 2xl:px-16">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -left-24 top-0 h-72 w-72 rounded-full bg-sky-200/40 blur-[120px]" />
+            <div className="absolute right-0 top-24 h-80 w-80 rounded-full bg-indigo-200/30 blur-[140px]" />
+            <div className="absolute bottom-0 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-emerald-200/30 blur-[130px]" />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 2xl:gap-6">
-            {showProjectSkeleton
-              ? projectStatCards.map((card) => renderProjectStatSkeleton(card.id))
-              : projectStatCards.map((card) => {
-                  const Icon = card.icon;
-                  return (
-                    <div key={card.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs uppercase tracking-wide text-slate-500">{card.label}</p>
-                          <p className="mt-2 text-2xl font-semibold text-slate-900">{card.value}</p>
-                        </div>
-                        <div className={`rounded-xl p-3 ${card.iconWrapperClass}`}>
-                          <Icon className="h-6 w-6" />
-                        </div>
-                      </div>
-                      <p className="mt-3 text-xs text-slate-500">{card.description}</p>
-                    </div>
-                  );
-                })}
-          </div>
-
-          <div className="grid grid-cols-1 gap-8 xl:grid-cols-12">
-            <div className="space-y-6 xl:col-span-8 2xl:col-span-9">
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold text-slate-900">Projects</h2>
-                    <p className="text-xs text-slate-500">Search, filter, and jump into project detail.</p>
-                    {isLoadingProjects && (
-                      <p className="mt-1 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-500">
-                        <SparklesIcon className="h-3 w-3 animate-spin" />
-                        Refreshing data…
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex w-full flex-col gap-3 lg:w-auto lg:flex-row lg:items-center">
-                    <div className="relative w-full lg:w-56">
-                      <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(event) => setSearchTerm(event.target.value)}
-                        placeholder="Search project or subject"
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                      />
-                      <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    </div>
-                    <select
-                      value={statusFilter}
-                      onChange={(event) => setStatusFilter(event.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-600 shadow-sm transition hover:border-slate-300 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 lg:w-40"
-                    >
-                      <option value="all">All statuses</option>
-                      {availableStatuses.map((status) => (
-                        <option key={status} value={status}>
-                          {STATUS_LABELS[status] ?? status}
-                        </option>
-                      ))}
-                    </select>
+          <div className="relative z-10 space-y-10">
+            <section className="relative overflow-hidden rounded-[32px] border border-indigo-100 bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-8 shadow-[0_25px_80px_rgba(15,23,42,0.08)]">
+              <div className="pointer-events-none absolute inset-0 opacity-70">
+                <div className="absolute -top-10 right-10 h-44 w-44 rounded-full bg-white/40 blur-[80px]" />
+                <div className="absolute bottom-0 left-0 h-56 w-56 rounded-full bg-sky-200/30 blur-[80px]" />
+              </div>
+              <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+                <div className="max-w-3xl space-y-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-slate-500">Lecturer project space</p>
+                  <h1 className="text-4xl font-semibold text-slate-900">Project Library</h1>
+                  <p className="text-base text-slate-600">
+                    Browse live lecturer projects, surface objectives, and keep milestone plans synchronized with the refreshed workspace.
+                  </p>
+                  <div className="flex flex-wrap gap-3 text-xs font-semibold text-slate-600">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 px-4 py-1.5">
+                      <SparklesIcon className="h-4 w-4 text-sky-500" />
+                      API-sourced data
+                    </span>
+                    <span className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 px-4 py-1.5">
+                      <ClipboardDocumentListIcon className="h-4 w-4 text-indigo-500" />
+                      Objectives & milestones linked
+                    </span>
                   </div>
                 </div>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <button
+                    onClick={handleCreateProject}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white shadow-[0_20px_45px_rgba(79,70,229,0.35)] transition hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    New project
+                  </button>
+                </div>
+              </div>
+            </section>
 
-                {showProjectSkeleton ? (
-                  <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
-                    {Array.from({ length: 4 }).map((_, index) =>
-                      renderProjectCardSkeleton(`project-skeleton-${index}`)
-                    )}
-                  </div>
-                ) : filteredProjects.length === 0 ? (
-                  <div className="mt-10 rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center">
-                    <BookOpenIcon className="mx-auto h-10 w-10 text-slate-300" />
-                    <p className="mt-4 text-sm font-medium text-slate-600">No projects match the selected filters yet.</p>
-                    <p className="mt-1 text-xs text-slate-400">Adjust the search parameters or create a new project.</p>
-                  </div>
-                ) : (
-                  <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
-                    {filteredProjects.map((project) => (
-                      <div
-                        key={project.projectId ?? project.projectName}
-                        className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-                      >
-                        <div className="flex items-start justify-between gap-2">
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:gap-6">
+              {showProjectSkeleton
+                ? projectStatCards.map((card) => renderProjectStatSkeleton(card.id))
+                : projectStatCards.map((card, index) => {
+                    const Icon = card.icon;
+                    const accent = card.accent ?? statAccentTokens[index % statAccentTokens.length];
+                    return (
+                      <div key={card.id} className={`relative overflow-hidden rounded-[24px] ${glassPanelClass} p-6`}>
+                        <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${accent.background}`} />
+                        <div className="relative flex items-start justify-between gap-4">
                           <div>
-                            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">{project.subjectCode}</p>
-                            <h3 className="mt-1 text-lg font-semibold text-slate-900">{project.projectName}</h3>
-                            <p className="mt-1 text-xs text-slate-500">{project.description}</p>
-                            <p className="mt-2 text-xs text-slate-500">Lecturer: {project.lecturerName}</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">{card.label}</p>
+                            <p className="mt-3 text-3xl font-semibold text-slate-900">{card.value}</p>
+                            <p className="mt-2 text-xs text-slate-600">{card.description || 'Live insight from lecturer data.'}</p>
                           </div>
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadgeStyles(project.status)}`}>
-                            {project.statusLabel}
-                          </span>
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-2 gap-4 text-sm text-slate-600">
-                          <div className="space-y-1">
-                            <p className="text-xs uppercase tracking-wide text-slate-400">Objectives</p>
-                            <p className="text-base font-semibold text-slate-900">{project.objectives.length}</p>
+                          <div className={`rounded-2xl bg-gradient-to-br ${accent.iconBg} p-3 ${accent.iconText} ${accent.glow}`}>
+                            <Icon className="h-7 w-7" />
                           </div>
-                          <div className="space-y-1">
-                            <p className="text-xs uppercase tracking-wide text-slate-400">Milestones</p>
-                            <p className="text-base font-semibold text-slate-900">{project.milestoneCount}</p>
-                          </div>
-                          <div className="col-span-2 space-y-1">
-                            <p className="text-xs uppercase tracking-wide text-slate-400">Recent objective</p>
-                            <p className="text-sm text-slate-600">
-                              {project.objectives[0]?.description ?? 'Objectives will appear when provided.'}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-auto flex flex-col gap-2 pt-6 sm:flex-row">
-                          <button
-                            onClick={() => handleViewProject(project.projectId)}
-                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                          >
-                            Open project detail
-                          </button>
-                          <button
-                            onClick={() => navigate(`/lecturer/projects/${project.projectId}/analysis`)}
-                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
-                          >
-                            AI insights
-                          </button>
                         </div>
                       </div>
-                    ))}
+                    );
+                  })}
+            </section>
+
+            <div className="grid grid-cols-1 gap-8 xl:grid-cols-12">
+              <section className="space-y-6 xl:col-span-8 2xl:col-span-9">
+                <div className={`rounded-[32px] ${glassPanelClass} p-6`}>
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <p className="text-[21px] font-semibold uppercase tracking-[0.35em] text-slate-500">Projects</p>
+                      {isLoadingProjects && (
+                        <p className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-200/50 bg-white/70 px-3 py-1 text-[11px] font-medium text-slate-600">
+                          <SparklesIcon className="h-3 w-3 animate-spin" />
+                          Refreshing data…
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex w-full flex-col gap-3 lg:w-auto lg:flex-row lg:items-center">
+                      <div className="relative w-full lg:w-64">
+                        <input
+                          type="text"
+                          value={searchTerm}
+                          onChange={(event) => setSearchTerm(event.target.value)}
+                          placeholder="Search project or subject"
+                          className="w-full rounded-2xl border border-slate-200/70 bg-white/70 py-3 pl-11 pr-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                        />
+                        <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      </div>
+                      <select
+                        value={statusFilter}
+                        onChange={(event) => setStatusFilter(event.target.value)}
+                        className="w-full rounded-2xl border border-slate-200/70 bg-white/70 px-4 py-3 text-sm font-medium text-slate-600 transition focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100 lg:w-48"
+                      >
+                        <option value="all">All statuses</option>
+                        {availableStatuses.map((status) => (
+                          <option key={status} value={status}>
+                            {STATUS_LABELS[status] ?? status}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                )}
-              </div>
-            </div>
 
-            <div className="space-y-6 xl:col-span-4 2xl:col-span-3">
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <InformationCircleIcon className="h-5 w-5 text-indigo-500" />
-                  <h2 className="text-lg font-semibold text-slate-900">Data coverage</h2>
-                </div>
-                <p className="mt-1 text-xs text-slate-500">This library mirrors the backend payload exactly.</p>
-                <p className="mt-4 text-sm text-slate-600">
-                  Objectives and milestones display only when provided by the API. Missing fields are logged to the console so you can coordinate with the backend before surfacing additional UI.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <CalendarDaysIcon className="h-5 w-5 text-indigo-500" />
-                  <h2 className="text-lg font-semibold text-slate-900">Upcoming milestones</h2>
-                </div>
-                <p className="mt-1 text-xs text-slate-500">These are sourced directly from objective milestones.</p>
-                <div className="mt-4 space-y-4">
                   {showProjectSkeleton ? (
-                    Array.from({ length: 3 }).map((_, index) =>
-                      renderMilestoneSkeleton(`milestone-skeleton-${index}`)
-                    )
-                  ) : upcomingMilestones.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
-                      <p className="text-sm font-semibold text-slate-700">No milestones scheduled yet</p>
-                      <p className="mt-1 text-xs text-slate-500">Milestones will appear once objectives define timelines.</p>
+                    <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
+                      {Array.from({ length: 4 }).map((_, index) =>
+                        renderProjectCardSkeleton(`project-skeleton-${index}`)
+                      )}
+                    </div>
+                  ) : filteredProjects.length === 0 ? (
+                    <div className="mt-10 rounded-[28px] border border-dashed border-slate-200/70 bg-white/60 py-12 text-center">
+                      <BookOpenIcon className="mx-auto h-12 w-12 text-slate-300" />
+                      <p className="mt-4 text-base font-semibold text-slate-700">No projects match the filters</p>
+                      <p className="mt-1 text-sm text-slate-500">Adjust filters or create a new project to populate the library.</p>
                     </div>
                   ) : (
-                    upcomingMilestones.map((milestone) => (
-                      <div key={`${milestone.objectiveMilestoneId}-${milestone.projectId}`} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                        <p className="text-sm font-semibold text-slate-800">{milestone.title}</p>
-                        <p className="text-xs text-slate-500">{milestone.projectName} · {milestone.subjectCode}</p>
-                        <p className="mt-1 text-xs text-slate-500">{formatDate(milestone.startDate)} – {formatDate(milestone.endDate)}</p>
-                      </div>
-                    ))
+                    <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                      {filteredProjects.map((project) => (
+                        <div key={project.projectId ?? project.projectName} className="relative">
+                          <div className={`absolute inset-0 rounded-[28px] bg-gradient-to-br ${getSubjectGradient(project.subjectCode)} opacity-80 blur-sm`} />
+                          <div className={`relative flex h-full flex-col rounded-[28px] ${glassPanelClass} p-6`}>
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600">{project.subjectCode}</p>
+                                <h3 className="mt-2 text-xl font-semibold text-slate-900">{project.projectName}</h3>
+                                <p className="mt-2 text-sm text-slate-600">{project.description}</p>
+                                <p className="mt-2 text-xs text-slate-500">Lecturer | {project.lecturerName}</p>
+                              </div>
+                              <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeStyles(project.status)}`}>
+                                {project.statusLabel}
+                              </span>
+                            </div>
+
+                            <div className="mt-6 grid grid-cols-2 gap-4 text-sm text-slate-600">
+                              <div className="space-y-1">
+                                <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">Objectives</p>
+                                <p className="text-2xl font-semibold text-slate-900">{project.objectives.length}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">Milestones</p>
+                                <p className="text-2xl font-semibold text-slate-900">{project.milestoneCount}</p>
+                              </div>
+                              <div className="col-span-2 space-y-1">
+                                <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">Recent objective</p>
+                                <p className="text-sm text-slate-600">
+                                  {project.objectives[0]?.description ?? 'Objectives will appear when provided.'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="mt-auto flex flex-col gap-3 pt-6 sm:flex-row">
+                              <button
+                                onClick={() => handleViewProject(project.projectId)}
+                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-200/70 bg-white/60 px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:border-sky-200 hover:bg-white"
+                              >
+                                Open detail
+                              </button>
+                              <button
+                                onClick={() => navigate(`/lecturer/projects/${project.projectId}/analysis`)}
+                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_35px_rgba(15,23,42,0.25)] transition hover:bg-slate-800"
+                              >
+                                AI insights
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
-              </div>
+              </section>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <CheckCircleIcon className="h-5 w-5 text-indigo-500" />
-                  <h2 className="text-lg font-semibold text-slate-900">Lecturer checklist</h2>
+              <aside className="space-y-6 xl:col-span-4 2xl:col-span-3">
+
+                <div className={`rounded-[28px] ${glassPanelClass} p-6`}>
+                  <div className="flex items-center gap-3">
+                    <CalendarDaysIcon className="h-5 w-5 text-indigo-500" />
+                    <h2 className="text-xl font-semibold text-slate-900">Upcoming milestones</h2>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">Directly sourced from objective milestones.</p>
+                  <div className="mt-4 space-y-4">
+                    {showProjectSkeleton ? (
+                      Array.from({ length: 3 }).map((_, index) =>
+                        renderMilestoneSkeleton(`milestone-skeleton-${index}`)
+                      )
+                    ) : upcomingMilestones.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-white/60 bg-white/50 px-4 py-6 text-center text-sm text-slate-600">
+                        Milestones will appear once objectives define schedules.
+                      </div>
+                    ) : (
+                      upcomingMilestones.map((milestone) => (
+                        <div
+                          key={`${milestone.objectiveMilestoneId}-${milestone.projectId}`}
+                          className="rounded-2xl border border-white/60 bg-white/60 px-4 py-3"
+                        >
+                          <p className="text-sm font-semibold text-slate-900">{milestone.title}</p>
+                          <p className="text-xs text-slate-500">{milestone.projectName} | {milestone.subjectCode}</p>
+                          <p className="mt-1 text-xs text-slate-500">{formatDate(milestone.startDate)} – {formatDate(milestone.endDate)}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
-                <p className="mt-1 text-xs text-slate-500">Quick reminders aligned with current API coverage.</p>
-                <ul className="mt-4 space-y-3 text-sm text-slate-600">
-                  <li className="flex items-start gap-2">
-                    <CheckCircleIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
-                    Confirm each project has clear objectives before assigning to classes.
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircleIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
-                    Coordinate milestone dates with class schedules so students are not overbooked.
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircleIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
-                    Share feedback with the backend team if required fields are missing from responses.
-                  </li>
-                </ul>
-              </div>
+
+                <div className={`rounded-[28px] ${glassPanelClass} p-6`}>
+                  <div className="flex items-center gap-3">
+                    <CheckCircleIcon className="h-5 w-5 text-indigo-500" />
+                    <h2 className="text-xl font-semibold text-slate-900">Lecturer checklist</h2>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">Keep teams aligned with library best practices.</p>
+                  <ul className="mt-5 space-y-4 text-sm text-slate-600">
+                    <li className="flex items-start gap-3">
+                      <CheckCircleIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
+                      Confirm each project exposes at least one clear objective before assignment.
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircleIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
+                      Align milestone dates with class pacing so checkpoints feel achievable.
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircleIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
+                      Share payload gaps with the backend early—missing fields are logged in devtools.
+                    </li>
+                  </ul>
+                </div>
+              </aside>
             </div>
           </div>
         </div>

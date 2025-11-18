@@ -5,9 +5,14 @@
   background: linear-gradient(180deg, #f9fafb 0%, #eef2f7 100%);
 }
 
+.breadcrumbSlot {
+  width: 100%;
+  margin: 1.5rem 0 0;
+}
+
 .heroShell {
-  max-width: 1200px;
-  margin: 2.5rem auto 2rem;
+  width: 100%;
+  margin: 2.5rem 0 2rem;
   background: #ffffff;
   border-radius: 20px;
   border: 1px solid #e5e7eb;
@@ -154,8 +159,8 @@
 }
 
 .contentArea {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
 }
 
 .content {
@@ -353,21 +358,47 @@
 }
 
 .cardSelected {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+  border-color: #4338ca;
+  box-shadow: 0 12px 35px -20px rgba(67, 56, 202, 0.45), 0 0 0 2px rgba(99, 102, 241, 0.25);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(14, 165, 233, 0.12));
 }
 
-.cardCheckbox {
+.availableCard {
+  cursor: pointer;
+}
+
+.availableCard:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.3);
+}
+
+.selectionIndicator {
   position: absolute;
   top: 1rem;
   right: 1rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 14px -8px rgba(79, 70, 229, 0.4);
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.checkbox {
-  width: 1.25rem;
-  height: 1.25rem;
-  accent-color: #6366f1;
-  cursor: pointer;
+.cardSelected .selectionIndicator {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.selectionIcon {
+  width: 1.15rem;
+  height: 1.15rem;
 }
 
 .cardHeader {

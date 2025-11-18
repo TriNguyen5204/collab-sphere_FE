@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
 import styles from './ProjectAnalysis.module.css';
 import {
@@ -15,7 +15,6 @@ import {
   CpuChipIcon,
   BookOpenIcon,
   BoltIcon,
-  ArrowLeftIcon,
   ArrowRightIcon,
   EyeIcon,
   PencilIcon,
@@ -35,6 +34,7 @@ import {
   ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid';
+import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
 
 const ProjectAnalysis = () => {
   const { projectId } = useParams();
@@ -489,6 +489,14 @@ const ProjectAnalysis = () => {
       ]
     }
   ];
+
+  const breadcrumbItems = useMemo(
+    () => [
+      { label: 'Projects', href: '/lecturer/projects' },
+      { label: projectData.title || 'AI project analysis' },
+    ],
+    [projectData.title]
+  );
 
   // Compliance checklist for academic standards
   const complianceChecklist = {
@@ -1221,14 +1229,7 @@ const ProjectAnalysis = () => {
       <div className={styles.projectAnalysis}>
         {/* Header */}
         <div className={styles.header}>
-          <div className={styles.headerNav}>
-            <Link to="/lecturer/projects" className={styles.backButton}>
-              <ArrowLeftIcon className="w-4 h-4" />
-              Back to Project Library
-            </Link>
-            <span className="text-gray-300">•</span>
-            <span className="font-medium text-gray-600">AI Analysis</span>
-          </div>
+          <LecturerBreadcrumbs items={breadcrumbItems} className={styles.breadcrumbSlot} />
           
           <div className={styles.headerContent}>
             <div className={styles.headerTitle}>

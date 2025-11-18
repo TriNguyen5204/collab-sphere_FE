@@ -24,6 +24,7 @@ import { getLecturerProjects } from '../../services/projectApi';
 import { getClassDetail } from '../../services/userService';
 import { assignProjectsToClass } from '../../services/classApi';
 import { toast } from 'sonner';
+import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
 
 const formatStatusLabel = (value) => {
   if (!value) {
@@ -238,10 +239,7 @@ const ClassProjectAssignment = () => {
   const [projects, setProjects] = useState([]);
   const [assignedProjectIds, setAssignedProjectIds] = useState(new Set()); // Track already assigned
   const [selectedProjectIds, setSelectedProjectIds] = useState(new Set()); // Track newly selected
-  const [lockedProjectIds, setLockedProjectIds] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState('');
-
-  const assignedProjectCount = selectedProjectIds.size;
 
   const loadData = useCallback(async () => {
     if (!classId || !lecturerId) {
@@ -267,7 +265,6 @@ const ClassProjectAssignment = () => {
       setAssignedProjectIds(new Set(detail.assignedProjectIds));
       // Start with only newly selected projects (none initially)
       setSelectedProjectIds(new Set());
-      setLockedProjectIds(new Set(detail.lockedProjectIds));
     } catch (error) {
       console.error('Failed to load class project assignment data.', error);
       toast.error('Unable to load project assignments for this class.');
@@ -330,44 +327,17 @@ const ClassProjectAssignment = () => {
     };
   }, [assignedProjects.length, availableProjects.length, selectedProjectIds.size]);
 
-  const statusBreakdown = useMemo(() => {
-    if (!projects.length) {
-      return [];
-    }
-
-    const counts = new Map();
-
-    projects.forEach((project) => {
-      const statusToken = (project.status || '').toString().trim().toUpperCase();
-      
-      // Skip projects without a status
-      if (!statusToken) {
-        return;
-      }
-
-      counts.set(statusToken, (counts.get(statusToken) || 0) + 1);
-    });
-
-    return Array.from(counts.entries())
-      .map(([status, count]) => {
-        const label = formatStatusLabel(status);
-        const tone = resolveStatusTone(status);
-        
-        // Skip if label or tone couldn't be determined
-        if (!label || !tone) {
-          return null;
-        }
-
-        return {
-          status,
-          count,
-          label,
-          tone,
-        };
-      })
-      .filter(Boolean) // Remove null entries
-      .sort((a, b) => b.count - a.count);
-  }, [projects]);
+  const breadcrumbItems = useMemo(
+    () => [
+      { label: 'Classes', href: '/lecturer/classes' },
+      {
+        label: classDetail.className || `Class ${classId}`,
+        href: classId ? `/lecturer/classes/${classId}` : undefined,
+      },
+      { label: 'Project assignments' },
+    ],
+    [classDetail.className, classId]
+  );
 
   const handleToggleProject = (projectId) => {
     setSelectedProjectIds((current) => {
@@ -384,6 +354,13 @@ const ClassProjectAssignment = () => {
       }
       return next;
     });
+  };
+
+  const handleCardKeyDown = (event, projectId) => {
+    if (event.key === ' ' || event.key === 'Enter') {
+      event.preventDefault();
+      handleToggleProject(projectId);
+    }
   };
 
   const handleSaveAssignments = async () => {
@@ -472,28 +449,18 @@ const ClassProjectAssignment = () => {
         key={project.id}
         className={`${styles.card} ${styles.availableCard} ${isSelected ? styles.cardSelected : ''}`}
         onClick={() => handleToggleProject(project.id)}
+        onKeyDown={(event) => handleCardKeyDown(event, project.id)}
         role="button"
         tabIndex={0}
         aria-pressed={isSelected}
+        aria-label={`${isSelected ? 'Deselect' : 'Select'} ${project.name}`}
       >
-        <div className={styles.cardCheckbox}>
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={() => {}}
-            className={styles.checkbox}
-            aria-label={`Select ${project.name}`}
-          />
+        <div className={styles.selectionIndicator} aria-hidden="true">
+          <CheckCircleIcon className={styles.selectionIcon} />
         </div>
 
         <header className={styles.cardHeader}>
           <div className={styles.cardTitleBlock}>
-            {isSelected && (
-              <span className={`${styles.cardPill} ${styles.cardPillSelected}`}>
-                <CheckCircleIcon className={styles.cardPillIcon} />
-                Added to update
-              </span>
-            )}
             <h3 className={styles.cardTitle}>{project.name}</h3>
             {project.subjectCode && <span className={styles.cardTag}>{project.subjectCode}</span>}
           </div>
@@ -544,6 +511,7 @@ const ClassProjectAssignment = () => {
   return (
     <DashboardLayout>
       <div className={styles.page}>
+        <LecturerBreadcrumbs items={breadcrumbItems} className={styles.breadcrumbSlot} />
         <div className={styles.heroShell}>
           <div className={styles.heroContent}>
             <div className={styles.heroTopRow}>

@@ -13,6 +13,7 @@ import DashboardLayout from '../../components/DashboardLayout';
 import styles from './LecturerMonitoringDashboard.module.css';
 import { getClassDetail } from '../../services/userService';
 import { normaliseClassDetailPayload } from './classDetailNormalizer';
+import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
 
 const formatDate = (value) => {
   if (!value) return '—';
@@ -126,6 +127,18 @@ const LecturerMonitoringDashboard = () => {
   const teams = classDetail?.teams ?? [];
   const resources = classDetail?.resources ?? [];
   const assignments = classDetail?.projectAssignments ?? [];
+
+  const breadcrumbItems = useMemo(() => {
+    const items = [{ label: 'Classes', href: '/lecturer/classes' }];
+
+    if (classId) {
+      items.push({ label: summary?.name || `Class ${classId}`, href: `/lecturer/classes/${classId}` });
+    }
+
+    items.push({ label: 'Monitoring' });
+
+    return items;
+  }, [classId, summary?.name]);
 
   const statCards = [
     {
@@ -445,7 +458,10 @@ const LecturerMonitoringDashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className={styles.lecturerDashboard}>{renderContent()}</div>
+      <div className={styles.lecturerDashboard}>
+        <LecturerBreadcrumbs items={breadcrumbItems} className={styles.breadcrumbSlot} />
+        {renderContent()}
+      </div>
     </DashboardLayout>
   );
 };
