@@ -93,4 +93,48 @@ apiClient.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
+apiClient.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const status = error?.response?.status;
+        const originalRequest = error?.config;
+
+        if (!status || status !== 401 || !originalRequest || originalRequest?._retry) {
+            return Promise.reject(error);
+        }
+
+        if (originalRequest.url && originalRequest.url.includes('/auth/refresh-token')) {
+            return Promise.reject(error);
+        }
+
+        const userState = store.getState().user;
+        if (!userState?.refreshToken || !userState?.userId) {
+            store.dispatch(logout());
+            Cookies.remove('user');
+            if (typeof window !== 'undefined') {
+                window.location.href = '/login';
+            }
+            return Promise.reject(error);
+        }
+
+        try {
+            if (!refreshPromise) {
+                refreshPromise = requestAccessTokenRefresh(userState).finally(() => {
+                    refreshPromise = null;
+                });
+            }
+
+            const newAccessToken = await refreshPromise;
+            originalRequest._retry = true;
+            originalRequest.headers = {
+                ...(originalRequest.headers || {}),
+                Authorization: `Bearer ${newAccessToken}`,
+            };
+            return apiClient(originalRequest);
+        } catch (refreshError) {
+            return Promise.reject(refreshError);
+        }
+    }
+);
+
 export default apiClient;
