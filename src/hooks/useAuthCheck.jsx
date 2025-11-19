@@ -36,6 +36,7 @@ export function useAuthCheck() {
             ...user,
             accessToken: res.accessToken,
             refreshToken: res.refreshToken,
+            refreshTokenExpiryTime: res.refreshTokenExpiryTime ?? user.refreshTokenExpiryTime,
           };
 
           dispatch(setUserRedux(updated));

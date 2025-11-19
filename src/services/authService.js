@@ -46,7 +46,7 @@ export const login = async (email, password) => {
 
 export const refreshToken = async (userId, refreshTokenValue) => {
   try {
-    const response = await apiClient.post('/auth/refresh-token', {
+    const response = await apiClient.post('/api/auth/refresh-token', {
       userId,
       refreshToken: refreshTokenValue,
     });
@@ -123,6 +123,7 @@ export const getCurrentSessionToken = async () => {
       ...userState,
       accessToken: response.accessToken,
       refreshToken: response.refreshToken,
+      refreshTokenExpiryTime: response.refreshTokenExpiryTime ?? userState.refreshTokenExpiryTime,
     };
 
     persistUser(updatedUser);

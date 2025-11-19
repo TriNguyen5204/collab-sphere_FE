@@ -15,7 +15,7 @@ let refreshPromise = null;
 
 const requestAccessTokenRefresh = async (userState) => {
     try {
-        const response = await axios.post(`${baseURL}/auth/refresh-token`, {
+        const response = await axios.post(`${baseURL}/api/auth/refresh-token`, {
             userId: userState.userId,
             refreshToken: userState.refreshToken,
         });
@@ -29,6 +29,7 @@ const requestAccessTokenRefresh = async (userState) => {
             ...userState,
             accessToken: data.accessToken,
             refreshToken: data.refreshToken,
+            refreshTokenExpiryTime: data.refreshTokenExpiryTime ?? userState.refreshTokenExpiryTime,
         };
 
         store.dispatch(setUserRedux(updatedUser));
@@ -51,7 +52,7 @@ apiClient.interceptors.request.use(
         const userState = store.getState().user;
         const token = userState?.accessToken;
 
-        if (config.url && config.url.includes('/auth/refresh-token')) {
+        if (config.url && config.url.includes('/api/auth/refresh-token')) {
             config.headers['Access-Control-Allow-Origin'] = '*';
             config.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH';
             config.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
