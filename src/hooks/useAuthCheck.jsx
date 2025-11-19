@@ -29,7 +29,7 @@ export function useAuthCheck() {
 
       // 🔄 Gọi refresh token
       try {
-        const res = await refreshToken(user.userId, user.refreshToken);
+        const res = await refreshToken(Number(user.userId), user.refreshToken);
 
         if (res?.isSuccess) {
           const updated = {
