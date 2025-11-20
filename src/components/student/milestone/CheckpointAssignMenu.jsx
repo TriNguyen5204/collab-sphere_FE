@@ -40,8 +40,8 @@ const CheckpointAssignMenu = React.forwardRef((
             ) : (
               teamMembers.map((member) => {
                 const isSelected = selectedMemberIds.includes(member.classMemberId);
-                const borderClass = isSelected ? 'border-orange-600 bg-orange-50' : 'border-gray-200 bg-white';
-                const nameClass = isSelected ? 'text-orange-600' : 'text-gray-900';
+                const borderClass = isSelected ? 'border-orangeFpt-500 bg-orangeFpt-50' : 'border-gray-200 bg-white';
+                const nameClass = isSelected ? 'text-orangeFpt-500' : 'text-gray-900';
                 const roleLabel = member.role ? member.role.toString().replace(/_/g, ' ') : 'Member';
 
                 return (
@@ -51,7 +51,7 @@ const CheckpointAssignMenu = React.forwardRef((
                     onClick={() => onToggleMember(member.classMemberId)}
                     className="w-full text-left"
                   >
-                    <div className={`flex items-center gap-3 border ${borderClass} px-3 py-2 transition hover:border-orange-500`}>
+                    <div className={`flex items-center gap-3 border ${borderClass} px-3 py-2 transition hover:border-orangeFpt-500`}>
                       {member.avatar ? (
                         <img
                           src={member.avatar}
@@ -79,7 +79,7 @@ const CheckpointAssignMenu = React.forwardRef((
             <button
               type="button"
               onClick={onConfirm}
-              className="rounded-lg bg-orange-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-orange-700"
+              className="rounded-lg bg-orangeFpt-500 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-orangeFpt-600"
             >
               Assign
             </button>

@@ -13,7 +13,6 @@ import AICodeReviewTab from './AICodeReviewTab';
 const TeamWorkspace = () => {
   const { projectId, teamId, projectName } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedRole, setSelectedRole] = useState('all');
   const [activeTab, setActiveTab] = useState('overview');
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const { setTeam, team } = useTeam();
@@ -100,7 +99,7 @@ const TeamWorkspace = () => {
   return (
     <>
       <div className="min-h-screen" style={{ backgroundColor: "#D5DADF" }}>
-        <ProjectBoardHeader selectedRole={selectedRole} onRoleChange={setSelectedRole} />
+        <ProjectBoardHeader />
         {showSuccessToast && (
           <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 z-50 animate-slide-in-right">
             <CheckCircle className="w-5 h-5 flex-shrink-0" />

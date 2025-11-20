@@ -17,7 +17,7 @@ const CheckpointSummaryCards = ({ checkpoints }) => {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       <div className="bg-white rounded-lg shadow-md p-4">
         <div className="flex items-center justify-between mb-2">
-          <CheckSquare className="text-blue-500" size={24} />
+          <CheckSquare className="text-orangeFpt-500" size={24} />
           <span className="text-2xl font-bold">{total}</span>
         </div>
         <p className="text-gray-600 text-sm">Total Checkpoints</p>

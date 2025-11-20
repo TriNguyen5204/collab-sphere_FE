@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Calendar, Clock, X, AlertCircle, FileText, Loader2, Trash2, History, User, Upload, CheckCircle, RefreshCcw } from 'lucide-react';
+import { Calendar, Clock, X, AlertCircle, FileText, Loader2, Trash2, History, User, Upload, CheckCircle } from 'lucide-react';
 import useClickOutside from '../../../hooks/useClickOutside';
 import useTeam from '../../../context/useTeam';
 import CheckpointAssignMenu from './CheckpointAssignMenu';
@@ -33,6 +33,32 @@ const getStatusBadgeStyles = (status) => {
         default:
             return 'bg-gray-100 text-gray-700 border border-gray-200';
     }
+};
+
+const interpretStatusDisplay = (statusRaw) => {
+    if (!statusRaw) {
+        return { badgeKey: '', displayText: '' };
+    }
+
+    const stringValue = statusRaw.toString().trim();
+    if (!stringValue) {
+        return { badgeKey: '', displayText: '' };
+    }
+
+    const upperValue = stringValue.toUpperCase();
+
+    if (upperValue === 'DONE') {
+        return { badgeKey: 'COMPLETED', displayText: 'Completed' };
+    }
+
+    if (upperValue === 'NOT_DONE') {
+        return { badgeKey: 'PROCESSING', displayText: 'Processing' };
+    }
+
+    return {
+        badgeKey: upperValue,
+        displayText: stringValue.replace(/_/g, ' '),
+    };
 };
 
 const countTimeRemaining = (dueDate) => {
@@ -80,6 +106,111 @@ const countTimeRemaining = (dueDate) => {
             color: 'text-green-600'
         };
     }
+};
+
+const VIETNAM_TIMEZONE = 'Asia/Ho_Chi_Minh';
+const VIETNAM_UTC_OFFSET_MS = 7 * 60 * 60 * 1000;
+const LINK_REFRESH_BUFFER_MS = 60 * 1000;
+const timezoneRegex = /([zZ])|([+-]\d{2}:?\d{2})$/;
+
+const normalizeUtcString = (rawValue) => {
+    if (typeof rawValue !== 'string') return null;
+    let value = rawValue.trim();
+
+    if (!value) return null;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return `${value}T00:00:00Z`;
+    }
+
+    if (value.includes(' ')) {
+        value = value.replace(' ', 'T');
+    }
+
+    if (!timezoneRegex.test(value)) {
+        value = value.endsWith('Z') ? value : `${value}Z`;
+    }
+
+    return value;
+};
+
+const parseUtcDate = (value) => {
+    if (!value) return null;
+
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime()) ? null : value;
+    }
+
+    if (typeof value === 'number') {
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    if (typeof value === 'string') {
+        const normalized = normalizeUtcString(value);
+        if (!normalized) return null;
+        const date = new Date(normalized);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    return null;
+};
+
+const vietnamFormatter = (typeof Intl !== 'undefined' && typeof Intl.DateTimeFormat === 'function')
+    ? new Intl.DateTimeFormat('vi-VN', {
+        timeZone: VIETNAM_TIMEZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    })
+    : null;
+
+const formatVietnamTimeLabel = (utcDate) => {
+    if (!utcDate) return '';
+    if (vietnamFormatter) {
+        return vietnamFormatter.format(utcDate);
+    }
+    const fallback = new Date(utcDate.getTime() + VIETNAM_UTC_OFFSET_MS);
+    return fallback.toLocaleString('vi-VN');
+};
+
+const buildExpireInfo = (rawExpireTime) => {
+    const expireDateUtc = parseUtcDate(rawExpireTime);
+
+    if (!expireDateUtc) {
+        return {
+            expireDateUtc: null,
+            expireLabel: '',
+            isExpired: false,
+            shouldRefresh: true,
+        };
+    }
+
+    const expireMs = expireDateUtc.getTime();
+    const nowMs = Date.now();
+
+    return {
+        expireDateUtc,
+        expireLabel: formatVietnamTimeLabel(expireDateUtc),
+        isExpired: nowMs >= expireMs,
+        shouldRefresh: (nowMs + LINK_REFRESH_BUFFER_MS) >= expireMs,
+    };
+};
+
+const buildSubmittedAtLabel = (rawValue) => {
+    if (!rawValue) return '';
+    const parsed = parseUtcDate(rawValue);
+    if (parsed) {
+        return formatVietnamTimeLabel(parsed);
+    }
+    const fallbackDate = new Date(rawValue);
+    if (!Number.isNaN(fallbackDate.getTime())) {
+        return fallbackDate.toLocaleString('vi-VN');
+    }
+    return typeof rawValue === 'string' ? rawValue : '';
 };
 
 const toDateInputValue = (value) => {
@@ -135,6 +266,7 @@ const CheckpointCardModal = ({
     const [editError, setEditError] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState(null);
+    const [refreshingSubmissionId, setRefreshingSubmissionId] = useState(null);
 
     const resolvedDetail = detail ?? fallbackCheckpoint ?? {};
 
@@ -290,18 +422,38 @@ const CheckpointCardModal = ({
         () =>
             checkpointFiles.map((file, index) => {
                 const resolvedId = file.fileId ?? file.checkpointFileId ?? file.submissionId ?? file.id ?? index;
+                const rawSubmittedAt = file.uploadedAt ?? file.createdAt ?? file.submittedAt ?? file.createdDate ?? null;
                 return {
                     id: resolvedId,
                     fileId: resolvedId,
                     name: file.originalFileName ?? file.fileName ?? file.name ?? `Attachment ${index + 1}`,
                     url: file.fileUrl ?? file.url ?? file.downloadUrl ?? file.path ?? file.filePath ?? null,
                     uploadedBy: file.uploadedByName ?? file.uploadedBy ?? file.userName ?? file.createdBy ?? '',
-                    uploadedAt: file.uploadedAt ?? file.createdAt ?? file.submittedAt ?? file.createdDate ?? '',
+                    uploadedAt: rawSubmittedAt,
                     size: file.fileSize ?? file.size ?? null,
+                    avatar: file.avatar ?? file.avatarImg ?? file.uploadedByAvatar ?? file.studentAvatar ?? null,
+                    studentName: file.uploadedByName ?? file.uploadedBy ?? file.userName ?? file.createdBy ?? '',
+                    submittedAtLabel: buildSubmittedAtLabel(rawSubmittedAt),
                     raw: file,
                 };
             }),
         [checkpointFiles]
+    );
+
+    const submissionsWithExpireInfo = useMemo(
+        () =>
+            normalizedFiles.map((file) => ({
+                ...file,
+                expireInfo: buildExpireInfo(
+                    file.raw?.urlExpireTime
+                    ?? file.raw?.urlExpireAt
+                    ?? file.raw?.expireTime
+                    ?? file.raw?.expiredAt
+                    ?? file.raw?.linkExpiredAt
+                    ?? file.raw?.urlExpiredAt
+                ),
+            })),
+        [normalizedFiles]
     );
 
     const checkpointId = resolvedDetail?.checkpointId ?? resolvedDetail?.id ?? resolvedDetail?.checkpointID ?? fallbackCheckpoint?.id ?? null;
@@ -319,11 +471,18 @@ const CheckpointCardModal = ({
         setIsAssignMenuOpen((open) => !open);
     };
 
-    const handleConfirmAssign = () => {
-        if (typeof onAssignMembers === 'function' && checkpointId != null) {
-            onAssignMembers(checkpointId, selectedMemberIds);
+    const handleConfirmAssign = async () => {
+        if (typeof onAssignMembers !== 'function' || checkpointId == null) {
+            setIsAssignMenuOpen(false);
+            return;
         }
-        setIsAssignMenuOpen(false);
+        try {
+            await onAssignMembers(checkpointId, selectedMemberIds);
+        } catch (assignError) {
+            console.error('Failed to assign checkpoint members', assignError);
+        } finally {
+            setIsAssignMenuOpen(false);
+        }
     };
 
     const handleToggleEditMenu = () => {
@@ -461,15 +620,15 @@ const CheckpointCardModal = ({
     }
 
     const statusRaw = resolvedDetail?.statusString ?? resolvedDetail?.status ?? fallbackCheckpoint?.statusString ?? fallbackCheckpoint?.status ?? '';
-    const statusForBadge = typeof statusRaw === 'string' ? statusRaw : statusRaw?.toString?.() ?? '';
-    const normalizedStatus = statusForBadge
-        ? statusForBadge.toString().replace(/_/g, ' ')
-        : '';
+    const {
+        badgeKey: statusBadgeKey,
+        displayText: statusDisplayText,
+    } = interpretStatusDisplay(statusRaw);
     const complexity = resolvedDetail?.complexity ?? fallbackCheckpoint?.complexity ?? '';
     const description = resolvedDetail?.description ?? fallbackCheckpoint?.description ?? '';
     const startDate = resolvedDetail?.startDate ?? fallbackCheckpoint?.startDate ?? null;
     const dueDate = resolvedDetail?.dueDate ?? resolvedDetail?.deadline ?? resolvedDetail?.endDate ?? fallbackCheckpoint?.dueDate ?? null;
-    const submissionsCount = normalizedFiles.length;
+    const submissionsCount = submissionsWithExpireInfo.length;
     const assignmentsCount = assignments.length;
     const lacksAssignments = assignmentsCount === 0;
     const markCompleteDisabledTitle = lacksAssignments
@@ -489,8 +648,69 @@ const CheckpointCardModal = ({
             ? 'Deletion locked'
             : 'Delete checkpoint';
 
+    const handleMarkCompleteClick = async () => {
+        if (markCompleteButtonDisabled || typeof onMarkComplete !== 'function' || checkpointId == null) {
+            return;
+        }
+        try {
+            await onMarkComplete(checkpointId);
+        } catch (markError) {
+            console.error('Failed to mark checkpoint complete', markError);
+        }
+    };
+
+    const handleOpenSubmission = async (submission) => {
+        if (!submission) return;
+        const submissionId = submission.fileId ?? submission.id;
+        const fallbackUrl = submission.url
+            ?? submission.raw?.fileUrl
+            ?? submission.raw?.url
+            ?? submission.raw?.downloadUrl
+            ?? submission.raw?.path
+            ?? submission.raw?.filePath
+            ?? null;
+
+        const expireInfo = submission.expireInfo
+            ?? buildExpireInfo(
+                submission.raw?.urlExpireTime
+                ?? submission.raw?.urlExpireAt
+                ?? submission.raw?.expireTime
+                ?? submission.raw?.expiredAt
+                ?? submission.raw?.linkExpiredAt
+                ?? submission.raw?.urlExpiredAt
+            );
+
+        const canRefresh = typeof onGenerateFileLink === 'function' && checkpointId != null && submissionId != null;
+        const needsRefresh = canRefresh && (expireInfo?.shouldRefresh || !fallbackUrl);
+
+        if (!needsRefresh) {
+            if (fallbackUrl) {
+                window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+            }
+            return;
+        }
+
+        try {
+            setRefreshingSubmissionId(submissionId);
+            const refreshedUrl = await onGenerateFileLink(checkpointId, submissionId);
+            const sanitizedUrl = typeof refreshedUrl === 'string' ? refreshedUrl.trim() : '';
+            const finalUrl = sanitizedUrl || fallbackUrl;
+
+            if (finalUrl) {
+                window.open(finalUrl, '_blank', 'noopener,noreferrer');
+            }
+        } catch (error) {
+            console.error('Failed to refresh checkpoint submission link', error);
+            if (fallbackUrl) {
+                window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+            }
+        } finally {
+            setRefreshingSubmissionId(null);
+        }
+    };
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 ">
             <div
                 ref={modalRef}
                 className="w-full max-w-3xl overflow-hidden rounded-xl bg-white shadow-2xl"
@@ -512,9 +732,9 @@ const CheckpointCardModal = ({
                                     {complexity || ''}
                                 </span>
                             </div>
-                            {normalizedStatus && (
-                                <span className={`rounded-full px-3 py-1 ml-2 text-xs font-semibold uppercase ${getStatusBadgeStyles(statusForBadge)}`}>
-                                    {normalizedStatus}
+                            {statusDisplayText && (
+                                <span className={`rounded-full px-3 py-1 ml-2 text-xs font-semibold ${getStatusBadgeStyles(statusBadgeKey)}`}>
+                                    {statusDisplayText}
                                 </span>
                             )}
                         </div>
@@ -675,7 +895,6 @@ const CheckpointCardModal = ({
                                     </div>
                                 </div>
                             </div>
-
                             <div className="">
                                 <div className="">
                                     <div className="space-y-5">
@@ -687,61 +906,87 @@ const CheckpointCardModal = ({
                                         </div>
                                         {submissionsCount === 0 ? (
                                             <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-6 py-8 text-center">
-                                                <p className="text-sm text-gray-600">No submissions yet. Upload your first file to get started.</p>
+                                                <p className="text-sm text-gray-600">No submissions yet.</p>
                                             </div>
                                         ) : (
                                             <ul className="space-y-3">
-                                                {normalizedFiles.map((file) => (
-                                                    <li
-                                                        key={file.id}
-                                                        className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between"
-                                                    >
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-                                                                <FileText size={18} />
-                                                            </div>
-                                                            <div>
-                                                                <p className="font-medium text-gray-900">{file.name}</p>
-                                                                <div className="text-xs text-gray-500 space-x-3">
-                                                                    {file.uploadedBy && <span>by {file.uploadedBy}</span>}
-                                                                    {file.uploadedAt && <span>{formatDate(file.uploadedAt)}</span>}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-3 sm:justify-end">
-                                                            {file.url ? (
-                                                                <a
-                                                                    href={file.url}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="text-sm font-medium text-blue-600 transition hover:text-blue-700"
-                                                                >
-                                                                    View
-                                                                </a>
-                                                            ) : null}
-                                                            {typeof onGenerateFileLink === 'function' && (
+                                                {submissionsWithExpireInfo.map((submission) => {
+                                                    const submissionId = submission.fileId ?? submission.id;
+                                                    return (
+                                                        <li
+                                                            key={submission.id}
+                                                            className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white  shadow-sm"
+                                                        >
+                                                            <div className="flex-1 space-y-1 min-w-0">
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => checkpointId != null && onGenerateFileLink(checkpointId, file.fileId ?? file.id)}
-                                                                    className="flex items-center gap-1 rounded-md border border-transparent px-2 py-1 text-sm text-gray-600 transition hover:border-gray-300 hover:text-gray-800"
+                                                                    onClick={() => handleOpenSubmission(submission)}
+                                                                    className="flex w-full min-w-0 items-center gap-3 rounded-md border border-transparent bg-orangeFpt-50 px-3 py-2 text-left transition hover:border-orangeFpt-200 hover:bg-orangeFpt-100"
                                                                 >
-                                                                    <RefreshCcw size={16} />
-                                                                    Refresh link
+                                                                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-orangeFpt-100 text-orangeFpt-500">
+                                                                        {refreshingSubmissionId === submissionId ? (
+                                                                            <Loader2 className="h-5 w-5 animate-spin" />
+                                                                        ) : (
+                                                                            <FileText size={18} />
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="min-w-0 flex flex-1 items-center gap-3">
+                                                                        <p
+                                                                            className="text-sm font-semibold text-orangeFpt-600 overflow-hidden text-ellipsis whitespace-nowrap"
+                                                                            title={submission.name}
+                                                                        >
+                                                                            {submission.name}
+                                                                        </p>
+                                                                        <div className="flex items-center gap-2 text-xs text-gray-500 truncate">
+                                                                            {(submission.studentName || submission.uploadedBy) && (
+                                                                                <span className="flex items-center gap-2">
+                                                                                    {submission.avatar ? (
+                                                                                        <img
+                                                                                            src={submission.avatar}
+                                                                                            alt={`${submission.studentName || submission.uploadedBy || 'Student'} avatar`}
+                                                                                            className="h-5 w-5 flex-shrink-0 rounded-full object-cover"
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-500">
+                                                                                            <User size={16} />
+                                                                                        </div>
+                                                                                    )}
+                                                                                    <span className="font-medium text-gray-700">
+                                                                                        {submission.studentName || submission.uploadedBy}
+                                                                                    </span>
+                                                                                </span>
+                                                                            )}
+                                                                            {submission.submittedAtLabel && (
+                                                                                <span className="text-gray-500">
+                                                                                    {submission.submittedAtLabel}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
                                                                 </button>
-                                                            )}
+                                                            </div>
                                                             {!readOnly && typeof onDeleteSubmission === 'function' && (
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => checkpointId != null && onDeleteSubmission?.(checkpointId, file.fileId ?? file.id)}
-                                                                    className="text-red-600 transition hover:text-red-700"
+                                                                    onClick={async () => {
+                                                                        if (checkpointId == null) {
+                                                                            return;
+                                                                        }
+                                                                        try {
+                                                                            await onDeleteSubmission(checkpointId, submission.fileId ?? submission.id);
+                                                                        } catch (deleteError) {
+                                                                            console.error('Failed to delete checkpoint submission', deleteError);
+                                                                        }
+                                                                    }}
+                                                                    className="flex h-8 w-8 items-center justify-center rounded-full text-red-600 transition hover:bg-red-50 hover:text-red-700"
                                                                     aria-label="Remove submission"
                                                                 >
                                                                     <Trash2 size={18} />
                                                                 </button>
                                                             )}
-                                                        </div>
-                                                    </li>
-                                                ))}
+                                                        </li>
+                                                    );
+                                                })}
                                             </ul>
                                         )}
 
@@ -760,7 +1005,7 @@ const CheckpointCardModal = ({
                                                     <label
                                                         htmlFor={fileInputId}
                                                         className={`font-semibold ${typeof onSelectLocalFiles === 'function'
-                                                            ? 'cursor-pointer text-blue-600 hover:text-blue-700'
+                                                            ? 'cursor-pointer text-orangeFpt-500 hover:text-orangeFpt-600'
                                                             : 'cursor-not-allowed text-gray-400'
                                                             }`}
                                                     >
@@ -774,11 +1019,11 @@ const CheckpointCardModal = ({
                                                         <h5 className="text-sm font-semibold text-gray-800">
                                                             Files selected ({localFiles.length}):
                                                         </h5>
-                                                        <ul className="space-y-2">
+                                                        <ul className="flex gap-3 w-full flex-wrap">
                                                             {localFiles.map((file, index) => (
                                                                 <li
                                                                     key={`${file.name}-${index}`}
-                                                                    className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2"
+                                                                    className="flex items-center justify-between rounded-lg bg-gray-200 p-3"
                                                                 >
                                                                     <span className="truncate pr-4 text-sm text-gray-900">{file.name}</span>
                                                                     {typeof onRemoveLocalFile === 'function' && (
@@ -799,7 +1044,7 @@ const CheckpointCardModal = ({
                                                                 type="button"
                                                                 onClick={onUploadLocalFiles}
                                                                 disabled={uploadDisabled || typeof onUploadLocalFiles !== 'function'}
-                                                                className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                                                className="rounded-lg bg-orangeFpt-500 px-4 py-2 font-semibold text-white transition hover:bg-orangeFpt-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
                                                             >
                                                                 Upload ({localFiles.length})
                                                             </button>
@@ -819,11 +1064,7 @@ const CheckpointCardModal = ({
                     <div className="border-t border-gray-200 bg-gray-50 px-5 py-4">
                         <button
                             type="button"
-                            onClick={() => {
-                                if (!markCompleteButtonDisabled) {
-                                    onMarkComplete?.(checkpointId);
-                                }
-                            }}
+                            onClick={handleMarkCompleteClick}
                             disabled={markCompleteButtonDisabled}
                             title={markCompleteDisabledTitle}
                             className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 font-semibold text-white transition hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"

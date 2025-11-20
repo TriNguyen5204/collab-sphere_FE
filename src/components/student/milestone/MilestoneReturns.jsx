@@ -97,7 +97,7 @@ const buildExpireInfo = (rawExpireTime) => {
 const MilestoneReturns = ({
   submissions = [],
   canManageReturns = false,
-  onUploadMilestoneFiles = () => {},
+  onUploadMilestoneFiles = () => { },
   onDeleteMilestoneReturn,
   onRefreshMilestoneReturnLink,
 }) => {
@@ -197,42 +197,19 @@ const MilestoneReturns = ({
         Submissions ({submissions.length})
       </h4>
       {submissionsWithExpireInfo.length > 0 ? (
-        <ul className="space-y-3">
+        <ul className="grid grid-cols-1 gap-6 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-2">
           {submissionsWithExpireInfo.map((item) => (
             <li
               key={item.id}
-              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm"
+              className="flex h-full items-center gap-3 rounded-lg border border-gray-200 bg-white shadow-sm"
             >
-              <div className="flex-1 space-y-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <div>
-                    {item.avatar ? (
-                      <img
-                        src={item.avatar}
-                        alt={`${item.studentName || 'Student'} avatar`}
-                        className="h-12 w-12 flex-shrink-0 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-500">
-                        <User size={20} />
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {item.studentName || 'Unknown student'}
-                    </p>
-                    {item.studentCode && (
-                      <p className="text-xs text-gray-500">{item.studentCode}</p>
-                    )}
-                  </div>
-                </div>
+              <div className="flex-1 space-y-1 min-w-0">
                 <button
                   type="button"
                   onClick={() => handleOpenReturn(item)}
-                  className="flex w-full items-start gap-3 rounded-md border border-transparent bg-gray-50 p-3 text-left transition hover:border-blue-200 hover:bg-blue-50"
+                  className="flex w-full min-w-0 items-start gap-3 rounded-md border border-transparent bg-gray-50 p-3 text-left transition hover:border-orangeFpt-200 hover:bg-orangeFpt-50"
                 >
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-orangeFpt-100 text-orangeFpt-500">
                     {refreshingReturnId === item.id ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
@@ -240,11 +217,30 @@ const MilestoneReturns = ({
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-blue-600">
+                    <p
+                      className="text-sm font-semibold text-orangeFpt-500 overflow-hidden text-ellipsis whitespace-nowrap"
+                      title={item.name}
+                    >
                       {item.name}
                     </p>
                     <div className="flex flex-wrap items-center gap-x-3 text-xs text-gray-500">
-                      {item.submittedAtLabel && <span>Submitted {item.submittedAtLabel}</span>}
+                      {item.submittedAtLabel && (
+                        <span className="flex items-center gap-2">
+                          Submitted by
+                          {item.avatar ? (
+                            <img
+                              src={item.avatar}
+                              alt={`${item.studentName || 'Student'} avatar`}
+                              className="h-5 w-5 flex-shrink-0 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-500">
+                              <User size={20} />
+                            </div>
+                          )}
+                          {item.studentName || 'Unknown student'} at {item.submittedAtLabel}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </button>
@@ -282,7 +278,7 @@ const MilestoneReturns = ({
             />
             <label
               htmlFor="mile-file-input"
-              className={`font-semibold ${isUploadingReturns ? 'cursor-not-allowed text-gray-400' : 'cursor-pointer text-blue-600 hover:text-blue-700'}`}
+              className={`font-semibold ${isUploadingReturns ? 'cursor-not-allowed text-gray-400' : 'cursor-pointer text-orangeFpt-500 hover:text-orangeFpt-600'}`}
             >
               Choose files to upload
             </label>
@@ -292,9 +288,9 @@ const MilestoneReturns = ({
           {localFiles.length > 0 && (
             <div className="mt-3">
               <h5 className="text-sm font-semibold text-gray-800 mb-2">Files selected ({localFiles.length}):</h5>
-              <ul className="space-y-2">
+              <ul className="flex gap-3 w-full flex-wrap">
                 {localFiles.map((file, idx) => (
-                  <li key={`${file.name}-${idx}`} className="flex items-center justify-between rounded bg-gray-50 px-3 py-2">
+                  <li key={`${file.name}-${idx}`} className="flex items-center justify-between rounded-lg bg-gray-200 p-3">
                     <span className="truncate pr-3 text-sm text-gray-900">{file.name}</span>
                     <button
                       type="button"
@@ -313,11 +309,11 @@ const MilestoneReturns = ({
                   type="button"
                   onClick={handleUpload}
                   disabled={isUploadingReturns || localFiles.length === 0}
-                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-2 rounded-lg bg-orangeFpt-500 px-4 py-2 font-semibold text-white transition hover:bg-orangeFpt-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   {isUploadingReturns ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin text-orangeFpt-500" />
                       Uploading...
                     </>
                   ) : (

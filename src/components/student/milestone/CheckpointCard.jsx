@@ -97,11 +97,47 @@ const CheckpointCard = ({
   };
 
   const submitDisabled = localFiles.length === 0;
+  const synchronizeDetailResult = (maybeDetail) => {
+    if (maybeDetail && typeof maybeDetail === 'object') {
+      setCheckpointDetail(maybeDetail);
+    }
+    return maybeDetail;
+  };
 
-  const handleUpload = () => {
-    if (submitDisabled) return;
-    onUploadFiles?.(checkpoint.id, localFiles);
-    setLocalFiles([]);
+  const handleUpload = async () => {
+    if (submitDisabled || typeof onUploadFiles !== 'function') return;
+    try {
+      const detail = await onUploadFiles(checkpoint.id, localFiles);
+      synchronizeDetailResult(detail);
+    } catch (error) {
+      console.error('Failed to upload checkpoint files', error);
+    } finally {
+      setLocalFiles([]);
+    }
+  };
+
+  const handleAssignMembers = async (id, memberIds) => {
+    if (typeof onAssign !== 'function') return null;
+    const detail = await onAssign(id, memberIds);
+    return synchronizeDetailResult(detail);
+  };
+
+  const handleUpdateCheckpoint = async (id, payload) => {
+    if (typeof onEdit !== 'function') return null;
+    const detail = await onEdit(id, payload);
+    return synchronizeDetailResult(detail);
+  };
+
+  const handleMarkCompleteInternal = async (id) => {
+    if (typeof onMarkComplete !== 'function') return null;
+    const detail = await onMarkComplete(id);
+    return synchronizeDetailResult(detail);
+  };
+
+  const handleDeleteSubmissionInternal = async (cpId, submissionId) => {
+    if (typeof onDeleteSubmission !== 'function') return null;
+    const detail = await onDeleteSubmission(cpId, submissionId);
+    return synchronizeDetailResult(detail);
   };
 
   return (
@@ -177,12 +213,12 @@ const CheckpointCard = ({
         onRemoveLocalFile={handleRemoveFile}
         onUploadLocalFiles={handleUpload}
         uploadDisabled={submitDisabled}
-        onMarkComplete={onMarkComplete}
-        onDeleteSubmission={onDeleteSubmission}
+        onMarkComplete={handleMarkCompleteInternal}
+        onDeleteSubmission={handleDeleteSubmissionInternal}
         canAssign={canAssign}
-        onAssignMembers={(id, memberIds) => onAssign?.(id, memberIds)}
+        onAssignMembers={handleAssignMembers}
         onGenerateFileLink={onGenerateFileLink}
-        onUpdateCheckpoint={(id, payload) => onEdit?.(id, payload)}
+        onUpdateCheckpoint={handleUpdateCheckpoint}
         canDelete={canEdit && typeof onDelete === 'function'}
         onDeleteCheckpoint={(id) => onDelete?.(id ?? checkpoint.id)}
       />

@@ -1,10 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import React, { useState, useRef } from 'react';
 import ProjectBoardHeader from '../../../components/layout/ProjectBoardHeader';
 import TrelloBoard from '../../../components/student/board/TrelloBoard';
 
 const ProjectBoard = () => {
-  const [selectedRole, setSelectedRole] = useState('all');
+  const [selectedRole] = useState('all');
 
   // Archived items state
   const [archivedItems, setArchivedItems] = useState({ cards: [], lists: [] });
@@ -37,8 +36,6 @@ const ProjectBoard = () => {
   return (
     <div className="min-h-screen min-w-full" style={{ backgroundColor: "#D5DADF" }}>
       <ProjectBoardHeader 
-        selectedRole={selectedRole} 
-        onRoleChange={setSelectedRole}
         archivedItems={archivedItems}
         onRestoreArchived={handleRestoreArchived}
         onDeleteArchived={handleDeleteArchived}

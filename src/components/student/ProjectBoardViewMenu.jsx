@@ -69,7 +69,7 @@ const ProjectBoardViewMenu = () => {
                 >
                   <Icon className="w-4 h-4 mr-3" />
                   <span className="flex-1">{name}</span>
-                  {isActive && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
+                  {isActive && <div className="w-2 h-2 bg-orangeFpt-500 rounded-full"></div>}
                 </Link>
               </li>
             );
