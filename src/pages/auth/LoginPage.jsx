@@ -79,9 +79,14 @@ const LoginPage = () => {
     try {
       const response = await login(formData.email, formData.password);
       console.log('Login response:', response);
-      if (response?.userId) {
-        dispatch(setUserRedux(response));
-        Cookies.set('user', JSON.stringify(response), { expires: 7 });
+      if (response?.userId != null) {
+        const normalizedUser = {
+          ...response,
+          userId: Number(response.userId),
+        };
+
+        dispatch(setUserRedux(normalizedUser));
+        Cookies.set('user', JSON.stringify(normalizedUser), { expires: 7 });
         if (response.accessToken) {
           apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.accessToken}`;
         }

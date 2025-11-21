@@ -20,7 +20,7 @@ const userSlice = createSlice({
   initialState,
   reducers: {
     setUserRedux: (state, action) => {
-      state.userId = action.payload.userId;
+      state.userId = Number(action.payload.userId);
       state.fullName = action.payload.fullName;
       state.roleId = action.payload.roleId;
       state.roleName = action.payload.roleName;
