@@ -23,7 +23,7 @@ const BoardCard = ({ card, listId, onClick, onUpdate }) => {
     opacity: isDragging ? 0.3 : 1,
   };
 
-  const isOverdue = card.dueDate && new Date(card.dueDate) < new Date() && !card.isCompleted;
+  const isOverdue = card.dueAt && new Date(card.dueAt) < new Date() && !card.isDone;
 
   const handleCheckboxClick = (e) => {
     e.stopPropagation();
@@ -38,9 +38,10 @@ const BoardCard = ({ card, listId, onClick, onUpdate }) => {
   const getRiskColor = () => {
     if (!card.riskLevel) return 'bg-gray-200';
     switch (card.riskLevel) {
-      case 'high': return 'bg-red-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-green-500';
+      case 'High': return 'bg-red-500';
+      case 'Normal': return 'bg-yellow-500';
+      case 'Medium': return 'bg-orange-500';
+      case 'Low': return 'bg-green-500';
       default: return 'bg-gray-200';
     }
   };
@@ -86,10 +87,10 @@ const BoardCard = ({ card, listId, onClick, onUpdate }) => {
 
         {/* 3rd line: Due time and description icon */}
         <div className="flex items-center gap-3 mb-2 text-xs">
-          {card.dueDate && (
+          {card.dueAt && (
             <div
               className={`flex items-center gap-1 px-2 py-1 rounded ${
-                card.isCompleted
+                card.isDone === true
                   ? 'bg-green-100 text-green-700'
                   : isOverdue
                   ? 'bg-red-100 text-red-700'
@@ -118,10 +119,10 @@ const BoardCard = ({ card, listId, onClick, onUpdate }) => {
           <div className="flex -space-x-2 justify-end">
             {card.assignedMembers.slice(0, 3).map((member) => (
               <img
-                key={member.id}
-                src={member.avatar}
-                alt={member.name}
-                title={member.name}
+                key={member.studentId}
+                src={member.avatarImg}
+                alt={member.studentName}
+                title={member.studentName}
                 className="w-7 h-7 rounded-full ring-2 ring-white object-cover"
               />
             ))}

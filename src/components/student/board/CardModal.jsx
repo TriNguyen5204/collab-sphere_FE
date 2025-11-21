@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   X,
   Clock,
@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   Circle,
   Trash2,
-  Image as ImageIcon,
   Plus,
   Archive,
   Pencil,
@@ -16,6 +15,20 @@ import {
 import useClickOutside from '../../../hooks/useClickOutside';
 import ProjectMemberPopover from '../../student/ProjectMemberPopover';
 import TaskModal from './TaskModal';
+import { useSignalRContext } from '../../../context/kanban/useSignalRContext';
+import {
+  updateCardDetails,
+  markCardComplete,
+  assignMemberToCard,
+  unassignMemberFromCard,
+  createTask,
+  renameTask,
+  deleteTask,
+  createSubTask,
+  renameSubTask,
+  deleteSubTask,
+  markSubTaskDone,
+} from '../../../hooks/kanban/signalRHelper';
 
 const CardModal = ({
   card,
@@ -26,23 +39,26 @@ const CardModal = ({
   onDelete,
   onArchive,
   members,
+  workspaceId,
 }) => {
+  const { connection, isConnected } = useSignalRContext();
   const [isOpenTask, setIsOpenTask] = useState(false);
   const [editedCard, setEditedCard] = useState({
     ...card,
     assignedMembers: card.assignedMembers || [],
-    attachments: card.attachments || [],
     riskLevel: card.riskLevel || 'low',
-    labels: card.labels || [],
+    tasks: card.tasks || [],
+    dueAt: card.dueAt || null,
   });
+  console.log('Edited Card in Modal:', editedCard);
   const [showMemberMenu, setShowMemberMenu] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [popoverAnchor, setPopoverAnchor] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const dateInputRef = useRef(null);
   const plusButtonRef = useRef(null);
   const memberMenuRef = useRef(null);
-
   const panelRef = useRef(null);
   // useClickOutside(panelRef, onClose);
   useClickOutside(memberMenuRef, () => setShowMemberMenu(false));
@@ -54,9 +70,30 @@ const CardModal = ({
     return { top: `${rect.bottom + 8}px`, left: `${rect.left}px` };
   };
 
-  const handleSave = () => {
-    onUpdate(listId, editedCard);
-    onClose();
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await updateCardDetails(
+        connection,
+        workspaceId,
+        parseInt(listId),
+        parseInt(editedCard.id),
+        {
+          title: editedCard.title,
+          description: editedCard.description,
+          riskLevel: editedCard.riskLevel,
+          dueAt: editedCard.dueAt,
+        }
+      );
+
+      onUpdate(listId, editedCard);
+      onClose();
+    } catch (error) {
+      console.error('Error saving card:', error);
+      alert('Failed to save card details');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleDelete = () => {
@@ -71,28 +108,67 @@ const CardModal = ({
     onClose();
   };
 
-  const toggleComplete = () => {
-    const updatedCard = { ...editedCard, isCompleted: !editedCard.isCompleted };
-    setEditedCard(updatedCard);
-    onUpdate(listId, updatedCard);
+  const toggleComplete = async () => {
+    const newStatus = !editedCard.isCompleted;
+
+    try {
+      await markCardComplete(
+        connection,
+        workspaceId,
+        parseInt(listId),
+        parseInt(editedCard.id),
+        newStatus
+      );
+
+      setEditedCard(prev => ({ ...prev, isCompleted: newStatus }));
+    } catch (error) {
+      console.error('Error toggling card completion:', error);
+      alert('Failed to update card status');
+    }
   };
 
-  const toggleMember = member => {
+  const toggleMember = async member => {
     const assignedMembers = editedCard.assignedMembers || [];
-    const isAssigned = assignedMembers.some(m => m.id === member.id);
+    const isAssigned = assignedMembers.some(
+      m => m.studentId === member.studentId
+    );
 
-    if (isAssigned) {
-      setEditedCard({
-        ...editedCard,
-        assignedMembers: assignedMembers.filter(m => m.id !== member.id),
-      });
-    } else {
-      setEditedCard({
-        ...editedCard,
-        assignedMembers: [...assignedMembers, member],
-      });
+    try {
+      if (isAssigned) {
+        await unassignMemberFromCard(
+          connection,
+          workspaceId,
+          parseInt(listId),
+          parseInt(editedCard.id),
+          member.studentId
+        );
+
+        setEditedCard(prev => ({
+          ...prev,
+          assignedMembers: assignedMembers.filter(
+            m => m.studentId !== member.studentId
+          ),
+        }));
+      } else {
+        await assignMemberToCard(
+          connection,
+          workspaceId,
+          parseInt(listId),
+          parseInt(editedCard.id),
+          member.studentId,
+          member.studentName
+        );
+
+        setEditedCard(prev => ({
+          ...prev,
+          assignedMembers: [...assignedMembers, member],
+        }));
+      }
+      setShowMemberMenu(false);
+    } catch (error) {
+      console.error('Error toggling member:', error);
+      alert('Failed to update member assignment');
     }
-    setShowMemberMenu(false);
   };
 
   const handleMemberClick = (member, event) => {
@@ -104,10 +180,223 @@ const CardModal = ({
     setSelectedMember(null);
     setPopoverAnchor(null);
   };
+  const handleCreateTask = async (taskData) => {
+    try {
+      await createTask(
+        connection,
+        workspaceId,
+        parseInt(listId),
+        parseInt(editedCard.id),
+        taskData.title
+      );
+      
+      // Tạm thời thêm vào UI (SignalR event sẽ cập nhật lại)
+      const newTask = {
+        taskId: `temp-${Date.now()}`,
+        taskTitle: taskData.title,
+        isDone: false,
+        subTaskDtos: taskData.subtasks.map((st, idx) => ({
+          subTaskId: `temp-sub-${Date.now()}-${idx}`,
+          subTaskTitle: st.text,
+          isDone: false,
+        })),
+      };
+      
+      setEditedCard(prev => ({
+        ...prev,
+        tasks: [...(prev.tasks || []), newTask],
+      }));
+      
+      setIsOpenTask(false);
+    } catch (error) {
+      console.error('Error creating task:', error);
+      alert('Failed to create task');
+    }
+  };
 
+  const handleRenameTask = async (taskId, newTitle) => {
+    if (!newTitle.trim()) return;
+    
+    try {
+      await renameTask(
+        connection,
+        workspaceId,
+        parseInt(listId),
+        parseInt(editedCard.id),
+        parseInt(taskId),
+        newTitle
+      );
+      
+      setEditedCard(prev => ({
+        ...prev,
+        tasks: prev.tasks.map(t =>
+          t.taskId === taskId ? { ...t, taskTitle: newTitle } : t
+        ),
+      }));
+    } catch (error) {
+      console.error('Error renaming task:', error);
+      alert('Failed to rename task');
+    }
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    if (!window.confirm('Delete this task?')) return;
+    
+    try {
+      await deleteTask(
+        connection,
+        workspaceId,
+        parseInt(listId),
+        parseInt(editedCard.id),
+        parseInt(taskId)
+      );
+      
+      setEditedCard(prev => ({
+        ...prev,
+        tasks: prev.tasks.filter(t => t.taskId !== taskId),
+      }));
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      alert('Failed to delete task');
+    }
+  };
+
+  const handleToggleTaskDone = async (taskId, currentStatus) => {
+    try {
+      setEditedCard(prev => ({
+        ...prev,
+        tasks: prev.tasks.map(t =>
+          t.taskId === taskId ? { ...t, isDone: !currentStatus } : t
+        ),
+      }));
+      
+      // Note: Backend có thể cần endpoint riêng cho việc này
+      // Tạm thời chỉ update UI
+    } catch (error) {
+      console.error('Error toggling task:', error);
+    }
+  };
+
+  const handleCreateSubtask = async (taskId) => {
+    const title = prompt('Enter subtask title:');
+    if (!title) return;
+    
+    try {
+      await createSubTask(
+        connection,
+        workspaceId,
+        parseInt(listId),
+        parseInt(editedCard.id),
+        parseInt(taskId),
+        title,
+        false
+      );
+      
+      // UI sẽ được cập nhật qua SignalR event
+    } catch (error) {
+      console.error('Error creating subtask:', error);
+      alert('Failed to create subtask');
+    }
+  };
+
+  const handleRenameSubtask = async (taskId, subTaskId, newTitle) => {
+    if (!newTitle.trim()) return;
+    
+    try {
+      await renameSubTask(
+        connection,
+        workspaceId,
+        parseInt(listId),
+        parseInt(editedCard.id),
+        parseInt(taskId),
+        parseInt(subTaskId),
+        newTitle
+      );
+      
+      setEditedCard(prev => ({
+        ...prev,
+        tasks: prev.tasks.map(t =>
+          t.taskId === taskId
+            ? {
+                ...t,
+                subTaskDtos: t.subTaskDtos.map(s =>
+                  s.subTaskId === subTaskId ? { ...s, subTaskTitle: newTitle } : s
+                ),
+              }
+            : t
+        ),
+      }));
+    } catch (error) {
+      console.error('Error renaming subtask:', error);
+      alert('Failed to rename subtask');
+    }
+  };
+
+  const handleDeleteSubtask = async (taskId, subTaskId) => {
+    if (!window.confirm('Delete this subtask?')) return;
+    
+    try {
+      await deleteSubTask(
+        connection,
+        workspaceId,
+        parseInt(listId),
+        parseInt(editedCard.id),
+        parseInt(taskId),
+        parseInt(subTaskId)
+      );
+      
+      setEditedCard(prev => ({
+        ...prev,
+        tasks: prev.tasks.map(t =>
+          t.taskId === taskId
+            ? {
+                ...t,
+                subTaskDtos: t.subTaskDtos.filter(s => s.subTaskId !== subTaskId),
+              }
+            : t
+        ),
+      }));
+    } catch (error) {
+      console.error('Error deleting subtask:', error);
+      alert('Failed to delete subtask');
+    }
+  };
+
+  const handleToggleSubtaskDone = async (taskId, subTaskId, currentStatus) => {
+    try {
+      await markSubTaskDone(
+        connection,
+        workspaceId,
+        parseInt(listId),
+        parseInt(editedCard.id),
+        parseInt(taskId),
+        parseInt(subTaskId),
+        !currentStatus
+      );
+      
+      setEditedCard(prev => ({
+        ...prev,
+        tasks: prev.tasks.map(t =>
+          t.taskId === taskId
+            ? {
+                ...t,
+                subTaskDtos: t.subTaskDtos.map(s =>
+                  s.subTaskId === subTaskId ? { ...s, isDone: !currentStatus } : s
+                ),
+              }
+            : t
+        ),
+      }));
+    } catch (error) {
+      console.error('Error toggling subtask:', error);
+      alert('Failed to update subtask status');
+    }
+  };
+
+  // Fix: sử dụng dueAt thay vì dueDate
   const isOverdue =
-    editedCard.dueDate &&
-    new Date(editedCard.dueDate) < new Date() &&
+    editedCard.dueAt &&
+    new Date(editedCard.dueAt) < new Date() &&
     !editedCard.isCompleted;
 
   const riskLevels = [
@@ -143,6 +432,11 @@ const CardModal = ({
             <h2 className='text-white font-bold text-2xl md:text-3xl'>
               {listTitle}
             </h2>
+            {!isConnected && (
+                <span className='text-yellow-300 text-sm bg-yellow-900/30 px-2 py-1 rounded'>
+                  ⚠️ Offline
+                </span>
+              )}
             <div className='flex items-center gap-2'>
               {/* Move Archive/Delete to header */}
               <button
@@ -217,14 +511,14 @@ const CardModal = ({
               <div className='flex items-center gap-2 flex-wrap'>
                 {editedCard.assignedMembers?.map(member => (
                   <button
-                    key={member.id}
+                    key={member.studentId}
                     onClick={e => handleMemberClick(member, e)}
                     className='relative group'
                     type='button'
                   >
                     <img
-                      src={member.avatar}
-                      alt={member.name}
+                      src={member.avatarImg}
+                      alt={member.studentName}
                       className='w-10 h-10 rounded-full ring-2 ring-gray-200 hover:ring-blue-400 transition-all object-cover'
                     />
                   </button>
@@ -256,14 +550,15 @@ const CardModal = ({
                           Select Members
                         </h4>
                         <div className='space-y-1'>
-                          {members.map(member => {
+                          {members?.map(member => {
                             const isAssigned = editedCard.assignedMembers?.some(
-                              m => m.id === member.id
+                              m => m.studentId === member.studentId
                             );
                             return (
                               <button
                                 key={member.id}
                                 onClick={() => toggleMember(member)}
+                                disabled={!isConnected}
                                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
                                   isAssigned
                                     ? 'bg-blue-50 hover:bg-blue-100 ring-2 ring-blue-200'
@@ -272,23 +567,14 @@ const CardModal = ({
                                 type='button'
                               >
                                 <img
-                                  src={member.avatar}
-                                  alt={member.name}
+                                  src={member.avatarImg}
+                                  alt={member.studentName}
                                   className='w-9 h-9 rounded-full ring-2 ring-white shadow object-cover'
                                 />
                                 <div className='flex-1 text-left'>
                                   <div className='flex items-center gap-2'>
                                     <span className='text-gray-800 font-medium text-sm'>
-                                      {member.name}
-                                    </span>
-                                    <span
-                                      className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                                        member.role === 'Leader'
-                                          ? 'bg-yellow-100 text-yellow-700'
-                                          : 'bg-gray-100 text-gray-600'
-                                      }`}
-                                    >
-                                      {member.role}
+                                      {member.studentName}
                                     </span>
                                   </div>
                                 </div>
@@ -335,7 +621,7 @@ const CardModal = ({
 
           {/* Details: Due Date (left) + Attachments (right) */}
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-            {/* Due Date */}
+            {/* Due Date - Fix: sử dụng dueAt */}
             <div>
               <h3 className='text-gray-800 font-semibold mb-3 flex items-center gap-2'>
                 <Clock size={20} className='text-gray-600' />
@@ -346,39 +632,34 @@ const CardModal = ({
                   <input
                     ref={dateInputRef}
                     type='date'
-                    value={editedCard.dueDate || ''}
+                    value={editedCard.dueAt || ''}
                     onChange={e =>
                       setEditedCard({
                         ...editedCard,
-                        dueDate: e.target.value || null,
+                        dueAt: e.target.value || null,
                       })
                     }
                     className='flex-1 bg-transparent outline-none'
                   />
                 </div>
                 <div className='text-sm text-gray-600'>
-                  {editedCard.dueDate ? (
+                  {editedCard.dueAt ? (
                     <span>
-                      {new Date(editedCard.dueDate).toLocaleDateString(
-                        'en-US',
-                        {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        }
-                      )}
+                      {new Date(editedCard.dueAt).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
                     </span>
                   ) : (
                     <span>No due date set</span>
                   )}
-                  {editedCard.dueDate &&
-                    !editedCard.isCompleted &&
-                    isOverdue && (
-                      <span className='ml-2 text-xs font-semibold bg-red-600 text-white px-2 py-0.5 rounded-full'>
-                        OVERDUE
-                      </span>
-                    )}
+                  {editedCard.dueAt && !editedCard.isCompleted && isOverdue && (
+                    <span className='ml-2 text-xs font-semibold bg-red-600 text-white px-2 py-0.5 rounded-full'>
+                      OVERDUE
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -410,6 +691,7 @@ const CardModal = ({
 
               <button
                 onClick={() => setIsOpenTask(true)}
+                disabled={!isConnected}
                 className='flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg'
                 type='button'
               >
@@ -420,7 +702,7 @@ const CardModal = ({
 
             {editedCard.tasks?.map(task => (
               <div
-                key={task.id}
+                key={task.taskId}
                 className='bg-gray-800 text-white p-4 rounded-xl shadow'
               >
                 {/* Task header */}
@@ -428,23 +710,16 @@ const CardModal = ({
                   <div className='flex items-center gap-2'>
                     <input
                       type='checkbox'
-                      checked={task.status}
-                      onChange={() => {
-                        const updated = {
-                          ...editedCard,
-                          tasks: editedCard.tasks.map(t =>
-                            t.id === task.id ? { ...t, status: !t.status } : t
-                          ),
-                        };
-                        setEditedCard(updated);
-                      }}
+                      checked={task.isDone}
+                      onChange={() => handleToggleTaskDone(task.taskId, task.isDone)}
+                      disabled={!isConnected}
                       className='w-5 h-5'
                     />
 
                     <span
                       className={`font-semibold text-lg ${task.status ? 'line-through opacity-60' : ''}`}
                     >
-                      {task.title}
+                      {task.taskTitle}
                     </span>
                   </div>
 
@@ -452,35 +727,21 @@ const CardModal = ({
                     {/* UPDATE TASK */}
                     <button
                       onClick={() => {
-                        const name = prompt(
-                          'Nhập tên mới cho task:',
-                          task.title
-                        );
-                        if (!name) return;
-                        const updated = {
-                          ...editedCard,
-                          tasks: editedCard.tasks.map(t =>
-                            t.id === task.id ? { ...t, title: name } : t
-                          ),
-                        };
-                        setEditedCard(updated);
+                        const name = prompt('Enter new task title:', task.taskTitle);
+                        if (name) handleRenameTask(task.taskId, name);
                       }}
-                      className='text-gray-300 hover:text-blue-400 px-2 py-1 rounded'
-                      title='Update Task'
+                      disabled={!isConnected}
+                      className='text-gray-300 hover:text-blue-400 px-2 py-1 rounded disabled:opacity-50'
+                      title='Rename Task'
                     >
                       <Pencil size={18} />
                     </button>
 
                     {/* DELETE TASK */}
                     <button
-                      onClick={() => {
-                        const updated = {
-                          ...editedCard,
-                          tasks: editedCard.tasks.filter(t => t.id !== task.id),
-                        };
-                        setEditedCard(updated);
-                      }}
-                      className='text-gray-300 hover:text-red-400 px-2 py-1 rounded'
+                      onClick={() => handleDeleteTask(task.taskId)}
+                      disabled={!isConnected}
+                      className='text-gray-300 hover:text-red-400 px-2 py-1 rounded disabled:opacity-50'
                       title='Delete Task'
                     >
                       <Trash2 size={18} />
@@ -492,8 +753,8 @@ const CardModal = ({
                 <div className='mt-2 mb-3'>
                   <div className='text-xs text-gray-400'>
                     {Math.round(
-                      (task.subtasks.filter(s => s.status).length /
-                        task.subtasks.length) *
+                      (task.subTaskDtos.filter(s => s.isDone).length /
+                        task.subTaskDtos.length) *
                         100
                     ) || 0}
                     %
@@ -503,8 +764,8 @@ const CardModal = ({
                       className='h-1 bg-blue-500 rounded'
                       style={{
                         width: `${
-                          (task.subtasks.filter(s => s.status).length /
-                            task.subtasks.length) *
+                          (task.subTaskDtos.filter(s => s.isDone).length /
+                            task.subTaskDtos.length) *
                             100 || 0
                         }%`,
                       }}
@@ -514,39 +775,25 @@ const CardModal = ({
 
                 {/* Subtasks */}
                 <div className='space-y-2'>
-                  {task.subtasks?.map(sub => (
+                  {task.subTaskDtos?.map(sub => (
                     <div
-                      key={sub.id}
+                      key={sub.subTaskId} // ✅ Đổi từ sub.id → sub.subTaskId
                       className='flex items-center justify-between pl-2'
                     >
                       <label className='flex items-center gap-3 flex-1'>
                         <input
                           type='checkbox'
-                          checked={sub.status}
-                          onChange={() => {
-                            const updated = {
-                              ...editedCard,
-                              tasks: editedCard.tasks.map(t =>
-                                t.id === task.id
-                                  ? {
-                                      ...t,
-                                      subtasks: t.subtasks.map(s =>
-                                        s.id === sub.id
-                                          ? { ...s, status: !s.status }
-                                          : s
-                                      ),
-                                    }
-                                  : t
-                              ),
-                            };
-                            setEditedCard(updated);
-                          }}
+                          checked={sub.isDone}
+                          onChange={() =>
+                            handleToggleSubtaskDone(task.taskId, sub.subTaskId, sub.isDone)
+                          }
+                          disabled={!isConnected}
                           className='w-4 h-4'
                         />
                         <span
-                          className={`${sub.status ? 'line-through opacity-60' : ''}`}
+                          className={`${sub.isDone ? 'line-through opacity-60' : ''}`} 
                         >
-                          {sub.title}
+                          {sub.subTaskTitle}{' '}
                         </span>
                       </label>
 
@@ -554,55 +801,21 @@ const CardModal = ({
                         {/* UPDATE SUBTASK */}
                         <button
                           onClick={() => {
-                            const name = prompt(
-                              'Nhập tên mới cho subtask:',
-                              sub.title
-                            );
-                            if (!name) return;
-
-                            const updated = {
-                              ...editedCard,
-                              tasks: editedCard.tasks.map(t =>
-                                t.id === task.id
-                                  ? {
-                                      ...t,
-                                      subtasks: t.subtasks.map(s =>
-                                        s.id === sub.id
-                                          ? { ...s, title: name }
-                                          : s
-                                      ),
-                                    }
-                                  : t
-                              ),
-                            };
-
-                            setEditedCard(updated);
+                            const name = prompt('Enter new subtask title:', sub.subTaskTitle);
+                            if (name) handleRenameSubtask(task.taskId, sub.subTaskId, name);
                           }}
-                          className='text-gray-300 hover:text-blue-400 px-1 rounded'
-                          title='Update Subtask'
+                          disabled={!isConnected}
+                          className='text-gray-300 hover:text-blue-400 px-1 rounded disabled:opacity-50'
+                          title='Rename Subtask'
                         >
                           <PencilLine size={16} />
                         </button>
 
                         {/* DELETE SUBTASK */}
                         <button
-                          onClick={() => {
-                            const updated = {
-                              ...editedCard,
-                              tasks: editedCard.tasks.map(t =>
-                                t.id === task.id
-                                  ? {
-                                      ...t,
-                                      subtasks: t.subtasks.filter(
-                                        s => s.id !== sub.id
-                                      ),
-                                    }
-                                  : t
-                              ),
-                            };
-                            setEditedCard(updated);
-                          }}
-                          className='text-gray-300 hover:text-red-400 px-1 rounded'
+                          onClick={() => handleDeleteSubtask(task.taskId, sub.subTaskId)}
+                          disabled={!isConnected}
+                          className='text-gray-300 hover:text-red-400 px-1 rounded disabled:opacity-50'
                           title='Delete Subtask'
                         >
                           <Trash2 size={16} />
@@ -613,31 +826,9 @@ const CardModal = ({
 
                   {/* Add subtask button */}
                   <button
-                    className='mt-2 bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-sm'
-                    onClick={() => {
-                      const name = prompt('Nhập tên subtask:');
-                      if (!name) return;
-
-                      const updated = {
-                        ...editedCard,
-                        tasks: editedCard.tasks.map(t =>
-                          t.id === task.id
-                            ? {
-                                ...t,
-                                subtasks: [
-                                  ...t.subtasks,
-                                  {
-                                    id: crypto.randomUUID(),
-                                    title: name,
-                                    status: false,
-                                  },
-                                ],
-                              }
-                            : t
-                        ),
-                      };
-                      setEditedCard(updated);
-                    }}
+                    className='mt-2 bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-sm disabled:opacity-50'
+                    onClick={() => handleCreateSubtask(task.taskId)}
+                    disabled={!isConnected}
                   >
                     Thêm một mục
                   </button>
@@ -657,10 +848,11 @@ const CardModal = ({
             </button>
             <button
               onClick={handleSave}
+              disabled={isSaving || !isConnected}
               className='px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all'
               type='button'
             >
-              Save Changes
+              {isSaving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </div>
@@ -679,6 +871,7 @@ const CardModal = ({
         <TaskModal
           isOpen={isOpenTask === true}
           onClose={() => setIsOpenTask(false)}
+          onSave={handleCreateTask}
         />
       )}
     </div>

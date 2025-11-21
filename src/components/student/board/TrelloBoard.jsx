@@ -1,10 +1,4 @@
-import React, {
-  useMemo,
-  useState,
-  useImperativeHandle,
-  forwardRef,
-  useEffect,
-} from 'react';
+import React, { useMemo, useState, forwardRef, useEffect } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -15,7 +9,6 @@ import {
 } from '@dnd-kit/core';
 import {
   SortableContext,
-  arrayMove,
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Plus } from 'lucide-react';
@@ -23,235 +16,26 @@ import { Plus } from 'lucide-react';
 import BoardList from './BoardList';
 import CardModal from './CardModal';
 import UndoNotification from './UndoNotification';
-
-// ────────────────────────────────────────────────────────────────────────────────
-// Fake members (re‑use across cards)
-const members = [
-  {
-    id: 1,
-    name: 'Alice',
-    role: 'Leader',
-    avatar: 'https://i.pravatar.cc/40?u=1',
-    tags: ['Frontend', 'UI/UX'],
-  },
-  {
-    id: 2,
-    name: 'Bob',
-    role: 'Member',
-    avatar: 'https://i.pravatar.cc/40?u=2',
-    tags: ['Backend'],
-  },
-  {
-    id: 3,
-    name: 'Charlie',
-    role: 'Member',
-    avatar: 'https://i.pravatar.cc/40?u=3',
-    tags: ['Frontend'],
-  },
-  {
-    id: 4,
-    name: 'Diana',
-    role: 'Member',
-    avatar: 'https://i.pravatar.cc/40?u=4',
-    tags: ['UI/UX'],
-  },
-  {
-    id: 5,
-    name: 'Eve',
-    role: 'Member',
-    avatar: 'https://i.pravatar.cc/40?u=5',
-    tags: ['QA'],
-  },
-  {
-    id: 6,
-    name: 'Frank',
-    role: 'Member',
-    avatar: 'https://i.pravatar.cc/40?u=6',
-    tags: ['Backend', 'DevOps'],
-  },
-];
-
-// ────────────────────────────────────────────────────────────────────────────────
-// Initial lists data
-const initialLists = [
-  {
-    id: 'list-1',
-    title: 'To Do',
-    cards: [
-      {
-        id: 'card-1',
-        title: 'Design homepage',
-        description: 'Create wireframes + hero section mockups',
-        assignedMembers: [
-          {
-            id: 1,
-            name: 'Alice',
-            role: 'Leader',
-            avatar: 'https://i.pravatar.cc/40?u=1',
-            tags: ['Frontend', 'UI/UX'],
-          },
-          {
-            id: 4,
-            name: 'Diana',
-            role: 'Member',
-            avatar: 'https://i.pravatar.cc/40?u=4',
-            tags: ['UI/UX'],
-          },
-        ],
-        dueDate: '2025-10-10',
-        isCompleted: false,
-        attachments: [],
-        riskLevel: 'medium',
-        milestones: [
-          {
-            id: 'ms-1',
-            title: 'UI Skeleton',
-            checkpoints: [
-              { id: 'cp-1', title: 'Header/Navigation', done: false },
-              { id: 'cp-2', title: 'Hero layout', done: false },
-            ],
-          },
-        ],
-        tasks: [
-          {
-            id: 'task-1',
-            title: 'Wireframe layout',
-            status: false,
-            subtasks: [
-              { id: 'sub-1', title: 'Header structure', status: false },
-              { id: 'sub-2', title: 'Hero layout', status: false },
-              { id: 'sub-3', title: 'Footer layout', status: false },
-            ],
-          },
-          {
-            id: 'task-2',
-            title: 'Design hero section',
-            status: false,
-            subtasks: [
-              { id: 'sub-4', title: 'Typography setup', status: false },
-              { id: 'sub-5', title: 'Color palette', status: true },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'list-2',
-    title: 'In Progress',
-    cards: [
-      {
-        id: 'card-2',
-        title: 'Implement auth API',
-        description: 'Login / Register / Refresh token endpoints',
-        assignedMembers: [
-          {
-            id: 2,
-            name: 'Bob',
-            role: 'Member',
-            avatar: 'https://i.pravatar.cc/40?u=2',
-            tags: ['Backend'],
-          },
-          {
-            id: 6,
-            name: 'Frank',
-            role: 'Member',
-            avatar: 'https://i.pravatar.cc/40?u=6',
-            tags: ['Backend', 'DevOps'],
-          },
-        ],
-        dueDate: '2025-10-08',
-        isCompleted: false,
-        attachments: [],
-        riskLevel: 'high',
-        milestones: [
-          {
-            id: 'ms-2',
-            title: 'JWT flow',
-            checkpoints: [
-              { id: 'cp-3', title: 'Access/Refresh model', done: true },
-              { id: 'cp-4', title: 'Role guard', done: false },
-            ],
-          },
-        ],
-        tasks: [
-          {
-            id: 'task-3',
-            title: 'Create User model',
-            status: true,
-            subtasks: [
-              { id: 'sub-6', title: 'Schema design', status: true },
-              { id: 'sub-7', title: 'Validation', status: true },
-            ],
-          },
-          {
-            id: 'task-4',
-            title: 'Implement login endpoint',
-            status: false,
-            subtasks: [
-              { id: 'sub-8', title: 'Handle input', status: true },
-              { id: 'sub-9', title: 'Return JWT', status: false },
-            ],
-          },
-        ],
-      },
-      {
-        id: 'card-3',
-        title: 'Kanban DnD',
-        description: 'Drag & drop lists + cards with dnd-kit',
-        assignedMembers: [
-          {
-            id: 1,
-            name: 'Alice',
-            role: 'Leader',
-            avatar: 'https://i.pravatar.cc/40?u=1',
-            tags: ['Frontend', 'UI/UX'],
-          },
-          {
-            id: 3,
-            name: 'Charlie',
-            role: 'Member',
-            avatar: 'https://i.pravatar.cc/40?u=3',
-            tags: ['Frontend'],
-          },
-        ],
-        dueDate: '2025-10-12',
-        isCompleted: false,
-        attachments: [],
-        riskLevel: 'low',
-        milestones: [],
-        tasks: [
-          {
-            id: 'task-5',
-            title: 'Setup DnD sensors',
-            status: true,
-            subtasks: [
-              { id: 'sub-10', title: 'Pointer sensor', status: true },
-              { id: 'sub-11', title: 'Keyboard sensor', status: true },
-            ],
-          },
-          {
-            id: 'task-6',
-            title: 'Make cards draggable',
-            status: false,
-            subtasks: [
-              { id: 'sub-12', title: 'Card wrapper', status: false },
-              { id: 'sub-13', title: 'Drag overlay', status: false },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  { id: 'list-3', title: 'Review', cards: [] },
-  { id: 'list-4', title: 'Done', cards: [] },
-];
-
+import { useSignalRContext } from '../../../context/kanban/useSignalRContext';
+import {
+  createList,
+  moveList,
+  moveCard as moveCardSignalR,
+  updateCardDetails,
+  deleteCard as deleteCardSignalR,
+} from '../../../hooks/kanban/signalRHelper';
+import { getPositionForIndex } from '../../../utils/positionHelper';
+import {
+  sortListsAndCards,
+  sortListsByPosition,
+} from '../../../utils/sortHelper';
 const TrelloBoard = forwardRef(function TrelloBoard(
-  { selectedRole, onUpdateArchived },
+  { onUpdateArchived, workspaceData },
   ref
 ) {
-  const [lists, setLists] = useState(initialLists);
+  const workspaceId = workspaceData?.id;
+  const { connection, isConnected } = useSignalRContext();
+  const [lists, setLists] = useState([]);
   const [archivedItems, setArchivedItems] = useState({ cards: [], lists: [] });
   const [activeCard, setActiveCard] = useState(null);
   const [activeList, setActiveList] = useState(null);
@@ -259,6 +43,533 @@ const TrelloBoard = forwardRef(function TrelloBoard(
   const [isAddingList, setIsAddingList] = useState(false);
   const [newListTitle, setNewListTitle] = useState('');
   const [undoAction, setUndoAction] = useState(null);
+
+  useEffect(() => {
+    if (!workspaceData) return;
+
+    // Convert workspaceData → lists đúng format TrelloBoard
+    const convertedLists = workspaceData.lists.map(list => ({
+      id: list.id,
+      title: list.title,
+      position: list.position,
+      cards: list.cards.map(card => ({
+        id: card.id.toString(),
+        title: card.title,
+        description: card.description ?? '',
+        riskLevel: card.riskLevel,
+        dueAt: card.dueAt,
+        createdAt: card.createdAt,
+        position: card.position,
+        isCompleted: card.isComplete,
+        assignedMembers: card.assignedMembers.map(member => ({
+          studentId: member.studentId,
+          studentName: member.studentName,
+          avatarImg: member.avatarImg,
+        })),
+        tasks: (card.tasks ?? []).map(task => ({
+          taskId: task.taskId,
+          taskTitle: task.taskTitle,
+          isDone: task.isDone,
+          subTaskDtos: (task.subTaskDtos ?? []).map(subtask => ({
+            subTaskId: subtask.subTaskId,
+            subTaskTitle: subtask.subTaskTitle,
+            isDone: subtask.isDone,
+          })),
+        })),
+      })),
+    }));
+    const sortedList = sortListsAndCards(convertedLists);
+
+    setLists(sortedList);
+  }, [workspaceData]);
+
+  // Lắng nghe SignalR events
+  useEffect(() => {
+    if (!connection || !isConnected) return;
+
+    // List Events
+    connection.on('ReceiveListCreated', message => {
+      try {
+        const data = JSON.parse(message);
+        setLists(prev => {
+          const updated = [
+            ...prev,
+            {
+              id: data.id,
+              title: data.title,
+              position: data.position,
+              cards: [],
+            },
+          ];
+
+          // Sort sau khi thêm
+          return updated.sort((a, b) => a.position - b.position);
+        });
+      } catch (e) {
+        console.error('Error parsing ListCreated:', e);
+      }
+    });
+
+    connection.on('ReceiveListRenamed', (listId, newTitle) => {
+      console.log('ReceiveListRenamed:', listId, newTitle);
+      setLists(prev =>
+        prev.map(l => (l.id === listId ? { ...l, title: newTitle } : l))
+      );
+    });
+
+    connection.on('ReceiveListMoved', (listId, newPosition) => {
+      console.log('ReceiveListMoved:', listId, newPosition);
+      setLists(prev =>
+        prev.map(l =>
+          l.id === listId.toString() ? { ...l, position: newPosition } : l
+        )
+      );
+    });
+
+    // Card Events
+    connection.on('ReceiveCardCreated', (listId, message) => {
+      try {
+        const cardData = JSON.parse(message);
+
+        setLists(prev =>
+          prev.map(l =>
+            l.id === listId
+              ? {
+                  ...l,
+                  cards: [
+                    ...l.cards,
+                    {
+                      id: cardData.CardId,
+                      title: cardData.Title,
+                      description: cardData.Description ?? '',
+                      riskLevel: cardData.RiskLevel,
+                      dueAt: cardData.DueAt,
+                      position: cardData.Position,
+                      isCompleted: cardData.IsCompleted,
+                      assignedMembers: (cardData.CardAssignments || []).map(
+                        a => ({
+                          studentId: a.StudentId,
+                          studentName: a.StudentName,
+                          avatarImg: a.Avatar,
+                        })
+                      ),
+                      tasks: (cardData.Tasks || []).map(t => ({
+                        taskId: t.TaskId,
+                        taskTitle: t.TaskTitle,
+                        isDone: t.IsDone ?? false,
+                        subTaskDtos: (t.SubTasks || []).map(st => ({
+                          subTaskId: st.SubTaskId,
+                          subTaskTitle: st.SubTaskTitle,
+                          isDone: st.IsDone ?? false,
+                        })),
+                      })),
+                    },
+                  ]
+                    // ✅ Sort cards sau khi thêm
+                    .sort((a, b) => a.position - b.position),
+                }
+              : l
+          )
+        );
+      } catch (e) {
+        console.error('Error parsing CardCreated:', e);
+      }
+    });
+
+    connection.on('ReceiveCardMoved', (cardId, newListId, newPosition) => {
+      setLists(prev => {
+        const draft = structuredClone(prev);
+
+        // Tìm và di chuyển card
+        let movedCard = null;
+        for (const list of draft) {
+          const cardIndex = list.cards.findIndex(c => c.id === cardId);
+          if (cardIndex !== -1) {
+            [movedCard] = list.cards.splice(cardIndex, 1);
+            break;
+          }
+        }
+
+        if (!movedCard) return prev;
+
+        const targetList = draft.find(l => l.id === newListId);
+        if (!targetList) return prev;
+
+        movedCard.position = newPosition;
+        targetList.cards.push(movedCard);
+
+        // ✅ Sort cards trong list đích
+        targetList.cards.sort((a, b) => a.position - b.position);
+
+        return draft;
+      });
+    });
+
+    connection.on('ReceiveCardUpdated', (cardId, message) => {
+      console.log('ReceiveCardUpdated:', cardId);
+      try {
+        const updates = JSON.parse(message);
+        setLists(prev =>
+          prev.map(l => ({
+            ...l,
+            cards: l.cards.map(c =>
+              c.id === cardId.toString()
+                ? {
+                    ...c,
+                    title: updates.CardTitle,
+                    description: updates.CardDescription,
+                    riskLevel: updates.RiskLevel,
+                    dueAt: updates.DueAt,
+                  }
+                : c
+            ),
+          }))
+        );
+      } catch (e) {
+        console.error('Error parsing ReceiveCardUpdated:', e);
+      }
+    });
+
+    connection.on('ReceiveCardComplete', (listId, cardId, isComplete) => {
+      console.log('ReceiveCardComplete:', { listId, cardId, isComplete });
+      setLists(prev =>
+        prev.map(l =>
+          l.id === listId.toString()
+            ? {
+                ...l,
+                cards: l.cards.map(c =>
+                  c.id === cardId.toString()
+                    ? { ...c, isCompleted: isComplete }
+                    : c
+                ),
+              }
+            : l
+        )
+      );
+    });
+
+    connection.on('ReceiveCardAssigned', (listId, cardId, message) => {
+      console.log('ReceiveCardAssigned:', { listId, cardId });
+      try {
+        const memberData = JSON.parse(message);
+        setLists(prev =>
+          prev.map(l =>
+            l.id === listId.toString()
+              ? {
+                  ...l,
+                  cards: l.cards.map(c =>
+                    c.id === cardId.toString()
+                      ? {
+                          ...c,
+                          assignedMembers: [
+                            ...(c.assignedMembers || []),
+                            {
+                              studentId: memberData.studentId,
+                              studentName: memberData.studentName,
+                              avatarImg: memberData.avatarImg,
+                            },
+                          ],
+                        }
+                      : c
+                  ),
+                }
+              : l
+          )
+        );
+      } catch (e) {
+        console.error('Error parsing ReceiveCardAssigned:', e);
+      }
+    });
+
+    connection.on('ReceiveCardUnAssigned', (listId, cardId, studentId) => {
+      console.log('ReceiveCardUnAssigned:', { listId, cardId, studentId });
+      setLists(prev =>
+        prev.map(l =>
+          l.id === listId.toString()
+            ? {
+                ...l,
+                cards: l.cards.map(c =>
+                  c.id === cardId.toString()
+                    ? {
+                        ...c,
+                        assignedMembers: (c.assignedMembers || []).filter(
+                          m => m.studentId !== studentId
+                        ),
+                      }
+                    : c
+                ),
+              }
+            : l
+        )
+      );
+    });
+
+    // Task Events
+    connection.on('ReceiveTaskCreated', (listId, cardId, message) => {
+      console.log('ReceiveTaskCreated:', { listId, cardId });
+      try {
+        const taskData = JSON.parse(message);
+        setLists(prev =>
+          prev.map(l =>
+            l.id === listId.toString()
+              ? {
+                  ...l,
+                  cards: l.cards.map(c =>
+                    c.id === cardId.toString()
+                      ? {
+                          ...c,
+                          tasks: [
+                            ...(c.tasks || []),
+                            {
+                              taskId: taskData.taskId,
+                              taskTitle: taskData.taskTitle,
+                              isDone: taskData.isDone || false,
+                              subTaskDtos: taskData.subTaskDtos || [],
+                            },
+                          ],
+                        }
+                      : c
+                  ),
+                }
+              : l
+          )
+        );
+      } catch (e) {
+        console.error('Error parsing ReceiveTaskCreated:', e);
+      }
+    });
+
+    connection.on('ReceiveTaskRenamed', (listId, cardId, taskId, newTitle) => {
+      console.log('ReceiveTaskRenamed:', { listId, cardId, taskId, newTitle });
+      setLists(prev =>
+        prev.map(l =>
+          l.id === listId.toString()
+            ? {
+                ...l,
+                cards: l.cards.map(c =>
+                  c.id === cardId.toString()
+                    ? {
+                        ...c,
+                        tasks: (c.tasks || []).map(t =>
+                          t.taskId === taskId
+                            ? { ...t, taskTitle: newTitle }
+                            : t
+                        ),
+                      }
+                    : c
+                ),
+              }
+            : l
+        )
+      );
+    });
+
+    connection.on('ReceiveTaskDeleted', (listId, cardId, taskId) => {
+      console.log('ReceiveTaskDeleted:', { listId, cardId, taskId });
+      setLists(prev =>
+        prev.map(l =>
+          l.id === listId.toString()
+            ? {
+                ...l,
+                cards: l.cards.map(c =>
+                  c.id === cardId.toString()
+                    ? {
+                        ...c,
+                        tasks: (c.tasks || []).filter(t => t.taskId !== taskId),
+                      }
+                    : c
+                ),
+              }
+            : l
+        )
+      );
+    });
+
+    // SubTask Events
+    connection.on(
+      'ReceiveSubTaskCreated',
+      (listId, cardId, taskId, message) => {
+        console.log('ReceiveSubTaskCreated:', { listId, cardId, taskId });
+        try {
+          const subTaskData = JSON.parse(message);
+          setLists(prev =>
+            prev.map(l =>
+              l.id === listId.toString()
+                ? {
+                    ...l,
+                    cards: l.cards.map(c =>
+                      c.id === cardId.toString()
+                        ? {
+                            ...c,
+                            tasks: (c.tasks || []).map(t =>
+                              t.taskId === taskId
+                                ? {
+                                    ...t,
+                                    subTaskDtos: [
+                                      ...(t.subTaskDtos || []),
+                                      {
+                                        subTaskId: subTaskData.subTaskId,
+                                        subTaskTitle: subTaskData.subTaskTitle,
+                                        isDone: subTaskData.isDone || false,
+                                      },
+                                    ],
+                                  }
+                                : t
+                            ),
+                          }
+                        : c
+                    ),
+                  }
+                : l
+            )
+          );
+        } catch (e) {
+          console.error('Error parsing ReceiveSubTaskCreated:', e);
+        }
+      }
+    );
+
+    connection.on(
+      'ReceiveSubTaskRenamed',
+      (listId, cardId, taskId, subTaskId, newTitle) => {
+        console.log('ReceiveSubTaskRenamed:', {
+          listId,
+          cardId,
+          taskId,
+          subTaskId,
+          newTitle,
+        });
+        setLists(prev =>
+          prev.map(l =>
+            l.id === listId.toString()
+              ? {
+                  ...l,
+                  cards: l.cards.map(c =>
+                    c.id === cardId.toString()
+                      ? {
+                          ...c,
+                          tasks: (c.tasks || []).map(t =>
+                            t.taskId === taskId
+                              ? {
+                                  ...t,
+                                  subTaskDtos: (t.subTaskDtos || []).map(s =>
+                                    s.subTaskId === subTaskId
+                                      ? { ...s, subTaskTitle: newTitle }
+                                      : s
+                                  ),
+                                }
+                              : t
+                          ),
+                        }
+                      : c
+                  ),
+                }
+              : l
+          )
+        );
+      }
+    );
+
+    connection.on(
+      'ReceiveSubTaskDeleted',
+      (listId, cardId, taskId, subTaskId) => {
+        console.log('ReceiveSubTaskDeleted:', {
+          listId,
+          cardId,
+          taskId,
+          subTaskId,
+        });
+        setLists(prev =>
+          prev.map(l =>
+            l.id === listId.toString()
+              ? {
+                  ...l,
+                  cards: l.cards.map(c =>
+                    c.id === cardId.toString()
+                      ? {
+                          ...c,
+                          tasks: (c.tasks || []).map(t =>
+                            t.taskId === taskId
+                              ? {
+                                  ...t,
+                                  subTaskDtos: (t.subTaskDtos || []).filter(
+                                    s => s.subTaskId !== subTaskId
+                                  ),
+                                }
+                              : t
+                          ),
+                        }
+                      : c
+                  ),
+                }
+              : l
+          )
+        );
+      }
+    );
+
+    connection.on(
+      'ReceiveSubTaskMarkDone',
+      (listId, cardId, taskId, subTaskId, isDone) => {
+        console.log('ReceiveSubTaskMarkDone:', {
+          listId,
+          cardId,
+          taskId,
+          subTaskId,
+          isDone,
+        });
+        setLists(prev =>
+          prev.map(l =>
+            l.id === listId.toString()
+              ? {
+                  ...l,
+                  cards: l.cards.map(c =>
+                    c.id === cardId.toString()
+                      ? {
+                          ...c,
+                          tasks: (c.tasks || []).map(t =>
+                            t.taskId === taskId
+                              ? {
+                                  ...t,
+                                  subTaskDtos: (t.subTaskDtos || []).map(s =>
+                                    s.subTaskId === subTaskId
+                                      ? { ...s, isDone: isDone }
+                                      : s
+                                  ),
+                                }
+                              : t
+                          ),
+                        }
+                      : c
+                  ),
+                }
+              : l
+          )
+        );
+      }
+    );
+
+    // Cleanup
+    return () => {
+      connection.off('ReceiveListCreated');
+      connection.off('ReceiveListRenamed');
+      connection.off('ReceiveListMoved');
+      connection.off('ReceiveCardCreated');
+      connection.off('ReceiveCardMoved');
+      connection.off('ReceiveCardUpdated');
+      connection.off('ReceiveCardComplete');
+      connection.off('ReceiveCardDeleted');
+      connection.off('ReceiveCardAssigned');
+      connection.off('ReceiveCardUnAssigned');
+      connection.off('ReceiveTaskCreated');
+      connection.off('ReceiveTaskRenamed');
+      connection.off('ReceiveTaskDeleted');
+      connection.off('ReceiveSubTaskCreated');
+      connection.off('ReceiveSubTaskRenamed');
+      connection.off('ReceiveSubTaskDeleted');
+      connection.off('ReceiveSubTaskMarkDone');
+    };
+  }, [connection, isConnected]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -269,22 +580,6 @@ const TrelloBoard = forwardRef(function TrelloBoard(
       onUpdateArchived(archivedItems);
     }
   }, [archivedItems, onUpdateArchived]);
-
-  console.log('List', lists);
-  // Filter lists based on selected role
-  const filteredLists = useMemo(() => {
-    if (selectedRole === 'all') return lists;
-
-    return lists.map(list => ({
-      ...list,
-      cards: list.cards.filter(card =>
-        card.assignedMembers?.some(member =>
-          member.tags?.includes(selectedRole)
-        )
-      ),
-    }));
-  }, [lists, selectedRole]);
-  console.log('Filtered Lists:', filteredLists);
 
   // Custom collision detection
   const collisionDetectionStrategy = args => {
@@ -312,7 +607,9 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     return closestCorners(args);
   };
 
-  const listIds = useMemo(() => lists.map(l => l.id), [lists]);
+  const orderedLists = useMemo(() => sortListsByPosition(lists), [lists]);
+  const listIds = useMemo(() => orderedLists.map(l => l.id), [orderedLists]);
+  console.log('Rendering TrelloBoard with lists:', orderedLists);
 
   // Helper functions
   const findCard = cardId => {
@@ -335,14 +632,6 @@ const TrelloBoard = forwardRef(function TrelloBoard(
       const targetList = draft.find(l => l.id === toListId);
       targetList.cards.splice(toIndex, 0, moved);
       return draft;
-    });
-  };
-
-  const reorderList = (fromId, toId) => {
-    setLists(prev => {
-      const oldIndex = prev.findIndex(l => l.id === fromId);
-      const newIndex = prev.findIndex(l => l.id === toId);
-      return arrayMove(prev, oldIndex, newIndex);
     });
   };
 
@@ -392,7 +681,7 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     }
   }
 
-  function handleDragEnd(event) {
+  async function handleDragEnd(event) {
     const { active, over } = event;
     setActiveCard(null);
     setActiveList(null);
@@ -406,54 +695,249 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     if (overData?.type === 'add-card') return;
 
     if (activeData?.type === 'list' && overData?.type === 'list') {
-      reorderList(active.id, over.id);
+      const fromIndex = orderedLists.findIndex(l => l.id === active.id);
+      const toIndex = orderedLists.findIndex(l => l.id === over.id);
+
+      if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
+        // Tạo mảng tạm KHÔNG bao gồm list đang kéo
+        const tempLists = orderedLists
+          .filter((_, idx) => idx !== fromIndex)
+          .sort((a, b) => a.position - b.position);
+
+        // Điều chỉnh toIndex
+        const adjustedToIndex = toIndex > fromIndex ? toIndex - 1 : toIndex;
+
+        // ✨ SỬ DỤNG HELPER FUNCTION
+        const newPosition = getPositionForIndex(tempLists, adjustedToIndex);
+
+        console.log('📊 Moving list:', {
+          listId: active.id,
+          fromIndex,
+          toIndex,
+          adjustedToIndex,
+          newPosition,
+        });
+
+        // Update UI optimistically
+        setLists(() => {
+          const updated = [...orderedLists];
+          const [movedList] = updated.splice(fromIndex, 1);
+          updated.splice(toIndex, 0, { ...movedList, position: newPosition });
+          return updated;
+        });
+
+        // Gọi SignalR
+        try {
+          const payload =
+            (connection, workspaceData.id, parseInt(active.id), newPosition);
+          console.log('Invoking moveList via SignalR', payload);
+          await moveList(connection, workspaceData.id, active.id, newPosition);
+        } catch (error) {
+          console.error('Error moving list:', error);
+          setLists(lists); // Rollback
+        }
+      }
       return;
     }
 
+    // xử lý di chuyển card
     if (activeData?.type === 'card' && overData?.type === 'card') {
       const from = findCard(active.id);
       const to = findCard(over.id);
       if (!from || !to) return;
+
+      // Nếu drop vào chính nó, bỏ qua
+      if (from.listId === to.listId && from.cardIndex === to.cardIndex) {
+        return;
+      }
+
+      const targetList = lists.find(l => l.id === to.listId);
+      if (!targetList) return;
+
+      // Tạo mảng cards tạm KHÔNG bao gồm card đang kéo
+      let tempCards =
+        from.listId === to.listId
+          ? targetList.cards.filter(c => c.id !== active.id)
+          : [...targetList.cards];
+
+      // Sắp xếp theo position
+      tempCards.sort((a, b) => a.position - b.position);
+
+      // Điều chỉnh targetIndex nếu cùng list và kéo xuống
+      let targetIndex = to.cardIndex;
+      if (from.listId === to.listId && from.cardIndex < to.cardIndex) {
+        targetIndex = to.cardIndex - 1;
+      }
+
+      // ✨ SỬ DỤNG HELPER FUNCTION
+      const newPosition = getPositionForIndex(tempCards, targetIndex);
+
+      console.log('🎯 Moving card:', {
+        cardId: active.id,
+        fromList: from.listId,
+        toList: to.listId,
+        fromIndex: from.cardIndex,
+        toIndex: to.cardIndex,
+        adjustedIndex: targetIndex,
+        newPosition,
+        tempCardsCount: tempCards.length,
+      });
+
+      // Update UI optimistically
       setLists(prev => {
         const draft = structuredClone(prev);
+
         const sourceList = draft.find(l => l.id === from.listId);
         if (!sourceList) return prev;
-        const [moved] = sourceList.cards.splice(from.cardIndex, 1);
-        const targetList = draft.find(l => l.id === to.listId);
-        if (!targetList) return prev;
-        targetList.cards.splice(to.cardIndex, 0, moved);
+        const [movedCard] = sourceList.cards.splice(from.cardIndex, 1);
+
+        const destList = draft.find(l => l.id === to.listId);
+        if (!destList) return prev;
+
+        movedCard.position = newPosition;
+        destList.cards.splice(to.cardIndex, 0, movedCard);
+
         return draft;
       });
+
+      // Gọi SignalR
+      try {
+        await moveCardSignalR(
+          connection,
+          workspaceData.id,
+          parseInt(from.listId),
+          parseInt(active.id),
+          parseInt(to.listId),
+          newPosition
+        );
+      } catch (error) {
+        console.error('Error moving card:', error);
+        setLists(lists);
+      }
       return;
     }
 
     if (activeData?.type === 'card' && overData?.type === 'cards') {
       const from = findCard(active.id);
       const toListId = overData.listId;
-      if (!from || !toListId) return;
+      const targetList = lists.find(l => l.id === toListId);
+      if (!targetList) return;
+
+      // Lọc bỏ card đang kéo nếu cùng list
+      const existingCards = targetList.cards
+        .filter(c => c.id !== active.id)
+        .sort((a, b) => a.position - b.position);
+
+      // Tính position: thêm vào cuối list
+      const newPosition = getPositionForIndex(
+        existingCards,
+        existingCards.length
+      );
+
+      console.log('📥 Dropping card to list area:', {
+        cardId: active.id,
+        fromList: from.listId,
+        toList: toListId,
+        existingCardsCount: existingCards.length,
+        newPosition,
+      });
+
+      // Update UI optimistically
       setLists(prev => {
         const draft = structuredClone(prev);
+
         const sourceList = draft.find(l => l.id === from.listId);
         if (!sourceList) return prev;
-        const [moved] = sourceList.cards.splice(from.cardIndex, 1);
-        const targetList = draft.find(l => l.id === toListId);
-        if (!targetList) return prev;
-        targetList.cards.push(moved);
+        const [movedCard] = sourceList.cards.splice(from.cardIndex, 1);
+
+        const destList = draft.find(l => l.id === toListId);
+        if (!destList) return prev;
+
+        movedCard.position = newPosition;
+        destList.cards.push(movedCard);
+
         return draft;
       });
+
+      // Gọi SignalR
+      try {
+        await moveCardSignalR(
+          connection,
+          workspaceData.id,
+          parseInt(from.listId),
+          parseInt(active.id),
+          parseInt(toListId),
+          newPosition
+        );
+      } catch (error) {
+        console.error('Error moving card:', error);
+        setLists(lists);
+      }
     }
   }
 
-  // CRUD operations
-  const addList = () => {
+  // CRUD operations with SignalR
+  const addList = async () => {
     const title = newListTitle.trim();
     if (!title) return;
-    setLists(prev => [...prev, { id: `list-${Date.now()}`, title, cards: [] }]);
-    setNewListTitle('');
-    setIsAddingList(false);
+
+    try {
+      // Sắp xếp lists theo position
+      const sortedLists = [...lists].sort((a, b) => a.position - b.position);
+
+      // ✨ SỬ DỤNG HELPER - Thêm vào cuối
+      const newPosition = getPositionForIndex(sortedLists, sortedLists.length);
+
+      console.log('➕ Creating new list:', {
+        title,
+        currentListsCount: lists.length,
+        newPosition,
+        workspaceId: workspaceData.id,
+      });
+
+      await createList(connection, workspaceData.id, title, newPosition);
+
+      setNewListTitle('');
+      setIsAddingList(false);
+    } catch (error) {
+      console.error('Error creating list:', error);
+      alert('Failed to create list');
+    }
   };
 
-  // Ensure addCard takes (listId, title) in this order
+  const updateCard = async (listId, updatedCard) => {
+    // Update UI optimistically
+    setLists(prev =>
+      prev.map(l =>
+        l.id === listId
+          ? {
+              ...l,
+              cards: l.cards.map(c =>
+                c.id === updatedCard.id ? updatedCard : c
+              ),
+            }
+          : l
+      )
+    );
+    // Gọi SignalR
+    try {
+      await updateCardDetails(
+        connection,
+        workspaceData.id,
+        parseInt(listId),
+        parseInt(updatedCard.id),
+        {
+          title: updatedCard.title,
+          description: updatedCard.description,
+          riskLevel: updatedCard.riskLevel,
+          dueAt: updatedCard.dueAt,
+        }
+      );
+    } catch (error) {
+      console.error('Error updating card:', error);
+    }
+  };
+
   const addCard = (listId, title) => {
     const safeTitle = (title ?? '').toString().trim();
     if (!safeTitle) return;
@@ -471,24 +955,10 @@ const TrelloBoard = forwardRef(function TrelloBoard(
           attachments: [],
           labels: [],
           riskLevel: 'low',
+          tasks: [],
         };
         return { ...l, cards: [...l.cards, newCard] };
       })
-    );
-  };
-
-  const updateCard = (listId, updatedCard) => {
-    setLists(prev =>
-      prev.map(l =>
-        l.id === listId
-          ? {
-              ...l,
-              cards: l.cards.map(c =>
-                c.id === updatedCard.id ? updatedCard : c
-              ),
-            }
-          : l
-      )
     );
   };
 
@@ -522,14 +992,17 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     });
   };
 
-  const deleteCard = (listId, cardId) => {
-    setLists(prev =>
-      prev.map(l =>
-        l.id === listId
-          ? { ...l, cards: l.cards.filter(c => c.id !== cardId) }
-          : l
-      )
-    );
+  const deleteCard = async (listId, cardId) => {
+    try {
+      await deleteCardSignalR(
+        connection,
+        workspaceData.id,
+        parseInt(listId),
+        parseInt(cardId)
+      );
+    } catch (error) {
+      console.error('Error deleting card:', error);
+    }
   };
 
   const archiveList = listId => {
@@ -585,20 +1058,6 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     }));
   };
 
-  const permanentlyDeleteCard = cardId => {
-    setArchivedItems(prev => ({
-      ...prev,
-      cards: prev.cards.filter(c => c.id !== cardId),
-    }));
-  };
-
-  const permanentlyDeleteList = listId => {
-    setArchivedItems(prev => ({
-      ...prev,
-      lists: prev.lists.filter(l => l.id !== listId),
-    }));
-  };
-
   const handleUndo = () => {
     if (!undoAction) return;
 
@@ -611,16 +1070,15 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     setUndoAction(null);
   };
 
-  // Expose imperative API for settings modal actions
-  useImperativeHandle(ref, () => ({
-    restoreCard: (cardId, listId) => restoreCard(cardId, listId),
-    restoreList: listId => restoreList(listId),
-    permanentlyDeleteCard: cardId => permanentlyDeleteCard(cardId),
-    permanentlyDeleteList: listId => permanentlyDeleteList(listId),
-  }));
-
   return (
     <>
+      {/* ✅ Connection Status */}
+      {!isConnected && (
+        <div className='mb-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-3 rounded'>
+          <p className='font-semibold'> Disconnected from server</p>
+          <p className='text-sm'>Reconnecting...</p>
+        </div>
+      )}
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetectionStrategy}
@@ -628,16 +1086,16 @@ const TrelloBoard = forwardRef(function TrelloBoard(
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className='flex items-start gap-4 pb-6'>
+        <div ref={ref} className='flex items-start gap-4 pb-6'>
           <SortableContext
             items={listIds}
             strategy={horizontalListSortingStrategy}
           >
-            {lists.map(list => (
+            {orderedLists.map(list => (
               <BoardList
                 key={list.id}
                 list={list}
-                members={members}
+                members={list.cards.flatMap(card => card.assignedMembers || [])}
                 onAddCard={(listId, cardTitle) => addCard(listId, cardTitle)}
                 onCardClick={card =>
                   setEditingCard({
@@ -648,6 +1106,7 @@ const TrelloBoard = forwardRef(function TrelloBoard(
                 }
                 onUpdateCard={updateCard}
                 onArchiveList={() => archiveList(list.id)}
+                workspaceId={workspaceId}
               />
             ))}
 
@@ -741,7 +1200,8 @@ const TrelloBoard = forwardRef(function TrelloBoard(
           listId={editingCard.listId}
           listTitle={editingCard.listTitle}
           card={editingCard.card}
-          members={members}
+          members={workspaceData.members}
+          workspaceId={workspaceData?.id}
           onClose={() => setEditingCard(null)}
           onUpdate={(listId, card) => updateCard(listId, card)}
           onDelete={(listId, cardId) => {

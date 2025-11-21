@@ -2,8 +2,8 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { useState } from 'react';
-import { createMeeting } from '../../services/meetingApi';
+import { useEffect, useState } from 'react';
+import { createMeeting, getMeeting } from '../../services/meetingApi';
 import { toast } from 'sonner';
 import Sidebar from './Sidebar';
 
@@ -28,6 +28,32 @@ const MeetingSchedulerFull = () => {
     { name: 'Pink', value: '#ec4899' },
   ];
 
+  useEffect(() => {
+    const fetchMeetings = async () => {
+      try {
+        const meetings = await getMeeting({
+          teamId: 2,
+        }); 
+        const formattedEvents = meetings.list.map(meeting => ({
+          id: meeting.meetingId,
+          title: meeting.title,
+          start: meeting.scheduleTime,
+          backgroundColor: eventColors[0].value,
+          borderColor: eventColors[0].value,
+          extendedProps: {
+            description: meeting.description,
+            meetingUrl: meeting.meetingUrl,
+          },
+        }));
+        setEvents(formattedEvents);
+      }
+      catch (err) {
+        console.error('❌ Failed to fetch meetings:', err);
+        toast.error('Failed to load meetings, please try again.');
+      }
+    };
+    fetchMeetings();
+  }, []);
   const handleDateClick = arg => {
     setSelectedDate(arg);
     setEventForm({

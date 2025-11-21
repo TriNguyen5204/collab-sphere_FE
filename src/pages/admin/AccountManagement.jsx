@@ -17,10 +17,11 @@ import {
 import AdminSidebar from '../../components/layout/AdminSidebar';
 import { getAllAccount, deactivateAccount } from '../../services/userService';
 import { toast } from 'sonner';
+import CreateAccountForm from '../../components/admin/CreateAccountForm';
+import ModalWrapper from '../../components/layout/ModalWrapper'
 
 export default function AccountManagement() {
   const [selectedRole, setSelectedRole] = useState('HeadDepartment');
-  const [selectedIds, setSelectedIds] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
 
@@ -249,14 +250,6 @@ export default function AccountManagement() {
                   </p>
                 </div>
                 <div className='flex gap-3'>
-                  <button className='flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm'>
-                    <Download className='w-4 h-4' />
-                    Export
-                  </button>
-                  <button className='flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm'>
-                    <Upload className='w-4 h-4' />
-                    Import
-                  </button>
                   <button
                     className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md'
                     onClick={() => setShowCreateForm(!showCreateForm)}
@@ -327,10 +320,6 @@ export default function AccountManagement() {
                         onChange={e => setSearchQuery(e.target.value)}
                       />
                     </div>
-                    <button className='flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
-                      <Filter className='w-4 h-4' />
-                      Filter
-                    </button>
                   </div>
                 </div>
 
@@ -339,23 +328,6 @@ export default function AccountManagement() {
                   <table className='w-full'>
                     <thead className='bg-gray-50 border-b-2 border-gray-200'>
                       <tr>
-                        <th className='px-6 py-3 text-left'>
-                          <input
-                            type='checkbox'
-                            className='w-4 h-4 rounded border-gray-300 focus:ring-2 focus:ring-blue-500'
-                            checked={
-                              selectedIds.length === filteredUsers.length &&
-                              filteredUsers.length > 0
-                            }
-                            onChange={e =>
-                              setSelectedIds(
-                                e.target.checked
-                                  ? filteredUsers.map(u => u.email)
-                                  : []
-                              )
-                            }
-                          />
-                        </th>
                         <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider'>
                           User Info
                         </th>
@@ -379,20 +351,6 @@ export default function AccountManagement() {
                           key={u.email}
                           className='hover:bg-gray-50 transition-colors'
                         >
-                          <td className='px-6 py-4'>
-                            <input
-                              type='checkbox'
-                              className='w-4 h-4 rounded border-gray-300 focus:ring-2 focus:ring-blue-500'
-                              checked={selectedIds.includes(u.email)}
-                              onChange={e =>
-                                setSelectedIds(prev =>
-                                  e.target.checked
-                                    ? [...prev, u.email]
-                                    : prev.filter(email => email !== u.email)
-                                )
-                              }
-                            />
-                          </td>
                           <td className='px-6 py-4'>
                             <div className='flex items-center gap-3'>
                               <div className='w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold'>
@@ -516,6 +474,14 @@ export default function AccountManagement() {
             </div>
           </div>
         </div>
+        <ModalWrapper
+          isOpen={showCreateForm}
+          onClose={() => setShowCreateForm(false)}
+          title="Create New Account"
+          maxWidth='max-w-lgx'
+        >
+          <CreateAccountForm onClose={() => setShowCreateForm(false)}/>
+        </ModalWrapper>
       </div>
     </>
   );
