@@ -37,7 +37,7 @@ export const moveList = async (
 
   await connection
     .invoke('MoveList', workspaceId, listId, command)
-    .then(() => console.log('Sent MoveList command.'))
+    .then(() => console.log(`Move List success: with ID ${listId} to position ${newPosition}`))
     .catch(err => console.log('Lỗi: ' + err.toString()));
 };
 
@@ -81,6 +81,8 @@ export const createCard = async (
       })),
     })),
   };
+  console.log('🔍 List ID type:', typeof listId, 'value:', listId);
+  console.log('Command', command);
 
   await connection
     .invoke('CreateCardAndAssignMember', workspaceId, listId, command)
@@ -103,6 +105,7 @@ export const moveCard = async (
     newListId,
     newPosition,
   };
+  console.log('listId', typeof currentListId, 'cardId', typeof cardId, 'Command', command)
 
   await connection.invoke(
     'MoveCard',
@@ -110,7 +113,8 @@ export const moveCard = async (
     currentListId,
     cardId,
     command
-  );
+  ).then(() => console.log(`EVENT RECEIVED: ReceiveCardMoved | Card ID: ${cardId}, New List ID: ${newListId}, New Position: ${newPosition}`))
+    .catch(err => console.log('Lỗi: ' + err.toString()));
 };
 
 // 6. UPDATE CARD DETAILS
@@ -263,7 +267,9 @@ export const deleteTask = async (
 ) => {
   if (!connection) throw new Error('No SignalR connection');
 
-  const command = {};
+  const command = {listId, cardId, taskId};
+  const deleteTaskCommand = {};
+  console.log('command', command)
 
   await connection.invoke(
     'DeleteTask',
@@ -271,8 +277,9 @@ export const deleteTask = async (
     listId,
     cardId,
     taskId,
-    command
-  );
+    deleteTaskCommand
+  ).then(() => console.log('Sent DeleteTask command success!'))
+    .catch(err => console.log('Lỗi DeleteTask: ' + err.toString()));
 };
 
 // 14. CREATE SUBTASK

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   X,
   Clock,
@@ -35,22 +35,17 @@ const CardModal = ({
   listId,
   listTitle,
   onClose,
-  onUpdate,
   onDelete,
   onArchive,
   members,
   workspaceId,
+  lists, // ✅ Nhận lists từ TrelloBoard
 }) => {
+  const getMemberById = studentId => {
+    return members?.find(m => m.studentId === studentId);
+  };
   const { connection, isConnected } = useSignalRContext();
   const [isOpenTask, setIsOpenTask] = useState(false);
-  const [editedCard, setEditedCard] = useState({
-    ...card,
-    assignedMembers: card.assignedMembers || [],
-    riskLevel: card.riskLevel || 'low',
-    tasks: card.tasks || [],
-    dueAt: card.dueAt || null,
-  });
-  console.log('Edited Card in Modal:', editedCard);
   const [showMemberMenu, setShowMemberMenu] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [popoverAnchor, setPopoverAnchor] = useState(null);
@@ -60,10 +55,54 @@ const CardModal = ({
   const plusButtonRef = useRef(null);
   const memberMenuRef = useRef(null);
   const panelRef = useRef(null);
-  // useClickOutside(panelRef, onClose);
+
   useClickOutside(memberMenuRef, () => setShowMemberMenu(false));
 
-  // helper to anchor member menu to plus icon
+  // ✅ Tự động sync card từ lists state (real-time)
+  const editedCard = useMemo(() => {
+    const currentList = lists?.find(l => String(l.id) === String(listId));
+    const currentCard = currentList?.cards.find(
+      c => String(c.id) === String(card.id)
+    );
+
+    if (currentCard) {
+      return {
+        ...currentCard,
+        assignedMembers: currentCard.assignedMembers || [],
+        riskLevel: currentCard.riskLevel || 'low',
+        tasks: currentCard.tasks || [],
+        dueAt: currentCard.dueAt || null,
+      };
+    }
+
+    // Fallback
+    return {
+      ...card,
+      assignedMembers: card.assignedMembers || [],
+      riskLevel: card.riskLevel || 'low',
+      tasks: card.tasks || [],
+      dueAt: card.dueAt || null,
+    };
+  }, [lists, listId, card]);
+
+  // ✅ State riêng cho các field đang edit (title, description, risk, dueAt)
+  const [editableFields, setEditableFields] = useState({
+    title: card.title,
+    description: card.description || '',
+    riskLevel: card.riskLevel || 'low',
+    dueAt: card.dueAt || null,
+  });
+
+  // Sync editableFields khi editedCard thay đổi
+  useEffect(() => {
+    setEditableFields({
+      title: editedCard.title,
+      description: editedCard.description || '',
+      riskLevel: editedCard.riskLevel || 'low',
+      dueAt: editedCard.dueAt || null,
+    });
+  }, [editedCard]);
+
   const getMemberMenuPosition = () => {
     const rect = plusButtonRef.current?.getBoundingClientRect();
     if (!rect) return {};
@@ -79,14 +118,13 @@ const CardModal = ({
         parseInt(listId),
         parseInt(editedCard.id),
         {
-          title: editedCard.title,
-          description: editedCard.description,
-          riskLevel: editedCard.riskLevel,
-          dueAt: editedCard.dueAt,
+          title: editableFields.title,
+          description: editableFields.description,
+          riskLevel: editableFields.riskLevel,
+          dueAt: editableFields.dueAt,
         }
       );
 
-      onUpdate(listId, editedCard);
       onClose();
     } catch (error) {
       console.error('Error saving card:', error);
@@ -119,8 +157,7 @@ const CardModal = ({
         parseInt(editedCard.id),
         newStatus
       );
-
-      setEditedCard(prev => ({ ...prev, isCompleted: newStatus }));
+      // ✅ Không cần update state - SignalR sẽ xử lý
     } catch (error) {
       console.error('Error toggling card completion:', error);
       alert('Failed to update card status');
@@ -142,13 +179,6 @@ const CardModal = ({
           parseInt(editedCard.id),
           member.studentId
         );
-
-        setEditedCard(prev => ({
-          ...prev,
-          assignedMembers: assignedMembers.filter(
-            m => m.studentId !== member.studentId
-          ),
-        }));
       } else {
         await assignMemberToCard(
           connection,
@@ -158,12 +188,8 @@ const CardModal = ({
           member.studentId,
           member.studentName
         );
-
-        setEditedCard(prev => ({
-          ...prev,
-          assignedMembers: [...assignedMembers, member],
-        }));
       }
+      // ✅ Không cần update state - SignalR sẽ xử lý
       setShowMemberMenu(false);
     } catch (error) {
       console.error('Error toggling member:', error);
@@ -180,7 +206,9 @@ const CardModal = ({
     setSelectedMember(null);
     setPopoverAnchor(null);
   };
-  const handleCreateTask = async (taskData) => {
+
+  // ✅ TASK HANDLERS - CHỈ GỌI SIGNALR, KHÔNG UPDATE STATE
+  const handleCreateTask = async taskData => {
     try {
       await createTask(
         connection,
@@ -189,25 +217,9 @@ const CardModal = ({
         parseInt(editedCard.id),
         taskData.title
       );
-      
-      // Tạm thời thêm vào UI (SignalR event sẽ cập nhật lại)
-      const newTask = {
-        taskId: `temp-${Date.now()}`,
-        taskTitle: taskData.title,
-        isDone: false,
-        subTaskDtos: taskData.subtasks.map((st, idx) => ({
-          subTaskId: `temp-sub-${Date.now()}-${idx}`,
-          subTaskTitle: st.text,
-          isDone: false,
-        })),
-      };
-      
-      setEditedCard(prev => ({
-        ...prev,
-        tasks: [...(prev.tasks || []), newTask],
-      }));
-      
+
       setIsOpenTask(false);
+      console.log('✅ Create task request sent');
     } catch (error) {
       console.error('Error creating task:', error);
       alert('Failed to create task');
@@ -216,7 +228,7 @@ const CardModal = ({
 
   const handleRenameTask = async (taskId, newTitle) => {
     if (!newTitle.trim()) return;
-    
+
     try {
       await renameTask(
         connection,
@@ -226,22 +238,17 @@ const CardModal = ({
         parseInt(taskId),
         newTitle
       );
-      
-      setEditedCard(prev => ({
-        ...prev,
-        tasks: prev.tasks.map(t =>
-          t.taskId === taskId ? { ...t, taskTitle: newTitle } : t
-        ),
-      }));
+
+      console.log('✅ Rename task request sent');
     } catch (error) {
       console.error('Error renaming task:', error);
       alert('Failed to rename task');
     }
   };
 
-  const handleDeleteTask = async (taskId) => {
+  const handleDeleteTask = async taskId => {
     if (!window.confirm('Delete this task?')) return;
-    
+
     try {
       await deleteTask(
         connection,
@@ -250,11 +257,8 @@ const CardModal = ({
         parseInt(editedCard.id),
         parseInt(taskId)
       );
-      
-      setEditedCard(prev => ({
-        ...prev,
-        tasks: prev.tasks.filter(t => t.taskId !== taskId),
-      }));
+
+      console.log('✅ Delete task request sent');
     } catch (error) {
       console.error('Error deleting task:', error);
       alert('Failed to delete task');
@@ -262,25 +266,15 @@ const CardModal = ({
   };
 
   const handleToggleTaskDone = async (taskId, currentStatus) => {
-    try {
-      setEditedCard(prev => ({
-        ...prev,
-        tasks: prev.tasks.map(t =>
-          t.taskId === taskId ? { ...t, isDone: !currentStatus } : t
-        ),
-      }));
-      
-      // Note: Backend có thể cần endpoint riêng cho việc này
-      // Tạm thời chỉ update UI
-    } catch (error) {
-      console.error('Error toggling task:', error);
-    }
+    // TODO: Cần backend endpoint cho toggle task done
+    console.log('Toggle task done not implemented yet');
   };
 
-  const handleCreateSubtask = async (taskId) => {
+  // ✅ SUBTASK HANDLERS - CHỈ GỌI SIGNALR
+  const handleCreateSubtask = async taskId => {
     const title = prompt('Enter subtask title:');
     if (!title) return;
-    
+
     try {
       await createSubTask(
         connection,
@@ -291,8 +285,8 @@ const CardModal = ({
         title,
         false
       );
-      
-      // UI sẽ được cập nhật qua SignalR event
+
+      console.log('✅ Create subtask request sent');
     } catch (error) {
       console.error('Error creating subtask:', error);
       alert('Failed to create subtask');
@@ -301,7 +295,7 @@ const CardModal = ({
 
   const handleRenameSubtask = async (taskId, subTaskId, newTitle) => {
     if (!newTitle.trim()) return;
-    
+
     try {
       await renameSubTask(
         connection,
@@ -312,20 +306,8 @@ const CardModal = ({
         parseInt(subTaskId),
         newTitle
       );
-      
-      setEditedCard(prev => ({
-        ...prev,
-        tasks: prev.tasks.map(t =>
-          t.taskId === taskId
-            ? {
-                ...t,
-                subTaskDtos: t.subTaskDtos.map(s =>
-                  s.subTaskId === subTaskId ? { ...s, subTaskTitle: newTitle } : s
-                ),
-              }
-            : t
-        ),
-      }));
+
+      console.log('✅ Rename subtask request sent');
     } catch (error) {
       console.error('Error renaming subtask:', error);
       alert('Failed to rename subtask');
@@ -334,7 +316,7 @@ const CardModal = ({
 
   const handleDeleteSubtask = async (taskId, subTaskId) => {
     if (!window.confirm('Delete this subtask?')) return;
-    
+
     try {
       await deleteSubTask(
         connection,
@@ -344,18 +326,8 @@ const CardModal = ({
         parseInt(taskId),
         parseInt(subTaskId)
       );
-      
-      setEditedCard(prev => ({
-        ...prev,
-        tasks: prev.tasks.map(t =>
-          t.taskId === taskId
-            ? {
-                ...t,
-                subTaskDtos: t.subTaskDtos.filter(s => s.subTaskId !== subTaskId),
-              }
-            : t
-        ),
-      }));
+
+      console.log('✅ Delete subtask request sent');
     } catch (error) {
       console.error('Error deleting subtask:', error);
       alert('Failed to delete subtask');
@@ -373,52 +345,40 @@ const CardModal = ({
         parseInt(subTaskId),
         !currentStatus
       );
-      
-      setEditedCard(prev => ({
-        ...prev,
-        tasks: prev.tasks.map(t =>
-          t.taskId === taskId
-            ? {
-                ...t,
-                subTaskDtos: t.subTaskDtos.map(s =>
-                  s.subTaskId === subTaskId ? { ...s, isDone: !currentStatus } : s
-                ),
-              }
-            : t
-        ),
-      }));
+
+      console.log('✅ Toggle subtask request sent');
     } catch (error) {
       console.error('Error toggling subtask:', error);
       alert('Failed to update subtask status');
     }
   };
 
-  // Fix: sử dụng dueAt thay vì dueDate
   const isOverdue =
     editedCard.dueAt &&
     new Date(editedCard.dueAt) < new Date() &&
     !editedCard.isCompleted;
 
   const riskLevels = [
-    {
-      name: 'Low',
-      value: 'low',
-      bg: 'bg-green-500',
-      hoverBg: 'hover:bg-green-600',
-    },
-    {
-      name: 'Medium',
-      value: 'medium',
-      bg: 'bg-yellow-500',
-      hoverBg: 'hover:bg-yellow-600',
-    },
-    {
-      name: 'High',
-      value: 'high',
-      bg: 'bg-red-500',
-      hoverBg: 'hover:bg-red-600',
-    },
+    { name: 'Low', value: 'low', bg: 'bg-green-500' },
+    { name: 'Medium', value: 'medium', bg: 'bg-yellow-500' },
+    { name: 'High', value: 'high', bg: 'bg-red-500' },
   ];
+  const getAvatarUrl = member => {
+    // Kiểm tra cả 2 field name có thể có
+    const avatarUrl = member?.avatarImg || member?.avatar;
+    console.log('avatar', avatarUrl);
+    // Fallback nếu không có hoặc URL không hợp lệ
+    if (
+      !avatarUrl ||
+      avatarUrl === 'https://res.cloudinary.com/dn5xgbmqq/image/upload'
+    ) {
+      // Tạo avatar placeholder với chữ cái đầu của tên
+      // const initial = member?.studentName?.charAt(0)?.toUpperCase() || '?';
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(member?.studentName || 'User')}&background=random&color=fff&size=128`;
+    }
+
+    return avatarUrl;
+  };
 
   return (
     <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn'>
@@ -433,12 +393,11 @@ const CardModal = ({
               {listTitle}
             </h2>
             {!isConnected && (
-                <span className='text-yellow-300 text-sm bg-yellow-900/30 px-2 py-1 rounded'>
-                  ⚠️ Offline
-                </span>
-              )}
+              <span className='text-yellow-300 text-sm bg-yellow-900/30 px-2 py-1 rounded'>
+                ⚠️ Offline
+              </span>
+            )}
             <div className='flex items-center gap-2'>
-              {/* Move Archive/Delete to header */}
               <button
                 onClick={handleArchive}
                 className='text-white/90 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg transition-all flex items-center gap-2'
@@ -468,6 +427,7 @@ const CardModal = ({
             </div>
           </div>
         </div>
+
         <div className='p-6 overflow-y-auto max-h-[calc(95vh-180px)] space-y-6'>
           {/* Checkbox + Title */}
           <div className='flex items-start gap-3'>
@@ -488,9 +448,12 @@ const CardModal = ({
             <div className='flex-1'>
               <input
                 type='text'
-                value={editedCard.title}
+                value={editableFields.title}
                 onChange={e =>
-                  setEditedCard({ ...editedCard, title: e.target.value })
+                  setEditableFields(prev => ({
+                    ...prev,
+                    title: e.target.value,
+                  }))
                 }
                 className={`text-2xl font-bold text-gray-800 border-2 border-gray-200 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 w-full ${
                   editedCard.isCompleted ? 'line-through opacity-70' : ''
@@ -509,20 +472,23 @@ const CardModal = ({
                 Members
               </h3>
               <div className='flex items-center gap-2 flex-wrap'>
-                {editedCard.assignedMembers?.map(member => (
-                  <button
-                    key={member.studentId}
-                    onClick={e => handleMemberClick(member, e)}
-                    className='relative group'
-                    type='button'
-                  >
-                    <img
-                      src={member.avatarImg}
-                      alt={member.studentName}
-                      className='w-10 h-10 rounded-full ring-2 ring-gray-200 hover:ring-blue-400 transition-all object-cover'
-                    />
-                  </button>
-                ))}
+                {editedCard.assignedMembers?.map(assigned => {
+                  const member = getMemberById(assigned.studentId) || assigned;
+                  return (
+                    <button
+                      key={member.studentId}
+                      onClick={e => handleMemberClick(member, e)}
+                      className='relative group'
+                      type='button'
+                    >
+                      <img
+                        src={getAvatarUrl(member)}
+                        alt={member.studentName}
+                        className='w-10 h-10 rounded-full ring-2 ring-gray-200 hover:ring-blue-400 transition-all object-cover'
+                      />
+                    </button>
+                  );
+                })}
                 <div className='relative'>
                   <button
                     ref={plusButtonRef}
@@ -533,7 +499,6 @@ const CardModal = ({
                     <Plus size={20} className='text-gray-600' />
                   </button>
 
-                  {/* Member Menu - anchored to plus icon */}
                   {showMemberMenu && (
                     <>
                       <div
@@ -556,14 +521,14 @@ const CardModal = ({
                             );
                             return (
                               <button
-                                key={member.id}
+                                key={member.studentId}
                                 onClick={() => toggleMember(member)}
                                 disabled={!isConnected}
                                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
                                   isAssigned
                                     ? 'bg-blue-50 hover:bg-blue-100 ring-2 ring-blue-200'
                                     : 'hover:bg-gray-50'
-                                }`}
+                                } disabled:opacity-50`}
                                 type='button'
                               >
                                 <img
@@ -572,11 +537,9 @@ const CardModal = ({
                                   className='w-9 h-9 rounded-full ring-2 ring-white shadow object-cover'
                                 />
                                 <div className='flex-1 text-left'>
-                                  <div className='flex items-center gap-2'>
-                                    <span className='text-gray-800 font-medium text-sm'>
-                                      {member.studentName}
-                                    </span>
-                                  </div>
+                                  <span className='text-gray-800 font-medium text-sm'>
+                                    {member.studentName}
+                                  </span>
                                 </div>
                                 {isAssigned && (
                                   <CheckCircle2
@@ -603,10 +566,13 @@ const CardModal = ({
                   <button
                     key={risk.value}
                     onClick={() =>
-                      setEditedCard({ ...editedCard, riskLevel: risk.value })
+                      setEditableFields(prev => ({
+                        ...prev,
+                        riskLevel: risk.value,
+                      }))
                     }
                     className={`px-4 py-2 rounded-lg font-medium transition-all ${risk.bg} ${
-                      editedCard.riskLevel === risk.value
+                      editableFields.riskLevel === risk.value
                         ? 'text-white ring-2 ring-offset-2 ring-gray-400'
                         : 'opacity-50 hover:opacity-100 text-white'
                     }`}
@@ -619,9 +585,8 @@ const CardModal = ({
             </div>
           </div>
 
-          {/* Details: Due Date (left) + Attachments (right) */}
+          {/* Due Date */}
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-            {/* Due Date - Fix: sử dụng dueAt */}
             <div>
               <h3 className='text-gray-800 font-semibold mb-3 flex items-center gap-2'>
                 <Clock size={20} className='text-gray-600' />
@@ -632,34 +597,39 @@ const CardModal = ({
                   <input
                     ref={dateInputRef}
                     type='date'
-                    value={editedCard.dueAt || ''}
+                    value={editableFields.dueAt || ''}
                     onChange={e =>
-                      setEditedCard({
-                        ...editedCard,
+                      setEditableFields(prev => ({
+                        ...prev,
                         dueAt: e.target.value || null,
-                      })
+                      }))
                     }
                     className='flex-1 bg-transparent outline-none'
                   />
                 </div>
                 <div className='text-sm text-gray-600'>
-                  {editedCard.dueAt ? (
+                  {editableFields.dueAt ? (
                     <span>
-                      {new Date(editedCard.dueAt).toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
+                      {new Date(editableFields.dueAt).toLocaleDateString(
+                        'en-US',
+                        {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        }
+                      )}
                     </span>
                   ) : (
                     <span>No due date set</span>
                   )}
-                  {editedCard.dueAt && !editedCard.isCompleted && isOverdue && (
-                    <span className='ml-2 text-xs font-semibold bg-red-600 text-white px-2 py-0.5 rounded-full'>
-                      OVERDUE
-                    </span>
-                  )}
+                  {editableFields.dueAt &&
+                    !editedCard.isCompleted &&
+                    isOverdue && (
+                      <span className='ml-2 text-xs font-semibold bg-red-600 text-white px-2 py-0.5 rounded-full'>
+                        OVERDUE
+                      </span>
+                    )}
                 </div>
               </div>
             </div>
@@ -672,27 +642,30 @@ const CardModal = ({
               Description
             </h3>
             <textarea
-              value={editedCard.description || ''}
+              value={editableFields.description}
               onChange={e =>
-                setEditedCard({ ...editedCard, description: e.target.value })
+                setEditableFields(prev => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
               }
               placeholder='Add a more detailed description...'
               className='w-full px-4 py-3 bg-gray-50 text-gray-800 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all'
               rows={6}
             />
           </div>
-          {/* Task list */}
+
+          {/* Tasks */}
           <div className='mt-4 space-y-6'>
             <div className='flex items-center justify-between'>
               <h3 className='text-gray-800 font-semibold flex items-center gap-2'>
                 <Plus size={20} className='text-gray-600' />
                 Tasks
               </h3>
-
               <button
                 onClick={() => setIsOpenTask(true)}
                 disabled={!isConnected}
-                className='flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg'
+                className='flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg disabled:opacity-50'
                 type='button'
               >
                 <Plus size={18} />
@@ -700,34 +673,39 @@ const CardModal = ({
               </button>
             </div>
 
+            {/* ✅ Tasks tự động sync từ editedCard */}
             {editedCard.tasks?.map(task => (
               <div
                 key={task.taskId}
                 className='bg-gray-800 text-white p-4 rounded-xl shadow'
               >
-                {/* Task header */}
                 <div className='flex items-center justify-between'>
                   <div className='flex items-center gap-2'>
                     <input
                       type='checkbox'
                       checked={task.isDone}
-                      onChange={() => handleToggleTaskDone(task.taskId, task.isDone)}
+                      onChange={() =>
+                        handleToggleTaskDone(task.taskId, task.isDone)
+                      }
                       disabled={!isConnected}
                       className='w-5 h-5'
                     />
-
                     <span
-                      className={`font-semibold text-lg ${task.status ? 'line-through opacity-60' : ''}`}
+                      className={`font-semibold text-lg ${
+                        task.isDone ? 'line-through opacity-60' : ''
+                      }`}
                     >
                       {task.taskTitle}
                     </span>
                   </div>
 
                   <div className='flex items-center gap-2'>
-                    {/* UPDATE TASK */}
                     <button
                       onClick={() => {
-                        const name = prompt('Enter new task title:', task.taskTitle);
+                        const name = prompt(
+                          'Enter new task title:',
+                          task.taskTitle
+                        );
                         if (name) handleRenameTask(task.taskId, name);
                       }}
                       disabled={!isConnected}
@@ -737,7 +715,6 @@ const CardModal = ({
                       <Pencil size={18} />
                     </button>
 
-                    {/* DELETE TASK */}
                     <button
                       onClick={() => handleDeleteTask(task.taskId)}
                       disabled={!isConnected}
@@ -769,7 +746,7 @@ const CardModal = ({
                             100 || 0
                         }%`,
                       }}
-                    ></div>
+                    />
                   </div>
                 </div>
 
@@ -777,7 +754,7 @@ const CardModal = ({
                 <div className='space-y-2'>
                   {task.subTaskDtos?.map(sub => (
                     <div
-                      key={sub.subTaskId} // ✅ Đổi từ sub.id → sub.subTaskId
+                      key={sub.subTaskId}
                       className='flex items-center justify-between pl-2'
                     >
                       <label className='flex items-center gap-3 flex-1'>
@@ -785,24 +762,37 @@ const CardModal = ({
                           type='checkbox'
                           checked={sub.isDone}
                           onChange={() =>
-                            handleToggleSubtaskDone(task.taskId, sub.subTaskId, sub.isDone)
+                            handleToggleSubtaskDone(
+                              task.taskId,
+                              sub.subTaskId,
+                              sub.isDone
+                            )
                           }
                           disabled={!isConnected}
                           className='w-4 h-4'
                         />
                         <span
-                          className={`${sub.isDone ? 'line-through opacity-60' : ''}`} 
+                          className={
+                            sub.isDone ? 'line-through opacity-60' : ''
+                          }
                         >
-                          {sub.subTaskTitle}{' '}
+                          {sub.subTaskTitle}
                         </span>
                       </label>
 
                       <div className='flex items-center gap-2 pr-2'>
-                        {/* UPDATE SUBTASK */}
                         <button
                           onClick={() => {
-                            const name = prompt('Enter new subtask title:', sub.subTaskTitle);
-                            if (name) handleRenameSubtask(task.taskId, sub.subTaskId, name);
+                            const name = prompt(
+                              'Enter new subtask title:',
+                              sub.subTaskTitle
+                            );
+                            if (name)
+                              handleRenameSubtask(
+                                task.taskId,
+                                sub.subTaskId,
+                                name
+                              );
                           }}
                           disabled={!isConnected}
                           className='text-gray-300 hover:text-blue-400 px-1 rounded disabled:opacity-50'
@@ -811,9 +801,10 @@ const CardModal = ({
                           <PencilLine size={16} />
                         </button>
 
-                        {/* DELETE SUBTASK */}
                         <button
-                          onClick={() => handleDeleteSubtask(task.taskId, sub.subTaskId)}
+                          onClick={() =>
+                            handleDeleteSubtask(task.taskId, sub.subTaskId)
+                          }
                           disabled={!isConnected}
                           className='text-gray-300 hover:text-red-400 px-1 rounded disabled:opacity-50'
                           title='Delete Subtask'
@@ -824,7 +815,6 @@ const CardModal = ({
                     </div>
                   ))}
 
-                  {/* Add subtask button */}
                   <button
                     className='mt-2 bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-sm disabled:opacity-50'
                     onClick={() => handleCreateSubtask(task.taskId)}
@@ -849,7 +839,7 @@ const CardModal = ({
             <button
               onClick={handleSave}
               disabled={isSaving || !isConnected}
-              className='px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all'
+              className='px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50'
               type='button'
             >
               {isSaving ? 'Saving...' : 'Save Changes'}
@@ -866,10 +856,11 @@ const CardModal = ({
           onClose={handleClosePopover}
         />
       )}
+
       {/* Task Modal */}
       {isOpenTask && (
         <TaskModal
-          isOpen={isOpenTask === true}
+          isOpen={isOpenTask}
           onClose={() => setIsOpenTask(false)}
           onSave={handleCreateTask}
         />

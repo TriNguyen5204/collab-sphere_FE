@@ -8,7 +8,7 @@ import { LogOut } from 'lucide-react';
 import useTeam from "../../context/useTeam";
 import ProjectResourcesMenu from "./ProjectResourcesMenu";
 
-const ProjectBoardHeader = ({ selectedRole, onRoleChange, archivedItems, onRestoreArchived, onDeleteArchived }) => {
+const ProjectBoardHeader = ({ archivedItems, onRestoreArchived, onDeleteArchived }) => {
   const { projectName } = useParams();
   const navigate = useNavigate();
   const [selectedMember, setSelectedMember] = useState(null);

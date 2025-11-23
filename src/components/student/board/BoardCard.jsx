@@ -13,7 +13,7 @@ const BoardCard = ({ card, listId, onClick, onUpdate }) => {
     transition,
     isDragging,
   } = useSortable({
-    id: card.id,
+    id: String(card.id),
     data: { type: 'card', listId }
   });
 
@@ -32,7 +32,7 @@ const BoardCard = ({ card, listId, onClick, onUpdate }) => {
   };
 
   const { over, active } = useDndContext();
-  const isOverThisCard = over?.id === card.id && active?.id !== card.id;
+  const isOverThisCard = String(over?.id) === String(card.id) && String(active?.id) !== String(card.id);
 
   // Get risk color
   const getRiskColor = () => {

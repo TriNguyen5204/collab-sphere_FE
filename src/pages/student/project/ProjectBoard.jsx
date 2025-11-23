@@ -2,7 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import ProjectBoardHeader from '../../../components/layout/ProjectBoardHeader';
 import TrelloBoard from '../../../components/student/board/TrelloBoard';
+import NormalizePositionsButton from '../../../components/student/board/NormalizePositionsButton';
 import { getWorkspace } from '../../../services/kanbanApi';
+import { getTeamDetail } from '../../../services/teamApi';
 import { SignalRProvider } from '../../../context/kanban/SignalRContext';
 import { useSelector } from 'react-redux';
 import SignalRErrorBoundary from '../../errors/ErrorBoundary';
@@ -14,6 +16,7 @@ const ProjectBoard = () => {
   const accessToken = useSelector(state => state.user.accessToken);
 
   const [workspace, setWorkspace] = useState(null);
+  const [members, setMembers] = useState();
 
   // Archived state giữ nguyên (vẫn do TrelloBoard quản lý)
   const [archivedItems, setArchivedItems] = useState({ cards: [], lists: [] });
@@ -21,6 +24,27 @@ const ProjectBoard = () => {
   const boardRef = useRef(null);
 
   const handleUpdateArchived = items => setArchivedItems(items);
+  useEffect(() => {
+    const fetchMembers = async () => {
+      if (!teamId) return;
+      try {
+        const teamData = await getTeamDetail(teamId); 
+        if (teamData && teamData.memberInfo) {
+          const formattedMembers = teamData.memberInfo.members.map(member => ({
+            studentId: member.studentId,
+            studentName: member.studentName,
+            avatarImg: member.avatar,  // ✅ avatar → avatarImg
+          }));
+          setMembers(formattedMembers);
+          console.log('✅ Members loaded:', formattedMembers);
+        }
+      } catch (error) {
+        console.error('Error fetching team members:', error);
+      }
+    };
+    
+    fetchMembers();
+  }, [teamId]);
 
   // Fetch workspace
   useEffect(() => {
@@ -30,6 +54,7 @@ const ProjectBoard = () => {
         const data = await getWorkspace(teamId);
         if (data) {
           const detail = data.teamWorkspaceDetail;
+          console.log('data', detail);
           setWorkspace({
             id: detail.workspaceId,
             title: detail.title,
@@ -119,10 +144,15 @@ const ProjectBoard = () => {
               token={accessToken}
               workspaceId={workspace.id}
             >
+              {/* <NormalizePositionsButton
+                lists={workspace.lists}
+                workspaceId={workspace.id}
+              /> */}
               <TrelloBoard
                 ref={boardRef}
                 workspaceData={workspace}
                 selectedRole={selectedRole}
+                members={members}
                 onUpdateArchived={handleUpdateArchived}
               />
             </SignalRProvider>

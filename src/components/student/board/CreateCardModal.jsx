@@ -29,9 +29,11 @@ const CreateCardModal = ({
   workspaceId,
   members,
   list,
+  onCardCreated,
 }) => {
   const { connection, isConnected } = useSignalRContext();
   const [isCreating, setIsCreating] = useState(false);
+  console.log('member', members)
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -97,7 +99,6 @@ const CreateCardModal = ({
           setIsCreating(false);
           return;
         }
-
       }
       const assignmentList = selectedMembers.map(m => ({
         studentId: m.studentId,
@@ -113,17 +114,47 @@ const CreateCardModal = ({
           subTaskOfCard: task.subtasks
             .filter(st => st.title.trim())
             .map((subtask, subIndex) => ({
-              SubTaskTitle: subtask.title,
-              SubTaskOrder: subIndex + 1,
-              IsDone: subtask.done,
+              subTaskTitle: subtask.title,
+              subTaskOrder: subIndex + 1,
+              isDone: subtask.done,
             })),
         }));
+      const tempCardId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+      const newCardForUI = {
+        id: tempCardId,
+        title: title,
+        description: description,
+        riskLevel: risk,
+        dueAt: formattedDueDate,
+        position: floatPosition,
+        isCompleted: false,
+        createdAt: new Date().toISOString(),
+        assignedMembers: selectedMembers.map(m => ({
+          studentId: m.studentId,
+          studentName: m.studentName,
+          avatarImg: m.avatarImg,
+        })),
+        tasks: tasksOfCard.map((task, idx) => ({
+          taskId: `temp-task-${Date.now()}-${idx}`,
+          taskTitle: task.taskTitle,
+          isDone: false,
+          subTaskDtos: task.subTaskOfCard.map((st, subIdx) => ({
+            subTaskId: `temp-subtask-${Date.now()}-${idx}-${subIdx}`,
+            subTaskTitle: st.SubTaskTitle,
+            isDone: st.IsDone,
+          })),
+        })),
+      };
+      if (onCardCreated) {
+        onCardCreated(listId, newCardForUI);
+      }
 
       // Gọi SignalR để tạo card
       await createCard(
         connection,
         workspaceId,
-        listId,
+        parseInt(listId),
         title,
         description,
         risk,

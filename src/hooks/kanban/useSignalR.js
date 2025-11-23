@@ -21,6 +21,7 @@ const useSignalR = (hubUrl, token, workspaceId) => {
     connectionRef.current = newConnection;
 
     // Bắt đầu kết nối
+    
     newConnection
       .start()
       .then(() => {

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, forwardRef, useEffect } from 'react';
+import React, { useMemo, useState, forwardRef, useEffect, useRef } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -29,12 +29,14 @@ import {
   sortListsAndCards,
   sortListsByPosition,
 } from '../../../utils/sortHelper';
+
 const TrelloBoard = forwardRef(function TrelloBoard(
-  { onUpdateArchived, workspaceData },
+  { onUpdateArchived, workspaceData, members },
   ref
 ) {
   const workspaceId = workspaceData?.id;
   const { connection, isConnected } = useSignalRContext();
+
   const [lists, setLists] = useState([]);
   const [archivedItems, setArchivedItems] = useState({ cards: [], lists: [] });
   const [activeCard, setActiveCard] = useState(null);
@@ -44,16 +46,25 @@ const TrelloBoard = forwardRef(function TrelloBoard(
   const [newListTitle, setNewListTitle] = useState('');
   const [undoAction, setUndoAction] = useState(null);
 
+  // ✅ Ref để lưu trữ snapshot trước khi drag
+  const dragSnapshotRef = useRef(null);
+  // ref để track đã init chưa
+  const isInitializedRef = useRef(false);
+
+  // Initialize lists from workspace data
   useEffect(() => {
     if (!workspaceData) return;
+    if (isInitializedRef.current) {
+      return;
+    }
+    isInitializedRef.current = true;
 
-    // Convert workspaceData → lists đúng format TrelloBoard
     const convertedLists = workspaceData.lists.map(list => ({
-      id: list.id,
+      id: String(list.id), // ✅ Đảm bảo là string
       title: list.title,
       position: list.position,
       cards: list.cards.map(card => ({
-        id: card.id.toString(),
+        id: String(card.id), // ✅ Đảm bảo là string
         title: card.title,
         description: card.description ?? '',
         riskLevel: card.riskLevel,
@@ -78,31 +89,33 @@ const TrelloBoard = forwardRef(function TrelloBoard(
         })),
       })),
     }));
-    const sortedList = sortListsAndCards(convertedLists);
 
-    setLists(sortedList);
+    setLists(sortListsAndCards(convertedLists));
   }, [workspaceData]);
 
-  // Lắng nghe SignalR events
+  console.log('Lists: ', lists);
+
+  // SignalR event listeners
   useEffect(() => {
     if (!connection || !isConnected) return;
 
-    // List Events
+    // ===================== LIST EVENTS =====================
+
     connection.on('ReceiveListCreated', message => {
+      console.log('📋 ReceiveListCreated:', message);
       try {
         const data = JSON.parse(message);
+        console.log('data', data);
         setLists(prev => {
           const updated = [
             ...prev,
             {
-              id: data.id,
-              title: data.title,
-              position: data.position,
+              id: String(data.ListId), // ✅ Đảm bảo là string
+              title: data.Title,
+              position: data.Position,
               cards: [],
             },
           ];
-
-          // Sort sau khi thêm
           return updated.sort((a, b) => a.position - b.position);
         });
       } catch (e) {
@@ -111,35 +124,42 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     });
 
     connection.on('ReceiveListRenamed', (listId, newTitle) => {
-      console.log('ReceiveListRenamed:', listId, newTitle);
-      setLists(prev =>
-        prev.map(l => (l.id === listId ? { ...l, title: newTitle } : l))
-      );
-    });
-
-    connection.on('ReceiveListMoved', (listId, newPosition) => {
-      console.log('ReceiveListMoved:', listId, newPosition);
+      console.log('📝 ReceiveListRenamed:', { listId, newTitle });
       setLists(prev =>
         prev.map(l =>
-          l.id === listId.toString() ? { ...l, position: newPosition } : l
+          String(l.id) === String(listId) ? { ...l, title: newTitle } : l
         )
       );
     });
 
-    // Card Events
+    connection.on('ReceiveListMoved', (listId, newPosition) => {
+      console.log('🚀 ReceiveListMoved:', { listId, newPosition });
+
+      setLists(prev => {
+        const updated = prev.map(l =>
+          String(l.id) === String(listId) ? { ...l, position: newPosition } : l
+        );
+        return updated.sort((a, b) => a.position - b.position);
+      });
+
+      console.log('✅ List moved successfully via SignalR');
+    });
+
+    // ===================== CARD EVENTS =====================
+
     connection.on('ReceiveCardCreated', (listId, message) => {
+      console.log('📋 ReceiveCardCreated:', { listId });
       try {
         const cardData = JSON.parse(message);
-
         setLists(prev =>
           prev.map(l =>
-            l.id === listId
+            String(l.id) === String(listId)
               ? {
                   ...l,
                   cards: [
                     ...l.cards,
                     {
-                      id: cardData.CardId,
+                      id: String(cardData.CardId), // ✅ Đảm bảo là string
                       title: cardData.Title,
                       description: cardData.Description ?? '',
                       riskLevel: cardData.RiskLevel,
@@ -164,9 +184,7 @@ const TrelloBoard = forwardRef(function TrelloBoard(
                         })),
                       })),
                     },
-                  ]
-                    // ✅ Sort cards sau khi thêm
-                    .sort((a, b) => a.position - b.position),
+                  ].sort((a, b) => a.position - b.position),
                 }
               : l
           )
@@ -177,47 +195,57 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     });
 
     connection.on('ReceiveCardMoved', (cardId, newListId, newPosition) => {
+      console.log('🚀 ReceiveCardMoved:', { cardId, newListId, newPosition });
+
       setLists(prev => {
         const draft = structuredClone(prev);
 
-        // Tìm và di chuyển card
         let movedCard = null;
         for (const list of draft) {
-          const cardIndex = list.cards.findIndex(c => c.id === cardId);
+          const cardIndex = list.cards.findIndex(
+            c => String(c.id) === String(cardId)
+          );
           if (cardIndex !== -1) {
             [movedCard] = list.cards.splice(cardIndex, 1);
             break;
           }
         }
 
-        if (!movedCard) return prev;
+        if (!movedCard) {
+          console.warn('❌ Card not found:', cardId);
+          return prev;
+        }
 
-        const targetList = draft.find(l => l.id === newListId);
-        if (!targetList) return prev;
+        const targetList = draft.find(l => String(l.id) === String(newListId));
+        if (!targetList) {
+          console.warn('❌ Target list not found:', newListId);
+          return prev;
+        }
 
         movedCard.position = newPosition;
         targetList.cards.push(movedCard);
-
-        // ✅ Sort cards trong list đích
         targetList.cards.sort((a, b) => a.position - b.position);
 
+        console.log('✅ Card moved successfully via SignalR');
         return draft;
       });
     });
 
     connection.on('ReceiveCardUpdated', (cardId, message) => {
-      console.log('ReceiveCardUpdated:', cardId);
+      console.log('📝 ReceiveCardUpdated:', cardId);
+
       try {
         const updates = JSON.parse(message);
+        console.log('📝 ReceiveCardUpdated PARSED:', updates);
         setLists(prev =>
           prev.map(l => ({
             ...l,
             cards: l.cards.map(c =>
-              c.id === cardId.toString()
+              String(c.id) === String(cardId)
                 ? {
                     ...c,
-                    title: updates.CardTitle,
-                    description: updates.CardDescription,
+                    title: updates.Title,
+                    description: updates.Description,
                     riskLevel: updates.RiskLevel,
                     dueAt: updates.DueAt,
                   }
@@ -231,14 +259,14 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     });
 
     connection.on('ReceiveCardComplete', (listId, cardId, isComplete) => {
-      console.log('ReceiveCardComplete:', { listId, cardId, isComplete });
+      console.log('✅ ReceiveCardComplete:', { listId, cardId, isComplete });
       setLists(prev =>
         prev.map(l =>
-          l.id === listId.toString()
+          String(l.id) === String(listId)
             ? {
                 ...l,
                 cards: l.cards.map(c =>
-                  c.id === cardId.toString()
+                  String(c.id) === String(cardId)
                     ? { ...c, isCompleted: isComplete }
                     : c
                 ),
@@ -248,25 +276,43 @@ const TrelloBoard = forwardRef(function TrelloBoard(
       );
     });
 
+    connection.on('ReceiveCardDeleted', (listId, cardId) => {
+      console.log('🗑️ ReceiveCardDeleted:', { listId, cardId });
+      setLists(prev =>
+        prev.map(l =>
+          String(l.id) === String(listId)
+            ? {
+                ...l,
+                cards: l.cards.filter(c => String(c.id) !== String(cardId)),
+              }
+            : l
+        )
+      );
+    });
+
     connection.on('ReceiveCardAssigned', (listId, cardId, message) => {
-      console.log('ReceiveCardAssigned:', { listId, cardId });
+      console.log('👤 ReceiveCardAssigned:', { listId, cardId });
       try {
         const memberData = JSON.parse(message);
         setLists(prev =>
           prev.map(l =>
-            l.id === listId.toString()
+            String(l.id) === String(listId)
               ? {
                   ...l,
                   cards: l.cards.map(c =>
-                    c.id === cardId.toString()
+                    String(c.id) === String(cardId)
                       ? {
                           ...c,
                           assignedMembers: [
                             ...(c.assignedMembers || []),
                             {
-                              studentId: memberData.studentId,
-                              studentName: memberData.studentName,
-                              avatarImg: memberData.avatarImg,
+                              studentId:
+                                memberData.studentId || memberData.StudentId,
+                              studentName:
+                                memberData.studentName ||
+                                memberData.StudentName,
+                              avatarImg:
+                                memberData.Avatar,
                             },
                           ],
                         }
@@ -282,14 +328,14 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     });
 
     connection.on('ReceiveCardUnAssigned', (listId, cardId, studentId) => {
-      console.log('ReceiveCardUnAssigned:', { listId, cardId, studentId });
+      console.log('👤 ReceiveCardUnAssigned:', { listId, cardId, studentId });
       setLists(prev =>
         prev.map(l =>
-          l.id === listId.toString()
+          String(l.id) === String(listId)
             ? {
                 ...l,
                 cards: l.cards.map(c =>
-                  c.id === cardId.toString()
+                  String(c.id) === String(cardId)
                     ? {
                         ...c,
                         assignedMembers: (c.assignedMembers || []).filter(
@@ -304,27 +350,41 @@ const TrelloBoard = forwardRef(function TrelloBoard(
       );
     });
 
-    // Task Events
+    // ===================== TASK EVENTS =====================
+
     connection.on('ReceiveTaskCreated', (listId, cardId, message) => {
-      console.log('ReceiveTaskCreated:', { listId, cardId });
+      console.log('📋 ReceiveTaskCreated:', { listId, cardId });
       try {
         const taskData = JSON.parse(message);
+        console.log('✅ Parsed task data:', taskData);
+
         setLists(prev =>
           prev.map(l =>
-            l.id === listId.toString()
+            String(l.id) === String(listId)
               ? {
                   ...l,
                   cards: l.cards.map(c =>
-                    c.id === cardId.toString()
+                    String(c.id) === String(cardId)
                       ? {
                           ...c,
                           tasks: [
                             ...(c.tasks || []),
                             {
-                              taskId: taskData.taskId,
-                              taskTitle: taskData.taskTitle,
-                              isDone: taskData.isDone || false,
-                              subTaskDtos: taskData.subTaskDtos || [],
+                              taskId: taskData.TaskId || taskData.taskId,
+                              taskTitle:
+                                taskData.TaskTitle || taskData.taskTitle,
+                              isDone:
+                                taskData.IsDone || taskData.isDone || false,
+                              subTaskDtos: (
+                                taskData.SubTasks ||
+                                taskData.subTaskDtos ||
+                                []
+                              ).map(st => ({
+                                subTaskId: st.SubTaskId || st.subTaskId,
+                                subTaskTitle:
+                                  st.SubTaskTitle || st.subTaskTitle,
+                                isDone: st.IsDone || st.isDone || false,
+                              })),
                             },
                           ],
                         }
@@ -340,14 +400,19 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     });
 
     connection.on('ReceiveTaskRenamed', (listId, cardId, taskId, newTitle) => {
-      console.log('ReceiveTaskRenamed:', { listId, cardId, taskId, newTitle });
+      console.log('📝 ReceiveTaskRenamed:', {
+        listId,
+        cardId,
+        taskId,
+        newTitle,
+      });
       setLists(prev =>
         prev.map(l =>
-          l.id === listId.toString()
+          String(l.id) === String(listId)
             ? {
                 ...l,
                 cards: l.cards.map(c =>
-                  c.id === cardId.toString()
+                  String(c.id) === String(cardId)
                     ? {
                         ...c,
                         tasks: (c.tasks || []).map(t =>
@@ -365,14 +430,14 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     });
 
     connection.on('ReceiveTaskDeleted', (listId, cardId, taskId) => {
-      console.log('ReceiveTaskDeleted:', { listId, cardId, taskId });
+      console.log('🗑️ ReceiveTaskDeleted:', { listId, cardId, taskId });
       setLists(prev =>
         prev.map(l =>
-          l.id === listId.toString()
+          String(l.id) === String(listId)
             ? {
                 ...l,
                 cards: l.cards.map(c =>
-                  c.id === cardId.toString()
+                  String(c.id) === String(cardId)
                     ? {
                         ...c,
                         tasks: (c.tasks || []).filter(t => t.taskId !== taskId),
@@ -385,20 +450,21 @@ const TrelloBoard = forwardRef(function TrelloBoard(
       );
     });
 
-    // SubTask Events
+    // ===================== SUBTASK EVENTS =====================
+
     connection.on(
       'ReceiveSubTaskCreated',
       (listId, cardId, taskId, message) => {
-        console.log('ReceiveSubTaskCreated:', { listId, cardId, taskId });
+        console.log('📋 ReceiveSubTaskCreated:', { listId, cardId, taskId });
         try {
           const subTaskData = JSON.parse(message);
           setLists(prev =>
             prev.map(l =>
-              l.id === listId.toString()
+              String(l.id) === String(listId)
                 ? {
                     ...l,
                     cards: l.cards.map(c =>
-                      c.id === cardId.toString()
+                      String(c.id) === String(cardId)
                         ? {
                             ...c,
                             tasks: (c.tasks || []).map(t =>
@@ -408,9 +474,16 @@ const TrelloBoard = forwardRef(function TrelloBoard(
                                     subTaskDtos: [
                                       ...(t.subTaskDtos || []),
                                       {
-                                        subTaskId: subTaskData.subTaskId,
-                                        subTaskTitle: subTaskData.subTaskTitle,
-                                        isDone: subTaskData.isDone || false,
+                                        subTaskId:
+                                          subTaskData.SubTaskId ||
+                                          subTaskData.subTaskId,
+                                        subTaskTitle:
+                                          subTaskData.SubTaskTitle ||
+                                          subTaskData.subTaskTitle,
+                                        isDone:
+                                          subTaskData.IsDone ||
+                                          subTaskData.isDone ||
+                                          false,
                                       },
                                     ],
                                   }
@@ -432,20 +505,24 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     connection.on(
       'ReceiveSubTaskRenamed',
       (listId, cardId, taskId, subTaskId, newTitle) => {
-        console.log('ReceiveSubTaskRenamed:', {
+        console.log('📝 ReceiveSubTaskRenamed:', {
           listId,
           cardId,
           taskId,
           subTaskId,
           newTitle,
+          // Debug types
+          listIdType: typeof listId,
+          taskIdType: typeof taskId,
+          subTaskIdType: typeof subTaskId,
         });
         setLists(prev =>
           prev.map(l =>
-            l.id === listId.toString()
+            String(l.id) === String(listId)
               ? {
                   ...l,
                   cards: l.cards.map(c =>
-                    c.id === cardId.toString()
+                    String(c.id) === String(cardId)
                       ? {
                           ...c,
                           tasks: (c.tasks || []).map(t =>
@@ -473,7 +550,7 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     connection.on(
       'ReceiveSubTaskDeleted',
       (listId, cardId, taskId, subTaskId) => {
-        console.log('ReceiveSubTaskDeleted:', {
+        console.log('🗑️ ReceiveSubTaskDeleted:', {
           listId,
           cardId,
           taskId,
@@ -481,11 +558,11 @@ const TrelloBoard = forwardRef(function TrelloBoard(
         });
         setLists(prev =>
           prev.map(l =>
-            l.id === listId.toString()
+            String(l.id) === String(listId)
               ? {
                   ...l,
                   cards: l.cards.map(c =>
-                    c.id === cardId.toString()
+                    String(c.id) === String(cardId)
                       ? {
                           ...c,
                           tasks: (c.tasks || []).map(t =>
@@ -511,7 +588,7 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     connection.on(
       'ReceiveSubTaskMarkDone',
       (listId, cardId, taskId, subTaskId, isDone) => {
-        console.log('ReceiveSubTaskMarkDone:', {
+        console.log('✅ ReceiveSubTaskMarkDone:', {
           listId,
           cardId,
           taskId,
@@ -520,11 +597,11 @@ const TrelloBoard = forwardRef(function TrelloBoard(
         });
         setLists(prev =>
           prev.map(l =>
-            l.id === listId.toString()
+            String(l.id) === String(listId)
               ? {
                   ...l,
                   cards: l.cards.map(c =>
-                    c.id === cardId.toString()
+                    String(c.id) === String(cardId)
                       ? {
                           ...c,
                           tasks: (c.tasks || []).map(t =>
@@ -609,43 +686,46 @@ const TrelloBoard = forwardRef(function TrelloBoard(
 
   const orderedLists = useMemo(() => sortListsByPosition(lists), [lists]);
   const listIds = useMemo(() => orderedLists.map(l => l.id), [orderedLists]);
-  console.log('Rendering TrelloBoard with lists:', orderedLists);
 
-  // Helper functions
+  // ✅ Helper function với String comparison
   const findCard = cardId => {
+    console.log('🔍 findCard called with:', cardId, 'type:', typeof cardId);
+
     for (const list of lists) {
-      const idx = list.cards.findIndex(c => c.id === cardId);
-      if (idx !== -1)
+      const idx = list.cards.findIndex(c => String(c.id) === String(cardId));
+      if (idx !== -1) {
+        console.log('✅ Found card in list:', list.id);
         return { listId: list.id, cardIndex: idx, card: list.cards[idx] };
+      }
     }
+
+    console.log('❌ Card not found!');
     return null;
   };
 
-  const moveCard = (cardId, toListId, toIndex) => {
-    setLists(prev => {
-      const draft = structuredClone(prev);
-      const from = findCard(cardId);
-      if (!from) return prev;
-      const [moved] = draft
-        .find(l => l.id === from.listId)
-        .cards.splice(from.cardIndex, 1);
-      const targetList = draft.find(l => l.id === toListId);
-      targetList.cards.splice(toIndex, 0, moved);
-      return draft;
-    });
-  };
+  // ===================== DnD EVENT HANDLERS =====================
 
-  // DnD event handlers
   function handleDragStart(event) {
     const { active } = event;
     const data = active.data?.current;
 
+    console.log('🟢 handleDragStart:', {
+      activeId: active.id,
+      activeIdType: typeof active.id,
+      dataType: data?.type,
+    });
+
+    // ✅ Lưu snapshot trước khi drag để rollback nếu cần
+    dragSnapshotRef.current = structuredClone(lists);
+
     if (data?.type === 'card') {
       const found = findCard(active.id);
+      console.log('🔍 findCard result:', found);
       setActiveCard(found?.card || null);
       setActiveList(null);
     } else if (data?.type === 'list') {
-      const list = lists.find(l => l.id === active.id);
+      // ✅ FIX: So sánh string
+      const list = lists.find(l => String(l.id) === String(active.id));
       setActiveList(list || null);
       setActiveCard(null);
     }
@@ -653,29 +733,75 @@ const TrelloBoard = forwardRef(function TrelloBoard(
 
   function handleDragOver(event) {
     const { active, over } = event;
+
+    console.log('🟡 handleDragOver:', {
+      activeId: active?.id,
+      overId: over?.id,
+      overType: over?.data?.current?.type,
+    });
+
     if (!over) return;
 
     const activeData = active.data?.current;
     const overData = over.data?.current;
 
-    if (over.data?.current?.type === 'add-card') return;
+    if (overData?.type === 'add-card') return;
 
+    // ✅ Optimistic UI update CHỈ cho card (để UX mượt hơn)
     if (activeData?.type === 'card' && overData?.type === 'card') {
       const from = findCard(active.id);
       const to = findCard(over.id);
       if (!from || !to) return;
-      if (from.listId !== to.listId) {
-        moveCard(active.id, to.listId, to.cardIndex);
+
+      // ✅ FIX: So sánh string
+      if (String(from.listId) !== String(to.listId)) {
+        setLists(prev => {
+          const draft = structuredClone(prev);
+
+          // ✅ FIX: So sánh string
+          const sourceList = draft.find(
+            l => String(l.id) === String(from.listId)
+          );
+          const targetList = draft.find(
+            l => String(l.id) === String(to.listId)
+          );
+
+          if (!sourceList || !targetList) return prev;
+
+          const [moved] = sourceList.cards.splice(from.cardIndex, 1);
+          targetList.cards.splice(to.cardIndex, 0, moved);
+
+          return draft;
+        });
       }
     }
 
     if (activeData?.type === 'card' && overData?.type === 'cards') {
       const from = findCard(active.id);
       const toListId = overData.listId;
-      if (from && toListId && from.listId !== toListId) {
-        const toList = lists.find(l => l.id === toListId);
+
+      // ✅ FIX: So sánh string
+      if (from && toListId && String(from.listId) !== String(toListId)) {
+        const toList = lists.find(l => String(l.id) === String(toListId));
         if (toList) {
-          moveCard(active.id, toListId, toList.cards.length);
+          setLists(prev => {
+            const draft = structuredClone(prev);
+
+            // ✅ FIX: So sánh string
+            const sourceList = draft.find(
+              l => String(l.id) === String(from.listId)
+            );
+            const targetList = draft.find(
+              l => String(l.id) === String(toListId)
+            );
+
+            if (!sourceList || !targetList) return prev;
+
+            const [moved] = sourceList.cards.splice(from.cardIndex, 1);
+            targetList.cards.push(moved);
+
+            return draft;
+          });
         }
       }
     }
@@ -683,217 +809,233 @@ const TrelloBoard = forwardRef(function TrelloBoard(
 
   async function handleDragEnd(event) {
     const { active, over } = event;
+
+    console.log('🔴 handleDragEnd:', {
+      activeId: active?.id,
+      overId: over?.id,
+      activeType: active?.data?.current?.type,
+      overType: over?.data?.current?.type,
+    });
+
     setActiveCard(null);
     setActiveList(null);
-    if (!over) return;
 
-    const activeData = active.data?.current;
-    const overData = over.data?.current;
-
-    if (active.id === over.id) return;
-
-    if (overData?.type === 'add-card') return;
-
-    if (activeData?.type === 'list' && overData?.type === 'list') {
-      const fromIndex = orderedLists.findIndex(l => l.id === active.id);
-      const toIndex = orderedLists.findIndex(l => l.id === over.id);
-
-      if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
-        // Tạo mảng tạm KHÔNG bao gồm list đang kéo
-        const tempLists = orderedLists
-          .filter((_, idx) => idx !== fromIndex)
-          .sort((a, b) => a.position - b.position);
-
-        // Điều chỉnh toIndex
-        const adjustedToIndex = toIndex > fromIndex ? toIndex - 1 : toIndex;
-
-        // ✨ SỬ DỤNG HELPER FUNCTION
-        const newPosition = getPositionForIndex(tempLists, adjustedToIndex);
-
-        console.log('📊 Moving list:', {
-          listId: active.id,
-          fromIndex,
-          toIndex,
-          adjustedToIndex,
-          newPosition,
-        });
-
-        // Update UI optimistically
-        setLists(() => {
-          const updated = [...orderedLists];
-          const [movedList] = updated.splice(fromIndex, 1);
-          updated.splice(toIndex, 0, { ...movedList, position: newPosition });
-          return updated;
-        });
-
-        // Gọi SignalR
-        try {
-          const payload =
-            (connection, workspaceData.id, parseInt(active.id), newPosition);
-          console.log('Invoking moveList via SignalR', payload);
-          await moveList(connection, workspaceData.id, active.id, newPosition);
-        } catch (error) {
-          console.error('Error moving list:', error);
-          setLists(lists); // Rollback
-        }
+    if (!over) {
+      console.log('❌ No over target - rollback');
+      if (dragSnapshotRef.current) {
+        setLists(dragSnapshotRef.current);
       }
       return;
     }
 
-    // xử lý di chuyển card
-    if (activeData?.type === 'card' && overData?.type === 'card') {
-      const from = findCard(active.id);
-      const to = findCard(over.id);
-      if (!from || !to) return;
+    const activeData = active.data?.current;
+    const overData = over.data?.current;
 
-      // Nếu drop vào chính nó, bỏ qua
-      if (from.listId === to.listId && from.cardIndex === to.cardIndex) {
+    if (overData?.type === 'add-card') {
+      console.log('❌ Over add-card - returning');
+      return;
+    }
+
+    // ===================== MOVE LIST =====================
+    if (activeData?.type === 'list' && overData?.type === 'list') {
+      console.log('✅ List to List move detected');
+
+      // ✅ FIX: So sánh string
+      const activeListItem = orderedLists.find(
+        l => String(l.id) === String(active.id)
+      );
+      const overListItem = orderedLists.find(
+        l => String(l.id) === String(over.id)
+      );
+
+      if (
+        !activeListItem ||
+        !overListItem ||
+        String(activeListItem.id) === String(overListItem.id)
+      ) {
         return;
       }
 
-      const targetList = lists.find(l => l.id === to.listId);
-      if (!targetList) return;
+      // Tính toán position mới
+      // ✅ FIX: So sánh string
+      const tempLists = orderedLists
+        .filter(l => String(l.id) !== String(active.id))
+        .sort((a, b) => a.position - b.position);
 
-      // Tạo mảng cards tạm KHÔNG bao gồm card đang kéo
+      const activeIndexInOriginal = orderedLists.findIndex(
+        l => String(l.id) === String(active.id)
+      );
+      const overIndexInOriginal = orderedLists.findIndex(
+        l => String(l.id) === String(over.id)
+      );
+      const overIndexInTemp = tempLists.findIndex(
+        l => String(l.id) === String(over.id)
+      );
+
+      const insertIndex =
+        activeIndexInOriginal < overIndexInOriginal
+          ? overIndexInTemp + 1
+          : overIndexInTemp;
+
+      const newPosition = getPositionForIndex(tempLists, insertIndex);
+
+      console.log('📤 Sending MoveList:', {
+        listId: active.id,
+        newPosition,
+        from: activeIndexInOriginal,
+        to: overIndexInOriginal,
+      });
+
+      try {
+        await moveList(
+          connection,
+          workspaceData.id,
+          parseInt(active.id),
+          newPosition
+        );
+
+        console.log('✅ MoveList request sent successfully');
+      } catch (error) {
+        console.error('❌ Error moving list:', error);
+        alert('Failed to move list');
+      }
+
+      return;
+    }
+
+    // ===================== MOVE CARD TO CARD =====================
+    if (activeData?.type === 'card' && overData?.type === 'card') {
+      console.log('✅ Card to Card move detected');
+
+      const from = findCard(active.id);
+      const to = findCard(over.id);
+
+      console.log('📍 From:', from);
+      console.log('📍 To:', to);
+
+      if (!from || !to) {
+        console.log('❌ from or to is null - returning');
+        return;
+      }
+
+      // ✅ FIX: So sánh string
+      const targetList = lists.find(l => String(l.id) === String(to.listId));
+      if (!targetList) {
+        console.log('❌ Target list not found - returning');
+        return;
+      }
+
+      // Tính position mới
       let tempCards =
-        from.listId === to.listId
-          ? targetList.cards.filter(c => c.id !== active.id)
+        String(from.listId) === String(to.listId)
+          ? targetList.cards.filter(c => String(c.id) !== String(active.id))
           : [...targetList.cards];
 
-      // Sắp xếp theo position
       tempCards.sort((a, b) => a.position - b.position);
 
-      // Điều chỉnh targetIndex nếu cùng list và kéo xuống
       let targetIndex = to.cardIndex;
-      if (from.listId === to.listId && from.cardIndex < to.cardIndex) {
+      if (
+        String(from.listId) === String(to.listId) &&
+        from.cardIndex < to.cardIndex
+      ) {
         targetIndex = to.cardIndex - 1;
       }
 
-      // ✨ SỬ DỤNG HELPER FUNCTION
       const newPosition = getPositionForIndex(tempCards, targetIndex);
 
-      console.log('🎯 Moving card:', {
+      console.log('📤 Sending MoveCard:', {
         cardId: active.id,
-        fromList: from.listId,
-        toList: to.listId,
-        fromIndex: from.cardIndex,
-        toIndex: to.cardIndex,
-        adjustedIndex: targetIndex,
+        fromListId: from.listId,
+        toListId: to.listId,
         newPosition,
-        tempCardsCount: tempCards.length,
       });
 
-      // Update UI optimistically
-      setLists(prev => {
-        const draft = structuredClone(prev);
-
-        const sourceList = draft.find(l => l.id === from.listId);
-        if (!sourceList) return prev;
-        const [movedCard] = sourceList.cards.splice(from.cardIndex, 1);
-
-        const destList = draft.find(l => l.id === to.listId);
-        if (!destList) return prev;
-
-        movedCard.position = newPosition;
-        destList.cards.splice(to.cardIndex, 0, movedCard);
-
-        return draft;
-      });
-
-      // Gọi SignalR
       try {
+        console.log('🚀 About to call moveCardSignalR...');
+
         await moveCardSignalR(
           connection,
-          workspaceData.id,
+          workspaceId,
           parseInt(from.listId),
           parseInt(active.id),
           parseInt(to.listId),
           newPosition
         );
+
+        console.log('✅ MoveCard request sent successfully');
       } catch (error) {
-        console.error('Error moving card:', error);
-        setLists(lists);
+        console.error('❌ Error moving card:', error);
+        if (dragSnapshotRef.current) {
+          setLists(dragSnapshotRef.current);
+        }
       }
+
       return;
     }
 
+    // ===================== MOVE CARD TO EMPTY LIST =====================
     if (activeData?.type === 'card' && overData?.type === 'cards') {
+      console.log('✅ Card to Empty List move detected');
+
       const from = findCard(active.id);
       const toListId = overData.listId;
-      const targetList = lists.find(l => l.id === toListId);
-      if (!targetList) return;
 
-      // Lọc bỏ card đang kéo nếu cùng list
+      // ✅ FIX: So sánh string
+      const targetList = lists.find(l => String(l.id) === String(toListId));
+      if (!targetList || !from) {
+        console.log('❌ targetList or from is null - returning');
+        return;
+      }
+
       const existingCards = targetList.cards
-        .filter(c => c.id !== active.id)
+        .filter(c => String(c.id) !== String(active.id))
         .sort((a, b) => a.position - b.position);
 
-      // Tính position: thêm vào cuối list
       const newPosition = getPositionForIndex(
         existingCards,
         existingCards.length
       );
 
-      console.log('📥 Dropping card to list area:', {
+      console.log('📤 Sending MoveCard to empty list:', {
         cardId: active.id,
-        fromList: from.listId,
-        toList: toListId,
-        existingCardsCount: existingCards.length,
+        fromListId: from.listId,
+        toListId,
         newPosition,
       });
 
-      // Update UI optimistically
-      setLists(prev => {
-        const draft = structuredClone(prev);
-
-        const sourceList = draft.find(l => l.id === from.listId);
-        if (!sourceList) return prev;
-        const [movedCard] = sourceList.cards.splice(from.cardIndex, 1);
-
-        const destList = draft.find(l => l.id === toListId);
-        if (!destList) return prev;
-
-        movedCard.position = newPosition;
-        destList.cards.push(movedCard);
-
-        return draft;
-      });
-
-      // Gọi SignalR
       try {
         await moveCardSignalR(
           connection,
-          workspaceData.id,
+          workspaceId,
           parseInt(from.listId),
           parseInt(active.id),
           parseInt(toListId),
           newPosition
         );
+
+        console.log('✅ MoveCard to empty list sent successfully');
       } catch (error) {
-        console.error('Error moving card:', error);
-        setLists(lists);
+        console.error('❌ Error moving card to empty list:', error);
+        if (dragSnapshotRef.current) {
+          setLists(dragSnapshotRef.current);
+        }
       }
     }
+
+    console.log('❌ No matching condition for move');
   }
 
-  // CRUD operations with SignalR
+  // ===================== CRUD OPERATIONS =====================
+
   const addList = async () => {
     const title = newListTitle.trim();
     if (!title) return;
 
     try {
-      // Sắp xếp lists theo position
       const sortedLists = [...lists].sort((a, b) => a.position - b.position);
-
-      // ✨ SỬ DỤNG HELPER - Thêm vào cuối
       const newPosition = getPositionForIndex(sortedLists, sortedLists.length);
 
-      console.log('➕ Creating new list:', {
-        title,
-        currentListsCount: lists.length,
-        newPosition,
-        workspaceId: workspaceData.id,
-      });
+      console.log('📤 Creating new list:', { title, newPosition });
 
       await createList(connection, workspaceData.id, title, newPosition);
 
@@ -906,20 +1048,6 @@ const TrelloBoard = forwardRef(function TrelloBoard(
   };
 
   const updateCard = async (listId, updatedCard) => {
-    // Update UI optimistically
-    setLists(prev =>
-      prev.map(l =>
-        l.id === listId
-          ? {
-              ...l,
-              cards: l.cards.map(c =>
-                c.id === updatedCard.id ? updatedCard : c
-              ),
-            }
-          : l
-      )
-    );
-    // Gọi SignalR
     try {
       await updateCardDetails(
         connection,
@@ -938,33 +1066,10 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     }
   };
 
-  const addCard = (listId, title) => {
-    const safeTitle = (title ?? '').toString().trim();
-    if (!safeTitle) return;
-    setLists(prev =>
-      prev.map(l => {
-        if (l.id !== listId) return l;
-        const newCard = {
-          id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          title: safeTitle,
-          description: '',
-          isCompleted: false,
-          archived: false,
-          createdAt: new Date().toISOString(),
-          assignedMembers: [],
-          attachments: [],
-          labels: [],
-          riskLevel: 'low',
-          tasks: [],
-        };
-        return { ...l, cards: [...l.cards, newCard] };
-      })
-    );
-  };
-
   const archiveCard = (listId, cardId) => {
     const from = findCard(cardId);
     if (!from) return;
+
     const archivedCard = {
       ...from.card,
       listId,
@@ -978,8 +1083,11 @@ const TrelloBoard = forwardRef(function TrelloBoard(
 
     setLists(prev =>
       prev.map(l =>
-        l.id === listId
-          ? { ...l, cards: l.cards.filter(c => c.id !== cardId) }
+        String(l.id) === String(listId)
+          ? {
+              ...l,
+              cards: l.cards.filter(c => String(c.id) !== String(cardId)),
+            }
           : l
       )
     );
@@ -1006,17 +1114,13 @@ const TrelloBoard = forwardRef(function TrelloBoard(
   };
 
   const archiveList = listId => {
-    const list = lists.find(l => l.id === listId);
+    // ✅ FIX: So sánh string
+    const list = lists.find(l => String(l.id) === String(listId));
     if (!list) return;
 
     const archivedList = { ...list, archivedAt: new Date().toISOString() };
 
-    setArchivedItems(prev => ({
-      ...prev,
-      lists: [...prev.lists, archivedList],
-    }));
-
-    setLists(prev => prev.filter(l => l.id !== listId));
+    setLists(prev => prev.filter(l => String(l.id) !== String(listId)));
 
     setUndoAction({
       type: 'list',
@@ -1026,12 +1130,15 @@ const TrelloBoard = forwardRef(function TrelloBoard(
   };
 
   const restoreCard = (cardId, listId) => {
-    const archivedCard = archivedItems.cards.find(c => c.id === cardId);
+    // ✅ FIX: So sánh string
+    const archivedCard = archivedItems.cards.find(
+      c => String(c.id) === String(cardId)
+    );
     if (!archivedCard) return;
 
     setLists(prev =>
       prev.map(l =>
-        l.id === listId
+        String(l.id) === String(listId)
           ? {
               ...l,
               cards: [...l.cards, { ...archivedCard, archivedAt: undefined }],
@@ -1042,19 +1149,22 @@ const TrelloBoard = forwardRef(function TrelloBoard(
 
     setArchivedItems(prev => ({
       ...prev,
-      cards: prev.cards.filter(c => c.id !== cardId),
+      cards: prev.cards.filter(c => String(c.id) !== String(cardId)),
     }));
   };
 
   const restoreList = listId => {
-    const archivedList = archivedItems.lists.find(l => l.id === listId);
+    // ✅ FIX: So sánh string
+    const archivedList = archivedItems.lists.find(
+      l => String(l.id) === String(listId)
+    );
     if (!archivedList) return;
 
     setLists(prev => [...prev, { ...archivedList, archivedAt: undefined }]);
 
     setArchivedItems(prev => ({
       ...prev,
-      lists: prev.lists.filter(l => l.id !== listId),
+      lists: prev.lists.filter(l => String(l.id) !== String(listId)),
     }));
   };
 
@@ -1070,15 +1180,17 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     setUndoAction(null);
   };
 
+  // ===================== RENDER =====================
+
   return (
     <>
-      {/* ✅ Connection Status */}
       {!isConnected && (
         <div className='mb-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-3 rounded'>
-          <p className='font-semibold'> Disconnected from server</p>
+          <p className='font-semibold'>⚠️ Disconnected from server</p>
           <p className='text-sm'>Reconnecting...</p>
         </div>
       )}
+
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetectionStrategy}
@@ -1095,8 +1207,7 @@ const TrelloBoard = forwardRef(function TrelloBoard(
               <BoardList
                 key={list.id}
                 list={list}
-                members={list.cards.flatMap(card => card.assignedMembers || [])}
-                onAddCard={(listId, cardTitle) => addCard(listId, cardTitle)}
+                members={members}
                 onCardClick={card =>
                   setEditingCard({
                     listId: list.id,
@@ -1110,7 +1221,6 @@ const TrelloBoard = forwardRef(function TrelloBoard(
               />
             ))}
 
-            {/* Add List button */}
             <div className='min-w-[280px] flex-shrink-0'>
               {isAddingList ? (
                 <div className='bg-white/80 rounded-xl p-3 backdrop-blur border'>
@@ -1164,7 +1274,6 @@ const TrelloBoard = forwardRef(function TrelloBoard(
           </SortableContext>
         </div>
 
-        {/* Drag Overlay */}
         <DragOverlay>
           {activeCard && (
             <div className='w-[260px] p-3 rounded-lg bg-white shadow-2xl opacity-90 rotate-2'>
@@ -1194,13 +1303,13 @@ const TrelloBoard = forwardRef(function TrelloBoard(
         </DragOverlay>
       </DndContext>
 
-      {/* Edit Card Modal */}
       {editingCard && (
         <CardModal
           listId={editingCard.listId}
           listTitle={editingCard.listTitle}
+          lists={lists}
           card={editingCard.card}
-          members={workspaceData.members}
+          members={members}
           workspaceId={workspaceData?.id}
           onClose={() => setEditingCard(null)}
           onUpdate={(listId, card) => updateCard(listId, card)}
@@ -1215,7 +1324,6 @@ const TrelloBoard = forwardRef(function TrelloBoard(
         />
       )}
 
-      {/* Undo Notification */}
       {undoAction && (
         <UndoNotification
           message={undoAction.message}

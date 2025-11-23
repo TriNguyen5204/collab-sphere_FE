@@ -31,6 +31,7 @@ const BoardList = ({
   onUpdateCard,
   onArchiveList,
   workspaceId,
+  onCardCreated,
 }) => {
   const { connection, isConnected } = useSignalRContext();
   const [isAddingCard, setIsAddingCard] = useState(false);
@@ -50,13 +51,13 @@ const BoardList = ({
     transition,
     isDragging,
   } = useSortable({
-    id: list.id,
+    id: String(list.id),
     data: { type: 'list' },
   });
 
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
-    id: `cards-${list.id}`,
-    data: { type: 'cards', listId: list.id },
+    id: `cards-${String(list.id)}`,
+    data: { type: 'cards', listId: String(list.id) },
   });
 
   const style = {
@@ -267,9 +268,7 @@ const BoardList = ({
         className={`mt-3 space-y-2 ${isOver ? 'bg-blue-50' : ''}`}
       >
         <SortableContext
-          items={sortCardsByPosition(list.cards.filter(c => !c.archived)).map(
-            c => c.id
-          )}
+          items={sortCardsByPosition(list.cards.filter(c => !c.archived)).map(c => String(c.id))}
           strategy={verticalListSortingStrategy}
         >
           <div className='space-y-3'>
@@ -312,6 +311,7 @@ const BoardList = ({
           workspaceId={workspaceId}
           members={members}
           list={list}
+          onCardCreated={onCardCreated}
         />
       )}
     </div>
