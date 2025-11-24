@@ -23,7 +23,6 @@ createRoot(document.getElementById('root')).render(
             style: { fontFamily: 'Inter, sans-serif', fontSize: '0.9rem' },
             duration: 3200,
           }}
-          closeButton={true}
         />
       </AuthProvider>
     </Provider>

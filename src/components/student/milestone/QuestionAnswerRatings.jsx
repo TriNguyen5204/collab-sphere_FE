@@ -26,11 +26,13 @@ const QuestionAnswerRatings = ({
     autoResizeTextarea?.(event.currentTarget);
   };
 
+  const actionDisabled = ratingDisabled || isRatingPending;
+
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3">
+    <div className="fade-in rounded-2xl border border-orangeFpt-200 bg-orangeFpt-50/80 px-4 py-4 shadow-sm">
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+          <span className="text-xs font-semibold uppercase tracking-wide text-orangeFpt-600">
             Rate this answer
           </span>
           <div className="flex items-center gap-1">
@@ -43,7 +45,7 @@ const QuestionAnswerRatings = ({
                   type="button"
                   onClick={() => handleScoreSelect(value)}
                   className={`transition ${isActive ? 'text-amber-500' : 'text-amber-200 hover:text-amber-300'}`}
-                  disabled={ratingDisabled}
+                  disabled={actionDisabled}
                   aria-label={`Rate ${value} star${value > 1 ? 's' : ''}`}
                 >
                   <Star
@@ -61,23 +63,23 @@ const QuestionAnswerRatings = ({
           onInput={handleCommentInput}
           placeholder="Leave a short feedback (optional)"
           rows={2}
-          className="w-full resize-none rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs text-amber-900 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200"
-          disabled={ratingDisabled}
+          className="w-full resize-none rounded-lg border border-orangeFpt-200 bg-white px-3 py-2 text-xs text-orangeFpt-900 focus:border-orangeFpt-400 focus:outline-none focus:ring-2 focus:ring-orangeFpt-200"
+          disabled={actionDisabled}
         />
         <div className="flex justify-end gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-amber-200 px-3 py-1.5 text-xs font-medium text-amber-600 hover:bg-amber-100"
-            disabled={isRatingPending}
+            className="rounded-lg border border-orangeFpt-200 px-3 py-1.5 text-xs font-medium text-orangeFpt-600 hover:bg-orangeFpt-100"
+            disabled={actionDisabled}
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onSubmit}
-            className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-amber-300"
-            disabled={isRatingPending || (ratingDraft.score ?? 0) === 0}
+            className="inline-flex items-center gap-2 rounded-lg bg-orangeFpt-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orangeFpt-600 disabled:cursor-not-allowed disabled:bg-orangeFpt-300"
+            disabled={actionDisabled || (ratingDraft.score ?? 0) === 0}
           >
             {isRatingPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             Submit rating

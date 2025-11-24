@@ -1,11 +1,19 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import { ChevronDown, Loader2, MessageCircle, PenLine } from 'lucide-react';
 import QuestionAnswers from './QuestionAnswers';
 
 const autoResizeTextarea = (element) => {
   if (!element) return;
   element.style.height = 'auto';
   element.style.height = `${element.scrollHeight}px`;
+};
+
+const buildInitials = (value) => {
+  if (!value || typeof value !== 'string') return 'YOU';
+  const parts = value.trim().split(/\s+/).slice(0, 2);
+  const initials = parts.map((part) => part.charAt(0).toUpperCase()).join('');
+  return initials || 'YOU';
 };
 
 const QuestionItem = ({
@@ -26,14 +34,30 @@ const QuestionItem = ({
   onEditAnswer,
   onDeleteAnswer,
   answerActionMap = {},
+  isAnswerSectionOpen: controlledAnswerSectionOpen,
+  onAnswerSectionOpenChange,
+  isFormOpen: controlledFormOpen,
+  onFormOpenChange,
+  persistedExpandedEvaluations,
+  onPersistedExpandedEvaluationsChange,
 }) => {
+  const currentUser = useSelector((state) => state.user || {});
   const canInteract =
     !readOnly &&
     milestoneStatus !== 'completed' &&
     milestoneStatus !== 'locked';
 
   const answerTextareaRef = useRef(null);
-  const [isAnswerSectionOpen, setIsAnswerSectionOpen] = useState(true);
+  const [internalAnswerSectionOpen, setInternalAnswerSectionOpen] = useState(false);
+  const [internalFormOpen, setInternalFormOpen] = useState(false);
+
+  const isAnswerSectionOpen =
+    typeof controlledAnswerSectionOpen === 'boolean'
+      ? controlledAnswerSectionOpen
+      : internalAnswerSectionOpen;
+
+  const isFormOpen =
+    typeof controlledFormOpen === 'boolean' ? controlledFormOpen : internalFormOpen;
 
   const isQuestionLocked = milestoneStatus === 'locked';
 
@@ -49,7 +73,21 @@ const QuestionItem = ({
   }, [draftValue]);
 
   const toggleAnswerSection = () => {
-    setIsAnswerSectionOpen((prev) => !prev);
+    const next = !isAnswerSectionOpen;
+    if (typeof onAnswerSectionOpenChange === 'function') {
+      onAnswerSectionOpenChange(next);
+    } else {
+      setInternalAnswerSectionOpen(next);
+    }
+  };
+
+  const toggleFormSection = () => {
+    const next = !isFormOpen;
+    if (typeof onFormOpenChange === 'function') {
+      onFormOpenChange(next);
+    } else {
+      setInternalFormOpen(next);
+    }
   };
 
   const answerSummary = useMemo(() => {
@@ -63,6 +101,18 @@ const QuestionItem = ({
   }, [answerCount, answers.length]);
 
   const answerListIsEmpty = !isLoading && answers.length === 0;
+  const totalAnswers = typeof answerCount === 'number' && answerCount > 0 ? answerCount : answers.length;
+  const answerToggleLabel = isAnswerSectionOpen
+    ? 'Hide Answers'
+    : totalAnswers > 0
+      ? `Show ${totalAnswers} ${totalAnswers === 1 ? 'Answer' : 'Answers'}`
+      : 'Show Answers';
+
+  const responderName = currentUser?.fullname || 'You';
+  const responderAvatar = currentUser?.avatar || null;
+  const responderInitials = buildInitials(responderName);
+
+  const showAnswerForm = canSubmitAnswer && isFormOpen;
 
   const renderInput = () => {
     if (!canSubmitAnswer) {
@@ -114,80 +164,101 @@ const QuestionItem = ({
   const showAnsweredBadge = answerCount > 0;
   const questionCode =
     question?.questionCode ?? question?.code ?? question?.milestoneQuestionCode ?? null;
-  const questionTitle = question?.question ?? question?.content ?? question?.text ?? 'Question';
+  const questionText = question?.question || null;
   const questionBadgeLabel = questionCode || `Q${index + 1}`;
 
   return (
     <div className="space-y-4">
-      <div className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-md">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-3">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="p-6">
+          <div className="flex gap-4">
             <div
-              className={`rounded-lg border px-3 py-1 text-sm font-semibold ${showAnsweredBadge
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
-                : 'border-blue-200 bg-blue-50 text-blue-600'
+              className={`flex h-12 w-12 items-center justify-center rounded-full text-base font-bold ${showAnsweredBadge
+                ? 'bg-orangeFpt-100 text-orangeFpt-600'
+                : 'bg-blue-50 text-orangeFpt-600'
                 }`}
             >
               {questionBadgeLabel}
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">{questionTitle}</h2>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
-            <div className="flex items-center gap-1">
-              <MessageSquare size={16} />
-              <span>{answerSummary}</span>
-            </div>
-            <button
-              type="button"
-              onClick={toggleAnswerSection}
-              className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-            >
-              {isAnswerSectionOpen ? (
-                <>
-                  <ChevronUp size={14} />
-                  Hide answers
-                </>
-              ) : (
-                <>
-                  <ChevronDown size={14} />
-                  Show answers
-                </>
-              )}
-            </button>
+              <h2 className="text-xl font-semibold text-slate-700 flex w-full">{questionText}</h2>
           </div>
         </div>
 
-        {renderedInput && (
-          <div className="rounded-2xl p-4">
-            <div className="space-y-3">
-              {renderedInput}
-              {canSubmitAnswer && (
-                <div className="flex justify-end">
+        <div className="flex flex-col gap-3 border border-gray-100 bg-slate-50 px-6 py-3 text-sm text-slate-600 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-1">
+            <button
+              type="button"
+              onClick={toggleAnswerSection}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-orangeFpt-500"
+            >
+              <MessageCircle className="h-4 w-4" />
+              {answerToggleLabel}
+              <ChevronDown className={`h-4 w-4 transition-transform ${isAnswerSectionOpen ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {canSubmitAnswer && (
+              <button
+                type="button"
+                onClick={toggleFormSection}
+                className="inline-flex items-center gap-2 rounded-lg bg-orangeFpt-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orangeFpt-600"
+              >
+                <PenLine className="h-4 w-4" />
+                {isFormOpen ? 'Close Form' : 'Write Answer'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {showAnswerForm && renderedInput && (
+          <div className="fade-in border border-blue-100 bg-blue-50 px-6 py-5">
+            <div className="flex gap-4">
+              <div className="flex-shrink-0">
+                {responderAvatar ? (
+                  <img
+                    src={responderAvatar}
+                    alt={responderName}
+                    className="h-10 w-10 rounded-full border border-blue-200 object-cover"
+                  />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full border border-blue-200 bg-white text-xs font-semibold uppercase text-blue-600">
+                    {responderInitials}
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 space-y-3">
+                {renderedInput}
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleFormSection}
+                    className="rounded-lg border border-slate-300 px-4 py-2 text-xs font-semibold transition hover:bg-white"
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </button>
                   <button
                     type="button"
                     onClick={() => onSubmit?.()}
                     disabled={isSubmitting || !draftValue.trim()}
-                    className="inline-flex items-center gap-2 rounded-lg bg-orangeFpt-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orangeFpt-600 disabled:cursor-not-allowed disabled:bg-slate-300"
+                    className="inline-flex items-center gap-2 rounded-lg bg-orangeFpt-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-orangeFpt-600 disabled:cursor-not-allowed disabled:bg-slate-300"
                   >
                     {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                     Submit Answer
                   </button>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         )}
 
         {errorMessage && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+          <div className="border-t border-red-100 bg-red-50 px-6 py-4 text-xs font-semibold text-red-600">
             {errorMessage}
           </div>
         )}
-
         {isAnswerSectionOpen && (
-          <div className="ml-3 space-y-4 border-l-4 border-blue-100 pl-4">
+          <div className="fade-in border border-gray-100 px-6 py-5">
             <QuestionAnswers
               answers={answers}
               isLoading={isLoading}
@@ -200,10 +271,11 @@ const QuestionItem = ({
               onEditAnswer={onEditAnswer}
               onDeleteAnswer={onDeleteAnswer}
               autoResizeTextarea={autoResizeTextarea}
+                      persistedExpandedEvaluations={persistedExpandedEvaluations}
+                      onPersistedExpandedEvaluationsChange={onPersistedExpandedEvaluationsChange}
             />
           </div>
         )}
-
       </div>
     </div>
   );

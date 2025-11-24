@@ -377,12 +377,15 @@ const MilestonePage = () => {
     }
   };
 
-  const fetchMilestoneDetail = async (milestoneId) => {
+  const fetchMilestoneDetail = async (milestoneId, options = {}) => {
+    const { silent = false } = options;
     if (!milestoneId) return null;
     let mergedFromList = null;
     let mergedFromSelected = null;
     try {
-      setIsLoadingDetail(true);
+      if (!silent) {
+        setIsLoadingDetail(true);
+      }
       const detail = await getDetailOfMilestoneByMilestoneId(milestoneId);
       console.log(detail);
       setMilestones((prev) => prev.map((m) => {
@@ -402,7 +405,9 @@ const MilestonePage = () => {
     } catch (error) {
       console.error("Error fetching milestone detail:", error);
     } finally {
-      setIsLoadingDetail(false);
+      if (!silent) {
+        setIsLoadingDetail(false);
+      }
     }
     return mergedFromSelected || mergedFromList;
   };
@@ -449,7 +454,7 @@ const MilestonePage = () => {
     if (!selectedMilestone) return;
     const milestoneId = getMilestoneId(selectedMilestone);
     if (!milestoneId) return;
-    await fetchMilestoneDetail(milestoneId);
+    await fetchMilestoneDetail(milestoneId, { silent: true });
   };
 
   const selectedCheckpoints = useMemo(() => selectedMilestone?.checkpoints || [], [selectedMilestone]);

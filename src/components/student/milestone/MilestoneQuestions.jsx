@@ -10,6 +10,27 @@ import {
   postEvaluateAndFeedbackMilestoneAnswer,
 } from '../../../services/studentApi';
 
+const deriveQuestionId = (question, fallbackIndex) =>
+  question?.id ?? question?.milestoneQuestionId ?? fallbackIndex;
+
+const buildBooleanStateMap = (questionList) => {
+  const state = {};
+  questionList.forEach((question, index) => {
+    const identifier = deriveQuestionId(question, index);
+    state[identifier] = false;
+  });
+  return state;
+};
+
+const buildExpandedStateMap = (questionList) => {
+  const state = {};
+  questionList.forEach((question, index) => {
+    const identifier = deriveQuestionId(question, index);
+    state[identifier] = {};
+  });
+  return state;
+};
+
 const MilestoneQuestions = ({
   milestone,
   milestoneStatus,
@@ -28,6 +49,9 @@ const MilestoneQuestions = ({
   const [errorMap, setErrorMap] = useState({});
   const isMountedRef = useRef(true);
   const [answerActionMap, setAnswerActionMap] = useState({});
+  const [answerSectionState, setAnswerSectionState] = useState(() => buildBooleanStateMap(questions));
+  const [answerFormState, setAnswerFormState] = useState(() => buildBooleanStateMap(questions));
+  const [expandedEvaluationState, setExpandedEvaluationState] = useState(() => buildExpandedStateMap(questions));
 
   const currentUserId = useSelector((state) => state.user.userId);
 
@@ -39,9 +63,35 @@ const MilestoneQuestions = ({
   }, []);
 
   const questionIds = useMemo(
-    () => questions.map((q) => q?.id ?? q?.milestoneQuestionId).filter(Boolean),
+    () => questions.map((question, index) => deriveQuestionId(question, index)),
     [questions]
   );
+
+  useEffect(() => {
+    setAnswerSectionState((prev) => {
+      const next = {};
+      questionIds.forEach((id) => {
+        next[id] = prev[id] ?? false;
+      });
+      return next;
+    });
+
+    setAnswerFormState((prev) => {
+      const next = {};
+      questionIds.forEach((id) => {
+        next[id] = prev[id] ?? false;
+      });
+      return next;
+    });
+
+    setExpandedEvaluationState((prev) => {
+      const next = {};
+      questionIds.forEach((id) => {
+        next[id] = prev[id] ?? {};
+      });
+      return next;
+    });
+  }, [questionIds]);
 
   const fetchAnswersForQuestion = useCallback(async (questionId) => {
     setLoadingMap((prev) => ({ ...prev, [questionId]: true }));
@@ -139,6 +189,7 @@ const MilestoneQuestions = ({
         if (isMountedRef.current) {
           toast.success('Answer submitted');
           setDrafts((prev) => ({ ...prev, [questionId]: '' }));
+          setAnswerFormState((prev) => ({ ...prev, [questionId]: false }));
         }
         await fetchAnswersForQuestion(questionId);
         if (isMountedRef.current) {
@@ -253,6 +304,21 @@ const MilestoneQuestions = ({
     [clearAnswerAction, fetchAnswersForQuestion, setAnswerAction]
   );
 
+  const handleAnswerSectionOpenChange = useCallback((questionId, nextState) => {
+    setAnswerSectionState((prev) => ({ ...prev, [questionId]: Boolean(nextState) }));
+  }, []);
+
+  const handleFormOpenChange = useCallback((questionId, nextState) => {
+    setAnswerFormState((prev) => ({ ...prev, [questionId]: Boolean(nextState) }));
+  }, []);
+
+  const handleExpandedEvaluationsChange = useCallback((questionId, nextState) => {
+    setExpandedEvaluationState((prev) => ({
+      ...prev,
+      [questionId]: nextState || {},
+    }));
+  }, []);
+
   if (questions.length === 0) {
     return (
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-600">
@@ -292,6 +358,12 @@ const MilestoneQuestions = ({
             onEditAnswer={(answerId, content) => handleEditAnswer(questionId, answerId, content)}
             onDeleteAnswer={(answerId) => handleDeleteAnswer(questionId, answerId)}
             answerActionMap={answerActionMap}
+            isAnswerSectionOpen={answerSectionState[questionId] ?? false}
+            onAnswerSectionOpenChange={(next) => handleAnswerSectionOpenChange(questionId, next)}
+            isFormOpen={answerFormState[questionId] ?? false}
+            onFormOpenChange={(next) => handleFormOpenChange(questionId, next)}
+            persistedExpandedEvaluations={expandedEvaluationState[questionId]}
+            onPersistedExpandedEvaluationsChange={(next) => handleExpandedEvaluationsChange(questionId, next)}
           />
         );
       })}
