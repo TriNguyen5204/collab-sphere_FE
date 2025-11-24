@@ -5,6 +5,7 @@ import styles from './ClassDetailPage.module.css';
 import { getClassDetail } from '../../services/userService';
 import { normaliseClassDetailPayload } from './classDetailNormalizer';
 import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
+import { PlusIcon } from '@heroicons/react/24/outline';
 
 const formatDate = (value, fallback = '—') => {
   if (!value) {
@@ -198,7 +199,16 @@ const ClassDetailPage = () => {
                     <p className={styles.eyebrow}>Teams</p>
                     <h2>Active teams</h2>
                   </div>
-                  <span>{teams.length}</span>
+                  <div className="flex items-center gap-4">
+                    <span>{teams.length}</span>
+                    <Link 
+                      to={`/lecturer/classes/${classId}/create-team`}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                    >
+                      <PlusIcon className="w-3 h-3" />
+                      Create Team
+                    </Link>
+                  </div>
                 </div>
                 {teams.length ? (
                   <ul className={styles.teamList}>

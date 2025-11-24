@@ -41,6 +41,7 @@ import TeamMilestonesPage from '../pages/lecturer/evaluations/TeamMilestonesPage
 import MilestoneDetailPage from '../pages/lecturer/evaluations/MilestoneDetailPage';
 import MilestoneEvaluationPage from '../pages/lecturer/evaluations/MilestoneEvaluationPage';
 import LecturerGradingDashboard from '../pages/lecturer/grading/LecturerGradingDashboard';
+import CreateTeamPage from '../pages/lecturer/CreateTeamPage';
 
 // academic services (staff) pages
 import StaffPage from '../pages/staff/StaffPage';
@@ -116,6 +117,7 @@ const lecturerRoutes = [
   { path: '/lecturer/classes/:classId/projects', element: protectRoute(['LECTURER'], <ClassProjectOverview />) },
   { path: '/lecturer/classes/:classId/project-assignments', element: protectRoute(['LECTURER'], <ClassProjectAssignment />) },
   { path: '/lecturer/classes/:classId/team/:teamId', element: protectRoute(['LECTURER'], <TeamProjectDetail />) },
+  { path: '/lecturer/classes/:classId/create-team', element: protectRoute(['LECTURER'], <CreateTeamPage />) },
   { path: '/lecturer/create-project', element: protectRoute(['LECTURER'], <CreateProject />) },
   { path: '/lecturer/classes/:classId/create-project', element: protectRoute(['LECTURER'], <CreateProject />) },
   { path: '/lecturer/projects', element: protectRoute(['LECTURER'], <ProjectLibrary />) },
