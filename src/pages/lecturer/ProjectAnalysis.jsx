@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
 import styles from './ProjectAnalysis.module.css';
 import {
@@ -15,7 +15,6 @@ import {
   CpuChipIcon,
   BookOpenIcon,
   BoltIcon,
-  ArrowLeftIcon,
   ArrowRightIcon,
   EyeIcon,
   PencilIcon,
@@ -35,6 +34,7 @@ import {
   ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid';
+import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
 
 const ProjectAnalysis = () => {
   const { projectId } = useParams();
@@ -128,7 +128,7 @@ const ProjectAnalysis = () => {
         category: 'Soft Skills',
         item: 'Communication skills',
         impact: 'medium',
-        recommendation: 'Add presentation requirements and peer review sessions'
+        recommendation: 'Add presentation requirements and structured reflection sessions'
       },
       {
         type: 'missing',
@@ -203,7 +203,7 @@ const ProjectAnalysis = () => {
         confidence: 0,
         evidence: [],
         mappedRequirements: [],
-        gaps: ['Team presentation component', 'Peer review process', 'Communication documentation']
+        gaps: ['Team presentation component', 'Reflection process', 'Communication documentation']
       }
     ]
   };
@@ -490,6 +490,14 @@ const ProjectAnalysis = () => {
     }
   ];
 
+  const breadcrumbItems = useMemo(
+    () => [
+      { label: 'Projects', href: '/lecturer/projects' },
+      { label: projectData.title || 'AI project analysis' },
+    ],
+    [projectData.title]
+  );
+
   // Compliance checklist for academic standards
   const complianceChecklist = {
     overallScore: 89,
@@ -512,7 +520,7 @@ const ProjectAnalysis = () => {
           { item: 'Clear assessment criteria defined', status: 'compliant', priority: 'high' },
           { item: 'Multiple assessment methods included', status: 'compliant', priority: 'high' },
           { item: 'Rubric alignment with objectives', status: 'compliant', priority: 'high' },
-          { item: 'Peer evaluation components', status: 'partial', priority: 'medium' },
+          { item: 'Milestone reflection components', status: 'partial', priority: 'medium' },
           { item: 'Self-reflection requirements', status: 'non_compliant', priority: 'low' }
         ]
       },
@@ -543,9 +551,9 @@ const ProjectAnalysis = () => {
       {
         type: 'improvement',
         priority: 'medium',
-        item: 'Add peer evaluation component',
-        description: 'Include structured peer review sessions to enhance collaborative learning',
-        impact: 'Improves teamwork skills and provides multiple feedback perspectives'
+        item: 'Add milestone reflection component',
+        description: 'Include structured reflection sessions to enhance collaborative learning',
+        impact: 'Improves teamwork skills and provides actionable feedback loops'
       },
       {
         type: 'addition',
@@ -701,7 +709,7 @@ const ProjectAnalysis = () => {
           <div className={styles.insightItem}>
             <ExclamationTriangleIcon className="w-5 h-5 text-yellow-500" />
             <div>
-              <strong>Communication Skills Gap:</strong> Consider adding presentation components and peer review sessions to address soft skills development.
+              <strong>Communication Skills Gap:</strong> Consider adding presentation components and structured reflection sessions to address soft skills development.
             </div>
           </div>
           
@@ -1221,14 +1229,7 @@ const ProjectAnalysis = () => {
       <div className={styles.projectAnalysis}>
         {/* Header */}
         <div className={styles.header}>
-          <div className={styles.headerNav}>
-            <Link to="/lecturer/projects" className={styles.backButton}>
-              <ArrowLeftIcon className="w-4 h-4" />
-              Back to Project Library
-            </Link>
-            <span className="text-gray-300">•</span>
-            <span className="font-medium text-gray-600">AI Analysis</span>
-          </div>
+          <LecturerBreadcrumbs items={breadcrumbItems} className={styles.breadcrumbSlot} />
           
           <div className={styles.headerContent}>
             <div className={styles.headerTitle}>

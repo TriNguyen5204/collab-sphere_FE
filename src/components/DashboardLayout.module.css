@@ -16,7 +16,7 @@
 
 /* Sidebar */
 .sidebar {
-  width: 70px;
+  width: 260px !important;
   background: var(--bg-card);
   box-shadow: var(--shadow-sm);
   border-right: 1px solid var(--border-color);

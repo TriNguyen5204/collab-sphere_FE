@@ -5,36 +5,69 @@ import { useMediaStream } from './hooks/useMediaStream';
 import { useScreenShare } from './hooks/useScreenShare';
 import { usePeerConnections } from './hooks/usePeerConnection';
 import { ParticipantVideo } from './components/ParticipantVideo';
+import { ControlBar } from './components/ControlBar';
+import { useMeetingRecorder } from './hooks/useMeetingRecorder';
 import ChatBox from './components/ChatBox';
+import { useNavigate } from 'react-router-dom';
+import { updateMeeting } from '../services/meetingApi';
 
 function MeetingRoom() {
   const { roomId } = useParams();
   const location = useLocation();
   const myName = location.state?.myName || 'Anonymous';
-  
+  const title = location.state?.title || '';
+  const description = location.state?.description || '';
+  const meetingId = location.state?.meetingId || null;
+  const isHost = location.state?.isHost || false;
+  const navigate = useNavigate();
+
   const myVideo = useRef();
   const peersRef = useRef({});
   const [showChat, setShowChat] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
-  
+
   // Custom hooks
   const { socket, me } = useSocket();
   const { stream, localStreamRef, toggleAudio, toggleVideo } = useMediaStream();
-  
-  const { 
+
+  // Callback function to handle recording completion
+  const handleRecordingComplete = async (videoUrl) => {
+    console.log('🎬 Recording complete. Video URL:', videoUrl);
+    try {
+      const response = await updateMeeting({
+        meetingId: meetingId,
+        Title: title,
+        Description: description,
+        RecordUrl: videoUrl,
+      });
+
+      console.log('✅ Meeting updated successfully:', response.data);
+      alert('Video đã được lưu và cập nhật vào meeting!');
+    } catch (error) {
+      console.error('❌ Failed to update meeting:', error);
+      alert('Video đã được upload nhưng không thể cập nhật meeting. Vui lòng kiểm tra lại.');
+    }
+  };
+
+  const {
+    isRecording,
+    isRecordingDisabled,
+    recordingUserId,
+    startRecording,
+    stopRecording,
+    isUploading,
+    uploadProgress,
+  } = useMeetingRecorder(socket, roomId, stream, handleRecordingComplete);
+
+  const {
     isSharing,
     isSharingRef,
     screenStreamRef,
-    currentScreenStream, 
-    shareScreen, 
-    stopScreenShare 
-  } = useScreenShare(
-    peersRef,
-    localStreamRef,
-    roomId,
-    socket
-  );
-  
+    currentScreenStream,
+    shareScreen,
+    stopScreenShare,
+  } = useScreenShare(peersRef, localStreamRef, roomId, socket);
+
   const { groupPeers, peersSharingScreen } = usePeerConnections(
     socket,
     stream,
@@ -48,10 +81,14 @@ function MeetingRoom() {
 
   // Update my video source
   useEffect(() => {
-    if (myVideo.current) {
-      const videoSource = isSharing && currentScreenStream ? currentScreenStream : stream;
-      if (videoSource) {
-        myVideo.current.srcObject = videoSource;
+    if (myVideo.current && stream) {
+      // Khi KHÔNG share màn hình -> hiển thị camera
+      if (!isSharing) {
+        myVideo.current.srcObject = stream;
+      }
+      // Khi share màn hình -> hiển thị màn hình
+      else if (currentScreenStream) {
+        myVideo.current.srcObject = currentScreenStream;
       }
     }
   }, [stream, isSharing, currentScreenStream]);
@@ -62,192 +99,279 @@ function MeetingRoom() {
   };
 
   const handleLeave = () => {
-    if (confirm('Leave the meeting?')) {
-      window.location.href = '/';
-    }
+    navigate('/room');
   };
 
+  // Tìm người đang share màn hình
+  const sharingPeer = groupPeers.find(({ id }) => peersSharingScreen.has(id));
+  const hasScreenShare = isSharing || sharingPeer;
+
   return (
-    <div className="h-screen bg-black flex flex-col overflow-hidden">
-      {/* Top Bar - Google Meet Style */}
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-900/95 backdrop-blur-sm border-b border-gray-800">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 rounded-lg">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-xs text-gray-300 font-medium">
-              {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+    <div className='h-screen bg-black flex flex-col overflow-hidden'>
+      {/* Upload Progress Overlay */}
+      {isUploading && (
+        <div className='fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center'>
+          <div className='bg-gray-900 rounded-xl p-6 max-w-md w-full mx-4 border border-gray-700'>
+            <div className='text-center'>
+              <div className='mb-4'>
+                <svg className='w-16 h-16 mx-auto text-blue-500 animate-spin' fill='none' viewBox='0 0 24 24'>
+                  <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4'></circle>
+                  <path className='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'></path>
+                </svg>
+              </div>
+              <h3 className='text-xl font-semibold text-white mb-2'>Đang upload video...</h3>
+              <p className='text-gray-400 mb-4'>Vui lòng không đóng trang này</p>
+              
+              <div className='w-full bg-gray-700 rounded-full h-3 mb-2'>
+                <div 
+                  className='bg-blue-500 h-3 rounded-full transition-all duration-300'
+                  style={{ width: `${uploadProgress}%` }}
+                ></div>
+              </div>
+              <p className='text-sm text-gray-300'>{uploadProgress}%</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Top Bar */}
+      <div className='flex items-center justify-between px-4 py-2 bg-gray-900/95 backdrop-blur-sm border-b border-gray-800'>
+        <div className='flex items-center gap-3'>
+          <div className='flex items-center gap-2 px-3 py-1.5 bg-gray-800 rounded-lg'>
+            <div className='w-2 h-2 bg-green-500 rounded-full'></div>
+            <span className='text-xs text-gray-300 font-medium'>
+              {new Date().toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
             </span>
           </div>
-          <span className="text-sm text-gray-400">|</span>
-          <span className="text-sm text-gray-300 font-medium">{roomId}</span>
+          <span className='text-sm text-gray-400'>|</span>
+          <span className='text-sm text-gray-300 font-medium'>{roomId}</span>
         </div>
-        
-        <div className="flex items-center gap-2">
+
+        <div className='flex items-center gap-2'>
           <button
             onClick={() => setShowInfo(!showInfo)}
-            className="p-2 hover:bg-gray-800 rounded-full transition"
-            title="Meeting info"
+            className='p-2 hover:bg-gray-800 rounded-full transition'
+            title='Meeting info'
           >
-            <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className='w-5 h-5 text-gray-300'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+              />
             </svg>
           </button>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Video Grid Area */}
-        <div className={`flex-1 flex items-center justify-center p-4 transition-all duration-300 ${showChat ? 'mr-0' : ''}`}>
-          <div className={`w-full h-full flex items-center justify-center`}>
-            {/* Grid Container */}
-            <div className="grid gap-2 w-full h-full" style={{
-              gridTemplateColumns: groupPeers.length === 0 ? '1fr' : 
-                                   groupPeers.length === 1 ? 'repeat(2, 1fr)' :
-                                   groupPeers.length <= 4 ? 'repeat(2, 1fr)' :
-                                   groupPeers.length <= 9 ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)',
-              gridAutoRows: groupPeers.length === 0 ? '1fr' : 
-                           groupPeers.length === 1 ? '1fr' :
-                           groupPeers.length <= 4 ? 'minmax(0, 1fr)' : 'minmax(200px, 1fr)'
-            }}>
-              {/* My Video */}
-              <div className="relative bg-gray-900 rounded-lg overflow-hidden group min-h-0">
-                <video
-                  ref={myVideo}
-                  playsInline
-                  autoPlay
-                  muted
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none"></div>
-                <div className="absolute bottom-2 left-2 px-2 py-1 bg-gray-900/80 backdrop-blur-sm rounded">
-                  <span className="text-xs text-white font-medium">You ({myName})</span>
+      <div className='flex-1 flex overflow-hidden'>
+        {/* Video Area */}
+        <div className={`flex-1 flex overflow-hidden transition-all duration-300 ${showChat ? 'mr-0' : ''}`}>
+          
+          {/* Layout khi CÓ người share màn hình */}
+          {hasScreenShare ? (
+            <div className='flex w-full h-full gap-2 p-2'>
+              {/* Main Screen Share Area (bên trái) */}
+              <div className='flex-1 flex items-center justify-center bg-gray-950 rounded-lg'>
+                {isSharing ? (
+                  // Tôi đang share
+                  <div className='relative w-full h-full flex items-center justify-center'>
+                    <video
+                      ref={myVideo}
+                      playsInline
+                      autoPlay
+                      muted
+                      className='max-w-full max-h-full object-contain'
+                    />
+                    <div className='absolute top-4 left-4 px-3 py-1.5 bg-red-500 rounded-lg flex items-center gap-2'>
+                      <div className='w-2 h-2 bg-white rounded-full animate-pulse'></div>
+                      <span className='text-sm text-white font-semibold'>You are presenting</span>
+                    </div>
+                  </div>
+                ) : sharingPeer ? (
+                  // Người khác đang share
+                  <div className='relative w-full h-full'>
+                    <ParticipantVideo
+                      key={sharingPeer.id}
+                      peer={sharingPeer.peer}
+                      userId={sharingPeer.id}
+                      userName={sharingPeer.name}
+                      isSharing={true}
+                      isMainView={true}
+                    />
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Sidebar với thumbnails (bên phải) */}
+              <div className='w-80 flex flex-col gap-2 overflow-y-auto py-1 pr-1 custom-scrollbar'>
+                {/* Video của tôi - LUÔN HIỂN THỊ (camera) khi người khác share */}
+                {!isSharing && (
+                  <div className='relative bg-gray-900 rounded-lg overflow-hidden aspect-video flex-shrink-0 group hover:ring-2 hover:ring-blue-500 transition-all'>
+                    <video
+                      playsInline
+                      autoPlay
+                      muted
+                      ref={(el) => {
+                        if (el && stream) {
+                          el.srcObject = stream; // Luôn hiển thị camera khi không share
+                        }
+                      }}
+                      className='w-full h-full object-cover'
+                    />
+                    <div className='absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none'></div>
+                    <div className='absolute bottom-2 left-2 px-2 py-1 bg-gray-900/90 backdrop-blur-sm rounded text-xs text-white font-medium'>
+                      You ({myName})
+                    </div>
+                  </div>
+                )}
+
+                {/* Videos của người khác (không share) */}
+                {groupPeers
+                  .filter(({ id }) => !peersSharingScreen.has(id))
+                  .map(({ id, peer, name }) => (
+                    <div key={id} className='flex-shrink-0'>
+                      <ParticipantVideo
+                        peer={peer}
+                        userId={id}
+                        userName={name}
+                        isSharing={false}
+                        isThumbnail={true}
+                      />
+                    </div>
+                  ))}
+              </div>
+            </div>
+          ) : (
+            // Layout BÌNH THƯỜNG (không ai share)
+            <div className='flex-1 flex items-center justify-center p-4'>
+              <div className='w-full h-full flex items-center justify-center'>
+                <div
+                  className='grid gap-2 w-full h-full'
+                  style={{
+                    gridTemplateColumns:
+                      groupPeers.length === 0
+                        ? '1fr'
+                        : groupPeers.length === 1
+                          ? 'repeat(2, 1fr)'
+                          : groupPeers.length <= 4
+                            ? 'repeat(2, 1fr)'
+                            : groupPeers.length <= 9
+                              ? 'repeat(3, 1fr)'
+                              : 'repeat(4, 1fr)',
+                    gridAutoRows:
+                      groupPeers.length === 0
+                        ? '1fr'
+                        : groupPeers.length === 1
+                          ? '1fr'
+                          : groupPeers.length <= 4
+                            ? 'minmax(0, 1fr)'
+                            : 'minmax(200px, 1fr)',
+                  }}
+                >
+                  {/* My Video */}
+                  <div className='relative bg-gray-900 rounded-lg overflow-hidden group min-h-0'>
+                    <video
+                      playsInline
+                      autoPlay
+                      muted
+                      ref={(el) => {
+                        if (el && stream) {
+                          el.srcObject = stream; // Luôn hiển thị camera trong grid view
+                        }
+                      }}
+                      className='w-full h-full object-cover'
+                    />
+                    <div className='absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none'></div>
+                    <div className='absolute bottom-2 left-2 px-2 py-1 bg-gray-900/80 backdrop-blur-sm rounded'>
+                      <span className='text-xs text-white font-medium'>
+                        You ({myName})
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Other Participants */}
+                  {groupPeers.map(({ id, peer, name }) => (
+                    <ParticipantVideo
+                      key={id}
+                      peer={peer}
+                      userId={id}
+                      userName={name}
+                      isSharing={false}
+                    />
+                  ))}
                 </div>
-                {isSharing && (
-                  <div className="absolute top-2 right-2 px-2 py-1 bg-red-500 rounded text-xs font-bold">
-                    Presenting
+
+                {/* Empty State */}
+                {groupPeers.length === 0 && (
+                  <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
+                    <div className='text-center'>
+                      <div className='w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3'>
+                        <span className='text-3xl'>👥</span>
+                      </div>
+                      <p className='text-gray-400 text-sm'>
+                        Waiting for others to join
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
-
-              {/* Other Participants */}
-              {groupPeers.map(({ id, peer }) => (
-                <ParticipantVideo
-                  key={id}
-                  peer={peer}
-                  userId={id}
-                  isSharing={peersSharingScreen.has(id)}
-                />
-              ))}
             </div>
-
-            {/* Empty State */}
-            {groupPeers.length === 0 && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <span className="text-3xl">👥</span>
-                  </div>
-                  <p className="text-gray-400 text-sm">Waiting for others to join</p>
-                </div>
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Chat Sidebar */}
         {showChat && (
-          <div className="w-80 bg-white border-l border-gray-200 flex flex-col animate-slide-in">
-            <ChatBox socket={socket} roomId={roomId} myName={myName} onClose={() => setShowChat(false)} />
+          <div className='w-80 bg-white border-l border-gray-200 flex flex-col animate-slide-in'>
+            <ChatBox
+              socket={socket}
+              roomId={roomId}
+              myName={myName}
+              onClose={() => setShowChat(false)}
+            />
           </div>
         )}
       </div>
 
-      {/* Bottom Control Bar - Google Meet Style */}
-      <div className="bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 px-4 py-3">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          {/* Left: Meeting Info */}
-          <div className="flex items-center gap-2 min-w-[200px]">
-            <span className="text-xs text-gray-400">{new Date().toLocaleTimeString()}</span>
-            <span className="text-xs text-gray-600">|</span>
-            <span className="text-xs text-gray-400">{groupPeers.length + 1} in call</span>
-          </div>
-
-          {/* Center: Main Controls */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleAudio}
-              className="p-3 bg-gray-800 hover:bg-gray-700 rounded-full transition"
-              title="Toggle microphone"
-            >
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-              </svg>
-            </button>
-
-            <button
-              onClick={toggleVideo}
-              className="p-3 bg-gray-800 hover:bg-gray-700 rounded-full transition"
-              title="Toggle camera"
-            >
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            </button>
-
-            {isSharing ? (
-              <button
-                onClick={stopScreenShare}
-                className="px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-full transition font-medium text-sm text-white"
-              >
-                Stop presenting
-              </button>
-            ) : (
-              <button
-                onClick={shareScreen}
-                className="p-3 bg-gray-800 hover:bg-gray-700 rounded-full transition"
-                title="Present screen"
-              >
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </button>
-            )}
-
-            <button
-              onClick={handleLeave}
-              className="p-3 bg-red-600 hover:bg-red-700 rounded-full transition ml-2"
-              title="Leave call"
-            >
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Right: Secondary Controls */}
-          <div className="flex items-center gap-2 min-w-[200px] justify-end">
-            <button
-              onClick={() => setShowChat(!showChat)}
-              className={`p-3 rounded-full transition ${showChat ? 'bg-blue-600 text-white' : 'bg-gray-800 text-white hover:bg-gray-700'}`}
-              title="Toggle chat"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-            </button>
-
-            <button
-              onClick={() => copyToClipboard(roomId)}
-              className="p-3 bg-gray-800 hover:bg-gray-700 rounded-full transition"
-              title="Copy meeting code"
-            >
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            </button>
-          </div>
-        </div>
+      {/* Bottom Control Bar */}
+      <div className='bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 px-4 py-3'>
+        <ControlBar
+          isSharing={isSharing}
+          onShareScreen={shareScreen}
+          onStopSharing={stopScreenShare}
+          onToggleAudio={toggleAudio}
+          onToggleVideo={toggleVideo}
+          onLeave={handleLeave}
+          initialAudio={true}
+          initialVideo={true}
+          onToggleChat={() => setShowChat(!showChat)}
+          showChat={showChat}
+          participantCount={groupPeers.length + 1}
+          roomId={roomId}
+          onCopyRoomId={() => copyToClipboard(roomId)}
+          currentTime={new Date().toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+          myName={myName}
+          isRecording={isRecording}
+          isRecordingDisabled={isRecordingDisabled}
+          recordingUserId={recordingUserId}
+          onStartScreenRecording={startRecording}
+          onStopRecording={stopRecording}
+          me={me}
+          isHost={isHost}
+        />
       </div>
 
       <style>{`
@@ -261,6 +385,20 @@ function MeetingRoom() {
         }
         .animate-slide-in {
           animation: slide-in 0.3s ease-out;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.2);
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.3);
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.5);
         }
       `}</style>
     </div>

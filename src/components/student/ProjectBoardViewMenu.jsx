@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { Kanban, Flag, CheckSquare, MessageSquare, ClipboardList, ChevronDown, UsersRound } from 'lucide-react';
+import { Kanban, Flag, MessageSquare, ChevronDown, UsersRound } from 'lucide-react';
 import useClickOutside from '../../hooks/useClickOutside';
 
 const ProjectBoardViewMenu = () => {
@@ -16,7 +16,6 @@ const ProjectBoardViewMenu = () => {
     { name: 'Team Workspace', icon: UsersRound, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/team-workspace` },
     { name: 'Task Board', icon: Kanban, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}` },
     { name: 'Milestones & Checkpoints', icon: Flag, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/milestones&checkpoints` },
-    { name: 'Peer Evaluation', icon: ClipboardList, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/peer-evaluation` },
     { name: 'Communication', icon: MessageSquare, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/communication` },
   ];
 

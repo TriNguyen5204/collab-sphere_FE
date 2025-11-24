@@ -1,13 +1,12 @@
 import React, { useMemo } from 'react';
 import { BookOpen, FolderKanban, LayoutDashboard, Clock, LogOut } from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import AppSidebar from './AppSidebar';
 import logo from '../../assets/logov1.png';
 import { logout } from '../../store/slices/userSlice';
 
 const HeadDepartmentSidebar = () => {
-  const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { accessToken, roleName } = useSelector(state => state.user);

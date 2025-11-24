@@ -16,7 +16,7 @@ let refreshPromise = null;
 const requestAccessTokenRefresh = async (userState) => {
     try {
         const response = await axios.post(`${baseURL}/auth/refresh-token`, {
-            userId: userState.userId,
+            userId: Number(userState.userId),
             refreshToken: userState.refreshToken,
         });
 
@@ -27,8 +27,10 @@ const requestAccessTokenRefresh = async (userState) => {
 
         const updatedUser = {
             ...userState,
+            userId: Number(userState.userId),
             accessToken: data.accessToken,
             refreshToken: data.refreshToken,
+            refreshTokenExpiryTime: data.refreshTokenExpiryTime ?? userState.refreshTokenExpiryTime,
         };
 
         store.dispatch(setUserRedux(updatedUser));
@@ -89,6 +91,50 @@ apiClient.interceptors.request.use(
         return config;
     },
     (error) => Promise.reject(error)
+);
+
+apiClient.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const status = error?.response?.status;
+        const originalRequest = error?.config;
+
+        if (!status || status !== 401 || !originalRequest || originalRequest?._retry) {
+            return Promise.reject(error);
+        }
+
+        if (originalRequest.url && originalRequest.url.includes('/auth/refresh-token')) {
+            return Promise.reject(error);
+        }
+
+        const userState = store.getState().user;
+        if (!userState?.refreshToken || !userState?.userId) {
+            store.dispatch(logout());
+            Cookies.remove('user');
+            if (typeof window !== 'undefined') {
+                window.location.href = '/login';
+            }
+            return Promise.reject(error);
+        }
+
+        try {
+            if (!refreshPromise) {
+                refreshPromise = requestAccessTokenRefresh(userState).finally(() => {
+                    refreshPromise = null;
+                });
+            }
+
+            const newAccessToken = await refreshPromise;
+            originalRequest._retry = true;
+            originalRequest.headers = {
+                ...(originalRequest.headers || {}),
+                Authorization: `Bearer ${newAccessToken}`,
+            };
+            return apiClient(originalRequest);
+        } catch (refreshError) {
+            return Promise.reject(refreshError);
+        }
+    }
 );
 
 export default apiClient;

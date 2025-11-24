@@ -1,197 +1,70 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
-import DashboardLayout from '../../components/DashboardLayout';
-import { TimelineView, ProjectHeader, WorkBreakdownStructure } from '../../features/project';
-import styles from './ProjectDetail.module.css';
-import { getProjectDetail } from '../../services/projectApi';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { toast } from 'sonner';
 import {
-  PencilIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  UserGroupIcon,
-  AcademicCapIcon,
-  ChartBarIcon,
-  BookOpenIcon,
-  CalendarIcon,
-  InformationCircleIcon,
-  ListBulletIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-  ArrowPathIcon,
-  PlayIcon,
-  DocumentDuplicateIcon,
-  EyeIcon,
-  PlusIcon,
-  TrashIcon,
-} from '@heroicons/react/24/outline';
-import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid';
+  getProjectDetail,
+  updateProjectBeforeApproval,
+  deleteProjectBeforeApproval,
+} from '../../services/projectApi';
+import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
+import ModalWrapper from '../../components/layout/ModalWrapper';
 
-const generateUid = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+const glassPanelClass = 'backdrop-blur-[18px] bg-white/85 border border-white/70 shadow-[0_10px_45px_rgba(15,23,42,0.08)]';
 
-const createMilestoneFormRecord = (milestone = {}, parentUid = 'objective') => ({
-  uid: milestone.uid ?? generateUid(`${parentUid}-milestone`),
-  objectiveMilestoneId: milestone.objectiveMilestoneId ?? milestone.id ?? '',
-  title: milestone.title ?? milestone.description ?? '',
-  description: milestone.description ?? '',
-  startDate: milestone.startDate ?? '',
-  endDate: milestone.endDate ?? '',
-});
-
-const normaliseMilestoneRecord = (milestone = {}) => {
-  const resolvedTitle =
-    milestone.title ??
-    milestone.name ??
-    milestone.heading ??
-    milestone.summary ??
-    milestone.description ??
-    '';
-
-  const resolvedDescription = milestone.description ?? resolvedTitle;
-
-  return {
-    ...milestone,
-    title: resolvedTitle || 'Untitled milestone',
-    description: resolvedDescription,
-  };
+const statusTokens = {
+  pending: {
+    label: 'Pending Approval',
+    badge: 'bg-amber-100/70 text-amber-800 border border-amber-200/70',
+  },
+  approved: {
+    label: 'Approved',
+    badge: 'bg-emerald-100/70 text-emerald-800 border border-emerald-200/70',
+  },
+  denied: {
+    label: 'Denied',
+    badge: 'bg-rose-100/70 text-rose-800 border border-rose-200/70',
+  },
+  removed: {
+    label: 'Removed',
+    badge: 'bg-slate-200/80 text-slate-700 border border-slate-300/70',
+  },
 };
 
-const createObjectiveFormRecord = (objective = {}) => {
-  const uid = objective.uid ?? generateUid('objective');
-  const rawMilestones = Array.isArray(objective.objectiveMilestones)
-    ? objective.objectiveMilestones
-    : Array.isArray(objective.milestones)
-      ? objective.milestones
-      : [];
-
-  return {
-    uid,
-    objectiveId: objective.objectiveId ?? objective.id ?? '',
-    title:
-      objective.title ??
-      objective.name ??
-      objective.heading ??
-      objective.summary ??
-      objective.description ??
-      '',
-    priority: objective.priority ?? objective.priorityLevel ?? '',
-    objectiveMilestones: rawMilestones.map((milestone) =>
-      createMilestoneFormRecord(milestone, uid)
-    ),
-  };
+const STATUS_CODE_MAP = {
+  0: 'PENDING',
+  1: 'APPROVED',
+  2: 'DENIED',
 };
 
-const createEmptyObjective = () =>
-  createObjectiveFormRecord({
-    objectiveId: '',
-    title: '',
-    description: '',
-    priority: '',
-    objectiveMilestones: [],
-  });
-
-const createEmptyMilestone = (parentUid) => createMilestoneFormRecord({}, parentUid);
-
-const normaliseObjectiveRecord = (objective = {}) => {
-  const resolvedTitle =
-    objective.title ??
-    objective.name ??
-    objective.heading ??
-    objective.summary ??
-    objective.description ??
-    '';
-
-  const resolvedDescription = objective.description ?? '';
-
-  const rawMilestones = Array.isArray(objective.objectiveMilestones)
-    ? objective.objectiveMilestones
-    : Array.isArray(objective.milestones)
-      ? objective.milestones
-      : [];
-
-  return {
-    ...objective,
-    title: resolvedTitle || 'Untitled objective',
-    description: resolvedDescription,
-  objectiveMilestones: rawMilestones.map((milestone) => normaliseMilestoneRecord(milestone)),
-  };
-};
-
-const normaliseObjectives = (objectives) => {
-  if (!Array.isArray(objectives)) {
-    return [];
+const resolveProjectStatusKey = (project) => {
+  if (!project) {
+    return 'PENDING';
   }
 
-  return objectives.map((objective) => normaliseObjectiveRecord(objective));
-};
+  const stringCandidates = [
+    project.statusString,
+    project.statusKey,
+    project.statusText,
+    typeof project.status === 'string' ? project.status : null,
+  ];
 
-const mapProjectToForm = (data) => ({
-  projectId: data.id ?? data.projectId ?? '',
-  projectName: data.title ?? data.projectName ?? '',
-  description: data.description ?? '',
-  subjectId: data.subjectId ?? '',
-  objectives: Array.isArray(data.objectives)
-    ? data.objectives.map((objective) => createObjectiveFormRecord(normaliseObjectiveRecord(objective)))
-    : [],
-});
-
-const mergeFormIntoProject = (project, form) => {
-  const toTrimmed = (value) => (typeof value === 'string' ? value.trim() : '');
-
-  return {
-    ...project,
-    id: form.projectId !== '' ? (Number(form.projectId) || form.projectId) : project.id,
-    title: toTrimmed(form.projectName) || project.title,
-    description: toTrimmed(form.description),
-    subjectId:
-      form.subjectId === ''
-        ? project.subjectId ?? ''
-        : (Number(form.subjectId) || form.subjectId),
-    objectives: normaliseObjectives(form.objectives.map((objective) => {
-      const objectiveIdValue =
-        objective.objectiveId === ''
-          ? undefined
-          : (Number(objective.objectiveId) || objective.objectiveId);
-
-  const titleValue = toTrimmed(objective.title ?? objective.description ?? '');
-  const descriptionValue = toTrimmed(objective.description ?? '');
-
-      return {
-        id: objectiveIdValue,
-        objectiveId: objectiveIdValue,
-        title: titleValue,
-        description: descriptionValue,
-        priority: toTrimmed(objective.priority),
-        objectiveMilestones: objective.objectiveMilestones.map((milestone) => {
-          const milestoneIdValue =
-            milestone.objectiveMilestoneId === ''
-              ? undefined
-              : (Number(milestone.objectiveMilestoneId) || milestone.objectiveMilestoneId);
-
-          return {
-            id: milestoneIdValue,
-            objectiveMilestoneId: milestoneIdValue,
-            title: toTrimmed(milestone.title),
-            description: toTrimmed(milestone.description),
-            startDate: milestone.startDate,
-            endDate: milestone.endDate,
-          };
-        }),
-      };
-    })),
-    lastModified: new Date().toISOString().slice(0, 10),
-  };
-};
-
-const formatDate = (input) => {
-  if (!input) {
-    return '—';
+  for (const candidate of stringCandidates) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim().toUpperCase();
+    }
   }
 
-  const date = new Date(input);
-  if (Number.isNaN(date.getTime())) {
-    return '—';
+  if (typeof project.status === 'number' && STATUS_CODE_MAP[project.status] !== undefined) {
+    return STATUS_CODE_MAP[project.status];
   }
 
+  return 'PENDING';
+};
+const formatDate = (value) => {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
   return date.toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'short',
@@ -199,1714 +72,1118 @@ const formatDate = (input) => {
   });
 };
 
+const toDateInputValue = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString().slice(0, 10);
+};
+
+const generateTempId = () => `tmp-${Math.random().toString(36).slice(2, 9)}-${Date.now()}`;
+
+const createEmptyMilestone = () => ({
+  id: generateTempId(),
+  milestoneId: null,
+  objectiveMilestoneId: null,
+  title: '',
+  description: '',
+  startDate: '',
+  endDate: '',
+});
+
+const createEmptyObjective = () => ({
+  id: generateTempId(),
+  objectiveId: null,
+  title: '',
+  description: '',
+  priority: '',
+  objectiveMilestones: [createEmptyMilestone()],
+});
+
+const normalizeObjectivesForDraft = (objectives) => {
+  if (!Array.isArray(objectives) || objectives.length === 0) {
+    return [createEmptyObjective()];
+  }
+
+  return objectives.map((objective) => {
+    const baseObjective = {
+      id: objective.objectiveId ?? objective.id ?? generateTempId(),
+      objectiveId: objective.objectiveId ?? objective.id ?? null,
+      title: objective.title ?? '',
+      description: objective.description ?? '',
+      priority: objective.priority ?? '',
+      objectiveMilestones: [],
+    };
+
+    if (Array.isArray(objective.objectiveMilestones) && objective.objectiveMilestones.length > 0) {
+      baseObjective.objectiveMilestones = objective.objectiveMilestones.map((milestone) => ({
+        id: milestone.objectiveMilestoneId ?? milestone.milestoneId ?? milestone.id ?? generateTempId(),
+        milestoneId: milestone.milestoneId ?? milestone.id ?? null,
+        objectiveMilestoneId: milestone.objectiveMilestoneId ?? milestone.id ?? null,
+        title: milestone.title ?? '',
+        description: milestone.description ?? '',
+        startDate: toDateInputValue(milestone.startDate ?? milestone.beginDate),
+        endDate: toDateInputValue(milestone.endDate ?? milestone.dueDate),
+      }));
+    }
+
+    if (!baseObjective.objectiveMilestones.length) {
+      baseObjective.objectiveMilestones = [createEmptyMilestone()];
+    }
+
+    return baseObjective;
+  });
+};
+
+const resolveObjectiveIdentifier = (objective) => objective?.objectiveId ?? objective?.id ?? null;
+const resolveMilestoneIdentifier = (milestone) =>
+  milestone?.objectiveMilestoneId ?? milestone?.milestoneId ?? milestone?.id ?? null;
+
+const EmptyState = ({ title, description }) => (
+  <div className={`${glassPanelClass} rounded-3xl p-6 text-center`}>
+    <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">{title}</p>
+    <p className="mt-3 text-base text-slate-500">{description}</p>
+  </div>
+);
+
+const LoadingShell = () => (
+  <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 py-10">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4">
+      <div className={`${glassPanelClass} animate-pulse rounded-3xl border-white/60 bg-white/70 p-8`}>
+        <div className="h-4 w-40 rounded-full bg-slate-200/80" />
+        <div className="mt-4 h-10 w-3/4 rounded-full bg-slate-200/80" />
+        <div className="mt-6 h-6 w-full rounded-full bg-slate-200/70" />
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, idx) => (
+          <div key={idx} className={`${glassPanelClass} animate-pulse rounded-2xl p-6`}>
+            <div className="h-4 w-24 rounded-full bg-slate-200/80" />
+            <div className="mt-4 h-8 w-1/2 rounded-full bg-slate-200/80" />
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+const ErrorPanel = ({ message, onRetry }) => (
+  <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 py-10">
+    <div className="mx-auto max-w-3xl px-4">
+      <div className={`${glassPanelClass} rounded-3xl border-rose-100 bg-rose-50/80 p-8 text-center`}>
+        <p className="text-base font-semibold text-rose-600">{message}</p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-4 inline-flex items-center rounded-2xl border border-rose-200/80 bg-white/80 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:-translate-y-0.5 hover:border-rose-300 hover:text-rose-700"
+        >
+          Try again
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+const InfoStat = ({ label, value, accent = 'from-slate-50 to-white', pill }) => (
+  <div className={`${glassPanelClass} rounded-2xl bg-gradient-to-br ${accent} p-5`}>
+    <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-slate-400">{label}</p>
+    {pill ? (
+      <span className={`mt-4 inline-flex rounded-full px-4 py-2 text-sm font-semibold ${pill}`}>{value}</span>
+    ) : (
+      <p className="mt-4 text-2xl font-semibold text-slate-900">{value}</p>
+    )}
+  </div>
+);
+
+const ObjectiveCard = ({ objective, index, isPending, onEditObjective, onEditMilestone }) => {
+  const rawDescription = objective?.description?.trim();
+  const descriptionToShow = rawDescription || 'Details coming soon.';
+
+  return (
+    <div className={`${glassPanelClass} flex flex-col gap-4 rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-sky-50 p-6`}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-indigo-400">Objective {index + 1}</p>
+          <p className="mt-2 text-base leading-relaxed text-slate-600">{descriptionToShow}</p>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          {objective.priority && (
+            <span className="rounded-full border border-indigo-200 bg-white/70 px-3 py-1 text-xs font-semibold text-indigo-700">
+              Priority: {objective.priority}
+            </span>
+          )}
+          {isPending && (
+            <button
+              type="button"
+              onClick={() => onEditObjective?.(objective)}
+              className="inline-flex items-center gap-1 rounded-2xl border border-slate-200/80 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+            >
+              Edit objective
+            </button>
+          )}
+        </div>
+      </div>
+      {Array.isArray(objective.objectiveMilestones) && objective.objectiveMilestones.length > 0 && (
+        <div className="rounded-2xl border border-slate-200/60 bg-white/70 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Milestones</p>
+          <ul className="mt-3 grid gap-3 text-sm text-slate-600">
+            {objective.objectiveMilestones.map((milestone, milestoneIndex) => {
+              const milestoneDescription = milestone?.description?.trim();
+
+              return (
+                <li
+                  key={milestone.id ?? milestoneIndex}
+                  className="rounded-2xl border border-slate-200/60 bg-gradient-to-br from-slate-50 via-white to-sky-50 p-4 shadow-[0_6px_18px_rgba(15,23,42,0.05)]"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-slate-800">{milestone.title || 'Untitled milestone'}</p>
+                      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        {formatDate(milestone.startDate)} — {formatDate(milestone.endDate)}
+                      </span>
+                    </div>
+                    {isPending && (
+                      <button
+                        type="button"
+                        onClick={() => onEditMilestone?.(objective, milestone)}
+                        className="inline-flex items-center gap-1 rounded-2xl border border-slate-200/80 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                      >
+                        Edit milestone
+                      </button>
+                    )}
+                  </div>
+                  <p className="mt-2 text-sm text-slate-600">
+                    {milestoneDescription || 'Details coming soon.'}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const useProjectStatus = (project) => {
+  const normalized = resolveProjectStatusKey(project).toLowerCase();
+  return statusTokens[normalized] ?? statusTokens.pending;
+};
+
 const ProjectDetail = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [activeTab, setActiveTab] = useState('overview');
-  const [wbsViewMode, setWbsViewMode] = useState('wbs'); // 'wbs' or 'timeline'
-  const [selectedClasses, setSelectedClasses] = useState(new Set());
-  const [isAssigning, setIsAssigning] = useState(false);
-  const [expandedWbsItems, setExpandedWbsItems] = useState(new Set());
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSavingEdit, setIsSavingEdit] = useState(false);
-  const [editForm, setEditForm] = useState(null);
-  const [editMessage, setEditMessage] = useState('');
+  const lecturerId = useSelector((state) => state.user?.userId);
+  const [project, setProject] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editDraft, setEditDraft] = useState({ projectName: '', description: '' });
+  const [editFormError, setEditFormError] = useState('');
+  const [isEditSaving, setIsEditSaving] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeleteSubmitting, setIsDeleteSubmitting] = useState(false);
+  const [structureModalOpen, setStructureModalOpen] = useState(false);
+  const [structureDraft, setStructureDraft] = useState(() => normalizeObjectivesForDraft([]));
+  const [structureMetaDraft, setStructureMetaDraft] = useState({ projectName: '', description: '' });
+  const [structureFormError, setStructureFormError] = useState('');
+  const [isStructureSaving, setIsStructureSaving] = useState(false);
+  const [structureFocus, setStructureFocus] = useState(null);
 
-  // Mock data for the project
-  const initialProjectData = useMemo(() => ({
-    id: projectId,
-    title: 'E-commerce Platform Development',
-    description:
-      'Build a complete e-commerce platform with user authentication, product catalog, shopping cart, and payment integration using modern web technologies.',
-    category: 'Web Development',
-    status: 'pending',
-    statusString: 'PENDING',
-    subjectName: '',
-    subjectCode: '',
-  subjectId: 101,
-    lecturerName: 'Dr. Sarah Johnson',
-    lecturerCode: '',
-    createdAt: null,
-    updatedAt: null,
-    maxTeamSize: 4,
-    minTeamSize: 2,
-    totalStudents: 156,
-    activeTeams: 23,
-    completedTeams: 8,
-    averageScore: 87.3,
-    lastModified: '2024-12-15',
-    createdBy: 'Dr. Sarah Johnson',
-    tags: ['React', 'Node.js', 'MongoDB', 'Payment Integration', 'Authentication'],
-    skillsRequired: ['JavaScript', 'React', 'Node.js', 'Database Design', 'API Development'],
-    objectives: [],
-    learningOutcomes: [
-      'Design and implement a full-stack web application',
-      'Integrate third-party payment systems',
-      'Implement user authentication and authorization',
-      'Design and optimize database schemas',
-      'Deploy applications to cloud platforms'
-    ],
-    prerequisites: ['Web Development Fundamentals', 'JavaScript Proficiency', 'Database Basics'],
-    resources: [
-      { type: 'document', name: 'Project Requirements.pdf', size: '2.4 MB' },
-      { type: 'video', name: 'Setup Walkthrough.mp4', duration: '15:30' },
-      { type: 'template', name: 'Starter Code Repository', url: 'github.com/...' },
-      { type: 'document', name: 'API Documentation.pdf', size: '1.8 MB' }
-    ],
-    syllabusAlignment: 94,
-    hasAIAnalysis: true,
-    isFavorite: true
-  }), [projectId]);
-
-  const [projectData, setProjectData] = useState(initialProjectData);
-  const [isLoadingProject, setIsLoadingProject] = useState(false);
-  const [projectError, setProjectError] = useState('');
-
-  const clampPercentage = (value) => {
-    if (typeof value !== 'number' || Number.isNaN(value)) {
-      return null;
-    }
-
-    return Math.min(100, Math.max(0, Math.round(value)));
-  };
-
-  const normaliseStatus = (status, fallback = 'pending') => {
-    if (typeof status === 'string') {
-      return status.toLowerCase();
-    }
-
-    if (typeof status === 'number') {
-      const statusMap = ['pending', 'approved', 'rejected', 'in_progress', 'completed'];
-      return statusMap[status] ?? fallback;
-    }
-
-    return fallback;
-  };
-
-  const wbsObjectives = useMemo(() => {
-    if (!Array.isArray(projectData.objectives)) {
-      return [];
-    }
-
-    return projectData.objectives.map((objective, objectiveIndex) => {
-      const objectiveId =
-        objective.objectiveId ?? objective.id ?? `objective-${objectiveIndex}`;
-      const objectivePriorityRaw =
-        objective.priority ?? objective.priorityLevel ?? objective.objectivePriority ?? null;
-      const objectivePriority =
-        typeof objectivePriorityRaw === 'string'
-          ? objectivePriorityRaw.toLowerCase()
-          : null;
-
-      const rawMilestones = Array.isArray(objective.objectiveMilestones)
-        ? objective.objectiveMilestones
-        : Array.isArray(objective.milestones)
-          ? objective.milestones
-          : [];
-
-      const milestones = rawMilestones.map((milestone, milestoneIndex) => {
-        const milestoneId =
-          milestone.objectiveMilestoneId ??
-          milestone.id ??
-          `milestone-${objectiveId}-${milestoneIndex}`;
-        const resolvedStatus = milestone.statusString ?? milestone.status ?? null;
-        const resolvedEndDate =
-          milestone.endDate ??
-          milestone.finishDate ??
-          milestone.deadline ??
-          milestone.expectedCompletion ??
-          null;
-        const resolvedStartDate =
-          milestone.startDate ??
-          milestone.beginDate ??
-          milestone.start ??
-          milestone.plannedStart ??
-          null;
-
-        return {
-          id: milestoneId,
-          title: milestone.title ?? 'Untitled milestone',
-          description: milestone.description ?? 'Description is not available yet.',
-          status: resolvedStatus ? normaliseStatus(resolvedStatus) : undefined,
-          progress:
-            clampPercentage(
-              milestone.progress ??
-                milestone.completion ??
-                milestone.percentage ??
-                milestone.completionRate ??
-                milestone.completionPercentage ??
-                null,
-            ) ?? undefined,
-          startDate: resolvedStartDate,
-          endDate: resolvedEndDate,
-        };
-      });
-
-      return {
-        id: objectiveId,
-        title: objective.title ?? objective.name ?? objective.description ?? 'Untitled objective',
-        description: objective.description ?? '',
-        priority: objectivePriority,
-        progress:
-          clampPercentage(
-            objective.progress ??
-              objective.completion ??
-              objective.percentage ??
-              objective.completionRate ??
-              objective.completionPercentage ??
-              null,
-          ) ?? undefined,
-        milestones,
-      };
-    });
-  }, [projectData.objectives]);
-
-  useEffect(() => {
-    setProjectData(initialProjectData);
-  }, [initialProjectData]);
-  useEffect(() => {
-    if (!projectId) {
-      return undefined;
-    }
-
-    let isCancelled = false;
-
-    const fetchProject = async () => {
-      setIsLoadingProject(true);
-      setProjectError('');
+  const fetchProject = useCallback(
+    async (options = {}) => {
+      if (!projectId) return null;
+      const silent = Boolean(options.silent);
+      if (!silent) {
+        setIsLoading(true);
+        setError(null);
+      }
 
       try {
-        const response = await getProjectDetail(projectId);
-
-        if (isCancelled) {
-          return;
+        const data = await getProjectDetail(projectId);
+        setProject(data);
+        return data;
+      } catch (err) {
+        if (!silent) {
+          setError(err);
+        } else {
+          console.error('Silent project refresh failed.', err);
         }
-
-        setProjectData((previous) => ({
-          ...previous,
-          id: response?.projectId ?? response?.id ?? previous.id,
-          title: response?.projectName ?? response?.title ?? previous.title,
-          description: response?.description ?? previous.description,
-          subjectName: response?.subjectName ?? previous.subjectName,
-          subjectCode: response?.subjectCode ?? previous.subjectCode,
-          lecturerName: response?.lecturerName ?? previous.lecturerName,
-          lecturerCode: response?.lecturerCode ?? previous.lecturerCode,
-          createdAt: response?.createdAt ?? previous.createdAt,
-          updatedAt: response?.updatedAt ?? previous.updatedAt,
-          statusString: response?.statusString ?? previous.statusString,
-          status: response?.statusString?.toLowerCase() ?? previous.status,
-          objectives: normaliseObjectives(response?.objectives),
-        }));
-      } catch (error) {
-        if (!isCancelled) {
-          setProjectError(error?.message ?? 'Unable to load project details');
-        }
+        throw err;
       } finally {
-        if (!isCancelled) {
-          setIsLoadingProject(false);
+        if (!silent) {
+          setIsLoading(false);
         }
       }
-    };
-
-    fetchProject();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [projectId]);
-
-  // Enhanced Educational Kanban Tasks with Swimlane Features
-  const [kanbanTasks, setKanbanTasks] = useState([
-    // Frontend Development - Backlog
-    {
-      id: '4.1',
-      title: 'Unit Testing Framework Setup',
-      description: 'Set up Jest and React Testing Library for comprehensive component testing',
-      type: 'task',
-      duration: '3 days',
-      status: 'BACKLOG',
-      team: 'frontend',
-      assignee: 'Alex Johnson',
-      priority: 'medium',
-      labels: ['testing', 'setup'],
-      phase: 'Testing & Deployment',
-      estimatedHours: 24,
-      timeSpent: 0,
-      progress: 0,
-      technologies: ['Jest', 'React Testing Library', 'JavaScript'],
-      skillsRequired: [
-        { name: 'Unit Testing', level: 'intermediate' },
-        { name: 'React', level: 'advanced' },
-        { name: 'JavaScript', level: 'advanced' }
-      ],
-      learningOutcomes: 'Master automated testing practices and TDD methodology',
-      assessmentCriteria: { points: 15, category: 'Technical Skills' },
-      dueDate: '2024-12-15',
-      createdDate: '2024-12-10',
-      gitIntegration: { branch: 'feature/testing-setup', status: 'pending' },
-      milestones: [
-        { percentage: 25, name: 'Setup Jest', completed: false },
-        { percentage: 50, name: 'Write Sample Tests', completed: false },
-        { percentage: 100, name: 'Full Coverage', completed: false }
-      ]
     },
-    // Frontend Development - Review
-    {
-      id: '4.2',
-      title: 'Responsive Design Implementation',
-      description: 'Implement mobile-first responsive design across all components',
-      type: 'task',
-      duration: '4 days',
-      status: 'REVIEW',
-      team: 'frontend',
-      assignee: 'Maria Rodriguez',
-      priority: 'high',
-      labels: ['responsive', 'css', 'mobile'],
-      phase: 'Development',
-      estimatedHours: 32,
-      timeSpent: 28,
-      progress: 85,
-      technologies: ['CSS Grid', 'Flexbox', 'Media Queries', 'SCSS'],
-      skillsRequired: [
-        { name: 'CSS', level: 'advanced' },
-        { name: 'Responsive Design', level: 'advanced' },
-        { name: 'Mobile UX', level: 'intermediate' }
-      ],
-      learningOutcomes: 'Master responsive design principles and mobile-first approach',
-      assessmentCriteria: { points: 20, category: 'Frontend Development' },
-      dueDate: '2024-12-13',
-      createdDate: '2024-12-08',
-      gitIntegration: { branch: 'feature/responsive-design', status: 'review' },
-      milestones: [
-        { percentage: 30, name: 'Mobile Layout', completed: true },
-        { percentage: 70, name: 'Tablet Breakpoints', completed: true },
-        { percentage: 100, name: 'Desktop Optimization', completed: false }
-      ]
-    },
-    // Frontend Development - Done
-    {
-      id: '3.4',
-      title: 'User Authentication Flow',
-      description: 'Complete login/register interface with form validation and security features',
-      type: 'task',
-      duration: '3 days',
-      status: 'DONE',
-      team: 'frontend',
-      assignee: 'David Kim',
-      priority: 'high',
-      labels: ['authentication', 'security', 'forms'],
-      phase: 'Frontend Development',
-      estimatedHours: 24,
-      timeSpent: 22,
-      progress: 100,
-      technologies: ['React Hook Form', 'Yup Validation', 'JWT', 'OAuth'],
-      skillsRequired: [
-        { name: 'Form Validation', level: 'intermediate' },
-        { name: 'Authentication', level: 'advanced' },
-        { name: 'Security', level: 'intermediate' }
-      ],
-      learningOutcomes: 'Understanding authentication flows and security best practices',
-      assessmentCriteria: { points: 22, category: 'Frontend Development' },
-      dueDate: '2024-12-12',
-      createdDate: '2024-12-07',
-      gitIntegration: { branch: 'feature/auth-ui', status: 'merged' },
-      milestones: [
-        { percentage: 40, name: 'Login Form', completed: true },
-        { percentage: 70, name: 'Registration Flow', completed: true },
-        { percentage: 100, name: 'Password Reset', completed: true }
-      ]
-    },
-    // Backend Development - Todo
-    {
-      id: '2.4',
-      title: 'Database Schema Design',
-      description: 'Design and implement normalized database schema with proper relationships',
-      type: 'task',
-      duration: '3 days',
-      status: 'TODO',
-      team: 'backend',
-      assignee: 'John Smith',
-      priority: 'high',
-      labels: ['database', 'schema', 'architecture'],
-      phase: 'Backend Development',
-      estimatedHours: 24,
-      timeSpent: 0,
-      progress: 0,
-      technologies: ['PostgreSQL', 'Prisma', 'Database Design'],
-      skillsRequired: [
-        { name: 'Database Design', level: 'advanced' },
-        { name: 'SQL', level: 'advanced' },
-        { name: 'Data Modeling', level: 'intermediate' }
-      ],
-      learningOutcomes: 'Master database normalization and relationship design',
-      assessmentCriteria: { points: 20, category: 'Backend Development' },
-      dueDate: '2024-12-16',
-      createdDate: '2024-12-05',
-      gitIntegration: { branch: 'feature/database-schema', status: 'pending' },
-      milestones: [
-        { percentage: 33, name: 'Entity Design', completed: false },
-        { percentage: 66, name: 'Relationships', completed: false },
-        { percentage: 100, name: 'Migration Scripts', completed: false }
-      ]
-    },
-    // Backend Development - In Progress
-    {
-      id: '2.5',
-      title: 'RESTful API Development',
-      description: 'Build comprehensive REST API with authentication, validation, and error handling',
-      type: 'task',
-      duration: '6 days',
-      status: 'IN_PROGRESS',
-      team: 'backend',
-      assignee: 'Lisa Wang',
-      priority: 'critical',
-      labels: ['api', 'rest', 'authentication'],
-      phase: 'Backend Development',
-      estimatedHours: 48,
-      timeSpent: 18,
-      progress: 35,
-      technologies: ['Node.js', 'Express', 'JWT', 'Joi Validation'],
-      skillsRequired: [
-        { name: 'Node.js', level: 'advanced' },
-        { name: 'REST API Design', level: 'advanced' },
-        { name: 'Authentication', level: 'intermediate' }
-      ],
-      learningOutcomes: 'Design and implement scalable REST APIs with security best practices',
-      assessmentCriteria: { points: 30, category: 'Backend Development' },
-      dueDate: '2024-12-18',
-      createdDate: '2024-12-05',
-      gitIntegration: { branch: 'feature/rest-api', status: 'active' },
-      milestones: [
-        { percentage: 25, name: 'Base Setup', completed: true },
-        { percentage: 50, name: 'Auth Endpoints', completed: false },
-        { percentage: 100, name: 'Full CRUD Operations', completed: false }
-      ]
-    },
-    // Backend Development - Review
-    {
-      id: '2.3',
-      title: 'Microservices Architecture',
-      description: 'Implement microservices pattern with service discovery and load balancing',
-      type: 'task',
-      duration: '7 days',
-      status: 'REVIEW',
-      team: 'backend',
-      assignee: 'Michael Brown',
-      priority: 'high',
-      labels: ['microservices', 'architecture', 'scalability'],
-      phase: 'Backend Development',
-      estimatedHours: 56,
-      timeSpent: 52,
-      progress: 90,
-      technologies: ['Docker', 'Kubernetes', 'Redis', 'RabbitMQ'],
-      skillsRequired: [
-        { name: 'Microservices', level: 'advanced' },
-        { name: 'Docker', level: 'intermediate' },
-        { name: 'System Architecture', level: 'advanced' }
-      ],
-      learningOutcomes: 'Understanding distributed systems and microservices patterns',
-      assessmentCriteria: { points: 35, category: 'Backend Development' },
-      dueDate: '2024-12-20',
-      createdDate: '2024-12-01',
-      gitIntegration: { branch: 'feature/microservices', status: 'review' },
-      milestones: [
-        { percentage: 30, name: 'Service Separation', completed: true },
-        { percentage: 70, name: 'Inter-service Communication', completed: true },
-        { percentage: 100, name: 'Load Balancing', completed: false }
-      ]
-    },
-    // Integration Team - Todo
-    {
-      id: '3.3',
-      title: 'API Integration Layer',
-      description: 'Implement frontend-backend integration with error handling and caching',
-      type: 'task',
-      duration: '4 days',
-      status: 'TODO',
-      team: 'integration',
-      assignee: 'Emma Johnson',
-      priority: 'high',
-      labels: ['integration', 'api', 'caching'],
-      phase: 'Integration & Testing',
-      estimatedHours: 32,
-      timeSpent: 0,
-      progress: 0,
-      technologies: ['Axios', 'React Query', 'Error Boundaries', 'Redux'],
-      skillsRequired: [
-        { name: 'API Integration', level: 'advanced' },
-        { name: 'Error Handling', level: 'intermediate' },
-        { name: 'State Management', level: 'advanced' }
-      ],
-      learningOutcomes: 'Master frontend-backend integration patterns and error handling strategies',
-      assessmentCriteria: { points: 25, category: 'Integration' },
-      dueDate: '2024-12-17',
-      createdDate: '2024-11-28',
-      gitIntegration: { branch: 'feature/api-integration', status: 'pending' },
-      milestones: [
-        { percentage: 40, name: 'Base Integration', completed: false },
-        { percentage: 70, name: 'Error Handling', completed: false },
-        { percentage: 100, name: 'Performance Optimization', completed: false }
-      ]
-    },
-    // Integration Team - In Progress
-    {
-      id: '3.2',
-      title: 'End-to-End Testing Suite',
-      description: 'Comprehensive E2E testing covering user workflows and integration points',
-      type: 'task',
-      duration: '5 days',
-      status: 'IN_PROGRESS',
-      team: 'integration',
-      assignee: 'Carlos Martinez',
-      priority: 'high',
-      labels: ['testing', 'e2e', 'automation'],
-      phase: 'Integration & Testing',
-      estimatedHours: 40,
-      timeSpent: 22,
-      progress: 55,
-      technologies: ['Cypress', 'Playwright', 'Docker', 'CI/CD'],
-      skillsRequired: [
-        { name: 'E2E Testing', level: 'advanced' },
-        { name: 'Test Automation', level: 'intermediate' },
-        { name: 'DevOps', level: 'intermediate' }
-      ],
-      learningOutcomes: 'Master automated testing strategies for complex applications',
-      assessmentCriteria: { points: 28, category: 'Integration' },
-      dueDate: '2024-12-19',
-      createdDate: '2024-11-25',
-      gitIntegration: { branch: 'feature/e2e-testing', status: 'active' },
-      milestones: [
-        { percentage: 30, name: 'Test Framework Setup', completed: true },
-        { percentage: 70, name: 'Core User Flows', completed: false },
-        { percentage: 100, name: 'CI/CD Integration', completed: false }
-      ]
-    },
-    // Integration Team - Done
-    {
-      id: '5.1',
-      title: 'CI/CD Pipeline Setup',
-      description: 'Automated build, test, and deployment pipeline with staging environment',
-      type: 'task',
-      duration: '4 days',
-      status: 'DONE',
-      team: 'integration',
-      assignee: 'Rachel Green',
-      priority: 'critical',
-      labels: ['devops', 'cicd', 'automation'],
-      phase: 'Integration & Testing',
-      estimatedHours: 32,
-      timeSpent: 30,
-      progress: 100,
-      technologies: ['GitHub Actions', 'Docker', 'AWS', 'Nginx'],
-      skillsRequired: [
-        { name: 'DevOps', level: 'advanced' },
-        { name: 'CI/CD', level: 'advanced' },
-        { name: 'Cloud Deployment', level: 'intermediate' }
-      ],
-      learningOutcomes: 'Understanding modern DevOps practices and automated deployment strategies',
-      assessmentCriteria: { points: 30, category: 'Integration' },
-      dueDate: '2024-12-11',
-      createdDate: '2024-11-20',
-      gitIntegration: { branch: 'feature/cicd-pipeline', status: 'merged' },
-      milestones: [
-        { percentage: 40, name: 'Pipeline Configuration', completed: true },
-        { percentage: 70, name: 'Staging Deployment', completed: true },
-        { percentage: 100, name: 'Production Setup', completed: true }
-      ]
-    },
-    // Completed Setup Tasks
-    {
-      id: '1.1',
-      title: 'Development Environment Setup',
-      description: 'Project initialization with development tools and team collaboration setup',
-      type: 'task',
-      duration: '2 days',
-      status: 'DONE',
-      team: 'integration',
-      assignee: 'Team Lead - All Teams',
-      priority: 'high',
-      labels: ['setup', 'environment', 'collaboration'],
-      phase: 'Project Setup & Planning',
-      estimatedHours: 16,
-      timeSpent: 16,
-      progress: 100,
-      technologies: ['Git', 'VS Code', 'Node.js', 'Docker'],
-      skillsRequired: [
-        { name: 'Development Tools', level: 'intermediate' },
-        { name: 'Git Workflow', level: 'intermediate' },
-        { name: 'Project Management', level: 'basic' }
-      ],
-      learningOutcomes: 'Understanding professional development environment setup and team collaboration tools',
-      assessmentCriteria: { points: 10, category: 'Project Management' },
-      dueDate: '2024-11-15',
-      createdDate: '2024-11-10',
-      gitIntegration: { branch: 'main', status: 'merged' },
-      milestones: [
-        { percentage: 50, name: 'Tool Installation', completed: true },
-        { percentage: 80, name: 'Team Setup', completed: true },
-        { percentage: 100, name: 'Documentation', completed: true }
-      ]
-    },
-    {
-      id: '1.2',
-      title: 'Project Structure Creation',
-      description: 'Create folder structure, initialize repositories',
-      type: 'task',
-      duration: '1 day',
-      status: 'completed',
-      assignee: 'All Members',
-      priority: 'medium',
-      labels: ['setup', 'architecture'],
-      phase: 'Project Setup & Planning',
-      estimatedHours: 8,
-      progress: 100,
-      completedDate: '2024-11-21',
-      createdDate: '2024-11-19'
-    },
-    {
-      id: '2.1',
-      title: 'Database Design & Setup',
-      description: 'Design MongoDB schemas, set up collections',
-      type: 'task',
-      duration: '3 days',
-      status: 'completed',
-      assignee: 'Backend Developer',
-      priority: 'critical',
-      labels: ['backend', 'database', 'schema'],
-      phase: 'Backend Development',
-      estimatedHours: 24,
-      progress: 100,
-      completedDate: '2024-11-27',
-      createdDate: '2024-11-22'
-    }
-  ]);
-
-  // Legacy WBS data structure (kept for reference)
-  const legacyWbsData = [
-    {
-      id: '1',
-      title: 'Project Setup & Planning',
-      description: 'Initial project setup, environment configuration, and team planning',
-      type: 'phase',
-      duration: '1 week',
-      dependencies: [],
-      status: 'completed',
-      completion: 100,
-      children: [
-        {
-          id: '1.1',
-          title: 'Development Environment Setup',
-          description: 'Install Node.js, MongoDB, configure IDE',
-          type: 'task',
-          duration: '2 days',
-          status: 'completed',
-          assignee: 'Team Lead',
-          completion: 100
-        },
-        {
-          id: '1.2',
-          title: 'Project Structure Creation',
-          description: 'Create folder structure, initialize repositories',
-          type: 'task',
-          duration: '1 day',
-          status: 'completed',
-          assignee: 'All Members',
-          completion: 100
-        },
-        {
-          id: '1.3',
-          title: 'Team Role Assignment',
-          description: 'Define roles and responsibilities for each team member',
-          type: 'milestone',
-          duration: '0.5 days',
-          status: 'completed',
-          completion: 100
-        }
-      ]
-    },
-    {
-      id: '2',
-      title: 'Backend Development',
-      description: 'Server-side implementation including API, authentication, and database',
-      type: 'phase',
-      duration: '3-4 weeks',
-      dependencies: ['1'],
-      status: 'in_progress',
-      completion: 65,
-      children: [
-        {
-          id: '2.1',
-          title: 'Database Design & Setup',
-          description: 'Design MongoDB schemas, set up collections',
-          type: 'task',
-          duration: '3 days',
-          status: 'completed',
-          assignee: 'Backend Developer',
-          completion: 100
-        },
-        {
-          id: '2.2',
-          title: 'User Authentication API',
-          description: 'Implement JWT-based authentication system',
-          type: 'task',
-          duration: '5 days',
-          status: 'completed',
-          assignee: 'Backend Developer',
-          completion: 100
-        },
-        {
-          id: '2.3',
-          title: 'Product Management API',
-          description: 'CRUD operations for product catalog',
-          type: 'task',
-          duration: '4 days',
-          status: 'in_progress',
-          assignee: 'Backend Developer',
-          completion: 75
-        },
-        {
-          id: '2.4',
-          title: 'Shopping Cart API',
-          description: 'Cart management and session handling',
-          type: 'task',
-          duration: '3 days',
-          status: 'pending',
-          assignee: 'Backend Developer',
-          completion: 0
-        },
-        {
-          id: '2.5',
-          title: 'Payment Integration',
-          description: 'Integrate Stripe/PayPal payment gateway',
-          type: 'milestone',
-          duration: '5 days',
-          status: 'pending',
-          assignee: 'Backend Developer',
-          completion: 0
-        }
-      ]
-    },
-    {
-      id: '3',
-      title: 'Frontend Development',
-      description: 'User interface implementation using React',
-      type: 'phase',
-      duration: '3-4 weeks',
-      dependencies: ['1'],
-      status: 'in_progress',
-      completion: 45,
-      children: [
-        {
-          id: '3.1',
-          title: 'Component Architecture',
-          description: 'Design and implement reusable React components',
-          type: 'task',
-          duration: '4 days',
-          status: 'completed',
-          assignee: 'Frontend Developer',
-          completion: 100
-        },
-        {
-          id: '3.2',
-          title: 'User Authentication UI',
-          description: 'Login, register, and profile management pages',
-          type: 'task',
-          duration: '3 days',
-          status: 'completed',
-          assignee: 'Frontend Developer',
-          completion: 100
-        },
-        {
-          id: '3.3',
-          title: 'Product Catalog Interface',
-          description: 'Product listing, search, and detail pages',
-          type: 'task',
-          duration: '5 days',
-          status: 'in_progress',
-          assignee: 'Frontend Developer',
-          completion: 60
-        },
-        {
-          id: '3.4',
-          title: 'Shopping Cart Interface',
-          description: 'Cart management and checkout flow',
-          type: 'task',
-          duration: '4 days',
-          status: 'pending',
-          assignee: 'Frontend Developer',
-          completion: 0
-        }
-      ]
-    },
-    {
-      id: '4',
-      title: 'Testing & Deployment',
-      description: 'Quality assurance and production deployment',
-      type: 'phase',
-      duration: '1-2 weeks',
-      dependencies: ['2', '3'],
-      status: 'pending',
-      completion: 0,
-      children: [
-        {
-          id: '4.1',
-          title: 'Unit Testing',
-          description: 'Write and execute unit tests for all components',
-          type: 'task',
-          duration: '3 days',
-          status: 'pending',
-          assignee: 'QA/Developer',
-          completion: 0
-        },
-        {
-          id: '4.2',
-          title: 'Integration Testing',
-          description: 'Test API integration and end-to-end flows',
-          type: 'task',
-          duration: '2 days',
-          status: 'pending',
-          assignee: 'QA/Developer',
-          completion: 0
-        },
-        {
-          id: '4.3',
-          title: 'Production Deployment',
-          description: 'Deploy to cloud platform and configure CI/CD',
-          type: 'milestone',
-          duration: '2 days',
-          status: 'pending',
-          assignee: 'DevOps/Team Lead',
-          completion: 0
-        }
-      ]
-    }
-  ];
-
-  // Mock classes data for assignment
-  const availableClasses = [
-    {
-      id: 'CS301-2024',
-      name: 'Advanced Web Development',
-      semester: 'Fall 2024',
-      students: 45,
-      instructor: 'Dr. Sarah Johnson',
-      schedule: 'MWF 10:00-11:00 AM',
-      isAssigned: true
-    },
-    {
-      id: 'CS401-2024',
-      name: 'Software Engineering',
-      semester: 'Fall 2024',
-      students: 38,
-      instructor: 'Prof. Michael Chen',
-      schedule: 'TTh 2:00-3:30 PM',
-      isAssigned: false
-    },
-    {
-      id: 'CS302-2024',
-      name: 'Full-Stack Development',
-      semester: 'Fall 2024',
-      students: 42,
-      instructor: 'Dr. Emily Rodriguez',
-      schedule: 'MWF 1:00-2:00 PM',
-      isAssigned: false
-    },
-    {
-      id: 'CS501-2024',
-      name: 'Advanced Topics in Web Tech',
-      semester: 'Fall 2024',
-      students: 31,
-      instructor: 'Dr. Sarah Johnson',
-      schedule: 'TTh 10:00-11:30 AM',
-      isAssigned: true
-    }
-  ];
-
-
-
-
+    [projectId]
+  );
 
   useEffect(() => {
-    const editing = location.pathname.endsWith('/edit');
-    if (editing) {
-      setEditForm(mapProjectToForm(projectData));
-      setIsEditing(true);
-    } else {
-      setIsEditing(false);
+    fetchProject();
+  }, [fetchProject, reloadKey]);
+
+  useEffect(() => {
+    if (!structureModalOpen || !structureFocus) return;
+    if (typeof document === 'undefined') return;
+    const targetId = structureFocus.milestoneId
+      ? `milestone-editor-${structureFocus.milestoneId}`
+      : structureFocus.objectiveId
+      ? `objective-editor-${structureFocus.objectiveId}`
+      : null;
+    if (!targetId) return;
+    const timer = setTimeout(() => {
+      const element = document.getElementById(targetId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [structureFocus, structureModalOpen]);
+
+  const statusMeta = useProjectStatus(project);
+  const statusKey = resolveProjectStatusKey(project);
+  const isPendingProject = statusKey === 'PENDING';
+  const resolvedProjectId = project?.projectId ?? project?.id ?? null;
+
+  const composePendingUpdatePayload = useCallback(
+    (partialPayload = {}, { includeObjectivesFallback = true } = {}) => {
+      if (!resolvedProjectId) {
+        throw new Error('Missing project identifier.');
+      }
+
+      const payload = {
+        projectId: resolvedProjectId,
+        ...partialPayload,
+      };
+
+      const resolvedLecturerId = project?.lecturerId ?? lecturerId;
+      if (resolvedLecturerId) {
+        payload.lecturerId = resolvedLecturerId;
+      }
+
+      const subjectId = project?.subjectId ?? project?.subject?.subjectId ?? project?.subject?.id;
+      if (subjectId) {
+        payload.subjectId = subjectId;
+      }
+
+      if (project?.status !== undefined) {
+        payload.status = project.status;
+      } else if (project?.statusString) {
+        payload.status = project.statusString;
+      }
+
+      if (includeObjectivesFallback && !payload.objectives && Array.isArray(project?.objectives)) {
+        payload.objectives = project.objectives;
+      }
+
+      return payload;
+    },
+    [lecturerId, project, resolvedProjectId]
+  );
+
+  const projectObjectives = useMemo(() => {
+    if (!Array.isArray(project?.objectives)) return [];
+    return project.objectives;
+  }, [project]);
+
+  const metaRows = useMemo(
+    () => [
+      {
+        label: 'Subject',
+        value: project?.subjectName
+          ? `${project.subjectName}${project?.subjectCode ? ` (${project.subjectCode})` : ''}`
+          : '—',
+      },
+      {
+        label: 'Lecturer',
+        value: project?.lecturerName
+          ? `${project.lecturerName}${project?.lecturerCode ? ` · ${project.lecturerCode}` : ''}`
+          : '—',
+      },
+      { label: 'Created', value: formatDate(project?.createdAt) },
+      { label: 'Last Updated', value: formatDate(project?.updatedAt) },
+    ],
+    [project]
+  );
+
+  const breadcrumbItems = useMemo(() => {
+    const items = [{ label: 'Project Library', href: '/lecturer/projects' }];
+
+    if (project?.classId) {
+      items.push({ label: 'Class Detail', href: `/lecturer/classes/${project.classId}` });
     }
-  }, [location.pathname, projectData]);
 
-  const closeEditPanel = () => {
-    navigate(`/lecturer/projects/${projectId}`, { replace: true });
-  };
+    items.push({ label: project?.projectName ?? 'Project Detail' });
 
-  const handleEditFieldChange = (field, value) => {
-    setEditForm((prev) => {
-      if (!prev) {
-        return prev;
-      }
+    return items;
+  }, [project?.classId, project?.projectName]);
 
-      return {
-        ...prev,
-        [field]: value,
-      };
+  const openEditModal = () => {
+    if (!project || !isPendingProject) {
+      toast.error('Only pending projects can be edited before approval.');
+      return;
+    }
+    setEditDraft({
+      projectName: project.projectName ?? '',
+      description: project.description ?? '',
     });
+    setEditFormError('');
+    setIsEditModalOpen(true);
   };
 
-  const handleObjectiveFieldChange = (objectiveIndex, field, value) => {
-    setEditForm((prev) => {
-      if (!prev) {
-        return prev;
-      }
+  const closeEditModal = (force = false) => {
+    if (!force && isEditSaving) return;
+    setIsEditModalOpen(false);
+    setEditFormError('');
+  };
 
-      const updatedObjectives = prev.objectives.map((objective, index) => (
-        index === objectiveIndex
-          ? { ...objective, [field]: value }
-          : objective
-      ));
+  const handleEditInputChange = (field, value) => {
+    setEditDraft((prev) => ({ ...prev, [field]: value }));
+  };
 
-      return {
-        ...prev,
-        objectives: updatedObjectives,
-      };
+  const handleSubmitPendingUpdate = async (event) => {
+    event.preventDefault();
+    if (!project || !resolvedProjectId) {
+      toast.error('Missing project context.');
+      return;
+    }
+    if (!isPendingProject) {
+      toast.error('Only pending projects can be updated in this view.');
+      return;
+    }
+
+    const projectName = editDraft.projectName.trim();
+    const description = editDraft.description.trim();
+    if (!projectName) {
+      setEditFormError('Please provide a project name.');
+      return;
+    }
+
+    setIsEditSaving(true);
+    setEditFormError('');
+
+    const payload = composePendingUpdatePayload({ projectName, description });
+
+    try {
+      const response = await updateProjectBeforeApproval(payload);
+      toast.success(response?.message ?? 'Project updated.');
+      await fetchProject({ silent: true });
+      closeEditModal(true);
+    } catch (err) {
+      console.error('Failed to update project before approval.', err);
+      const message = err?.response?.data?.message ?? err?.message ?? 'Unable to update this project.';
+      setEditFormError(message);
+      toast.error(message);
+    } finally {
+      setIsEditSaving(false);
+    }
+  };
+
+  const openDeleteModal = () => {
+    if (!isPendingProject) {
+      toast.error('Only pending projects can be removed.');
+      return;
+    }
+    setDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = (force = false) => {
+    if (!force && isDeleteSubmitting) return;
+    setDeleteModalOpen(false);
+  };
+
+  const handleDeletePendingProject = async () => {
+    if (!resolvedProjectId) {
+      toast.error('Missing project context.');
+      return;
+    }
+    if (!isPendingProject) {
+      toast.error('Only pending projects can be removed.');
+      return;
+    }
+
+    setIsDeleteSubmitting(true);
+    try {
+      const response = await deleteProjectBeforeApproval(resolvedProjectId);
+      toast.success(response?.message ?? 'Project deleted.');
+      closeDeleteModal(true);
+      navigate('/lecturer/projects');
+    } catch (err) {
+      console.error('Failed to delete project before approval.', err);
+      const message = err?.response?.data?.message ?? err?.message ?? 'Unable to delete this project.';
+      toast.error(message);
+    } finally {
+      setIsDeleteSubmitting(false);
+    }
+  };
+
+  const openStructureModal = (focus = null) => {
+    if (!project || !isPendingProject) {
+      toast.error('Only pending projects can be edited before approval.');
+      return;
+    }
+    setStructureMetaDraft({
+      projectName: project.projectName ?? '',
+      description: project.description ?? '',
     });
+    setStructureDraft(normalizeObjectivesForDraft(project.objectives ?? []));
+    setStructureFormError('');
+    setStructureFocus(focus && focus.objectiveId ? focus : null);
+    setStructureModalOpen(true);
   };
 
-  const handleMilestoneFieldChange = (objectiveIndex, milestoneIndex, field, value) => {
-    setEditForm((prev) => {
-      if (!prev) {
-        return prev;
-      }
+  const closeStructureModal = (force = false) => {
+    if (!force && isStructureSaving) return;
+    setStructureModalOpen(false);
+    setStructureFormError('');
+    setStructureFocus(null);
+  };
 
-      const updatedObjectives = prev.objectives.map((objective, index) => {
-        if (index !== objectiveIndex) {
+  const handleStructureMetaChange = (field, value) => {
+    setStructureMetaDraft((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const editObjectiveDraft = (objectiveId, updater) => {
+    setStructureDraft((prev) =>
+      prev.map((objective) => {
+        if (objective.id !== objectiveId) {
           return objective;
         }
-
-        const updatedMilestones = objective.objectiveMilestones.map((milestone, mIndex) => (
-          mIndex === milestoneIndex
-            ? { ...milestone, [field]: value }
-            : milestone
-        ));
-
+        const nextState = typeof updater === 'function' ? updater(objective) : { ...objective, ...updater };
         return {
           ...objective,
-          objectiveMilestones: updatedMilestones,
+          ...nextState,
         };
-      });
+      })
+    );
+  };
 
-      return {
-        ...prev,
-        objectives: updatedObjectives,
-      };
-    });
+  const handleObjectiveFieldChange = (objectiveId, field, value) => {
+    editObjectiveDraft(objectiveId, (objective) => ({ ...objective, [field]: value }));
   };
 
   const handleAddObjective = () => {
-    setEditForm((prev) => {
-      if (!prev) {
-        return prev;
-      }
+    setStructureDraft((prev) => [...prev, createEmptyObjective()]);
+  };
 
+  const handleRemoveObjective = (objectiveId) => {
+    setStructureDraft((prev) => {
+      const filtered = prev.filter((objective) => objective.id !== objectiveId);
+      return filtered.length ? filtered : [createEmptyObjective()];
+    });
+  };
+
+  const handleAddMilestone = (objectiveId) => {
+    editObjectiveDraft(objectiveId, (objective) => ({
+      ...objective,
+      objectiveMilestones: [...(objective.objectiveMilestones ?? []), createEmptyMilestone()],
+    }));
+  };
+
+  const handleMilestoneFieldChange = (objectiveId, milestoneId, field, value) => {
+    editObjectiveDraft(objectiveId, (objective) => ({
+      ...objective,
+      objectiveMilestones: (objective.objectiveMilestones ?? []).map((milestone) =>
+        milestone.id === milestoneId ? { ...milestone, [field]: value } : milestone
+      ),
+    }));
+  };
+
+  const handleObjectiveEditRequest = (objective) => {
+    const objectiveId = resolveObjectiveIdentifier(objective);
+    openStructureModal(objectiveId ? { objectiveId } : null);
+  };
+
+  const handleMilestoneEditRequest = (objective, milestone) => {
+    const objectiveId = resolveObjectiveIdentifier(objective);
+    const milestoneId = resolveMilestoneIdentifier(milestone);
+    openStructureModal(
+      objectiveId
+        ? {
+            objectiveId,
+            milestoneId: milestoneId ?? null,
+          }
+        : null
+    );
+  };
+
+  const handleRemoveMilestone = (objectiveId, milestoneId) => {
+    editObjectiveDraft(objectiveId, (objective) => {
+      const remaining = (objective.objectiveMilestones ?? []).filter((milestone) => milestone.id !== milestoneId);
       return {
-        ...prev,
-        objectives: [...prev.objectives, createEmptyObjective()],
+        ...objective,
+        objectiveMilestones: remaining.length ? remaining : [createEmptyMilestone()],
       };
     });
   };
 
-  const handleRemoveObjective = (objectiveIndex) => {
-    setEditForm((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        objectives: prev.objectives.filter((_, index) => index !== objectiveIndex),
-      };
-    });
-  };
-
-  const handleAddMilestone = (objectiveIndex) => {
-    setEditForm((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const updatedObjectives = prev.objectives.map((objective, index) => {
-        if (index !== objectiveIndex) {
-          return objective;
-        }
-
-        return {
-          ...objective,
-          objectiveMilestones: [
-            ...objective.objectiveMilestones,
-            createEmptyMilestone(objective.uid),
-          ],
-        };
-      });
-
-      return {
-        ...prev,
-        objectives: updatedObjectives,
-      };
-    });
-  };
-
-  const handleRemoveMilestone = (objectiveIndex, milestoneIndex) => {
-    setEditForm((prev) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const updatedObjectives = prev.objectives.map((objective, index) => {
-        if (index !== objectiveIndex) {
-          return objective;
-        }
-
-        return {
-          ...objective,
-          objectiveMilestones: objective.objectiveMilestones.filter((_, mIndex) => mIndex !== milestoneIndex),
-        };
-      });
-
-      return {
-        ...prev,
-        objectives: updatedObjectives,
-      };
-    });
-  };
-
-  const handleEditSave = (event) => {
+  const handleStructureSubmit = async (event) => {
     event.preventDefault();
-    if (!editForm || isSavingEdit) return;
-    setIsSavingEdit(true);
-    setTimeout(() => {
-      setProjectData((prev) => mergeFormIntoProject(prev, editForm));
-      setIsSavingEdit(false);
-      setEditMessage('Project details updated for your latest submission.');
-      closeEditPanel();
-      setTimeout(() => {
-        setEditMessage('');
-      }, 3600);
-    }, 700);
-  };
-
-  const handleAnalyze = () => {
-    navigate(`/lecturer/projects/${projectId}/analysis`);
-  };
-
-  const handleAssignToClasses = async () => {
-    setIsAssigning(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsAssigning(false);
-    // Show success message or update UI
-  };
-
-  const toggleWbsItem = (itemId) => {
-    const newExpanded = new Set(expandedWbsItems);
-    if (newExpanded.has(itemId)) {
-      newExpanded.delete(itemId);
-    } else {
-      newExpanded.add(itemId);
+    if (!project || !resolvedProjectId) {
+      toast.error('Missing project context.');
+      return;
     }
-    setExpandedWbsItems(newExpanded);
-  };
-
-  const toggleClassSelection = (classId) => {
-    const newSelection = new Set(selectedClasses);
-    if (newSelection.has(classId)) {
-      newSelection.delete(classId);
-    } else {
-      newSelection.add(classId);
+    if (!isPendingProject) {
+      toast.error('Only pending projects can be updated in this view.');
+      return;
     }
-    setSelectedClasses(newSelection);
-  };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircleIconSolid className="w-5 h-5 text-green-500" />;
-      case 'in_progress':
-        return <ClockIcon className="w-5 h-5 text-blue-500" />;
-      case 'pending':
-        return <ClockIcon className="w-5 h-5 text-gray-400" />;
-      default:
-        return <ClockIcon className="w-5 h-5 text-gray-400" />;
+    const projectName = structureMetaDraft.projectName.trim();
+    const description = structureMetaDraft.description.trim();
+
+    if (!projectName) {
+      setStructureFormError('Project name is required.');
+      return;
+    }
+    if (!structureDraft.length) {
+      setStructureFormError('Add at least one objective.');
+      return;
+    }
+
+    let normalizedObjectives = [];
+    try {
+      normalizedObjectives = structureDraft.map((objective, objectiveIndex) => {
+        const descriptionValue = (objective.description ?? '').trim();
+        if (!descriptionValue) {
+          throw new Error(`Objective ${objectiveIndex + 1} needs a description.`);
+        }
+
+        const milestoneSource = Array.isArray(objective.objectiveMilestones) ? objective.objectiveMilestones : [];
+        const normalizedMilestones = milestoneSource.map((milestone, milestoneIndex) => {
+          const milestoneTitle = milestone.title.trim();
+          if (!milestoneTitle) {
+            throw new Error(`Milestone ${milestoneIndex + 1} in objective ${objectiveIndex + 1} requires a title.`);
+          }
+          if (milestone.endDate && milestone.startDate && milestone.endDate < milestone.startDate) {
+            throw new Error(
+              `Milestone ${milestoneIndex + 1} in objective ${objectiveIndex + 1} must end on or after its start date.`
+            );
+          }
+          return {
+            objectiveMilestoneId: milestone.objectiveMilestoneId ?? milestone.milestoneId ?? null,
+            milestoneId: milestone.milestoneId ?? null,
+            title: milestoneTitle,
+            description: milestone.description.trim() || null,
+            startDate: milestone.startDate || null,
+            endDate: milestone.endDate || null,
+          };
+        });
+
+        const normalizedTitle = (objective.title ?? '').trim() || descriptionValue || `Objective ${objectiveIndex + 1}`;
+
+        return {
+          objectiveId: objective.objectiveId ?? objective.id ?? null,
+          title: normalizedTitle,
+          description: descriptionValue,
+          priority: objective.priority || null,
+          objectiveMilestones: normalizedMilestones,
+        };
+      });
+    } catch (validationError) {
+      setStructureFormError(validationError.message);
+      return;
+    }
+
+    setStructureFormError('');
+    setIsStructureSaving(true);
+
+    const payload = composePendingUpdatePayload(
+      {
+        projectName,
+        description,
+        objectives: normalizedObjectives,
+      },
+      { includeObjectivesFallback: false }
+    );
+
+    try {
+      const response = await updateProjectBeforeApproval(payload);
+      toast.success(response?.message ?? 'Project brief updated.');
+      await fetchProject({ silent: true });
+      setEditDraft({ projectName, description });
+      closeStructureModal(true);
+    } catch (err) {
+      console.error('Failed to update full brief.', err);
+      const message = err?.response?.data?.message ?? err?.message ?? 'Unable to update the project brief.';
+      setStructureFormError(message);
+      toast.error(message);
+    } finally {
+      setIsStructureSaving(false);
     }
   };
 
+  if (isLoading) {
+    return <LoadingShell />;
+  }
 
-
-  const renderWbsHierarchy = (items, level = 0) => {
-    return items.map((item) => (
-      <div key={item.id} className={`${styles.wbsItem} ${styles[`level${level}`]}`}>
-        <div className={styles.wbsItemHeader}>
-          <div className={styles.wbsItemLeft}>
-            {item.children && item.children.length > 0 && (
-              <button
-                onClick={() => toggleWbsItem(item.id)}
-                className={styles.expandButton}
-              >
-                {expandedWbsItems.has(item.id) ? (
-                  <ChevronDownIcon className="w-4 h-4" />
-                ) : (
-                  <ChevronRightIcon className="w-4 h-4" />
-                )}
-              </button>
-            )}
-            <div className={styles.wbsItemIcon}>
-              {getStatusIcon(item.status)}
-            </div>
-            <div className={styles.wbsItemInfo}>
-              <h4 className={styles.wbsItemTitle}>{item.title}</h4>
-              <p className={styles.wbsItemDescription}>{item.description}</p>
-              <div className={styles.wbsItemMeta}>
-                <span className={styles.wbsItemType}>{item.type}</span>
-                <span className={styles.wbsItemDuration}>{item.duration}</span>
-                {item.assignee && (
-                  <span className={styles.wbsItemAssignee}>Assigned to: {item.assignee}</span>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className={styles.wbsItemRight}>
-            <div className={styles.progressContainer}>
-              <div className={styles.progressBar}>
-                <div 
-                  className={styles.progressFill}
-                  style={{ width: `${item.completion}%` }}
-                />
-              </div>
-              <span className={styles.progressText}>{item.completion}%</span>
-            </div>
-          </div>
-        </div>
-        {item.children && item.children.length > 0 && expandedWbsItems.has(item.id) && (
-          <div className={styles.wbsChildren}>
-            {renderWbsHierarchy(item.children, level + 1)}
-          </div>
-        )}
-      </div>
-    ));
-  };
-
-  const tabs = [
-    { id: 'overview', name: 'Overview', icon: InformationCircleIcon },
-    { id: 'wbs', name: 'Work Breakdown', icon: ListBulletIcon },
-    { id: 'assignment', name: 'Class Assignment', icon: AcademicCapIcon },
-    { id: 'resources', name: 'Resources', icon: BookOpenIcon },
-    { id: 'analytics', name: 'Analytics', icon: ChartBarIcon },
-  ];
-
-  const renderLoadingSkeleton = () => (
-    <div className={styles.loadingState}>
-      <div className={styles.loadingHero}>
-        <div className={styles.loadingBreadcrumb}>
-          <span className={`${styles.skeleton} ${styles.skeletonPill}`} />
-          <span className={`${styles.skeleton} ${styles.skeletonPill}`} />
-          <span className={`${styles.skeleton} ${styles.skeletonPill}`} />
-        </div>
-        <div className={`${styles.skeleton} ${styles.skeletonTitle}`} />
-        <div className={`${styles.skeleton} ${styles.skeletonSubtitle}`} />
-        <div className={styles.loadingBadgeRow}>
-          <span className={`${styles.skeleton} ${styles.skeletonBadge}`} />
-          <span className={`${styles.skeleton} ${styles.skeletonBadge}`} />
-          <span className={`${styles.skeleton} ${styles.skeletonBadge}`} />
-        </div>
-      </div>
-
-      <div className={styles.loadingColumns}>
-        <div className={styles.loadingColumn}>
-          <div className={`${styles.skeleton} ${styles.skeletonPanel}`} />
-          <div className={styles.skeletonCardShell}>
-            <span className={`${styles.skeleton} ${styles.skeletonLine}`} />
-            <span className={`${styles.skeleton} ${styles.skeletonLineShort}`} />
-            <span className={`${styles.skeleton} ${styles.skeletonLine}`} />
-            <span className={`${styles.skeleton} ${styles.skeletonLineTiny}`} />
-          </div>
-          <div className={`${styles.skeleton} ${styles.skeletonPanelTall}`} />
-        </div>
-        <div className={styles.loadingColumn}>
-          <div className={`${styles.skeleton} ${styles.skeletonPanel}`} />
-          <div className={styles.skeletonCardShell}>
-            <span className={`${styles.skeleton} ${styles.skeletonLine}`} />
-            <span className={`${styles.skeleton} ${styles.skeletonLineShort}`} />
-            <span className={`${styles.skeleton} ${styles.skeletonLine}`} />
-            <span className={`${styles.skeleton} ${styles.skeletonLineTiny}`} />
-          </div>
-          <div className={`${styles.skeleton} ${styles.skeletonPanel}`} />
-        </div>
-      </div>
-    </div>
-  );
-
-  if (isLoadingProject) {
+  if (error) {
     return (
-      <DashboardLayout>
-        <div className={styles.projectDetail}>{renderLoadingSkeleton()}</div>
-      </DashboardLayout>
+      <ErrorPanel
+        message={error?.message ?? 'Unable to load project details.'}
+        onRetry={() => setReloadKey((key) => key + 1)}
+      />
+    );
+  }
+
+  if (!project) {
+    return (
+      <EmptyState
+        title="Project"
+        description="We could not locate this project. Please return to the project library."
+      />
     );
   }
 
   return (
-    <DashboardLayout>
-      {isEditing && editForm && (
-        <div className={styles.editOverlay}>
-          <div className={styles.editPanel}>
-            <header className={styles.editHeader}>
-              <div>
-                <h2>Edit project blueprint</h2>
-                <p>Refresh the project brief before resubmitting for approval.</p>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 py-10">
+      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4">
+        <LecturerBreadcrumbs items={breadcrumbItems} className="mb-2" />
+
+        <section className={`${glassPanelClass} rounded-3xl border border-indigo-100/50 bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-8`}>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Project Overview</p>
+              <h1 className="mt-4 text-3xl font-semibold text-slate-900">{project.projectName}</h1>
+              <p className="mt-3 text-base leading-relaxed text-slate-600">
+                {project.description || 'Description updating soon.'}
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/70 px-3 py-1.5">
+                  <span className="h-2 w-2 rounded-full bg-sky-400" /> Subject: {project.subjectName ?? '—'}
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/70 px-3 py-1.5">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400" /> Lecturer: {project.lecturerName ?? '—'}
+                </span>
               </div>
+            </div>
+            <div className="flex flex-col items-end gap-4 lg:w-80">
               <button
                 type="button"
-                className={styles.closeButton}
-                onClick={closeEditPanel}
-                aria-label="Close edit form"
+                onClick={() => navigate(-1)}
+                className="inline-flex items-center rounded-2xl border border-slate-200/70 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-900"
               >
-                ×
+                ← Back
               </button>
-            </header>
-            <form className={styles.editForm} onSubmit={handleEditSave}>
-              <div className={styles.formSection}>
-                <div className={styles.sectionHeaderRow}>
-                  <span className={styles.sectionTitle}>Project metadata</span>
-                  <span className={styles.sectionHint}>Mirror the PUT request payload fields.</span>
+              {isPendingProject && (
+                <div className="w-full rounded-3xl border border-slate-200/80 bg-white/80 p-4 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Pending draft controls</p>
+                  <p className="mt-2 text-sm text-slate-600">Update everything before approval.</p>
+                  <div className="mt-4 space-y-3">
+                    <button
+                      type="button"
+                      onClick={openEditModal}
+                      className="w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                    >
+                      Quick edit overview
+                    </button>
+                    <button
+                      type="button"
+                      onClick={openDeleteModal}
+                      className="w-full rounded-2xl border border-rose-200/80 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
+                    >
+                      Delete pending project
+                    </button>
+                  </div>
                 </div>
-                <div className={styles.formGrid}>
-                  <label className={styles.formField}>
-                    <span>Project ID</span>
-                    <input type="text" value={editForm.projectId} readOnly />
-                  </label>
-                  <label className={styles.formField}>
-                    <span>Project name</span>
-                    <input
-                      type="text"
-                      value={editForm.projectName}
-                      onChange={(event) => handleEditFieldChange('projectName', event.target.value)}
-                      required
-                    />
-                  </label>
-                  <label className={styles.formField}>
-                    <span>Subject ID</span>
-                    <input
-                      type="number"
-                      value={editForm.subjectId}
-                      onChange={(event) => handleEditFieldChange('subjectId', event.target.value)}
-                      placeholder="e.g. 204"
-                    />
-                  </label>
-                </div>
-              </div>
+              )}
+            </div>
+          </div>
+        </section>
 
-              <div className={styles.formSection}>
-                <div className={styles.sectionHeaderRow}>
-                  <span className={styles.sectionTitle}>Project description</span>
-                  <span className={styles.sectionHint}>This maps directly to the API description field.</span>
-                </div>
-                <label className={styles.formField}>
-                  <span>Description</span>
-                  <textarea
-                    rows={4}
-                    value={editForm.description}
-                    onChange={(event) => handleEditFieldChange('description', event.target.value)}
+        <section className="grid gap-4 md:grid-cols-2">
+          <InfoStat label="Status" value={statusMeta.label} pill={statusMeta.badge} />
+          <InfoStat label="Subject" value={project.subjectName ?? '—'} accent="from-sky-50 via-white to-cyan-50" />
+          <InfoStat label="Lecturer" value={project.lecturerName ?? '—'} accent="from-emerald-50 via-white to-teal-50" />
+          <InfoStat label="Last Updated" value={formatDate(project.updatedAt)} accent="from-indigo-50 via-white to-violet-50" />
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-3">
+          <div className="space-y-5 lg:col-span-2">
+            <div className={`${glassPanelClass} rounded-3xl p-6`}>
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Details</p>
+              <dl className="mt-4 grid gap-4 md:grid-cols-2">
+                {metaRows.map((row) => (
+                  <div key={row.label}>
+                    <dt className="text-sm font-semibold text-slate-500">{row.label}</dt>
+                    <dd className="mt-1 text-base text-slate-900">{row.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Objectives</p>
+              {projectObjectives.length === 0 && (
+                <EmptyState title="Objectives" description="Objectives have not been added to this project yet." />
+              )}
+              <div className="grid gap-4">
+                {projectObjectives.map((objective, index) => (
+                  <ObjectiveCard
+                    key={objective.objectiveId ?? objective.id ?? index}
+                    objective={objective}
+                    index={index}
+                    isPending={isPendingProject}
+                    onEditObjective={handleObjectiveEditRequest}
+                    onEditMilestone={handleMilestoneEditRequest}
                   />
-                </label>
-              </div>
-
-              <div className={styles.formSection}>
-                <div className={styles.sectionHeaderRow}>
-                  <span className={styles.sectionTitle}>Objectives &amp; milestones</span>
-                  <div className={styles.sectionActions}>
-                    <button type="button" className={styles.ghostButton} onClick={handleAddObjective}>
-                      Add objective
-                    </button>
-                  </div>
-                </div>
-                {editForm.objectives.length === 0 ? (
-                  <p className={styles.emptyState}>No objectives configured yet. Add one to structure the request body.</p>
-                ) : (
-                  <div className={styles.objectiveList}>
-                    {editForm.objectives.map((objective, objectiveIndex) => (
-                      <div key={objective.uid} className={styles.objectiveCard}>
-                        <div className={styles.objectiveHeader}>
-                          <span>Objective {objectiveIndex + 1}</span>
-                          <div className={styles.objectiveActions}>
-                            <button
-                              type="button"
-                              className={styles.ghostButton}
-                              onClick={() => handleAddMilestone(objectiveIndex)}
-                            >
-                              Add milestone
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.dangerButton}
-                              onClick={() => handleRemoveObjective(objectiveIndex)}
-                            >
-                              Remove objective
-                            </button>
-                          </div>
-                        </div>
-                        <div className={styles.formGrid}>
-                          <label className={styles.formField}>
-                            <span>Objective ID</span>
-                            <input
-                              type="text"
-                              value={objective.objectiveId}
-                              onChange={(event) =>
-                                handleObjectiveFieldChange(objectiveIndex, 'objectiveId', event.target.value)
-                              }
-                              placeholder="Auto or manual"
-                            />
-                          </label>
-                          <label className={styles.formField}>
-                            <span>Description</span>
-                            <input
-                              type="text"
-                              value={objective.description}
-                              onChange={(event) =>
-                                handleObjectiveFieldChange(objectiveIndex, 'description', event.target.value)
-                              }
-                              placeholder="Enter objective description"
-                            />
-                          </label>
-                          <label className={styles.formField}>
-                            <span>Priority</span>
-                            <input
-                              type="text"
-                              value={objective.priority}
-                              onChange={(event) =>
-                                handleObjectiveFieldChange(objectiveIndex, 'priority', event.target.value)
-                              }
-                              placeholder="e.g. High"
-                            />
-                          </label>
-                        </div>
-                        {objective.objectiveMilestones.length === 0 ? (
-                          <p className={styles.emptyState}>No milestones for this objective yet.</p>
-                        ) : (
-                          <div className={styles.milestoneList}>
-                            {objective.objectiveMilestones.map((milestone, milestoneIndex) => (
-                              <div key={milestone.uid} className={styles.milestoneCard}>
-                                <div className={styles.milestoneHeader}>
-                                  <span>Milestone {milestoneIndex + 1}</span>
-                                  <button
-                                    type="button"
-                                    className={styles.dangerButton}
-                                    onClick={() => handleRemoveMilestone(objectiveIndex, milestoneIndex)}
-                                  >
-                                    Remove milestone
-                                  </button>
-                                </div>
-                                <div className={styles.formGrid}>
-                                  <label className={styles.formField}>
-                                    <span>Milestone ID</span>
-                                    <input
-                                      type="text"
-                                      value={milestone.objectiveMilestoneId}
-                                      onChange={(event) =>
-                                        handleMilestoneFieldChange(
-                                          objectiveIndex,
-                                          milestoneIndex,
-                                          'objectiveMilestoneId',
-                                          event.target.value,
-                                        )
-                                      }
-                                      placeholder="Auto or manual"
-                                    />
-                                  </label>
-                                  <label className={styles.formField}>
-                                    <span>Title</span>
-                                    <input
-                                      type="text"
-                                      value={milestone.title}
-                                      onChange={(event) =>
-                                        handleMilestoneFieldChange(
-                                          objectiveIndex,
-                                          milestoneIndex,
-                                          'title',
-                                          event.target.value,
-                                        )
-                                      }
-                                    />
-                                  </label>
-                                </div>
-                                <label className={styles.formField}>
-                                  <span>Description</span>
-                                  <textarea
-                                    rows={3}
-                                    value={milestone.description}
-                                    onChange={(event) =>
-                                      handleMilestoneFieldChange(
-                                        objectiveIndex,
-                                        milestoneIndex,
-                                        'description',
-                                        event.target.value,
-                                      )
-                                    }
-                                  />
-                                </label>
-                                <div className={styles.milestoneDates}>
-                                  <label className={styles.formField}>
-                                    <span>Start date</span>
-                                    <input
-                                      type="date"
-                                      value={milestone.startDate}
-                                      onChange={(event) =>
-                                        handleMilestoneFieldChange(
-                                          objectiveIndex,
-                                          milestoneIndex,
-                                          'startDate',
-                                          event.target.value,
-                                        )
-                                      }
-                                    />
-                                  </label>
-                                  <label className={styles.formField}>
-                                    <span>End date</span>
-                                    <input
-                                      type="date"
-                                      value={milestone.endDate}
-                                      onChange={(event) =>
-                                        handleMilestoneFieldChange(
-                                          objectiveIndex,
-                                          milestoneIndex,
-                                          'endDate',
-                                          event.target.value,
-                                        )
-                                      }
-                                    />
-                                  </label>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <footer className={styles.editFooter}>
-                <button type="button" className={styles.secondaryBtn} onClick={closeEditPanel}>
-                  Cancel
-                </button>
-                <button type="submit" className={styles.primaryBtn} disabled={isSavingEdit}>
-                  {isSavingEdit ? 'Saving...' : 'Save updates'}
-                </button>
-              </footer>
-            </form>
-          </div>
-        </div>
-      )}
-      {editMessage && (
-        <div className={styles.updateToast}>{editMessage}</div>
-      )}
-      <div className={styles.projectDetail}>
-          {projectError && <div className={styles.errorBanner}>{projectError}</div>}
-        {/* Header */}
-        <ProjectHeader projectId={projectId} projectData={projectData} />
-
-        {/* Tab Navigation */}
-        <div className={styles.tabNavigation}>
-          <div className={styles.tabList}>
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ''}`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {tab.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        <div className={styles.tabContent}>
-          {activeTab === 'overview' && (
-            <div className={styles.overviewTab}>
-              <div className={styles.overviewGrid}>
-                {/* Project Stats */}
-                <div className={styles.statsCard}>
-                  <h3 className={styles.cardTitle}>Project Statistics</h3>
-                  <div className={styles.statsGrid}>
-                    <div className={styles.statItem}>
-                      <div className={styles.statValue}>{projectData.totalStudents}</div>
-                      <div className={styles.statLabel}>Total Students</div>
-                    </div>
-                    <div className={styles.statItem}>
-                      <div className={styles.statValue}>{projectData.activeTeams}</div>
-                      <div className={styles.statLabel}>Active Teams</div>
-                    </div>
-                    <div className={styles.statItem}>
-                      <div className={styles.statValue}>{projectData.completedTeams}</div>
-                      <div className={styles.statLabel}>Completed</div>
-                    </div>
-                    <div className={styles.statItem}>
-                      <div className={styles.statValue}>{projectData.averageScore}%</div>
-                      <div className={styles.statLabel}>Avg Score</div>
-                    </div>
-                  </div>
-                </div>
-                
-
-                {/* Learning Outcomes */}
-                <div className={styles.outcomesCard}>
-                  <h3 className={styles.cardTitle}>Learning Outcomes</h3>
-                  <ul className={styles.outcomesList}>
-                    {projectData.learningOutcomes.map((outcome, index) => (
-                      <li key={index} className={styles.outcomeItem}>
-                        <CheckCircleIcon className="w-4 h-4 text-green-500" />
-                        {outcome}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'wbs' && (
-            <div className={styles.wbsTab}>
-              <div className={styles.wbsHeader}>
-                <h3 className={styles.wbsTitle}>Work Breakdown Structure</h3>
-                <div className={styles.wbsControls}>
-                  <div className={styles.viewModeToggle}>
-                    <button
-                      onClick={() => setWbsViewMode('wbs')}
-                      className={`${styles.viewModeBtn} ${wbsViewMode === 'wbs' ? styles.active : ''}`}
-                    >
-                      <ChartBarIcon className="w-4 h-4" />
-                      WBS
-                    </button>
-                    <button
-                      onClick={() => setWbsViewMode('timeline')}
-                      className={`${styles.viewModeBtn} ${wbsViewMode === 'timeline' ? styles.active : ''}`}
-                    >
-                      <CalendarIcon className="w-4 h-4" />
-                      Timeline
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.wbsContent}>
-                {wbsViewMode === 'wbs' ? (
-                        <WorkBreakdownStructure
-                          objectives={wbsObjectives}
-                          isLoading={isLoadingProject}
-                        />
-                ) : (
-                  <TimelineView kanbanTasks={kanbanTasks} />
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'assignment' && (
-            <div className={styles.assignmentTab}>
-              <div className={styles.assignmentHeader}>
-                <h3 className={styles.assignmentTitle}>Class Assignment</h3>
-                <p className={styles.assignmentDescription}>
-                  Assign this project to one or more classes. Students in assigned classes will be able to form teams and work on this project.
-                </p>
-              </div>
-
-              <div className={styles.assignmentContent}>
-                <div className={styles.classSelectionCard}>
-                  <div className={styles.cardHeader}>
-                    <h4 className={styles.cardTitle}>Available Classes</h4>
-                    <div className={styles.selectionSummary}>
-                      {selectedClasses.size > 0 && (
-                        <span className={styles.selectedCount}>
-                          {selectedClasses.size} class{selectedClasses.size !== 1 ? 'es' : ''} selected
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className={styles.classesList}>
-                    {availableClasses.map((classItem) => (
-                      <div key={classItem.id} className={styles.classItem}>
-                        <div className={styles.classLeft}>
-                          <input
-                            type="checkbox"
-                            checked={selectedClasses.has(classItem.id) || classItem.isAssigned}
-                            onChange={() => !classItem.isAssigned && toggleClassSelection(classItem.id)}
-                            disabled={classItem.isAssigned}
-                            className={styles.classCheckbox}
-                          />
-                          <div className={styles.classInfo}>
-                            <h5 className={styles.className}>{classItem.name}</h5>
-                            <p className={styles.classDetails}>
-                              {classItem.semester} • {classItem.instructor}
-                            </p>
-                            <p className={styles.classSchedule}>
-                              {classItem.schedule} • {classItem.students} students
-                            </p>
-                          </div>
-                        </div>
-                        <div className={styles.classRight}>
-                          {classItem.isAssigned ? (
-                            <span className={styles.assignedBadge}>
-                              <CheckCircleIconSolid className="w-4 h-4" />
-                              Assigned
-                            </span>
-                          ) : (
-                            <span className={styles.availableBadge}>Available</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {selectedClasses.size > 0 && (
-                    <div className={styles.assignmentActions}>
-                      <button
-                        onClick={handleAssignToClasses}
-                        disabled={isAssigning}
-                        className={styles.assignButton}
-                      >
-                        {isAssigning ? (
-                          <>
-                            <ArrowPathIcon className="w-4 h-4 animate-spin" />
-                            Assigning...
-                          </>
-                        ) : (
-                          <>
-                            <PlusIcon className="w-4 h-4" />
-                            Assign to Selected Classes
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div className={styles.assignmentSettings}>
-                  <h4 className={styles.cardTitle}>Assignment Settings</h4>
-                  <div className={styles.settingsList}>
-                    <div className={styles.settingItem}>
-                      <label className={styles.settingLabel}>
-                        <input type="checkbox" defaultChecked className={styles.settingCheckbox} />
-                        Allow students to form their own teams
-                      </label>
-                    </div>
-                    <div className={styles.settingItem}>
-                      <label className={styles.settingLabel}>
-                        <input type="checkbox" defaultChecked className={styles.settingCheckbox} />
-                        Enable peer evaluation
-                      </label>
-                    </div>
-                    <div className={styles.settingItem}>
-                      <label className={styles.settingLabel}>
-                        <input type="checkbox" className={styles.settingCheckbox} />
-                        Require instructor approval for team formation
-                      </label>
-                    </div>
-                    <div className={styles.settingItem}>
-                      <label className={styles.settingLabel}>
-                        <input type="checkbox" defaultChecked className={styles.settingCheckbox} />
-                        Send notification to students when assigned
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'resources' && (
-            <div className={styles.resourcesTab}>
-              <div className={styles.resourcesHeader}>
-                <h3 className={styles.resourcesTitle}>Project Resources</h3>
-                <button className={styles.addResourceButton}>
-                  <PlusIcon className="w-4 h-4" />
-                  Add Resource
-                </button>
-              </div>
-
-              <div className={styles.resourcesList}>
-                {projectData.resources.map((resource, index) => (
-                  <div key={index} className={styles.resourceItem}>
-                    <div className={styles.resourceIcon}>
-                      {resource.type === 'document' && <BookOpenIcon className="w-5 h-5" />}
-                      {resource.type === 'video' && <PlayIcon className="w-5 h-5" />}
-                      {resource.type === 'template' && <DocumentDuplicateIcon className="w-5 h-5" />}
-                    </div>
-                    <div className={styles.resourceInfo}>
-                      <h4 className={styles.resourceName}>{resource.name}</h4>
-                      <p className={styles.resourceMeta}>
-                        {resource.size && <span>{resource.size}</span>}
-                        {resource.duration && <span>{resource.duration}</span>}
-                        {resource.url && <span>External Link</span>}
-                      </p>
-                    </div>
-                    <div className={styles.resourceActions}>
-                      <button className={styles.resourceActionButton}>
-                        <EyeIcon className="w-4 h-4" />
-                      </button>
-                      <button className={styles.resourceActionButton}>
-                        <PencilIcon className="w-4 h-4" />
-                      </button>
-                      <button className={styles.resourceActionButton}>
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
                 ))}
               </div>
             </div>
-          )}
+          </div>
 
-          {activeTab === 'analytics' && (
-            <div className={styles.analyticsTab}>
-              <div className={styles.analyticsGrid}>
-                <div className={styles.analyticsCard}>
-                  <h3 className={styles.cardTitle}>Performance Overview</h3>
-                  <div className={styles.performanceStats}>
-                    <div className={styles.performanceStat}>
-                      <div className={styles.statValue}>87.3%</div>
-                      <div className={styles.statLabel}>Average Score</div>
-                    </div>
-                    <div className={styles.performanceStat}>
-                      <div className={styles.statValue}>94%</div>
-                      <div className={styles.statLabel}>Completion Rate</div>
-                    </div>
-                    <div className={styles.performanceStat}>
-                      <div className={styles.statValue}>4.2/5</div>
-                      <div className={styles.statLabel}>Student Rating</div>
-                    </div>
-                  </div>
+          <aside className="space-y-5">
+            <div className={`${glassPanelClass} rounded-3xl p-6`}>
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Timeline</p>
+              <div className="mt-4 space-y-4 text-sm text-slate-600">
+                <div className="flex items-center justify-between rounded-2xl border border-slate-200/60 bg-white/70 px-4 py-3">
+                  <span className="font-semibold text-slate-500">Created</span>
+                  <span className="text-slate-900">{formatDate(project.createdAt)}</span>
                 </div>
-
-                <div className={styles.analyticsCard}>
-                  <h3 className={styles.cardTitle}>Usage Statistics</h3>
-                  <div className={styles.usageChart}>
-                    <div className={styles.chartPlaceholder}>
-                      <ChartBarIcon className="w-12 h-12 text-gray-300" />
-                      <p className={styles.chartNote}>Detailed analytics charts would be displayed here</p>
-                    </div>
-                  </div>
+                <div className="flex items-center justify-between rounded-2xl border border-slate-200/60 bg-white/70 px-4 py-3">
+                  <span className="font-semibold text-slate-500">Last Updated</span>
+                  <span className="text-slate-900">{formatDate(project.updatedAt)}</span>
                 </div>
               </div>
             </div>
-          )}
-        </div>
+
+            <div className={`${glassPanelClass} rounded-3xl p-6`}>
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Meta</p>
+              <div className="mt-4 space-y-3 text-sm text-slate-600">
+                <div>
+                  <p className="text-xs font-semibold text-slate-500">Project ID</p>
+                  <p className="text-base text-slate-900">#{project.projectId ?? project.id}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-500">Subject Code</p>
+                  <p className="text-base text-slate-900">{project.subjectCode ?? '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-500">Lecturer Code</p>
+                  <p className="text-base text-slate-900">{project.lecturerCode ?? '—'}</p>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </section>
       </div>
-    </DashboardLayout>
+
+      <ModalWrapper isOpen={structureModalOpen} onClose={() => closeStructureModal(false)} title="Edit objectives & milestones">
+        <form className="space-y-6 max-h-[75vh] overflow-y-auto pr-1" onSubmit={handleStructureSubmit}>
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" htmlFor="structure-project-name">
+                Project name
+              </label>
+              <input
+                id="structure-project-name"
+                type="text"
+                value={structureMetaDraft.projectName}
+                onChange={(event) => handleStructureMetaChange('projectName', event.target.value)}
+                className="mt-2 w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-sm text-slate-800 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                placeholder="E.g., AI research sprint"
+                disabled={isStructureSaving}
+                required
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" htmlFor="structure-project-description">
+                Description
+              </label>
+              <textarea
+                id="structure-project-description"
+                rows={4}
+                value={structureMetaDraft.description}
+                onChange={(event) => handleStructureMetaChange('description', event.target.value)}
+                className="mt-2 w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-sm text-slate-800 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                placeholder="Summarise the full scope students will tackle."
+                disabled={isStructureSaving}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Objectives</p>
+              <button
+                type="button"
+                onClick={handleAddObjective}
+                disabled={isStructureSaving}
+                className="inline-flex items-center rounded-2xl border border-slate-200/80 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                + Add objective
+              </button>
+            </div>
+
+            {structureDraft.map((objective, index) => {
+              const resolvedObjectiveId = resolveObjectiveIdentifier(objective) ?? objective.id ?? `objective-${index}`;
+              const objectiveEditorId = `objective-editor-${resolvedObjectiveId}`;
+              const isObjectiveFocused = structureFocus?.objectiveId === resolvedObjectiveId;
+
+              return (
+                <div
+                  key={objective.id}
+                  id={objectiveEditorId}
+                  className={`space-y-4 rounded-3xl border border-slate-200/70 bg-slate-50/70 p-4 ${
+                    isObjectiveFocused ? 'ring-2 ring-sky-200 shadow-lg' : ''
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Objective {index + 1}</p>
+                      <p className="text-sm text-slate-500">Define what students accomplish in this phase.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveObjective(objective.id)}
+                      disabled={isStructureSaving || structureDraft.length === 1}
+                      className="inline-flex items-center rounded-xl border border-rose-200/70 bg-white px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Remove objective
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-500" htmlFor={`objective-description-${objective.id}`}>
+                        Description
+                      </label>
+                      <textarea
+                        id={`objective-description-${objective.id}`}
+                        rows={3}
+                        value={objective.description}
+                        onChange={(event) => handleObjectiveFieldChange(objective.id, 'description', event.target.value)}
+                        className="mt-1 w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm text-slate-800 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                        placeholder="Clarify deliverables and expectations for this objective."
+                        disabled={isStructureSaving}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-500" htmlFor={`objective-priority-${objective.id}`}>
+                        Priority
+                      </label>
+                      <select
+                        id={`objective-priority-${objective.id}`}
+                        value={objective.priority ?? ''}
+                        onChange={(event) => handleObjectiveFieldChange(objective.id, 'priority', event.target.value)}
+                        className="mt-1 w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm text-slate-800 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                        disabled={isStructureSaving}
+                      >
+                        <option value="">Select priority</option>
+                        <option value="HIGH">High</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="LOW">Low</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Milestones</p>
+                      <button
+                        type="button"
+                        onClick={() => handleAddMilestone(objective.id)}
+                        disabled={isStructureSaving}
+                        className="inline-flex items-center rounded-xl border border-slate-200/80 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        + Add milestone
+                      </button>
+                    </div>
+
+                    {objective.objectiveMilestones.map((milestone, milestoneIndex) => {
+                      const resolvedMilestoneId =
+                        resolveMilestoneIdentifier(milestone) ?? milestone.id ?? `milestone-${milestoneIndex}`;
+                      const milestoneEditorId = `milestone-editor-${resolvedMilestoneId}`;
+                      const isMilestoneFocused = structureFocus?.milestoneId === resolvedMilestoneId;
+
+                      return (
+                        <div
+                          key={milestone.id}
+                          id={milestoneEditorId}
+                          className={`space-y-3 rounded-2xl border border-white/60 bg-white/80 p-3 shadow-sm ${
+                            isMilestoneFocused ? 'ring-2 ring-sky-200' : ''
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-semibold text-slate-600">Milestone {milestoneIndex + 1}</p>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMilestone(objective.id, milestone.id)}
+                              disabled={isStructureSaving || objective.objectiveMilestones.length === 1}
+                              className="text-xs font-semibold text-rose-600 transition hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                          <div>
+                            <label className="text-xs font-semibold text-slate-500" htmlFor={`milestone-title-${milestone.id}`}>
+                              Title
+                            </label>
+                            <input
+                              id={`milestone-title-${milestone.id}`}
+                              type="text"
+                              value={milestone.title}
+                              onChange={(event) => handleMilestoneFieldChange(objective.id, milestone.id, 'title', event.target.value)}
+                              className="mt-1 w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-2 text-sm text-slate-800 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                              placeholder="E.g., Submit proposal"
+                              disabled={isStructureSaving}
+                              required
+                            />
+                          </div>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div>
+                              <label className="text-xs font-semibold text-slate-500" htmlFor={`milestone-start-${milestone.id}`}>
+                                Start date
+                              </label>
+                              <input
+                                id={`milestone-start-${milestone.id}`}
+                                type="date"
+                                value={milestone.startDate}
+                                onChange={(event) => handleMilestoneFieldChange(objective.id, milestone.id, 'startDate', event.target.value)}
+                                className="mt-1 w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-2 text-sm text-slate-800 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                                disabled={isStructureSaving}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-semibold text-slate-500" htmlFor={`milestone-end-${milestone.id}`}>
+                                End date
+                              </label>
+                              <input
+                                id={`milestone-end-${milestone.id}`}
+                                type="date"
+                                value={milestone.endDate}
+                                onChange={(event) => handleMilestoneFieldChange(objective.id, milestone.id, 'endDate', event.target.value)}
+                                className="mt-1 w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-2 text-sm text-slate-800 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                                disabled={isStructureSaving}
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-xs font-semibold text-slate-500" htmlFor={`milestone-description-${milestone.id}`}>
+                              Description
+                            </label>
+                            <textarea
+                              id={`milestone-description-${milestone.id}`}
+                              rows={2}
+                              value={milestone.description}
+                              onChange={(event) => handleMilestoneFieldChange(objective.id, milestone.id, 'description', event.target.value)}
+                              className="mt-1 w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-2 text-sm text-slate-800 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                              placeholder="Describe the deliverable."
+                              disabled={isStructureSaving}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {structureFormError && <p className="text-sm font-semibold text-rose-600">{structureFormError}</p>}
+
+          <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={() => closeStructureModal(false)}
+              disabled={isStructureSaving}
+              className="inline-flex flex-1 items-center justify-center rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none sm:px-6"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isStructureSaving}
+              className="inline-flex flex-1 items-center justify-center rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_35px_rgba(15,23,42,0.25)] transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none sm:px-6"
+            >
+              {isStructureSaving ? 'Saving…' : 'Save full brief'}
+            </button>
+          </div>
+        </form>
+      </ModalWrapper>
+
+      <ModalWrapper isOpen={isEditModalOpen} onClose={() => closeEditModal(false)} title="Edit pending project">
+        <form className="space-y-5" onSubmit={handleSubmitPendingUpdate}>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" htmlFor="pending-project-name">
+              Project name
+            </label>
+            <input
+              id="pending-project-name"
+              type="text"
+              value={editDraft.projectName}
+              onChange={(event) => handleEditInputChange('projectName', event.target.value)}
+              className="mt-2 w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-sm text-slate-800 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+              placeholder="E.g., Industry research sprint"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" htmlFor="pending-project-description">
+              Description
+            </label>
+            <textarea
+              id="pending-project-description"
+              rows={5}
+              value={editDraft.description}
+              onChange={(event) => handleEditInputChange('description', event.target.value)}
+              className="mt-2 w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-sm text-slate-800 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+              placeholder="Summarise the project scope students will tackle."
+            />
+            <p className="mt-2 text-xs text-slate-500">These quick edits keep the pending draft aligned without reopening the full builder.</p>
+          </div>
+          {editFormError && <p className="text-sm font-semibold text-rose-600">{editFormError}</p>}
+          <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={() => closeEditModal(false)}
+              disabled={isEditSaving}
+              className="inline-flex flex-1 items-center justify-center rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none sm:px-6"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isEditSaving}
+              className="inline-flex flex-1 items-center justify-center rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_35px_rgba(15,23,42,0.25)] transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none sm:px-6"
+            >
+              {isEditSaving ? 'Saving…' : 'Save changes'}
+            </button>
+          </div>
+        </form>
+      </ModalWrapper>
+
+      <ModalWrapper isOpen={deleteModalOpen} onClose={() => closeDeleteModal(false)} title="Remove pending project">
+        <div className="space-y-4 text-sm text-slate-600">
+          <p>
+            You are about to remove <span className="font-semibold text-slate-900">{project?.projectName}</span> from the lecturer library.
+            This action is only available for pending drafts and cannot be undone.
+          </p>
+          <div className="rounded-2xl border border-amber-200/70 bg-amber-50/70 p-4 text-amber-800">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em]">Reminder</p>
+            <p className="mt-1 text-sm">Approved projects stay locked for auditing; only pending drafts can be removed here.</p>
+          </div>
+        </div>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={() => closeDeleteModal(false)}
+            disabled={isDeleteSubmitting}
+            className="inline-flex flex-1 items-center justify-center rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none sm:px-6"
+          >
+            Keep project
+          </button>
+          <button
+            type="button"
+            onClick={handleDeletePendingProject}
+            disabled={isDeleteSubmitting}
+            className="inline-flex flex-1 items-center justify-center rounded-2xl border border-rose-200/80 bg-rose-500/90 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_35px_rgba(244,63,94,0.35)] transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none sm:px-6"
+          >
+            {isDeleteSubmitting ? 'Deleting…' : 'Delete project'}
+          </button>
+        </div>
+      </ModalWrapper>
+    </div>
   );
 };
 

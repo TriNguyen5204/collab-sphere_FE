@@ -11,7 +11,11 @@ const getPersistedUser = () => {
   if (!storedUser) return null;
 
   try {
-    return JSON.parse(storedUser);
+    const parsed = JSON.parse(storedUser);
+    return {
+      ...parsed,
+      userId: parsed?.userId != null ? Number(parsed.userId) : parsed?.userId,
+    };
   } catch (error) {
     console.warn('[Auth] Failed to parse stored user cookie.', error);
     Cookies.remove('user');
@@ -121,8 +125,10 @@ export const getCurrentSessionToken = async () => {
 
     const updatedUser = {
       ...userState,
+      userId: Number(userState.userId),
       accessToken: response.accessToken,
       refreshToken: response.refreshToken,
+      refreshTokenExpiryTime: response.refreshTokenExpiryTime ?? userState.refreshTokenExpiryTime,
     };
 
     persistUser(updatedUser);

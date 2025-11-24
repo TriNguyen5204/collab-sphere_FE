@@ -5,12 +5,14 @@ import { createSlice } from "@reduxjs/toolkit";
 const storedUser = Cookies.get("user");
 const initialState = storedUser ? JSON.parse(storedUser) : {
   userId: '',
+  fullName: '',
   roleId: '',
   roleName: '',
   accessToken: '',
   refreshToken: '',
   fullname: '',
   avatar: '',
+  refreshTokenExpiryTime: '',
 }
 
 const userSlice = createSlice({
@@ -18,22 +20,24 @@ const userSlice = createSlice({
   initialState,
   reducers: {
     setUserRedux: (state, action) => {
-      state.userId = action.payload.userId;
+      state.userId = Number(action.payload.userId);
+      state.fullName = action.payload.fullName;
       state.roleId = action.payload.roleId;
       state.roleName = action.payload.roleName;
       state.accessToken = action.payload.accessToken;
       state.refreshToken = action.payload.refreshToken;
-      state.fullname = action.payload.fullname;
       state.avatar = action.payload.avatar;
+      state.refreshTokenExpiryTime = action.payload.refreshTokenExpiryTime;
     },
     logout: (state) => {
       state.userId = "";
+      state.fullName = "";
       state.roleId = "";
       state.roleName = "";
       state.accessToken = "";
       state.refreshToken = "";
-      state.fullname = "";
       state.avatar = "";
+      state.refreshTokenExpiryTime = "";
       Cookies.remove("user");
     },
   }

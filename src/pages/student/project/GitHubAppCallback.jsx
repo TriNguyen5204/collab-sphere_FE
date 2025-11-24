@@ -73,24 +73,75 @@ const GitHubAppCallback = () => {
           return;
         }
 
-        const payload = { 
-          installationId: Number(installationId),
-          teamId: Number(teamId)
-        };
-        
-        if (Number.isNaN(payload.installationId) || payload.installationId <= 0) {
+        // Validate installationId
+        const installationIdNumber = Number(installationId);
+        if (Number.isNaN(installationIdNumber) || installationIdNumber <= 0) {
           setStatus('error');
           setMessage('Invalid installation ID');
           setErrorDetails('The installation ID returned by GitHub is not a valid number.');
           return;
         }
 
-        if (Number.isNaN(payload.teamId) || payload.teamId <= 0) {
+        const teamIdNumber = Number(teamId);
+        if (Number.isNaN(teamIdNumber) || teamIdNumber <= 0) {
           setStatus('error');
           setMessage('Invalid team ID');
           setErrorDetails('The team ID is not valid. Please restart the installation from the project page.');
           return;
         }
+
+        // Step 1: Fetch repositories from AWS Lambda
+        setMessage('Fetching repository details from GitHub...');
+        let repositories = [];
+        
+        try {
+          const lambdaUrl = `https://jxjfrgahhf.execute-api.ap-southeast-1.amazonaws.com/default/get_repositories?installationId=${installationIdNumber}`;
+          console.log('[GitHubAppCallback] Calling AWS Lambda:', lambdaUrl);
+          
+          const repoResponse = await fetch(lambdaUrl, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!repoResponse.ok) {
+            const errorText = await repoResponse.text();
+            throw new Error(`AWS Lambda API returned status ${repoResponse.status}: ${errorText}`);
+          }
+
+          const repoData = await repoResponse.json();
+          console.log('[GitHubAppCallback] AWS Lambda response:', repoData);
+          
+          // The API returns an array of repository objects
+          repositories = Array.isArray(repoData) ? repoData : [];
+          
+          if (repositories.length === 0) {
+            setStatus('error');
+            setMessage('No repositories found');
+            setErrorDetails('No repositories were granted access during GitHub App installation. Please try again and select at least one repository.');
+            return;
+          }
+
+        } catch (lambdaError) {
+          console.error('[GitHubAppCallback] Error fetching repositories from AWS Lambda:', lambdaError);
+          setStatus('error');
+          setMessage('Failed to fetch repositories');
+          setErrorDetails(`Could not retrieve repository information from GitHub: ${lambdaError.message}`);
+          return;
+        }
+
+        // Step 2: Send installationId, teamId, and repositories to backend
+        setMessage('Saving installation...');
+        
+        const payload = { 
+          installationId: installationIdNumber,
+          teamId: teamIdNumber,
+          repositories: repositories.map(repo => ({
+            repositoryFullName: repo.repositoryFullName,
+            repositoryId: repo.repositoryId
+          }))
+        };
 
         console.log('[GitHubAppCallback] POST /project/%s/installation', projectIdNumber, 'body:', payload);
 

@@ -1,5 +1,6 @@
 import apiClient from './apiClient';
 import { cleanParams } from '../utils/cleanParam';
+export { getMilestonesByTeam as getAllMilestonesByTeamId, getMilestoneDetail as getDetailOfMilestoneByMilestoneId } from './milestoneApi';
 
 //staff
 export const getClass = async filters => {
@@ -273,7 +274,8 @@ export const createMultipleSubjects = async data => {
 };
 export const getSubjectById = async id => {
   try {
-    const response = await apiClient.get(`subject/${id}`);
+    const response = await apiClient.get(`/subject/${id}`);
+    console.log('Subject detail response:', response.data);
     return response.data;
   } catch (error) {
     console.log('Fetch failed', error);
@@ -375,5 +377,119 @@ export const removeProject = async projectId => {
     return response.data;
   } catch (error) {
     console.error('Error deleting project', error);
+  }
+};
+//admin
+export const deactivateAccount = async (userId) => {
+  try{
+    const response = await apiClient.patch(`/admin/user/${userId}/deactivate`);
+    return response.data;
+  }catch(error){
+    console.error(`Error deactivating account with ID ${userId}:`, error);
+    throw error;
+  }
+}
+
+//Student
+export const getClassesByStudentId = async (studentId) => {
+  try {
+    const response = await apiClient.get(`/class/student/${studentId}`);
+    const data = response.data;
+    return data?.list ?? [];
+  } catch (error) {
+    console.error('Error fetching classes by student id:', error);
+    throw error;
+  }
+};
+
+export const getClassDetailsById = async (classId) => {
+  try {
+    const response = await apiClient.get(`/class/${classId}`);
+    return response.data;
+  } catch (error) {
+    console.error(
+      `Error fetching class details for class ID ${classId}:`,
+      error
+    );
+    throw error;
+  }
+};
+
+export const getListOfTeamsByStudentId = async (studentId) => {
+  try {
+    const response = await apiClient.get(`/team/student/${studentId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching teams for student ID ${studentId}:`, error);
+    throw error;
+  }
+};
+
+export const getDetailOfProjectByProjectId = async (projectId) => {
+  try {
+    const response = await apiClient.get(`/project/${projectId}`);
+    return response.data;
+  } catch (error) {
+    console.error(
+      `Error fetching project details for project ID ${projectId}:`,
+      error
+    );
+    throw error;
+  }
+};
+
+export const getUserProfile = async (userId) => {
+  try {
+    const response = await apiClient.get(`/user/profile/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching profile for user ID ${userId}:`, error);
+    throw error;
+  }
+};
+
+// Milestone helpers are re-exported at the top of this file to avoid duplicate implementations.
+
+export const getDetailOfCheckpointByCheckpointId = async (checkpointId) => {
+  try {
+    const response = await apiClient.get(`/checkpoint/${checkpointId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching checkpoint details for checkpoint ID ${checkpointId}:`, error);
+    throw error;
+  }
+};
+
+export const patchMarkDoneMilestoneByMilestoneId = async (teamMilestoneId, isDone = true) => {
+  try {
+    const response = await apiClient.patch(
+      `/milestone/${teamMilestoneId}/status`,
+      null,
+      {
+        params: { isDone },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating done status for team milestone ID ${teamMilestoneId}:`, error);
+    throw error;
+  }
+};
+
+export const postCreateCheckpoint = async (teamMilestoneId, title, description, complexity, startDate, dueDate) => {
+  try {
+    console.log(teamMilestoneId, title, description, complexity, startDate, dueDate);
+    const response = await apiClient.post(`/checkpoint`, {
+      teamMilestoneId,
+      title,
+      description,
+      complexity,
+      startDate,
+      dueDate,
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error creating checkpoint for team milestone ID ${teamMilestoneId}:`, error);
+    throw error;
   }
 };

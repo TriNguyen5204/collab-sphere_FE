@@ -16,9 +16,9 @@ import StudentClassPage from '../pages/student/StudentClassPage';
 import StudentProfile from '../pages/student/StudentProfile';
 import ProjectBoard from '../pages/student/project/ProjectBoard';
 import MilestoneCheckpointPage from '../pages/student/project/MilestonePage';
-import PeerEvaluationPage from '../pages/student/project/PeerEvaluationPage';
 import TeamWorkspace from '../pages/student/project/TeamWorkspace';
 import GitHubAppCallback from '../pages/student/project/GitHubAppCallback';
+import ProfessionalAnalysisView from '../pages/student/project/ProfessionalAnalysisView';
 import StudentClassMembersPage from '../pages/student/StudentClassMembersPage';
 import StudentClassProjectsPage from '../pages/student/StudentClassProjectsPage';
 import StudentClassSyllabusPage from '../pages/student/StudentClassSyllabusPage';
@@ -35,6 +35,13 @@ import ProjectDetail from '../pages/lecturer/ProjectDetail';
 import ProjectAnalysis from '../pages/lecturer/ProjectAnalysis';
 import LecturerMonitoringDashboard from '../pages/lecturer/LecturerMonitoringDashboard';
 import ClassProjectAssignment from '../pages/lecturer/ClassProjectAssignment';
+import GradingDashboard from '../pages/lecturer/grading/GradingDashboard';
+import ClassGradingOverview from '../pages/lecturer/grading/ClassGradingOverview';
+import TeamEvaluationPage from '../pages/lecturer/evaluations/TeamEvaluationPage';
+import TeamMilestonesPage from '../pages/lecturer/evaluations/TeamMilestonesPage';
+import MilestoneDetailPage from '../pages/lecturer/evaluations/MilestoneDetailPage';
+import MilestoneEvaluationPage from '../pages/lecturer/evaluations/MilestoneEvaluationPage';
+import LecturerGradingDashboard from '../pages/lecturer/grading/LecturerGradingDashboard';
 
 // academic services (staff) pages
 import StaffPage from '../pages/staff/StaffPage';
@@ -61,12 +68,13 @@ import AccountManagement from '../pages/admin/AccountManagement';
 import SystemReport from '../pages/admin/SystemReport';
 
 // misc / sandbox
-import ConnectRoom from '../test/ConnectRoom';
-import VideoRoom from '../test/VideoRoom';
 import TestKanbanBoard from '../pages/TestKanbanBoard';
 import Layout from '../test/Meeting/Layout'
 import RoomJoinPage from '../test/RoomJoinPage'
 import MeetingRoomTest from '../test/MeetingRoomTest'
+import MeetingHistory from '../test/Meeting/MeetingHistory';
+import MeetingSchedulerFull from '../test/Meeting/MeetingSchedule';
+import MeetingManagement from '../test/Meeting/MeetingManagement';
 // import StreamVideoMeeting from '../test/StreamVideoMeeting';
 
 import RoleProtectedRoute from './RoleProtectedRoute';
@@ -83,6 +91,8 @@ const publicRoutes = [
   { path: '/room', element: <RoomJoinPage/>},
   { path: '/room/:roomId', element: <MeetingRoomTest/>},
   { path: '/test/meeting', element: <Layout/> },
+  { path: '/test/meeting/history', element: <MeetingManagement/> },
+  { path: '/test/meeting/schedule', element: <MeetingSchedulerFull/> },
   { path: '/test/kanban', element: <TestKanbanBoard /> },
 ];
 
@@ -93,8 +103,8 @@ const studentRoutes = [
   { path: '/student/profile', element: protectRoute(['STUDENT'], <StudentProfile />) },
   { path: '/student/project/:projectId/:projectName/:teamId', element: protectRoute(['STUDENT'], <ProjectBoard />) },
   { path: '/student/project/:projectId/:projectName/:teamId/milestones&checkpoints', element: protectRoute(['STUDENT'], <MilestoneCheckpointPage />) },
-  { path: '/student/project/:projectId/:projectName/:teamId/peer-evaluation', element: protectRoute(['STUDENT'], <PeerEvaluationPage />) },
   { path: '/student/project/:projectId/:projectName/:teamId/team-workspace', element: protectRoute(['STUDENT'], <TeamWorkspace />) },
+  { path: '/student/project/:projectId/:projectName/:teamId/pr-analysis/:analysisId', element: protectRoute(['STUDENT'], <ProfessionalAnalysisView />) },
   { path: '/projects/github-callback', element: protectRoute(['STUDENT'], <GitHubAppCallback />) },
   { path: '/student/ai/pr-analysis', element: protectRoute(['STUDENT'], <StudentPRAnalysisPage />) },
   { path: '/student/:className/members', element: protectRoute(['STUDENT'], <StudentClassMembersPage />) },
@@ -107,7 +117,7 @@ const lecturerRoutes = [
   { path: '/lecturer/classes/:classId', element: protectRoute(['LECTURER'], <ClassDetailPage />) },
   { path: '/lecturer/classes/:classId/projects', element: protectRoute(['LECTURER'], <ClassProjectOverview />) },
   { path: '/lecturer/classes/:classId/project-assignments', element: protectRoute(['LECTURER'], <ClassProjectAssignment />) },
-  { path: '/lecturer/classes/:classId/projects/:projectId', element: protectRoute(['LECTURER'], <TeamProjectDetail />) },
+  { path: '/lecturer/classes/:classId/team/:teamId', element: protectRoute(['LECTURER'], <TeamProjectDetail />) },
   { path: '/lecturer/create-project', element: protectRoute(['LECTURER'], <CreateProject />) },
   { path: '/lecturer/classes/:classId/create-project', element: protectRoute(['LECTURER'], <CreateProject />) },
   { path: '/lecturer/projects', element: protectRoute(['LECTURER'], <ProjectLibrary />) },
@@ -118,6 +128,17 @@ const lecturerRoutes = [
   { path: '/lecturer/projects/:projectId/analysis', element: protectRoute(['LECTURER'], <ProjectAnalysis />) },
   { path: '/lecturer/monitoring/:classId', element: protectRoute(['LECTURER'], <LecturerMonitoringDashboard />) },
   { path: '/lecturer/monitoring', element: protectRoute(['LECTURER'], <LecturerMonitoringDashboard />) },
+  { path: '/lecturer/grading', element: protectRoute(['LECTURER'], <GradingDashboard />) },
+  { path: '/lecturer/grading/:classId', element: protectRoute(['LECTURER'], <ClassGradingOverview />) },
+  { path: '/lecturer/grading/team/:teamId', element: protectRoute(['LECTURER'], <TeamEvaluationPage />) },
+  { path: '/lecturer/grading/class/:classId/team/:teamId', element: protectRoute(['LECTURER'], <TeamEvaluationPage />) },
+  { path: '/lecturer/grading/team/:teamId/milestones', element: protectRoute(['LECTURER'], <TeamMilestonesPage />) },
+  { path: '/lecturer/grading/class/:classId/team/:teamId/milestones', element: protectRoute(['LECTURER'], <TeamMilestonesPage />) },
+  { path: '/lecturer/grading/team/:teamId/milestones/evaluate', element: protectRoute(['LECTURER'], <MilestoneEvaluationPage />) },
+  { path: '/lecturer/grading/class/:classId/team/:teamId/milestones/evaluate', element: protectRoute(['LECTURER'], <MilestoneEvaluationPage />) },
+  { path: '/lecturer/grading/team/:teamId/milestones/:milestoneId', element: protectRoute(['LECTURER'], <MilestoneDetailPage />) },
+  { path: '/lecturer/grading/class/:classId/team/:teamId/milestones/:milestoneId', element: protectRoute(['LECTURER'], <MilestoneDetailPage />) },
+  { path: '/lecturer/grading/dashboard', element: protectRoute(['LECTURER'], <LecturerGradingDashboard />) },
 ];
 
 const staffRoutes = [

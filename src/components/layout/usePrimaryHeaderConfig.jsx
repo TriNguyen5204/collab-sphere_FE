@@ -42,9 +42,8 @@ const usePrimaryHeaderConfig = () => {
 
   const navLinks = useMemo(
     () => [
-      { label: 'Home', href: '/', icon: HomeIcon },
-      { label: 'Connect room', href: '/room', icon: VideoCameraIcon },
-      { label: 'Contact', href: '/contact', icon: PhoneIcon },
+      { label: 'Home', href: '/staff', icon: HomeIcon },
+      { label: 'Connect room', href: '/test/meeting', icon: VideoCameraIcon },
     ],
     [],
   );
@@ -95,33 +94,23 @@ const usePrimaryHeaderConfig = () => {
             <div className='absolute right-4 top-full mt-3 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl'>
               <button
                 onClick={() => {
-                  navigate('/student/profile');
+                  navigate('/staff/lecturers');
                   setDropdownOpen(false);
                 }}
                 className='flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-600 transition hover:bg-blue-50 hover:text-blue-600'
               >
                 <UserIcon className='h-4 w-4 text-blue-500' />
-                Profile
+                Account
               </button>
               <button
                 onClick={() => {
-                  navigate('/student/classes');
+                  navigate('/staff/classes');
                   setDropdownOpen(false);
                 }}
                 className='flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-600 transition hover:bg-blue-50 hover:text-blue-600'
               >
                 <BookOpenIcon className='h-4 w-4 text-blue-500' />
                 Class
-              </button>
-              <button
-                onClick={() => {
-                  navigate('/student/projects');
-                  setDropdownOpen(false);
-                }}
-                className='flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-600 transition hover:bg-blue-50 hover:text-blue-600'
-              >
-                <FolderIcon className='h-4 w-4 text-blue-500' />
-                Project
               </button>
               <button
                 onClick={handleLogout}

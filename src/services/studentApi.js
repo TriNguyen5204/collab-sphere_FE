@@ -1,4 +1,6 @@
 import apiClient from './apiClient';
+import { getTeamDetail } from './teamApi';
+import { getMilestonesByTeam, getMilestoneDetail } from './milestoneApi';
 
 // Student-specific API 
 
@@ -73,8 +75,7 @@ export const getDetailOfProjectByProjectId = async (projectId) => {
 
 export const getDetailOfTeamByTeamId = async (teamId) => {
   try {
-    const response = await apiClient.get(`/team/${teamId}`);
-    return response.data.teamDetail;
+    return await getTeamDetail(teamId);
   } catch (error) {
     console.error(`Error fetching team details for team ID ${teamId}:`, error);
     throw error;
@@ -380,26 +381,9 @@ export const getLecturerEvaluationByTeamId = async (teamId) => {
 };
 
 // Milestone API (Student-flow)
-export const getAllMilestonesByTeamId = async (teamId) => {
-  try {
-    const response = await apiClient.get(`/milestone/team/${teamId}`);
-    console.log('Milestones data:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching milestones for team ID ${teamId}:`, error);
-    throw error;
-  }
-};
+export const getAllMilestonesByTeamId = async (teamId) => getMilestonesByTeam(teamId);
 
-export const getDetailOfMilestoneByMilestoneId = async (milestoneId) => {
-  try {
-    const response = await apiClient.get(`/milestone/${milestoneId}`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching milestone details for milestone ID ${milestoneId}:`, error);
-    throw error;
-  }
-};
+export const getDetailOfMilestoneByMilestoneId = async (milestoneId) => getMilestoneDetail(milestoneId);
 
 export const patchMarkDoneMilestoneByMilestoneId = async (teamMilestoneId, isDone = true) => {
   try {

@@ -1,542 +1,1326 @@
-import React, { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import styles from './TeamProjectDetail.module.css';
+import { getTeamDetail } from '../../services/teamApi';
+import { getProjectDetail } from '../../services/projectApi';
+import { getMilestonesByTeam, getMilestoneDetail, createMilestone, updateMilestone, deleteMilestone } from '../../services/milestoneApi';
+import { getUserProfile } from '../../services/userService';
+import { normalizeMilestoneStatus } from '../../utils/milestoneHelpers';
+import { toast } from 'sonner';
+import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
+
+const Modal = ({ title, onClose, children, disableClose = false }) => (
+  <div className={styles.modalBackdrop} role="dialog" aria-modal="true">
+    <div className={styles.modalContainer}>
+      <div className={styles.modalHeader}>
+        <h4>{title}</h4>
+        {onClose && (
+          <button type="button" className={styles.modalCloseButton} onClick={onClose} disabled={disableClose} aria-label="Close">
+            ×
+          </button>
+        )}
+      </div>
+      <div className={styles.modalBody}>{children}</div>
+    </div>
+  </div>
+);
+
+const statAccents = [
+  { bg: 'linear-gradient(135deg, #bae6fd, #c7d2fe)', text: '#0f172a' },
+  { bg: 'linear-gradient(135deg, #c7d2fe, #ddd6fe)', text: '#312e81' },
+  { bg: 'linear-gradient(135deg, #bbf7d0, #a7f3d0)', text: '#064e3b' },
+  { bg: 'linear-gradient(135deg, #fde68a, #fef3c7)', text: '#78350f' },
+];
+
+const formatStatusLabel = (status) => {
+  if (!status) return 'Pending';
+  return status
+    .toString()
+    .replace(/[_-]/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+const formatDate = (value, fallback = 'TBA') => {
+  if (!value) return fallback;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? fallback : date.toLocaleDateString();
+};
+
+const convertTeamRole = (teamRole, fallback = 'Member') => {
+  if (typeof teamRole === 'string' && teamRole.trim()) {
+    return formatStatusLabel(teamRole);
+  }
+  switch (teamRole) {
+    case 1:
+      return 'Leader';
+    case 0:
+      return 'Member';
+    default:
+      return fallback;
+  }
+};
+
+const getStatusColor = (status) => {
+  const normalized = (status ?? '').toString().toLowerCase();
+  if (['completed', 'done', 'success'].includes(normalized)) return '#059669';
+  if (['in progress', 'in-progress', 'processing', 'active'].includes(normalized)) return '#3b82f6';
+  if (['pending', 'not done', 'upcoming', 'planned'].includes(normalized)) return '#6b7280';
+  if (['at risk', 'risk', 'warning'].includes(normalized)) return '#d97706';
+  if (['behind', 'delayed', 'blocked'].includes(normalized)) return '#dc2626';
+  if (['on track', 'healthy'].includes(normalized)) return '#059669';
+  return '#6b7280';
+};
+
+const getPriorityColor = (priority) => {
+  const normalized = (priority ?? '').toString().toLowerCase();
+  if (normalized === 'high') return '#dc2626';
+  if (normalized === 'medium') return '#d97706';
+  if (normalized === 'low') return '#0f766e';
+  return '#475569';
+};
+
+const getComplexityColor = (complexity) => {
+  const normalized = (complexity ?? '').toString().toLowerCase();
+  if (normalized === 'easy') return '#0ea5e9';
+  if (normalized === 'medium') return '#f97316';
+  if (normalized === 'hard' || normalized === 'high') return '#dc2626';
+  return '#475569';
+};
+
+const toDateInputValue = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString().slice(0, 10);
+};
+
+const detectCustomMilestone = (milestone) => {
+  if (!milestone) return false;
+  return Boolean(
+    milestone.isCustom ||
+      milestone.custom ||
+      milestone.isManual ||
+      milestone.customMilestone ||
+      milestone.source === 'CUSTOM' ||
+      milestone.origin === 'CUSTOM' ||
+      milestone.isTemplate === false ||
+      milestone.template === false
+  );
+};
+
+const initialMilestoneForm = {
+  title: '',
+  description: '',
+  startDate: '',
+  endDate: '',
+};
+
+const MAX_VISIBLE_CHECKPOINTS = 3;
+
+const normalizeMilestoneCollection = (payload) => {
+  if (Array.isArray(payload?.list)) return payload.list;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.teamMilestones)) return payload.teamMilestones;
+  if (Array.isArray(payload)) return payload;
+  return [];
+};
+
+const getInitials = (name = '') => {
+  const segments = String(name)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (!segments.length) return 'NA';
+  if (segments.length === 1) return segments[0].slice(0, 2).toUpperCase();
+  return `${segments[0].charAt(0)}${segments[segments.length - 1].charAt(0)}`.toUpperCase();
+};
 
 const TeamProjectDetail = () => {
-  const { classId, projectId } = useParams();
-  const [activeTab, setActiveTab] = useState('overview');
+  const { classId, teamId: routeTeamId } = useParams();
+  const teamId = routeTeamId;
 
-  // Mock data for the specific team project
-  const projectData = {
-    id: projectId,
-    title: 'E-commerce Platform Development',
-    team: 'Team Alpha',
-    description: 'Building a full-stack e-commerce platform with modern technologies including React, Node.js, and MongoDB.',
-    status: 'On Track',
-    progress: 75,
-    riskLevel: 'Low',
-    startDate: '2024-09-15',
-    dueDate: '2024-12-15',
-    lastUpdate: '2024-11-20',
-    repositoryUrl: 'https://github.com/team-alpha/ecommerce-platform',
-    totalCommits: 248,
-    totalLines: 15640,
-    techStack: ['React', 'Node.js', 'MongoDB', 'Express', 'Tailwind CSS']
+  const [teamDetail, setTeamDetail] = useState(null);
+  const [projectRaw, setProjectRaw] = useState(null);
+  const [teamMembersRaw, setTeamMembersRaw] = useState([]);
+  const [milestones, setMilestones] = useState([]);
+  const [loading, setLoading] = useState({ team: false, project: false, milestones: false });
+  const [errors, setErrors] = useState({ team: null, project: null, milestones: null });
+  const [fetchedProjectId, setFetchedProjectId] = useState(null);
+  const [milestoneModal, setMilestoneModal] = useState(null);
+  const [milestoneFormValues, setMilestoneFormValues] = useState(initialMilestoneForm);
+  const [milestoneFormError, setMilestoneFormError] = useState(null);
+  const [confirmState, setConfirmState] = useState(null);
+  const [mutationLoading, setMutationLoading] = useState({ milestone: false, delete: false });
+  const [openMilestoneMenuId, setOpenMilestoneMenuId] = useState(null);
+  const [memberProfileModal, setMemberProfileModal] = useState(null);
+  const [memberProfilesCache, setMemberProfilesCache] = useState({});
+  const [memberProfileLoading, setMemberProfileLoading] = useState(false);
+  const [memberProfileError, setMemberProfileError] = useState(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!teamId) return;
+    let cancelled = false;
+
+    const fetchTeam = async () => {
+      setLoading((prev) => ({ ...prev, team: true }));
+      setErrors((prev) => ({ ...prev, team: null }));
+      try {
+        const detail = await getTeamDetail(teamId);
+        if (cancelled) return;
+        setTeamDetail(detail);
+        const members = detail?.memberInfo?.members;
+        setTeamMembersRaw(Array.isArray(members) ? members : []);
+      } catch (error) {
+        if (!cancelled) {
+          setErrors((prev) => ({ ...prev, team: error }));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading((prev) => ({ ...prev, team: false }));
+        }
+      }
+    };
+
+    fetchTeam();
+    return () => {
+      cancelled = true;
+    };
+  }, [teamId]);
+
+  useEffect(() => {
+    const projectIdentifier = teamDetail?.projectInfo?.projectId ?? teamDetail?.projectInfo?.id ?? null;
+    if (!projectIdentifier || projectIdentifier === fetchedProjectId) return;
+
+    let cancelled = false;
+    const fetchProject = async () => {
+      setLoading((prev) => ({ ...prev, project: true }));
+      setErrors((prev) => ({ ...prev, project: null }));
+      try {
+        const detail = await getProjectDetail(projectIdentifier);
+        if (!cancelled) {
+          setProjectRaw(detail);
+          setFetchedProjectId(projectIdentifier);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setErrors((prev) => ({ ...prev, project: error }));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading((prev) => ({ ...prev, project: false }));
+        }
+      }
+    };
+
+    fetchProject();
+    return () => {
+      cancelled = true;
+    };
+  }, [teamDetail, fetchedProjectId]);
+
+  const normalizeCheckpoints = useCallback((checkpointList) => {
+    if (!Array.isArray(checkpointList)) return [];
+    return checkpointList.map((checkpoint, index) => {
+      const id = checkpoint?.checkpointId ?? checkpoint?.id ?? index;
+      const statusToken = normalizeMilestoneStatus(checkpoint?.statusString ?? checkpoint?.status);
+      const assignments = Array.isArray(checkpoint?.assignments)
+        ? checkpoint.assignments
+        : Array.isArray(checkpoint?.members)
+          ? checkpoint.members
+          : [];
+      const assignees = assignments
+        .map((member) => member?.studentName ?? member?.fullName ?? member?.name)
+        .filter(Boolean);
+      return {
+        id,
+        title: checkpoint?.title ?? checkpoint?.name ?? `Checkpoint ${index + 1}`,
+        description: checkpoint?.description ?? '',
+        statusToken,
+        statusLabel: formatStatusLabel(statusToken),
+        dueDate: checkpoint?.dueDate ?? checkpoint?.deadline ?? checkpoint?.targetDate ?? null,
+        startDate: checkpoint?.startDate ?? checkpoint?.beginDate ?? null,
+        updatedAt: checkpoint?.updatedAt ?? checkpoint?.lastActivity ?? null,
+        complexity: checkpoint?.complexity ?? checkpoint?.difficulty ?? 'MEDIUM',
+        assignees,
+        teamMilestoneId: checkpoint?.teamMilestoneId ?? checkpoint?.milestoneId ?? null,
+      };
+    });
+  }, []);
+
+  const normalizeMilestone = useCallback((milestone) => {
+    const id = milestone?.teamMilestoneId ?? milestone?.milestoneId ?? milestone?.id;
+    const statusToken = normalizeMilestoneStatus(milestone?.statusString ?? milestone?.status);
+    const checkpoints = normalizeCheckpoints(milestone?.checkpoints ?? milestone?.tasks ?? []);
+    const lookupKeys = Array.from(
+      new Set(
+        [milestone?.teamMilestoneId, milestone?.milestoneId, milestone?.objectiveMilestoneId, milestone?.id]
+          .map((value) => (value === undefined ? null : value))
+          .filter(Boolean)
+      )
+    );
+    return {
+      id,
+      title: milestone?.title ?? milestone?.name ?? `Milestone ${id ?? ''}`,
+      description: milestone?.description ?? '',
+      dueDate: milestone?.dueDate ?? milestone?.endDate ?? milestone?.targetDate ?? null,
+      startDate: milestone?.startDate ?? milestone?.beginDate ?? null,
+      updatedAt: milestone?.updatedAt ?? milestone?.lastUpdated ?? null,
+      statusToken,
+      statusLabel: formatStatusLabel(statusToken),
+      progress: Number.isFinite(milestone?.progress) ? Math.round(milestone.progress) : statusToken === 'completed' ? 100 : 0,
+      tasks: Array.isArray(milestone?.tasks) ? milestone.tasks : checkpoints.map((checkpoint) => checkpoint.title).filter(Boolean),
+      checkpoints,
+      isCustom: detectCustomMilestone(milestone),
+      lookupKeys,
+    };
+  }, [normalizeCheckpoints]);
+
+  const hydrateMilestones = useCallback(async (items) => {
+    return Promise.all(
+      items.map(async (item) => {
+        if (!item.id) return item;
+        try {
+          const detail = await getMilestoneDetail(item.id);
+          const checkpoints = normalizeCheckpoints(detail?.checkpoints ?? detail?.checkpointList ?? item.checkpoints ?? []);
+          const statusToken = normalizeMilestoneStatus(detail?.statusString ?? detail?.status ?? item.statusToken);
+          return {
+            ...item,
+            description: detail?.description ?? item.description,
+            startDate: detail?.startDate ?? detail?.beginDate ?? item.startDate,
+            dueDate: detail?.dueDate ?? detail?.endDate ?? item.dueDate,
+            updatedAt: detail?.updatedAt ?? detail?.lastUpdated ?? item.updatedAt,
+            progress: Number.isFinite(detail?.progress) ? Math.round(detail.progress) : item.progress,
+            statusToken,
+            statusLabel: formatStatusLabel(statusToken),
+            checkpoints,
+            isCustom: detectCustomMilestone(detail ?? item),
+          };
+        } catch (error) {
+          console.error('Unable to hydrate milestone detail:', error);
+          return item;
+        }
+      })
+    );
+  }, [normalizeCheckpoints]);
+
+  const fetchMilestones = useCallback(async (options = {}) => {
+    if (!teamId) return;
+    const silent = Boolean(options.silent);
+    if (!silent) {
+      setLoading((prev) => ({ ...prev, milestones: true }));
+    }
+    setErrors((prev) => ({ ...prev, milestones: null }));
+    try {
+      const response = await getMilestonesByTeam(teamId);
+      const baseList = normalizeMilestoneCollection(response).map(normalizeMilestone);
+      const hydrated = await hydrateMilestones(baseList);
+      if (isMountedRef.current) {
+        setMilestones(hydrated);
+      }
+    } catch (error) {
+      if (isMountedRef.current) {
+        setErrors((prev) => ({ ...prev, milestones: error }));
+        setMilestones([]);
+      }
+    } finally {
+      if (!silent && isMountedRef.current) {
+        setLoading((prev) => ({ ...prev, milestones: false }));
+      }
+    }
+  }, [teamId, hydrateMilestones, normalizeMilestone]);
+
+  useEffect(() => {
+    fetchMilestones();
+  }, [fetchMilestones]);
+
+  const closeMilestoneModal = () => {
+    setMilestoneModal(null);
+    setMilestoneFormValues(initialMilestoneForm);
+    setMilestoneFormError(null);
   };
 
-  const teamMembers = [
-    {
-      id: 1,
-      name: 'John Doe',
-      role: 'Team Lead & Full-Stack Developer',
-      email: 'john.doe@university.edu',
-      avatar: '/api/placeholder/40/40',
-      contributions: {
-        commits: 89,
-        linesAdded: 4520,
-        linesRemoved: 890,
-        pullRequests: 23,
-        issuesResolved: 15,
-        codeReviews: 31
-      },
-      activity: {
-        lastCommit: '2024-11-20',
-        weeklyCommits: [12, 8, 15, 9, 11, 14, 7],
-        participation: 95
-      },
-      skills: ['React', 'Node.js', 'MongoDB', 'Team Leadership']
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      role: 'Frontend Developer',
-      email: 'jane.smith@university.edu',
-      avatar: '/api/placeholder/40/40',
-      contributions: {
-        commits: 67,
-        linesAdded: 3890,
-        linesRemoved: 450,
-        pullRequests: 18,
-        issuesResolved: 12,
-        codeReviews: 25
-      },
-      activity: {
-        lastCommit: '2024-11-19',
-        weeklyCommits: [9, 6, 12, 8, 10, 11, 5],
-        participation: 87
-      },
-      skills: ['React', 'CSS', 'UI/UX Design', 'Responsive Design']
-    },
-    {
-      id: 3,
-      name: 'Bob Johnson',
-      role: 'Backend Developer',
-      email: 'bob.johnson@university.edu',
-      avatar: '/api/placeholder/40/40',
-      contributions: {
-        commits: 54,
-        linesAdded: 2830,
-        linesRemoved: 320,
-        pullRequests: 14,
-        issuesResolved: 9,
-        codeReviews: 19
-      },
-      activity: {
-        lastCommit: '2024-11-18',
-        weeklyCommits: [7, 5, 9, 6, 8, 10, 4],
-        participation: 82
-      },
-      skills: ['Node.js', 'Express', 'MongoDB', 'API Development']
-    },
-    {
-      id: 4,
-      name: 'Alice Brown',
-      role: 'QA & Documentation',
-      email: 'alice.brown@university.edu',
-      avatar: '/api/placeholder/40/40',
-      contributions: {
-        commits: 38,
-        linesAdded: 1400,
-        linesRemoved: 180,
-        pullRequests: 8,
-        issuesResolved: 6,
-        codeReviews: 12
-      },
-      activity: {
-        lastCommit: '2024-11-17',
-        weeklyCommits: [4, 3, 6, 4, 5, 7, 3],
-        participation: 68
-      },
-      skills: ['Testing', 'Documentation', 'Quality Assurance', 'Bug Tracking']
-    }
-  ];
+  const openCreateMilestoneModal = () => {
+    setMilestoneModal({
+      mode: 'create',
+      heading: 'Create Custom Milestone',
+      allowDetails: true,
+      milestoneId: null,
+    });
+    setMilestoneFormValues(initialMilestoneForm);
+    setMilestoneFormError(null);
+    setOpenMilestoneMenuId(null);
+  };
 
-  const milestones = [
-    {
-      id: 1,
-      title: 'Project Setup & Planning',
-      dueDate: '2024-09-30',
-      status: 'Completed',
-      progress: 100,
-      tasks: ['Repository setup', 'Technology stack selection', 'Project planning', 'Team role assignment']
-    },
-    {
-      id: 2,
-      title: 'UI/UX Design & Wireframes',
-      dueDate: '2024-10-15',
-      status: 'Completed',
-      progress: 100,
-      tasks: ['User research', 'Wireframe creation', 'Design system', 'Prototype development']
-    },
-    {
-      id: 3,
-      title: 'Backend API Development',
-      dueDate: '2024-11-15',
-      status: 'Completed',
-      progress: 100,
-      tasks: ['Database design', 'Authentication system', 'Product API', 'Order management API']
-    },
-    {
-      id: 4,
-      title: 'Frontend Implementation',
-      dueDate: '2024-12-01',
-      status: 'In Progress',
-      progress: 75,
-      tasks: ['Component development', 'State management', 'API integration', 'Responsive design']
-    },
-    {
-      id: 5,
-      title: 'Testing & Deployment',
-      dueDate: '2024-12-15',
-      status: 'Pending',
-      progress: 20,
-      tasks: ['Unit testing', 'Integration testing', 'Performance optimization', 'Production deployment']
-    }
-  ];
+  const openEditMilestoneModal = (milestone, scope = 'dates') => {
+    if (!milestone) return;
+    setMilestoneModal({
+      mode: 'edit',
+      heading: scope === 'details' ? 'Edit Milestone Details' : 'Edit Milestone Dates',
+      allowDetails: scope === 'details',
+      milestoneId: milestone.id,
+      isCustom: milestone.isCustom,
+    });
+    setMilestoneFormValues({
+      title: milestone.title ?? '',
+      description: milestone.description ?? '',
+      startDate: toDateInputValue(milestone.startDate),
+      endDate: toDateInputValue(milestone.dueDate ?? milestone.endDate),
+    });
+    setMilestoneFormError(null);
+    setOpenMilestoneMenuId(null);
+  };
 
-  const recentActivity = [
-    {
-      id: 1,
-      type: 'commit',
-      user: 'John Doe',
-      action: 'Implemented shopping cart functionality',
-      timestamp: '2024-11-20 14:30',
-      details: 'Added cart state management and UI components'
-    },
-    {
-      id: 2,
-      type: 'pull_request',
-      user: 'Jane Smith',
-      action: 'Updated product listing page design',
-      timestamp: '2024-11-19 16:45',
-      details: 'Enhanced responsive design and improved accessibility'
-    },
-    {
-      id: 3,
-      type: 'issue',
-      user: 'Alice Brown',
-      action: 'Reported authentication bug',
-      timestamp: '2024-11-19 11:20',
-      details: 'Session timeout not working correctly on mobile devices'
-    },
-    {
-      id: 4,
-      type: 'commit',
-      user: 'Bob Johnson',
-      action: 'Fixed database connection issues',
-      timestamp: '2024-11-18 20:15',
-      details: 'Improved connection pooling and error handling'
-    }
-  ];
+  const handleMilestoneFieldChange = (field, value) => {
+    setMilestoneFormValues((prev) => ({ ...prev, [field]: value }));
+  };
 
-  const interventionRecommendations = [
-    {
-      id: 1,
-      type: 'warning',
-      priority: 'Medium',
-      title: 'Code Review Imbalance',
-      description: 'Alice Brown has significantly fewer code reviews compared to other team members.',
-      recommendation: 'Encourage Alice to participate more in code reviews to improve learning and team collaboration.',
-      impact: 'Team Collaboration'
-    },
-    {
-      id: 2,
-      type: 'info',
-      priority: 'Low',
-      title: 'Documentation Gap',
-      description: 'API documentation is 30% behind the current implementation.',
-      recommendation: 'Allocate dedicated time for documentation updates in the next sprint.',
-      impact: 'Project Quality'
-    }
-  ];
-
-  const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
-      case 'completed': return '#059669';
-      case 'in progress': return '#3b82f6';
-      case 'pending': return '#6b7280';
-      case 'on track': return '#059669';
-      case 'at risk': return '#d97706';
-      case 'behind': return '#dc2626';
-      default: return '#6b7280';
+  const handleMenuBlur = (event, milestoneId) => {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      setOpenMilestoneMenuId((prev) => (prev === milestoneId ? null : prev));
     }
   };
 
-  const renderOverviewTab = () => (
-    <div className={styles.tabContent}>
-      {/* Project Stats Grid */}
-      <div className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <div className={styles.statIcon} style={{background: '#3b82f6'}}>📊</div>
-          <div className={styles.statContent}>
-            <div className={styles.statValue}>{projectData.progress}%</div>
-            <div className={styles.statLabel}>Completion</div>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={styles.statIcon} style={{background: '#059669'}}>💻</div>
-          <div className={styles.statContent}>
-            <div className={styles.statValue}>{projectData.totalCommits}</div>
-            <div className={styles.statLabel}>Total Commits</div>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={styles.statIcon} style={{background: '#d97706'}}>📝</div>
-          <div className={styles.statContent}>
-            <div className={styles.statValue}>{projectData.totalLines.toLocaleString()}</div>
-            <div className={styles.statLabel}>Lines of Code</div>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={styles.statIcon} style={{background: '#dc2626'}}>👥</div>
-          <div className={styles.statContent}>
-            <div className={styles.statValue}>{teamMembers.length}</div>
-            <div className={styles.statLabel}>Team Members</div>
-          </div>
-        </div>
-      </div>
+  const toggleMilestoneMenu = (milestoneId) => {
+    setOpenMilestoneMenuId((prev) => (prev === milestoneId ? null : milestoneId));
+  };
 
-      {/* Team Members Grid */}
-      <div className={styles.sectionHeader}>
-        <h3>Team Members</h3>
-      </div>
-      <div className={styles.membersGrid}>
-        {teamMembers.map(member => (
-          <div key={member.id} className={styles.memberCard}>
-            <div className={styles.memberHeader}>
-              <div className={styles.memberAvatar}>
-                {member.name.split(' ').map(n => n[0]).join('')}
-              </div>
-              <div className={styles.memberInfo}>
-                <h4>{member.name}</h4>
-                <p>{member.role}</p>
-              </div>
-              <div className={styles.participationBadge}>
-                {member.activity.participation}%
-              </div>
-            </div>
-            <div className={styles.memberStats}>
-              <div className={styles.memberStat}>
-                <span className={styles.statNumber}>{member.contributions.commits}</span>
-                <span className={styles.statLabel}>Commits</span>
-              </div>
-              <div className={styles.memberStat}>
-                <span className={styles.statNumber}>{member.contributions.pullRequests}</span>
-                <span className={styles.statLabel}>PRs</span>
-              </div>
-              <div className={styles.memberStat}>
-                <span className={styles.statNumber}>{member.contributions.issuesResolved}</span>
-                <span className={styles.statLabel}>Issues</span>
-              </div>
-            </div>
-            <div className={styles.memberSkills}>
-              {member.skills.slice(0, 3).map(skill => (
-                <span key={skill} className={styles.skillTag}>{skill}</span>
-              ))}
-              {member.skills.length > 3 && (
-                <span className={styles.skillTag}>+{member.skills.length - 3}</span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+  const openDeleteMilestoneDialog = (milestone) => {
+    if (!milestone?.id) return;
+    setConfirmState({
+      type: 'milestone-delete',
+      milestone,
+    });
+    setOpenMilestoneMenuId(null);
+  };
+
+  const closeConfirmState = () => {
+    setConfirmState(null);
+  };
+
+  const handleMilestoneSubmit = async (event) => {
+    event.preventDefault();
+    if (!milestoneModal) return;
+
+    const { allowDetails, mode, milestoneId } = milestoneModal;
+    const trimmedTitle = milestoneFormValues.title.trim();
+
+    if (allowDetails && !trimmedTitle) {
+      setMilestoneFormError('Title is required.');
+      return;
+    }
+    if (!milestoneFormValues.startDate || !milestoneFormValues.endDate) {
+      setMilestoneFormError('Start date and end date are required.');
+      return;
+    }
+    if (milestoneFormValues.endDate < milestoneFormValues.startDate) {
+      setMilestoneFormError('End date must be on or after start date.');
+      return;
+    }
+
+    setMutationLoading((prev) => ({ ...prev, milestone: true }));
+    setMilestoneFormError(null);
+
+    let numericTeamId = null;
+    if (mode === 'create') {
+      numericTeamId = Number(teamId);
+      if (!teamId || Number.isNaN(numericTeamId)) {
+        setMilestoneFormError('Team context is invalid. Refresh and try again.');
+        setMutationLoading((prev) => ({ ...prev, milestone: false }));
+        return;
+      }
+    }
+
+    const payload = {
+      startDate: milestoneFormValues.startDate,
+      endDate: milestoneFormValues.endDate,
+    };
+
+    if (allowDetails) {
+      payload.title = trimmedTitle;
+      payload.description = milestoneFormValues.description?.trim() || null;
+    }
+
+    try {
+      let response;
+      if (mode === 'create') {
+        response = await createMilestone({ ...payload, teamId: numericTeamId });
+      } else if (milestoneId) {
+        response = await updateMilestone(milestoneId, payload);
+      }
+      toast.success(response?.message ?? 'Milestone saved');
+      closeMilestoneModal();
+      await fetchMilestones({ silent: true });
+    } catch (error) {
+      const message = error?.message ?? 'Unable to save milestone.';
+      setMilestoneFormError(message);
+      toast.error(message);
+    } finally {
+      setMutationLoading((prev) => ({ ...prev, milestone: false }));
+    }
+  };
+
+  const handleDeleteMilestone = async () => {
+    if (!confirmState?.milestone?.id) return;
+    setMutationLoading((prev) => ({ ...prev, delete: true }));
+    try {
+      const response = await deleteMilestone(confirmState.milestone.id);
+      toast.success(response?.message ?? 'Milestone deleted');
+      closeConfirmState();
+      await fetchMilestones({ silent: true });
+    } catch (error) {
+      const message = error?.message ?? 'Unable to delete milestone.';
+      toast.error(message);
+    } finally {
+      setMutationLoading((prev) => ({ ...prev, delete: false }));
+    }
+  };
+
+  const projectData = useMemo(() => {
+    const progress = Number.isFinite(teamDetail?.teamProgress?.overallProgress)
+      ? Math.round(teamDetail.teamProgress.overallProgress)
+      : Number.isFinite(projectRaw?.progress)
+        ? Math.round(projectRaw.progress)
+        : 0;
+
+    const statusString = teamDetail?.teamProgress?.statusString ?? projectRaw?.statusString ?? projectRaw?.status ?? 'Pending';
+    const assignmentId =
+      teamDetail?.projectAssignmentId ??
+      teamDetail?.projectInfo?.projectAssignmentId ??
+      teamDetail?.projectInfo?.projectAssignmentID ??
+      teamDetail?.projectInfo?.assignmentId ??
+      null;
+
+    return {
+      id: teamId,
+      title: projectRaw?.projectName ?? teamDetail?.projectInfo?.projectName ?? 'Team Project',
+      team: teamDetail?.teamName ?? 'Team',
+      description: projectRaw?.description ?? teamDetail?.projectInfo?.description ?? 'Description updating soon.',
+      status: formatStatusLabel(statusString),
+      statusToken: statusString,
+      progress,
+      createdDate: projectRaw?.createdAt ?? teamDetail?.teamProgress?.createdAt ?? null,
+      lastUpdate: projectRaw?.updatedAt ?? teamDetail?.teamProgress?.updatedAt ?? null,
+      repositoryUrl: teamDetail?.gitLink ?? projectRaw?.repositoryUrl ?? null,
+      subjectName: projectRaw?.subjectName ?? teamDetail?.classInfo?.subjectName ?? '',
+      lecturerName: projectRaw?.lecturerName ?? teamDetail?.lecturerInfo?.lecturerName ?? '',
+      className: teamDetail?.classInfo?.className ?? '',
+      assignmentId,
+    };
+  }, [projectRaw, teamDetail, teamId]);
+
+  const teamMembers = useMemo(() => {
+    return (teamMembersRaw || []).map((member, index) => {
+      const studentId = member?.studentId ?? member?.userId ?? member?.id ?? member?.classMemberId ?? index;
+      const classMemberId = member?.classMemberId ?? member?.teamMemberId ?? null;
+      const identifier = classMemberId ?? studentId ?? `member-${index}`;
+      return {
+        id: identifier,
+        studentId,
+        classMemberId,
+        name: member?.studentName ?? member?.fullName ?? member?.fullname ?? 'Unnamed Member',
+        role: convertTeamRole(member?.teamRole),
+        email: member?.studentEmail ?? member?.email ?? '',
+        avatar: member?.avatar ?? member?.avatarUrl ?? member?.avatarImgUrl ?? null,
+        studentCode: member?.studentCode ?? member?.code ?? '',
+        major: member?.major ?? member?.studyMajor ?? member?.faculty ?? '',
+        phoneNumber: member?.phoneNumber ?? member?.phone ?? '',
+        school: member?.school ?? member?.campus ?? '',
+        address: member?.address ?? '',
+      };
+    });
+  }, [teamMembersRaw]);
+
+  const openMemberProfile = useCallback(
+    async (member) => {
+      if (!member) return;
+      const userId = member.studentId ?? member.userId ?? member.id;
+      setMemberProfileError(null);
+      setMemberProfileModal({
+        member,
+        userId,
+        profile: userId ? memberProfilesCache[userId] ?? null : null,
+      });
+
+      if (!userId || memberProfilesCache[userId]) return;
+
+      setMemberProfileLoading(true);
+      try {
+        const response = await getUserProfile(userId);
+        const profile = response?.user ?? response ?? null;
+        if (!isMountedRef.current) return;
+        setMemberProfilesCache((prev) => ({ ...prev, [userId]: profile }));
+        setMemberProfileModal((prev) => {
+          if (!prev || prev.userId !== userId) return prev;
+          return { ...prev, profile };
+        });
+      } catch (error) {
+        console.error('Failed to load student profile.', error);
+        if (isMountedRef.current) {
+          setMemberProfileError(error);
+          toast.error('Unable to load student profile.');
+        }
+      } finally {
+        if (isMountedRef.current) {
+          setMemberProfileLoading(false);
+        }
+      }
+    },
+    [memberProfilesCache]
   );
 
-  const renderAnalyticsTab = () => (
-    <div className={styles.tabContent}>
-      {/* Code Contribution Analysis */}
-      <div className={styles.sectionHeader}>
-        <h3>Code Contribution Analysis</h3>
-      </div>
-      <div className={styles.contributionGrid}>
-        {teamMembers.map(member => (
-          <div key={member.id} className={styles.contributionCard}>
-            <div className={styles.contributionHeader}>
-              <h4>{member.name}</h4>
-              <span className={styles.lastActivity}>
-                Last active: {new Date(member.activity.lastCommit).toLocaleDateString()}
-              </span>
-            </div>
-            <div className={styles.contributionMetrics}>
-              <div className={styles.metric}>
-                <span className={styles.metricLabel}>Lines Added</span>
-                <span className={styles.metricValue}>{member.contributions.linesAdded.toLocaleString()}</span>
-              </div>
-              <div className={styles.metric}>
-                <span className={styles.metricLabel}>Lines Removed</span>
-                <span className={styles.metricValue}>{member.contributions.linesRemoved.toLocaleString()}</span>
-              </div>
-              <div className={styles.metric}>
-                <span className={styles.metricLabel}>Code Reviews</span>
-                <span className={styles.metricValue}>{member.contributions.codeReviews}</span>
-              </div>
-            </div>
-            <div className={styles.weeklyActivity}>
-              <span className={styles.activityLabel}>Weekly Commits</span>
-              <div className={styles.activityChart}>
-                {member.activity.weeklyCommits.map((commits, index) => (
-                  <div 
-                    key={index} 
-                    className={styles.activityBar}
-                    style={{height: `${(commits / Math.max(...member.activity.weeklyCommits)) * 100}%`}}
-                    title={`${commits} commits`}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  const closeMemberProfile = useCallback(() => {
+    setMemberProfileModal(null);
+    setMemberProfileError(null);
+  }, []);
 
-  const renderMilestonesTab = () => (
-    <div className={styles.tabContent}>
-      <div className={styles.milestonesTimeline}>
-        {milestones.map((milestone, index) => (
-          <div key={milestone.id} className={styles.milestoneItem}>
-            <div className={styles.milestoneIndicator}>
-              <div 
-                className={styles.milestoneStatus}
-                style={{background: getStatusColor(milestone.status)}}
-              />
-              {index < milestones.length - 1 && <div className={styles.milestoneLine} />}
-            </div>
-            <div className={styles.milestoneContent}>
-              <div className={styles.milestoneHeader}>
-                <h4>{milestone.title}</h4>
-                <div className={styles.milestoneInfo}>
-                  <span className={styles.milestoneDate}>
-                    Due: {new Date(milestone.dueDate).toLocaleDateString()}
-                  </span>
-                  <span 
-                    className={styles.milestoneStatusBadge}
-                    style={{background: getStatusColor(milestone.status)}}
-                  >
-                    {milestone.status}
-                  </span>
-                </div>
-              </div>
-              <div className={styles.milestoneProgress}>
-                <div className={styles.progressBar}>
-                  <div 
-                    className={styles.progressFill}
-                    style={{width: `${milestone.progress}%`, background: getStatusColor(milestone.status)}}
-                  />
-                </div>
-                <span className={styles.progressText}>{milestone.progress}%</span>
-              </div>
-              <div className={styles.milestoneTasks}>
-                {milestone.tasks.map((task, taskIndex) => (
-                  <span key={taskIndex} className={styles.taskTag}>{task}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  const assignmentLabel = projectData.assignmentId ? `#${projectData.assignmentId}` : 'Not linked';
 
-  const renderActivityTab = () => (
-    <div className={styles.tabContent}>
-      <div className={styles.activityFeed}>
-        {recentActivity.map(activity => (
-          <div key={activity.id} className={styles.activityItem}>
-            <div className={styles.activityIcon}>
-              {activity.type === 'commit' && '💻'}
-              {activity.type === 'pull_request' && '🔄'}
-              {activity.type === 'issue' && '🐛'}
-            </div>
-            <div className={styles.activityContent}>
-              <div className={styles.activityHeader}>
-                <strong>{activity.user}</strong> {activity.action}
-              </div>
-              <div className={styles.activityDetails}>{activity.details}</div>
-              <div className={styles.activityTimestamp}>{activity.timestamp}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  const summaryStats = useMemo(() => {
+    const baseStats = [
+      { label: 'Completion', value: `${projectData.progress}%`, helper: 'Overall progress' },
+      { label: 'Status', value: projectData.status, helper: 'Project state' },
+      { label: 'Assignment', value: assignmentLabel, helper: 'Project assignment' },
+      { label: 'Team Members', value: teamMembers.length, helper: 'Active roster' },
+    ];
 
-  const renderInterventionsTab = () => (
-    <div className={styles.tabContent}>
-      <div className={styles.interventionsList}>
-        {interventionRecommendations.map(intervention => (
-          <div key={intervention.id} className={styles.interventionCard}>
-            <div className={styles.interventionHeader}>
-              <div className={styles.interventionType}>
-                <span 
-                  className={styles.priorityIndicator}
-                  style={{
-                    background: intervention.priority === 'High' ? '#dc2626' :
-                               intervention.priority === 'Medium' ? '#d97706' : '#059669'
-                  }}
-                />
-                <span className={styles.interventionTitle}>{intervention.title}</span>
-              </div>
-              <span className={styles.priorityBadge}>{intervention.priority} Priority</span>
-            </div>
-            <div className={styles.interventionContent}>
-              <p className={styles.interventionDescription}>{intervention.description}</p>
-              <p className={styles.interventionRecommendation}>
-                <strong>Recommendation:</strong> {intervention.recommendation}
-              </p>
-              <div className={styles.interventionFooter}>
-                <span className={styles.impactLabel}>Impact: {intervention.impact}</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+    return baseStats.map((stat, index) => ({
+      ...stat,
+      accent: statAccents[index % statAccents.length],
+      glyph: stat.label.charAt(0),
+    }));
+  }, [projectData.progress, projectData.status, assignmentLabel, teamMembers.length]);
+
+  const heroBadges = useMemo(() => {
+    return [
+      projectData.team ? `Team ${projectData.team}` : null,
+      projectData.subjectName ? projectData.subjectName : null,
+      projectData.className ? projectData.className : null,
+    ].filter(Boolean);
+  }, [projectData.team, projectData.subjectName, projectData.className]);
+
+  const milestoneCards = useMemo(() => milestones, [milestones]);
+
+  const milestoneLookup = useMemo(() => {
+    const map = new Map();
+    milestoneCards.forEach((milestone) => {
+      const keys = Array.isArray(milestone.lookupKeys) && milestone.lookupKeys.length > 0 ? milestone.lookupKeys : [milestone.id];
+      keys.filter(Boolean).forEach((key) => {
+        if (!map.has(key)) {
+          map.set(key, milestone);
+        }
+      });
+    });
+    return map;
+  }, [milestoneCards]);
+
+  const objectiveGroups = useMemo(() => {
+    if (!Array.isArray(projectRaw?.objectives)) return [];
+    return projectRaw.objectives
+      .filter(Boolean)
+      .map((objective, index) => {
+        const milestoneList = Array.isArray(objective?.objectiveMilestones)
+          ? objective.objectiveMilestones.filter(Boolean)
+          : [];
+        return {
+          id: objective?.objectiveId ?? objective?.id ?? index,
+          title: objective?.title ?? `Objective ${index + 1}`,
+          description: objective?.description ?? '',
+          priority: objective?.priority ? formatStatusLabel(objective.priority) : null,
+          priorityToken: objective?.priority ?? null,
+          milestones: milestoneList.map((milestone, milestoneIndex) => {
+            const statusToken = normalizeMilestoneStatus(milestone?.statusString ?? milestone?.status);
+            return {
+              id: milestone?.teamMilestoneId ?? milestone?.milestoneId ?? milestone?.objectiveMilestoneId ?? milestone?.id ?? milestoneIndex,
+              referenceIds: {
+                teamMilestoneId: milestone?.teamMilestoneId ?? milestone?.teamMilestoneID ?? null,
+                milestoneId: milestone?.milestoneId ?? milestone?.id ?? null,
+                objectiveMilestoneId: milestone?.objectiveMilestoneId ?? null,
+              },
+              statusToken,
+              statusLabel: formatStatusLabel(statusToken),
+              title: milestone?.title ?? `Milestone ${milestoneIndex + 1}`,
+              description: milestone?.description ?? '',
+              startDate: milestone?.startDate ?? milestone?.beginDate ?? null,
+              endDate: milestone?.endDate ?? milestone?.dueDate ?? null,
+              updatedAt: milestone?.updatedAt ?? milestone?.lastUpdated ?? null,
+            };
+          }),
+        };
+      });
+  }, [projectRaw]);
+
+  const projectMeta = [
+    { label: 'Subject', value: projectData.subjectName || '—' },
+    { label: 'Lecturer', value: projectData.lecturerName || '—' },
+    { label: 'Created date', value: formatDate(projectData.createdDate) },
+    { label: 'Updated at', value: formatDate(projectData.lastUpdate) },
+  ];
+
+  const teamMeta = [
+    { label: 'Class', value: projectData.className || '—' },
+    { label: 'Assignment', value: assignmentLabel },
+    {
+      label: 'Repository',
+      value: projectData.repositoryUrl ? (
+        <a href={projectData.repositoryUrl} target="_blank" rel="noopener noreferrer">
+          Open repository ↗
+        </a>
+      ) : (
+        'Not linked'
+      ),
+    },
+  ];
+
+  const hasObjectiveGroups = objectiveGroups.length > 0;
+
+  const breadcrumbItems = useMemo(() => {
+    const items = [{ label: 'Classes', href: '/lecturer/classes' }];
+
+    if (classId) {
+      items.push({ label: projectData.className ?? 'Class detail', href: `/lecturer/classes/${classId}` });
+    }
+
+    items.push({ label: projectData.title || 'Team Project Detail' });
+
+    return items;
+  }, [classId, projectData.className, projectData.title]);
 
   return (
-    <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <div className={styles.breadcrumb}>
-          <Link to={`/lecturer/classes/${classId}`} className={styles.breadcrumbLink}>
-            Class Details
-          </Link>
-          <span className={styles.breadcrumbSeparator}>→</span>
-          <Link to={`/lecturer/classes/${classId}/projects`} className={styles.breadcrumbLink}>
-            Projects
-          </Link>
-          <span className={styles.breadcrumbSeparator}>→</span>
-          <span className={styles.breadcrumbCurrent}>Team Project Detail</span>
-        </div>
-        
-        <div className={styles.projectHeader}>
-          <div className={styles.projectInfo}>
+    <>
+      <div className={styles.page}>
+      <header className={styles.header}>
+        <LecturerBreadcrumbs items={breadcrumbItems} className={styles.breadcrumbSlot} />
+
+        <div className={styles.hero}>
+          <div className={styles.heroContent}>
+            <p className={styles.eyebrow}>Project intelligence</p>
             <h1>{projectData.title}</h1>
-            <p className={styles.projectDescription}>{projectData.description}</p>
-            <div className={styles.projectMeta}>
-              <span className={styles.metaItem}>Team: {projectData.team}</span>
-              <span className={styles.metaItem}>Due: {new Date(projectData.dueDate).toLocaleDateString()}</span>
-              <span className={styles.metaItem}>
-                <a href={projectData.repositoryUrl} target="_blank" rel="noopener noreferrer">
-                  📁 Repository
-                </a>
-              </span>
+            <p className={styles.heroDescription}>{projectData.description}</p>
+            <div className={styles.heroBadges}>
+              {heroBadges.map((badge, index) => (
+                <span key={`${badge}-${index}`} className={styles.heroBadge}>
+                  {badge}
+                </span>
+              ))}
+              <span className={styles.heroBadge}>Updated {formatDate(projectData.lastUpdate)}</span>
+            </div>
+            {projectData.repositoryUrl && (
+              <a href={projectData.repositoryUrl} target="_blank" rel="noopener noreferrer" className={styles.heroLink}>
+                Open repository ↗
+              </a>
+            )}
+          </div>
+          <div className={styles.heroMetrics}>
+            <div className={styles.heroMetricPrimary}>
+              <span className={styles.heroMetricLabel}>Completion</span>
+              <div className={styles.heroProgressOrb}>
+                <span>{projectData.progress}%</span>
+              </div>
+              <p className={styles.heroMetricHelper}>Updated {formatDate(projectData.lastUpdate)}</p>
             </div>
           </div>
-          <div className={styles.projectStatus}>
-            <div className={styles.statusBadge} style={{background: getStatusColor(projectData.status)}}>
-              {projectData.status}
+        </div>
+
+        {errors.team && (
+          <div className={styles.inlineError}>
+            Unable to load team context: {String(errors.team?.message || errors.team)}
+          </div>
+        )}
+        {errors.project && (
+          <div className={styles.inlineInfo}>
+            Unable to load project overview: {String(errors.project?.message || errors.project)}
+          </div>
+        )}
+      </header>
+
+      <section className={styles.summaryGrid}>
+        {summaryStats.map((stat) => (
+          <div key={stat.label} className={styles.statCard}>
+            <div className={styles.statIcon} style={{ background: stat.accent.bg, color: stat.accent.text }}>
+              <span>{stat.glyph}</span>
             </div>
-            <div className={styles.progressIndicator}>
-              <div className={styles.progressCircle}>
-                <span className={styles.progressValue}>{projectData.progress}%</span>
+            <div>
+              <div className={styles.statLabel}>{stat.label}</div>
+              <div className={styles.statValue}>{stat.value}</div>
+              {stat.helper && <div className={styles.statHelper}>{stat.helper}</div>}
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section className={styles.panelGrid}>
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <h3>Project details</h3>
+          </div>
+          <dl className={styles.metaList}>
+            {projectMeta.map((row) => (
+              <div key={row.label}>
+                <dt>{row.label}</dt>
+                <dd>{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <h3>Team overview</h3>
+          </div>
+          <dl className={styles.metaList}>
+            {teamMeta.map((row) => (
+              <div key={row.label}>
+                <dt>{row.label}</dt>
+                <dd>{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      <section className={styles.milestoneSection}>
+        <div className={styles.sectionHeader}>
+          <div>
+            <h3>Milestones & checkpoints</h3>
+            <p className={styles.sectionSubtext}>Lecturers can add custom milestones while checkpoints remain a read-only preview owned by students.</p>
+          </div>
+          <button
+            type="button"
+            className={styles.primaryButton}
+            onClick={openCreateMilestoneModal}
+            disabled={mutationLoading.milestone || loading.milestones}
+          >
+            {mutationLoading.milestone ? 'Saving…' : '+ Add Milestone'}
+          </button>
+        </div>
+
+        {loading.milestones && <p className={styles.panelBody}>Loading milestones…</p>}
+        {errors.milestones && !loading.milestones && (
+          <p className={styles.inlineError}>Unable to load milestones: {String(errors.milestones?.message || errors.milestones)}</p>
+        )}
+        {!loading.milestones && !errors.milestones && !hasObjectiveGroups && milestoneCards.length === 0 && (
+          <p className={styles.panelBody}>No milestones have been created for this team yet.</p>
+        )}
+
+        {hasObjectiveGroups ? (
+          <div className={styles.objectiveWrapper}>
+            <p className={styles.objectiveHelper}>Objective milestones now include full lecturer controls.</p>
+            <div className={styles.objectiveList}>
+              {objectiveGroups.map((objective) => (
+                <div key={objective.id} className={styles.objectiveCard}>
+                  <div className={styles.objectiveHeader}>
+                    <div>
+                      <p className={styles.objectiveLabel}>Objective</p>
+                      <h4>{objective.title}</h4>
+                    </div>
+                    {objective.priority && (
+                      <span className={styles.priorityTag} style={{ background: getPriorityColor(objective.priorityToken) }}>
+                        {objective.priority}
+                      </span>
+                    )}
+                  </div>
+                  {objective.description && <p className={styles.objectiveDescription}>{objective.description}</p>}
+                  <div className={styles.objectiveMilestones}>
+                    {objective.milestones.length === 0 && <p className={styles.panelBody}>No milestones have been defined for this objective yet.</p>}
+                    {objective.milestones.map((milestone) => {
+                      const identifierCandidates = [
+                        milestone.id,
+                        milestone.referenceIds?.teamMilestoneId,
+                        milestone.referenceIds?.milestoneId,
+                        milestone.referenceIds?.objectiveMilestoneId,
+                      ].filter(Boolean);
+                      const linkedMilestone = identifierCandidates.reduce((found, key) => {
+                        if (found) return found;
+                        return milestoneLookup.get(key) ?? null;
+                      }, null);
+                      const displayMilestone = linkedMilestone ?? {
+                        ...milestone,
+                        statusToken: milestone.statusToken ?? 'pending',
+                        statusLabel: milestone.statusLabel ?? 'Pending',
+                        checkpoints: [],
+                        progress: 0,
+                        isCustom: false,
+                      };
+                      const startDate = linkedMilestone?.startDate ?? milestone.startDate;
+                      const dueDate = linkedMilestone?.dueDate ?? milestone.endDate;
+                      const visibleCheckpoints = displayMilestone.checkpoints.slice(0, MAX_VISIBLE_CHECKPOINTS);
+                      const hiddenCount = Math.max(0, displayMilestone.checkpoints.length - visibleCheckpoints.length);
+                      const hasActions = Boolean(linkedMilestone);
+                      return (
+                        <div key={milestone.id} className={styles.objectiveMilestoneItem}>
+                          <div className={styles.objectiveMilestoneHeaderRow}>
+                            <div className={styles.objectiveMilestoneTitleGroup}>
+                              <p className={styles.objectiveMilestoneTitle}>{displayMilestone.title}</p>
+                              {displayMilestone.isCustom && <span className={styles.customTag}>Custom</span>}
+                            </div>
+                            <div className={styles.objectiveMilestoneActions}>
+                              <span className={styles.statusPill} style={{ background: getStatusColor(displayMilestone.statusToken) }}>
+                                {displayMilestone.statusLabel}
+                              </span>
+                              {hasActions && (
+                                <div
+                                  className={styles.milestoneActions}
+                                  tabIndex={-1}
+                                  onBlur={(event) => handleMenuBlur(event, linkedMilestone.id)}
+                                >
+                                  <button
+                                    type="button"
+                                    className={styles.menuButton}
+                                    onClick={() => toggleMilestoneMenu(linkedMilestone.id)}
+                                    aria-haspopup="true"
+                                    aria-expanded={openMilestoneMenuId === linkedMilestone.id}
+                                  >
+                                    ⋮
+                                  </button>
+                                  {openMilestoneMenuId === linkedMilestone.id && (
+                                    <div className={styles.actionMenu}>
+                                      <button type="button" onClick={() => openEditMilestoneModal(linkedMilestone, 'dates')}>
+                                        Edit dates
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className={styles.objectiveMilestoneMetaRow}>
+                            <span>Start {formatDate(startDate)}</span>
+                            <span>Due {formatDate(dueDate)}</span>
+                            {displayMilestone.updatedAt && <span>Updated {formatDate(displayMilestone.updatedAt)}</span>}
+                          </div>
+                          {displayMilestone.description && <p className={styles.objectiveMilestoneDescription}>{displayMilestone.description}</p>}
+                          {hasActions ? (
+                            <>
+                              <div className={styles.milestoneProgressBar}>
+                                <div
+                                  className={styles.milestoneProgressFill}
+                                  style={{ width: `${displayMilestone.progress}%`, background: getStatusColor(displayMilestone.statusToken) }}
+                                />
+                              </div>
+                              <div className={styles.milestoneBody}>
+                                <p className={styles.milestoneMeta}>
+                                  {displayMilestone.checkpoints.length ? `${displayMilestone.checkpoints.length} checkpoint(s)` : 'No checkpoints linked yet.'}
+                                </p>
+                              </div>
+                              <div className={styles.milestoneFooter}>
+                                <p className={styles.checkpointNotice}>Checkpoint CRUD is owned by students; lecturers can view a preview below.</p>
+                              </div>
+                              <div className={styles.checkpointList}>
+                                {displayMilestone.checkpoints.length === 0 && <p className={styles.panelBody}>No checkpoints yet.</p>}
+                                {visibleCheckpoints.map((checkpoint) => (
+                                  <div key={checkpoint.id} className={styles.checkpointItem}>
+                                    <div>
+                                      <div className={styles.checkpointTitleRow}>
+                                        <p className={styles.checkpointTitle}>{checkpoint.title}</p>
+                                        <span className={styles.complexityTag} style={{ background: getComplexityColor(checkpoint.complexity) }}>
+                                          {formatStatusLabel(checkpoint.complexity)}
+                                        </span>
+                                      </div>
+                                      {checkpoint.description && <p className={styles.checkpointDescription}>{checkpoint.description}</p>}
+                                      <div className={styles.checkpointMeta}>
+                                        <span>Start {formatDate(checkpoint.startDate)}</span>
+                                        <span>Due {formatDate(checkpoint.dueDate)}</span>
+                                        <span>Status {checkpoint.statusLabel}</span>
+                                      </div>
+                                      {checkpoint.assignees.length > 0 && (
+                                        <p className={styles.checkpointAssignees}>Assigned to {checkpoint.assignees.join(', ')}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                                {hiddenCount > 0 && (
+                                  <p className={styles.panelBody}>
+                                    {hiddenCount} additional checkpoint{hiddenCount > 1 ? 's are' : ' is'} managed inside the student board.
+                                  </p>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <p className={styles.inlineInfo}>This milestone blueprint is waiting for team-linked data.</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className={styles.milestoneManager}>
+            <div className={styles.milestoneList}>
+              {milestoneCards.map((milestone) => {
+                const visibleCheckpoints = milestone.checkpoints.slice(0, MAX_VISIBLE_CHECKPOINTS);
+                const hiddenCount = Math.max(0, milestone.checkpoints.length - visibleCheckpoints.length);
+                return (
+                  <div key={milestone.id} className={styles.milestoneCard}>
+                    <div className={styles.milestoneHeader}>
+                      <div>
+                        <div className={styles.milestoneTitleRow}>
+                          <h4>{milestone.title}</h4>
+                          {milestone.isCustom && <span className={styles.customTag}>Custom</span>}
+                        </div>
+                        <span className={styles.milestoneMeta}>
+                          Start {formatDate(milestone.startDate)} • Due {formatDate(milestone.dueDate)}
+                        </span>
+                        {milestone.updatedAt && <span className={styles.milestoneMeta}>Updated {formatDate(milestone.updatedAt)}</span>}
+                      </div>
+                      <div className={styles.milestoneHeaderActions}>
+                        <span className={styles.statusPill} style={{ background: getStatusColor(milestone.statusToken) }}>
+                          {milestone.statusLabel}
+                        </span>
+                        <div
+                          className={styles.milestoneActions}
+                          tabIndex={-1}
+                          onBlur={(event) => handleMenuBlur(event, milestone.id)}
+                        >
+                          <button
+                            type="button"
+                            className={styles.menuButton}
+                            onClick={() => toggleMilestoneMenu(milestone.id)}
+                            aria-haspopup="true"
+                            aria-expanded={openMilestoneMenuId === milestone.id}
+                          >
+                            ⋮
+                          </button>
+                          {openMilestoneMenuId === milestone.id && (
+                            <div className={styles.actionMenu}>
+                              <button type="button" onClick={() => openEditMilestoneModal(milestone, 'dates')}>
+                                Edit dates
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={styles.milestoneProgressBar}>
+                      <div
+                        className={styles.milestoneProgressFill}
+                        style={{ width: `${milestone.progress}%`, background: getStatusColor(milestone.statusToken) }}
+                      />
+                    </div>
+                    <div className={styles.milestoneBody}>
+                      {milestone.description && <p className={styles.milestoneDescription}>{milestone.description}</p>}
+                      <p className={styles.milestoneMeta}>
+                        {milestone.checkpoints.length ? `${milestone.checkpoints.length} checkpoint(s)` : 'No checkpoints linked yet.'}
+                      </p>
+                    </div>
+                    <div className={styles.milestoneFooter}>
+                      <p className={styles.checkpointNotice}>Checkpoint CRUD is owned by students; lecturers can view a preview below.</p>
+                    </div>
+                    <div className={styles.checkpointList}>
+                      {milestone.checkpoints.length === 0 && <p className={styles.panelBody}>No checkpoints yet.</p>}
+                      {visibleCheckpoints.map((checkpoint) => (
+                        <div key={checkpoint.id} className={styles.checkpointItem}>
+                          <div>
+                            <div className={styles.checkpointTitleRow}>
+                              <p className={styles.checkpointTitle}>{checkpoint.title}</p>
+                              <span className={styles.complexityTag} style={{ background: getComplexityColor(checkpoint.complexity) }}>
+                                {formatStatusLabel(checkpoint.complexity)}
+                              </span>
+                            </div>
+                            {checkpoint.description && <p className={styles.checkpointDescription}>{checkpoint.description}</p>}
+                            <div className={styles.checkpointMeta}>
+                              <span>Start {formatDate(checkpoint.startDate)}</span>
+                              <span>Due {formatDate(checkpoint.dueDate)}</span>
+                              <span>Status {checkpoint.statusLabel}</span>
+                            </div>
+                            {checkpoint.assignees.length > 0 && (
+                              <p className={styles.checkpointAssignees}>Assigned to {checkpoint.assignees.join(', ')}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {hiddenCount > 0 && (
+                        <p className={styles.panelBody}>
+                          {hiddenCount} additional checkpoint{hiddenCount > 1 ? 's are' : ' is'} managed inside the student board.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className={styles.teamSection}>
+        <div className={styles.sectionHeader}>
+          <h3>Team members</h3>
+        </div>
+        <div className={styles.membersGrid}>
+          {teamMembers.length === 0 && !loading.team && (
+            <div className={styles.memberCard}>
+              <p>No team members available for this team yet.</p>
+            </div>
+          )}
+          {teamMembers.map((member) => {
+            const hasMetadata = Boolean(member.studentCode || member.major || member.phoneNumber);
+            return (
+              <article key={member.id} className={styles.memberCard}>
+                <div className={styles.memberHeader}>
+                  <div className={styles.memberAvatar} aria-hidden="true">
+                    {member.avatar ? (
+                      <img src={member.avatar} alt={member.name} className={styles.memberAvatarImage} />
+                    ) : (
+                      getInitials(member.name)
+                    )}
+                  </div>
+                  <div>
+                    <h4>{member.name}</h4>
+                    {member.email && (
+                      <a href={`mailto:${member.email}`} className={styles.memberEmail}>
+                        {member.email}
+                      </a>
+                    )}
+                  </div>
+                  <span className={styles.roleBadge}>{member.role}</span>
+                </div>
+                {hasMetadata ? (
+                  <dl className={styles.memberMeta}>
+                    {member.studentCode && (
+                      <div>
+                        <dt>Student ID</dt>
+                        <dd>{member.studentCode}</dd>
+                      </div>
+                    )}
+                    {member.major && (
+                      <div>
+                        <dt>Major</dt>
+                        <dd>{member.major}</dd>
+                      </div>
+                    )}
+                    {member.phoneNumber && (
+                      <div>
+                        <dt>Phone</dt>
+                        <dd>{member.phoneNumber}</dd>
+                      </div>
+                    )}
+                  </dl>
+                ) : (
+                  <p className={styles.memberMetaPlaceholder}>Profile data will appear once the student updates their information.</p>
+                )}
+                <div className={styles.memberActions}>
+                  <button
+                    type="button"
+                    className={styles.profileButton}
+                    onClick={() => openMemberProfile(member)}
+                    disabled={!member.studentId}
+                  >
+                    <span>View profile</span>
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+      </div>
+
+      {memberProfileModal && (
+        <Modal
+          title="Student profile"
+          onClose={memberProfileLoading ? undefined : closeMemberProfile}
+          disableClose={memberProfileLoading}
+        >
+          {(() => {
+            const profile = memberProfileModal.profile ?? null;
+            const fallback = memberProfileModal.member ?? {};
+            const displayName = profile?.fullName ?? profile?.fullname ?? fallback.name;
+            const studentCode = profile?.code ?? profile?.studentCode ?? fallback.studentCode ?? '';
+            const major = profile?.major ?? fallback.major ?? '';
+            const email = profile?.email ?? fallback.email ?? '';
+            const phoneNumber = profile?.phoneNumber ?? fallback.phoneNumber ?? '';
+            const school = profile?.school ?? fallback.school ?? '';
+            const address = profile?.address ?? fallback.address ?? '';
+            const accountStatus =
+              profile?.isActive === undefined ? null : profile.isActive ? 'Active' : 'Inactive';
+            const avatar = profile?.avatarUrl ?? profile?.avatar ?? fallback.avatar ?? null;
+            return (
+              <div className={styles.profileBody}>
+                <div className={styles.profileHeader}>
+                  <div className={styles.profileAvatar} aria-hidden="true">
+                    {avatar ? (
+                      <img src={avatar} alt={displayName} className={styles.profileAvatarImage} />
+                    ) : (
+                      getInitials(displayName)
+                    )}
+                  </div>
+                  <div>
+                    <h4>{displayName}</h4>
+                    {studentCode && <p className={styles.profileSubtext}>Student ID {studentCode}</p>}
+                    {major && <p className={styles.profileSubtext}>{major}</p>}
+                  </div>
+                  <span className={styles.roleBadge}>{fallback.role}</span>
+                </div>
+                {memberProfileError && !memberProfileLoading && (
+                  <div className={styles.inlineError}>
+                    Unable to load additional profile details. Please try again.
+                    <div className={styles.profileRetryRow}>
+                      <button type="button" className={styles.secondaryButton} onClick={() => openMemberProfile(fallback)}>
+                        Retry
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {memberProfileLoading && !profile && <p className={styles.panelBody}>Loading profile details…</p>}
+                <dl className={styles.profileMetaGrid}>
+                  {email && (
+                    <div>
+                      <dt>Email</dt>
+                      <dd>
+                        <a href={`mailto:${email}`} className={styles.profileLink}>
+                          {email}
+                        </a>
+                      </dd>
+                    </div>
+                  )}
+                  {phoneNumber && (
+                    <div>
+                      <dt>Phone</dt>
+                      <dd>{phoneNumber}</dd>
+                    </div>
+                  )}
+                  {school && (
+                    <div>
+                      <dt>School</dt>
+                      <dd>{school}</dd>
+                    </div>
+                  )}
+                  {address && (
+                    <div>
+                      <dt>Address</dt>
+                      <dd>{address}</dd>
+                    </div>
+                  )}
+                  {accountStatus && (
+                    <div>
+                      <dt>Status</dt>
+                      <dd>{accountStatus}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            );
+          })()}
+        </Modal>
+      )}
+
+      {milestoneModal && (
+        <Modal
+          title={milestoneModal.heading}
+          onClose={mutationLoading.milestone ? undefined : closeMilestoneModal}
+          disableClose={mutationLoading.milestone}
+        >
+          <form className={styles.modalForm} onSubmit={handleMilestoneSubmit}>
+            {milestoneFormError && <p className={styles.modalError}>{milestoneFormError}</p>}
+            {milestoneModal.allowDetails && (
+              <>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel} htmlFor="milestone-title">
+                    Title
+                  </label>
+                  <input
+                    id="milestone-title"
+                    type="text"
+                    className={styles.formInput}
+                    value={milestoneFormValues.title}
+                    onChange={(event) => handleMilestoneFieldChange('title', event.target.value)}
+                    disabled={mutationLoading.milestone}
+                    placeholder="Milestone title"
+                    required
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel} htmlFor="milestone-description">
+                    Description
+                  </label>
+                  <textarea
+                    id="milestone-description"
+                    className={styles.formTextarea}
+                    rows={4}
+                    value={milestoneFormValues.description}
+                    onChange={(event) => handleMilestoneFieldChange('description', event.target.value)}
+                    placeholder="Optional context for this milestone"
+                    disabled={mutationLoading.milestone}
+                  />
+                </div>
+              </>
+            )}
+
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel} htmlFor="milestone-start-date">
+                  Start date
+                </label>
+                <input
+                  id="milestone-start-date"
+                  type="date"
+                  className={styles.formInput}
+                  value={milestoneFormValues.startDate}
+                  onChange={(event) => handleMilestoneFieldChange('startDate', event.target.value)}
+                  disabled={mutationLoading.milestone}
+                  required
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel} htmlFor="milestone-end-date">
+                  End date
+                </label>
+                <input
+                  id="milestone-end-date"
+                  type="date"
+                  className={styles.formInput}
+                  value={milestoneFormValues.endDate}
+                  onChange={(event) => handleMilestoneFieldChange('endDate', event.target.value)}
+                  disabled={mutationLoading.milestone}
+                  required
+                />
               </div>
             </div>
+
+            <div className={styles.modalFooter}>
+              <button type="button" className={styles.secondaryButton} onClick={closeMilestoneModal} disabled={mutationLoading.milestone}>
+                Cancel
+              </button>
+              <button type="submit" className={styles.primaryButton} disabled={mutationLoading.milestone}>
+                {mutationLoading.milestone ? 'Saving…' : milestoneModal.mode === 'create' ? 'Create Milestone' : 'Save Changes'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {confirmState && (
+        <Modal title="Delete milestone" onClose={mutationLoading.delete ? undefined : closeConfirmState} disableClose={mutationLoading.delete}>
+          <div className={styles.confirmBody}>
+            <p>
+              This action will remove <strong>{confirmState.milestone?.title}</strong> and its checkpoints. This cannot be undone.
+            </p>
+            <div className={styles.modalFooter}>
+              <button type="button" className={styles.secondaryButton} onClick={closeConfirmState} disabled={mutationLoading.delete}>
+                Cancel
+              </button>
+              <button type="button" className={styles.dangerButton} onClick={handleDeleteMilestone} disabled={mutationLoading.delete}>
+                {mutationLoading.delete ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
           </div>
-        </div>
-
-        {/* Tech Stack */}
-        <div className={styles.techStack}>
-          <span className={styles.techLabel}>Tech Stack:</span>
-          {projectData.techStack.map(tech => (
-            <span key={tech} className={styles.techTag}>{tech}</span>
-          ))}
-        </div>
-      </div>
-
-      {/* Tab Navigation */}
-      <div className={styles.tabsContainer}>
-        <div className={styles.tabs}>
-          {[
-            { id: 'overview', label: 'Overview', icon: '📊' },
-            { id: 'analytics', label: 'Analytics', icon: '📈' },
-            { id: 'milestones', label: 'Milestones', icon: '🎯' },
-            { id: 'activity', label: 'Activity', icon: '📝' },
-            { id: 'interventions', label: 'Interventions', icon: '⚠️' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              className={`${styles.tab} ${activeTab === tab.id ? styles.activeTab : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <span className={styles.tabIcon}>{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Tab Content */}
-      <div className={styles.content}>
-        {activeTab === 'overview' && renderOverviewTab()}
-        {activeTab === 'analytics' && renderAnalyticsTab()}
-        {activeTab === 'milestones' && renderMilestonesTab()}
-        {activeTab === 'activity' && renderActivityTab()}
-        {activeTab === 'interventions' && renderInterventionsTab()}
-      </div>
-    </div>
+        </Modal>
+      )}
+    </>
   );
 };
 

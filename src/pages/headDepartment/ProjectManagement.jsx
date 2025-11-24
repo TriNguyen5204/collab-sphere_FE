@@ -14,6 +14,7 @@ import {
   Trash2,
   Eye,
   AlertTriangle,
+  Info,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -31,11 +32,9 @@ export default function ProjectManagement() {
 
   const navigate = useNavigate();
 
-  // Pagination
   const [pageNum, setPageNum] = useState(1);
   const [pageCount, setPageCount] = useState(1);
 
-  // Fetch Projects
   const fetchProjects = async (params = {}) => {
     setLoading(true);
     try {
@@ -86,9 +85,9 @@ export default function ProjectManagement() {
   const handlePageChange = newPage => {
     if (newPage >= 1 && newPage <= pageCount) {
       const params = {
-        Descriptors: search || undefined,
-        SubjectIds: subjectId ? [Number(subjectId)] : undefined,
-        LecturerIds: lecturerId ? [Number(lecturerId)] : undefined,
+        descriptors: search || undefined,
+        subjectIds: subjectId ? [Number(subjectId)] : undefined,
+        lecturerIds: lecturerId ? [Number(lecturerId)] : undefined,
         pageNum: newPage,
       };
       setPageNum(newPage);
@@ -183,72 +182,59 @@ export default function ProjectManagement() {
               {projects.map(project => (
                 <div
                   key={project.projectId}
-                  className='relative bg-white rounded-2xl shadow-md hover:shadow-lg transition-transform hover:-translate-y-1 cursor-pointer border border-gray-100'
+                  className='relative bg-white rounded-2xl shadow-md hover:shadow-xl transition-transform hover:-translate-y-1 border border-gray-100 cursor-pointer'
+                  onClick={() => handleProject(project.projectId)}
                 >
-                  {/* Header */}
                   <div className='h-24 bg-gradient-to-r from-blue-300 to-blue-500 rounded-t-2xl'></div>
 
                   {/* Content */}
-                  <div
-                    onClick={() => handleProject(project.projectId)}
-                    className='p-5'
-                  >
-                    <h2 className='text-lg font-semibold text-gray-900 mb-2'>
+                  <div className='p-6 -mt-5 relative z-10'>
+                    <h2 className='text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2'>
+                      <BookOpen className='w-5 h-5 text-blue-600' />
                       {project.projectName}
                     </h2>
 
-                    <div className='flex items-center text-sm text-gray-700 mb-1'>
-                      <BookOpen className='w-4 h-4 mr-2 text-blue-600' />
-                      <span>
-                        {project.subjectName}{' '}
-                        {project.semesterName
-                          ? `(${project.semesterName})`
-                          : ''}
-                      </span>
-                    </div>
-
-                    <div className='flex items-center text-sm text-gray-700 mb-1'>
-                      <ClipboardList className='w-4 h-4 mr-2 text-green-600' />
-                      <span>{project.className || 'No Class Info'}</span>
-                    </div>
-
-                    <div className='flex items-center text-sm text-gray-700 mb-1'>
-                      <User className='w-4 h-4 mr-2 text-purple-600' />
-                      <span>{project.lecturerName || 'Unknown Lecturer'}</span>
-                    </div>
-
-                    {project.majorName && (
-                      <div className='flex items-center text-sm text-gray-700 mb-1'>
-                        <GraduationCap className='w-4 h-4 mr-2 text-amber-600' />
-                        <span>{project.majorName}</span>
+                    <div className='space-y-2 text-sm text-gray-700'>
+                      <div className='flex items-center gap-2'>
+                        <User className='w-4 h-4 text-purple-600' />
+                        <span>
+                          {project.lecturerName || 'Unknown Lecturer'}
+                        </span>
                       </div>
-                    )}
 
-                    <div className='mt-3'>
-                      <div className='flex justify-between text-xs text-gray-500 mb-1'>
-                        <span>Progress</span>
-                        <span>{project.progress ?? 0}%</span>
-                      </div>
-                      <div className='w-full bg-gray-200 rounded-full h-2'>
-                        <div
-                          className='bg-blue-500 h-2 rounded-full transition-all duration-500'
-                          style={{ width: `${project.progress ?? 0}%` }}
-                        ></div>
+                      {project.majorName && (
+                        <div className='flex items-center gap-2'>
+                          <GraduationCap className='w-4 h-4 text-amber-600' />
+                          <span>{project.majorName}</span>
+                        </div>
+                      )}
+
+                      <div className='flex items-start gap-2'>
+                        <Info className='w-4 h-4 text-gray-500 mt-[2px]' />
+                        <span className='line-clamp-3 text-gray-600 text-xs'>
+                          {project.description || 'No description available'}
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Actions */}
+                  {/* Action Buttons */}
                   <div className='absolute top-3 right-3 flex gap-2'>
                     <button
-                      onClick={() => handleProject(project.projectId)}
+                      onClick={e => {
+                        e.stopPropagation();
+                        handleProject(project.projectId);
+                      }}
                       className='bg-white p-2 rounded-full shadow hover:bg-blue-50 transition'
                       title='View Details'
                     >
                       <Eye className='w-4 h-4 text-blue-600' />
                     </button>
                     <button
-                      onClick={() => confirmDelete(project.projectId)}
+                      onClick={e => {
+                        e.stopPropagation();
+                        confirmDelete(project.projectId);
+                      }}
                       className='bg-white p-2 rounded-full shadow hover:bg-red-50 transition'
                       title='Delete Project'
                     >

@@ -1,14 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Video, CalendarDays, PlayCircle, LogIn } from 'lucide-react';
 import MeetingCard from './MeetingCard';
 import MeetingModal from './MeetingModal';
+import { useNavigate } from 'react-router-dom';
 
 const MeetingTypeList = () => {
   const [meetingState, setMeetingState] = useState('');
+  const navigate = useNavigate();
 
-  const CreateMeeting = () =>{
-    
-  }
+  useEffect(() => {
+    if (meetingState === 'isInstantMeeting') {
+      navigate('/room');
+    } else if( meetingState === 'history') {
+      navigate('/test/meeting/history');
+    } else if (meetingState === 'schedule') {
+      navigate(`/test/meeting/schedule`)
+    }
+  }, [meetingState, navigate]);
 
   const meetingTypes = [
     {
@@ -27,10 +35,10 @@ const MeetingTypeList = () => {
     },
     {
       icon: <PlayCircle className='w-8 h-8 text-white' />,
-      title: 'View Recordings',
-      description: 'Watch past meetings',
+      title: 'View History',
+      description: 'View past meetings',
       color: 'bg-purple-600',
-      handleClick: () => setMeetingState('recordings'),
+      handleClick: () => setMeetingState('history'),
     },
     {
       icon: <LogIn className='w-8 h-8 text-white' />,
@@ -53,14 +61,6 @@ const MeetingTypeList = () => {
           handleClick={item.handleClick}
         />
       ))}
-      <MeetingModal
-        isOpen={meetingState === 'isInstantMeeting'}
-        onClose={() => setMeetingState(undefined)}
-        title='New meeting'
-        description='Start an instant meeting'
-        handleClick={() => setMeetingState('isJoiningMeeting')}
-        className='bg-orange-300'
-      />
     </section>
   );
 };

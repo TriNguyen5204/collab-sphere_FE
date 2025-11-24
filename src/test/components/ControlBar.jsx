@@ -7,18 +7,57 @@ export const ControlBar = ({
   onToggleAudio,
   onToggleVideo,
   onLeave,
+  initialAudio = true,
+  initialVideo = true,
+  onToggleChat,
+  showChat,
+  participantCount,
+  roomId,
+  onCopyRoomId,
+  currentTime,
+  myName,
+  isRecording,
+  isRecordingDisabled,
+  recordingUserId,
+  onStartScreenRecording,
+  onStopRecording,
+  me,
+  isHost,
 }) => {
-  const [audioEnabled, setAudioEnabled] = useState(true);
-  const [videoEnabled, setVideoEnabled] = useState(true);
+  const [audioEnabled, setAudioEnabled] = useState(initialAudio);
+  const [videoEnabled, setVideoEnabled] = useState(initialVideo);
+  const [isTogglingAudio, setIsTogglingAudio] = useState(false);
+  const [isTogglingVideo, setIsTogglingVideo] = useState(false);
 
-  const handleToggleAudio = () => {
-    const enabled = onToggleAudio();
-    setAudioEnabled(enabled);
+  const handleToggleAudio = async () => {
+    setIsTogglingAudio(true);
+    try {
+      const enabled = await onToggleAudio();
+      setAudioEnabled(enabled);
+    } catch (error) {
+      console.error('Failed to toggle audio:', error);
+    } finally {
+      setIsTogglingAudio(false);
+    }
+  };
+  const handleToggleRecording = () => {
+    if (isRecording) {
+      onStopRecording();
+    } else {
+      onStartScreenRecording();
+    }
   };
 
-  const handleToggleVideo = () => {
-    const enabled = onToggleVideo();
-    setVideoEnabled(enabled);
+  const handleToggleVideo = async () => {
+    setIsTogglingVideo(true);
+    try {
+      const enabled = await onToggleVideo();
+      setVideoEnabled(enabled);
+    } catch (error) {
+      console.error('Failed to toggle video:', error);
+    } finally {
+      setIsTogglingVideo(false);
+    }
   };
 
   const handleLeave = () => {
@@ -28,63 +67,136 @@ export const ControlBar = ({
   };
 
   return (
-    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
-      <div className="bg-gray-800/90 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-700 px-6 py-4">
-        <div className="flex items-center gap-3">
-          {/* Microphone */}
+    <div className='fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-5xl flex justify-center'>
+      <div className='w-full flex items-center justify-between bg-gray-900/80 backdrop-blur-md rounded-2xl px-6 py-3 border border-gray-800 shadow-2xl'>
+        {/* Left Info Section */}
+        <div className='flex flex-col text-xs text-gray-300 leading-tight'>
+          <span>
+            <strong>📁 Room:</strong>{' '}
+            <span className='font-mono'>{roomId}</span>
+            <button
+              className='ml-2 px-2 py-0.5 rounded bg-gray-700 hover:bg-gray-600 transition text-xs'
+              onClick={onCopyRoomId}
+              title='Copy Room ID'
+            >
+              📋
+            </button>
+          </span>
+          <span>⏰ {currentTime}</span>
+          <span>👤 {myName}</span>
+          <span>👥 {participantCount} participants</span>
+        </div>
+
+        {/* Center Control Buttons */}
+        <div className='flex items-center gap-3'>
+          {/* Chat */}
           <button
-            onClick={handleToggleAudio}
-            className={`w-12 h-12 rounded-xl ${
-              audioEnabled ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-600 hover:bg-red-700'
-            } transition-all hover:scale-110 active:scale-95 flex items-center justify-center`}
-            title={audioEnabled ? 'Mute Microphone' : 'Unmute Microphone'}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition ${
+              showChat
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+            }`}
+            onClick={onToggleChat}
+            title='Toggle Chat'
           >
-            <span className="text-xl">{audioEnabled ? '🎤' : '🔇'}</span>
+            💬
+          </button>
+
+          {/* Mic */}
+          <button
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition ${
+              audioEnabled
+                ? 'bg-green-600 text-white shadow-lg'
+                : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+            }`}
+            onClick={handleToggleAudio}
+            disabled={isTogglingAudio}
+            title={audioEnabled ? 'Tắt mic' : 'Bật mic'}
+          >
+            {audioEnabled ? '🎤' : '🔇'}
           </button>
 
           {/* Camera */}
           <button
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition ${
+              videoEnabled
+                ? 'bg-green-600 text-white shadow-lg'
+                : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+            }`}
             onClick={handleToggleVideo}
-            className={`w-12 h-12 rounded-xl ${
-              videoEnabled ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-600 hover:bg-red-700'
-            } transition-all hover:scale-110 active:scale-95 flex items-center justify-center`}
-            title={videoEnabled ? 'Turn Off Camera' : 'Turn On Camera'}
+            disabled={isTogglingVideo}
+            title={videoEnabled ? 'Tắt camera' : 'Bật camera'}
           >
-            <span className="text-xl">{videoEnabled ? '📹' : '📵'}</span>
+            {videoEnabled ? '📹' : '🚫'}
           </button>
-
-          {/* Divider */}
-          <div className="w-px h-8 bg-gray-600"></div>
-
-          {/* Screen Share */}
-          {isSharing ? (
+          {/* Recording */}
+          {isHost && (
             <button
-              onClick={onStopSharing}
-              className="px-6 h-12 rounded-xl bg-red-600 hover:bg-red-700 transition-all hover:scale-110 active:scale-95 flex items-center justify-center gap-2 font-semibold"
+              onClick={handleToggleRecording}
+              disabled={isRecordingDisabled}
+              className={`p-3 rounded-full transition-colors relative ${
+                isRecording
+                  ? 'bg-red-600 hover:bg-red-700 animate-pulse'
+                  : isRecordingDisabled
+                    ? 'bg-gray-600 cursor-not-allowed opacity-50'
+                    : 'bg-gray-700 hover:bg-gray-600'
+              }`}
+              title={
+                isRecordingDisabled
+                  ? 'Có người khác đang ghi'
+                  : isRecording
+                    ? 'Dừng ghi'
+                    : 'Bắt đầu ghi'
+              }
             >
-              <span>🛑</span>
-              <span>Stop Sharing</span>
-            </button>
-          ) : (
-            <button
-              onClick={onShareScreen}
-              className="px-6 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 transition-all hover:scale-110 active:scale-95 flex items-center justify-center gap-2 font-semibold"
-            >
-              <span>🖥️</span>
-              <span>Share Screen</span>
+              <svg className='w-6 h-6' fill='currentColor' viewBox='0 0 20 20'>
+                <circle cx='10' cy='10' r='6' />
+              </svg>
+              {isRecording && (
+                <span className='absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full'></span>
+              )}
             </button>
           )}
 
-          {/* Divider */}
-          <div className="w-px h-8 bg-gray-600"></div>
+          {/* Share Screen */}
+          {!isSharing ? (
+            <button
+              className='w-10 h-10 rounded-full flex items-center justify-center bg-yellow-600 text-white hover:bg-yellow-500 shadow-md transition'
+              onClick={onShareScreen}
+              title='Chia sẻ màn hình'
+            >
+              🖥️
+            </button>
+          ) : (
+            <button
+              className='w-10 h-10 rounded-full flex items-center justify-center bg-red-600 text-white hover:bg-red-500 shadow-md transition'
+              onClick={onStopSharing}
+              title='Ngừng chia sẻ'
+            >
+              ⛔
+            </button>
+          )}
+        </div>
+        <div className='flex items-center space-x-2'>
+          {/* Recording Indicator */}
+          {recordingUserId && (
+            <div className='flex items-center space-x-2 text-sm'>
+              <div className='w-2 h-2 bg-red-600 rounded-full animate-pulse'></div>
+              <span className='text-gray-300'>
+                {recordingUserId === me ? 'Bạn đang ghi' : 'Đang ghi'}
+              </span>
+            </div>
+          )}
+        </div>
 
-          {/* Leave Button */}
+        {/* Right Leave */}
+        <div>
           <button
+            className='px-5 py-2 rounded-full bg-red-700 hover:bg-red-600 text-white font-semibold shadow-lg transition'
             onClick={handleLeave}
-            className="w-12 h-12 rounded-xl bg-red-600 hover:bg-red-700 transition-all hover:scale-110 active:scale-95 flex items-center justify-center"
-            title="Leave Meeting"
+            title='Rời phòng'
           >
-            <span className="text-xl">📞</span>
+            🚪 Leave
           </button>
         </div>
       </div>
