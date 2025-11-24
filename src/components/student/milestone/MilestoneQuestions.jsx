@@ -332,11 +332,12 @@ const MilestoneQuestions = ({
       {questions.map((question, index) => {
         const questionId = question?.id ?? question?.milestoneQuestionId ?? index;
         const answers = answersMap[questionId] ?? [];
+        const answersLoaded = Object.prototype.hasOwnProperty.call(answersMap, questionId);
         const isLoading = Boolean(loadingMap[questionId]);
         const isSubmitting = Boolean(submitMap[questionId]);
         const errorMessage = errorMap[questionId];
         const baseCount = typeof question?.answerCount === 'number' ? question.answerCount : 0;
-        const derivedCount = Math.max(baseCount, answers.length);
+        const derivedCount = answersLoaded ? answers.length : baseCount;
 
         return (
           <QuestionItem

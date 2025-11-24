@@ -25,7 +25,6 @@ const ReceivedEvaluations = ({ teamId }) => {
     setLoading(true);
     try {
       const data = await getEvaluationMemberByTeamId(teamId);
-      console.log('Received evaluations response:', data);
       const list = Array.isArray(data)
         ? data
         : data?.otherEvaluations || data?.evaluations || data?.data || [];

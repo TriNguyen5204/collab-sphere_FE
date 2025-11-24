@@ -1,10 +1,13 @@
 import React, { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { Home, Archive, User, School, Sparkles, GitBranch } from 'lucide-react';
 import AppSidebar from './AppSidebar';
 
 const StudentSidebar = () => {
     const location = useLocation();
+    const userId = useSelector(state => state.user.userId);
+    const profileHref = userId ? `/${userId}/profile` : '/student/profile';
     const navItems = useMemo(
         () => [
             {
@@ -33,12 +36,12 @@ const StudentSidebar = () => {
             },
             {
                 label: 'Profile',
-                href: '/student/profile',
+                href: profileHref,
                 icon: User,
-                match: path => path.startsWith('/student/profile'),
+                match: path => path === profileHref || path.startsWith('/student/profile'),
             },
         ],
-        [],
+        [profileHref],
     );
 
     return (

@@ -23,6 +23,8 @@ import StudentClassMembersPage from '../pages/student/StudentClassMembersPage';
 import StudentClassProjectsPage from '../pages/student/StudentClassProjectsPage';
 import StudentClassSyllabusPage from '../pages/student/StudentClassSyllabusPage';
 import StudentPRAnalysisPage from '../pages/student/StudentPRAnalysisPage';
+import PeerEvaluationPage from '../pages/student/project/PeerEvaluationPage';
+import ProfilePage from '../pages/ProfilePage';
 
 // lecturer pages
 import ClassManagementDashboard from '../pages/lecturer/ClassManagementDashboard';
@@ -72,7 +74,7 @@ import TestKanbanBoard from '../pages/TestKanbanBoard';
 import Layout from '../test/Meeting/Layout'
 import RoomJoinPage from '../test/RoomJoinPage'
 import MeetingRoomTest from '../test/MeetingRoomTest'
-import MeetingHistory from '../test/Meeting/MeetingHistory';
+// import MeetingHistory from '../test/Meeting/MeetingHistory';
 import MeetingSchedulerFull from '../test/Meeting/MeetingSchedule';
 import MeetingManagement from '../test/Meeting/MeetingManagement';
 // import StreamVideoMeeting from '../test/StreamVideoMeeting';
@@ -110,6 +112,13 @@ const studentRoutes = [
   { path: '/student/:className/members', element: protectRoute(['STUDENT'], <StudentClassMembersPage />) },
   { path: '/student/:className/projects', element: protectRoute(['STUDENT'], <StudentClassProjectsPage />) },
   { path: '/student/:className/syllabus', element: protectRoute(['STUDENT'], <StudentClassSyllabusPage />) },
+  { path: '/student/project/:projectId/:projectName/:teamId/peer-evaluation', element: protectRoute(['STUDENT'], <PeerEvaluationPage />) },
+];
+
+const authenticatedRoles = ['STUDENT', 'LECTURER', 'STAFF', 'HEAD_DEPARTMENT', 'ADMIN'];
+
+const sharedRoutes = [
+  { path: '/:userId/profile', element: protectRoute(authenticatedRoles, <ProfilePage />) },
 ];
 
 const lecturerRoutes = [
@@ -178,6 +187,7 @@ const router = createBrowserRouter([
   ...staffRoutes,
   ...headDepartmentRoutes,
   ...adminRoutes,
+  ...sharedRoutes,
   ...fallbackRoutes,
 ]);
 

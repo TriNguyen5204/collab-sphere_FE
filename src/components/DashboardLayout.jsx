@@ -68,7 +68,7 @@ const normalizePath = (path = '/') => {
 const DashboardLayout = ({ children }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { accessToken, roleName } = useSelector(state => state.user);
+  const { accessToken, roleName, userId } = useSelector(state => state.user);
   const isAuthenticated = Boolean(accessToken);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef(null);
@@ -81,10 +81,11 @@ const DashboardLayout = ({ children }) => {
     dispatch(logout());
     navigate('/login');
   }, [closeProfileMenu, dispatch, navigate]);
+  const profilePath = userId ? `/${userId}/profile` : '/lecturer/classes';
   const handleProfile = useCallback(() => {
     closeProfileMenu();
-    navigate('/lecturer/classes');
-  }, [closeProfileMenu, navigate]);
+    navigate(profilePath);
+  }, [closeProfileMenu, navigate, profilePath]);
   const toggleProfileMenu = useCallback(() => {
     setIsProfileMenuOpen(prev => !prev);
   }, []);

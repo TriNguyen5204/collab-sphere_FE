@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { X } from "lucide-react";
 import { useSelector } from "react-redux";
 
-const ProjectMemberPopover = ({ member, anchorEl, onClose }) => {
+const ProjectMemberPopover = ({ member, anchorEl, onClose, onViewProfile }) => {
     const userId = useSelector((state) => state.user.userId);
     if (!member) return null;
 
@@ -102,13 +102,21 @@ const ProjectMemberPopover = ({ member, anchorEl, onClose }) => {
                 <div className="space-y-1">
                     {isCurrentUser ? (
                         <>
-                            <button className="w-full text-left px-3 py-2 hover:bg-gray-700 rounded text-gray-300">
+                            <button
+                                type="button"
+                                onClick={() => onViewProfile?.(member)}
+                                className="w-full text-left px-3 py-2 hover:bg-gray-700 rounded text-gray-300"
+                            >
                                 Edit profile info
                             </button>
                         </>
                     ) : (
                         <>
-                            <button className="w-full text-left px-3 py-2 hover:bg-gray-700 rounded text-gray-300">
+                            <button
+                                type="button"
+                                onClick={() => onViewProfile?.(member)}
+                                className="w-full text-left px-3 py-2 hover:bg-gray-700 rounded text-gray-300"
+                            >
                                 View Profile
                             </button>
                         </>

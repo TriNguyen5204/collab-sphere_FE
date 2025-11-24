@@ -180,7 +180,7 @@ const QuestionItem = ({
             >
               {questionBadgeLabel}
             </div>
-              <h2 className="text-xl font-semibold text-slate-700 flex w-full">{questionText}</h2>
+            <h2 className="text-xl font-semibold text-slate-700 flex w-full">{questionText}</h2>
           </div>
         </div>
 
@@ -271,8 +271,8 @@ const QuestionItem = ({
               onEditAnswer={onEditAnswer}
               onDeleteAnswer={onDeleteAnswer}
               autoResizeTextarea={autoResizeTextarea}
-                      persistedExpandedEvaluations={persistedExpandedEvaluations}
-                      onPersistedExpandedEvaluationsChange={onPersistedExpandedEvaluationsChange}
+              persistedExpandedEvaluations={persistedExpandedEvaluations}
+              onPersistedExpandedEvaluationsChange={onPersistedExpandedEvaluationsChange}
             />
           </div>
         )}

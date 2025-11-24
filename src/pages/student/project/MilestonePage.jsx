@@ -377,40 +377,27 @@ const MilestonePage = () => {
     }
   };
 
-  const fetchMilestoneDetail = async (milestoneId, options = {}) => {
-    const { silent = false } = options;
-    if (!milestoneId) return null;
-    let mergedFromList = null;
-    let mergedFromSelected = null;
-    try {
-      if (!silent) {
-        setIsLoadingDetail(true);
-      }
-      const detail = await getDetailOfMilestoneByMilestoneId(milestoneId);
-      console.log(detail);
-      setMilestones((prev) => prev.map((m) => {
-        if (getMilestoneId(m) !== milestoneId) return m;
-        const merged = mergeDetailIntoMilestone(m, detail);
-        mergedFromList = merged;
-        return merged;
-      }));
-      setSelectedMilestone((prev) => {
-        if (!prev) return prev;
-        if (getMilestoneId(prev) !== milestoneId) return prev;
-        const merged = mergeDetailIntoMilestone(prev, detail);
-        mergedFromSelected = merged;
-        return merged;
-      });
-      return mergedFromSelected || mergedFromList;
-    } catch (error) {
-      console.error("Error fetching milestone detail:", error);
-    } finally {
-      if (!silent) {
-        setIsLoadingDetail(false);
-      }
-    }
-    return mergedFromSelected || mergedFromList;
-  };
+  const fetchMilestoneDetail = async (milestoneId) => {
+  if (!milestoneId) return null;
+
+  try {
+    setIsLoadingDetail(true);
+    const detail = await getDetailOfMilestoneByMilestoneId(milestoneId);
+    const calculatedSelected = mergeDetailIntoMilestone(selectedMilestone || {}, detail);
+    setSelectedMilestone(calculatedSelected);
+    setMilestones((prev) => prev.map((m) => {
+      if (getMilestoneId(m) !== milestoneId) return m;
+      return mergeDetailIntoMilestone(m, detail);
+    }));
+    return calculatedSelected; 
+
+  } catch (error) {
+    console.error("Error fetching milestone detail:", error);
+    return null;
+  } finally {
+    setIsLoadingDetail(false);
+  }
+};
 
   useEffect(() => {
     if (teamId) {
@@ -454,7 +441,7 @@ const MilestonePage = () => {
     if (!selectedMilestone) return;
     const milestoneId = getMilestoneId(selectedMilestone);
     if (!milestoneId) return;
-    await fetchMilestoneDetail(milestoneId, { silent: true });
+    await fetchMilestoneDetail(milestoneId);
   };
 
   const selectedCheckpoints = useMemo(() => selectedMilestone?.checkpoints || [], [selectedMilestone]);

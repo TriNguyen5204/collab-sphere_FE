@@ -123,7 +123,6 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
     setLoading(true);
     try {
       const response = await getOwnEvaluationByTeamId(teamId);
-      console.log('Own evaluation response:', response);
       const detailsArr = (
         response?.ownEvaluations ?? response?.data ?? []
       );

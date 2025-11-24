@@ -404,6 +404,7 @@ export const patchMarkDoneMilestoneByMilestoneId = async (teamMilestoneId, isDon
 export const patchGenerateNewMilestoneFileLinkByMilestoneIdAndFileId = async (milestoneId, fileId) => {
   try {
     const response = await apiClient.patch(`/milestone/${milestoneId}/files/${fileId}/new-url`);
+    console.log('Regenerated milestone file link data:', response.data);
     return response.data;
   } catch (error) {
     console.error(`Error regenerating file link for milestone ID ${milestoneId} and file ID ${fileId}:`, error);
@@ -436,6 +437,7 @@ export const deleteMilestoneFileByMilestoneIdAndMileReturnId = async (milestoneI
 export const patchGenerateNewReturnFileLinkByMilestoneIdAndMileReturnId = async (milestoneId, mileReturnId) => {
   try {
     const response = await apiClient.patch(`/milestone/${milestoneId}/returns/${mileReturnId}/new-url`);
+    console.log('Regenerated return file link data:', response.data);
     return response.data;
   } catch (error) {
     console.error(`Error regenerating return file link for milestone ID ${milestoneId} and return ID ${mileReturnId}:`, error);

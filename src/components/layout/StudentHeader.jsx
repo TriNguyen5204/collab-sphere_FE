@@ -171,7 +171,8 @@ const StudentHeader = () => {
                   type="button"
                   onClick={() => {
                     setOpenProfile(false);
-                    navigate('/student/profile');
+                    const profilePath = userId ? `/${userId}/profile` : '/student/profile';
+                    navigate(profilePath);
                   }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-200"
                 >

@@ -1,6 +1,7 @@
 import React, { useRef, useCallback, useState } from "react";
 import useTeam from "../../context/useTeam";
 import ProjectMemberPopover from "./ProjectMemberPopover";
+import { useNavigate } from "react-router-dom";
 
 const ProjectMemberAvatars = ({ onSelect }) => {
   const { team } = useTeam();
@@ -11,6 +12,7 @@ const ProjectMemberAvatars = ({ onSelect }) => {
   const buttonRefs = useRef(new Map());
   const [activeMember, setActiveMember] = useState(null);
   const [popoverAnchor, setPopoverAnchor] = useState(null);
+  const navigate = useNavigate();
 
   const registerButtonRef = useCallback((memberId) => (node) => {
     if (!buttonRefs.current) return;
@@ -43,26 +45,36 @@ const ProjectMemberAvatars = ({ onSelect }) => {
     [activeMember?.id, closePopover, onSelect]
   );
 
+  const handleViewProfile = useCallback(
+    (member) => {
+      if (!member?.id) return;
+      closePopover();
+      navigate(`/${member.id}/profile`);
+    },
+    [closePopover, navigate]
+  );
+
   return (
     <div className="flex -space-x-2 relative">
       {visibleMembers.map((m) => {
+        const normalizedId = m.userId ?? m.studentId ?? m.lecturerId ?? m.id;
         const displayMember = {
-          id: m.studentId,
-          name: m.studentName,
+          id: normalizedId,
+          name: m.studentName || m.fullname || m.fullName || m.name || "Member",
           role: m.teamRole === 1 ? "Leader" : "Member",
-          avatar: m.avatar,
+          avatar: m.avatar || m.avatarUrl,
         };
         return (
           <button
-            key={m.studentId}
+            key={normalizedId || m.studentId}
             type="button"
-            ref={registerButtonRef(m.studentId)}
-            onClick={() => handleMemberClick(displayMember, m.studentId)}
+            ref={registerButtonRef(normalizedId)}
+            onClick={() => handleMemberClick(displayMember, normalizedId)}
             className="relative group"
             title={displayMember.name}
           >
             <img
-              src={m.avatar}
+              src={displayMember.avatar}
               alt={displayMember.name}
               className="w-8 h-8 rounded-full bg-white object-cover border group-hover:brightness-75 hover:ring-1 hover:ring-gray-800 transition"
             />
@@ -75,7 +87,12 @@ const ProjectMemberAvatars = ({ onSelect }) => {
         </button>
       )}
       {activeMember && popoverAnchor && (
-        <ProjectMemberPopover member={activeMember} anchorEl={popoverAnchor} onClose={closePopover} />
+        <ProjectMemberPopover
+          member={activeMember}
+          anchorEl={popoverAnchor}
+          onClose={closePopover}
+          onViewProfile={handleViewProfile}
+        />
       )}
     </div>
   );

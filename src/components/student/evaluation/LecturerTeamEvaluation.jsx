@@ -15,7 +15,6 @@ const LecturerTeamEvaluation = ({ teamId }) => {
             setError(null);
             try {
                 const response = await getLecturerEvaluationByTeamId(teamId);
-                console.log('Lecturer evaluation data:', response);
                 if (mounted) setEvaluation(response.lecturerEvaluateTeam);
             } catch (err) {
                 console.error('Failed to load lecturer evaluation', err);
