@@ -6,7 +6,23 @@ export const getLecturerClasses = async (lecturerId, params = {}) => {
   }
 
   const response = await apiClient.get(`/class/lecturer/${lecturerId}`, { params });
-  console.log(response.data);
+  return response.data;
+};
+
+export const getClassTeams = async (classId, params = {}) => {
+  if (classId === undefined || classId === null || classId === '') {
+    throw new Error('classId is required to fetch class teams.');
+  }
+
+  const response = await apiClient.get(`/team/class/${classId}`, { params });
+  return response.data;
+};
+
+export const getClassById = async (classId) => {
+  if (!classId) {
+    throw new Error('classId is required to fetch class details.');
+  }
+  const response = await apiClient.get(`/class/${classId}`);
   return response.data;
 };
 

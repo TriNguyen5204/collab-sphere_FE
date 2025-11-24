@@ -473,7 +473,6 @@ const ClassManagementDashboard = () => {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Class roster</p>
                 <h2 className="text-xl font-semibold text-slate-900">Assigned classes</h2>
-                <p className="text-sm text-slate-500">Data sourced directly from GET /class</p>
               </div>
               <span className="text-sm text-slate-500">{filteredClasses.length} item(s)</span>
             </div>

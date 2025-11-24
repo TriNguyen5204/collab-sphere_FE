@@ -26,7 +26,7 @@ import { getRoleLandingRoute } from '../constants/roleRoutes';
 const heroHighlights = [
   'AI copilots transform module briefs into milestones, checkpoints, and evaluation rubrics in minutes.',
   'Role-aware dashboards surface accreditation status, risk alerts, and cohort health for every stakeholder.',
-  'Tightly integrated submissions, peer feedback, and Git analytics keep programme evidence audit-ready.',
+  'Tightly integrated submissions, lecturer feedback, and Git analytics keep programme evidence audit-ready.',
 ];
 
 const statHighlights = [
@@ -85,7 +85,7 @@ const workflowPillars = [
   {
     title: 'Assessment & Accreditation',
     description:
-      'Evidence bundles combine submissions, peer feedback, and rubric scores for lightning-fast accreditation audits.',
+      'Evidence bundles combine submissions, milestone feedback, and rubric scores for lightning-fast accreditation audits.',
     icon: BadgeCheck,
   },
 ];
@@ -98,7 +98,7 @@ const automationHighlights = [
   },
   {
     title: 'Predictive risk radar',
-    description: 'Signals from attendance, commits, and peer feedback trigger interventions before blockers escalate.',
+    description: 'Signals from attendance, commits, and milestone health trigger interventions before blockers escalate.',
     icon: Target,
   },
   {
@@ -114,8 +114,8 @@ const insightPills = [
     description: 'Checkpoint status syncs with ClassMember profiles to visualise individual contribution patterns.',
   },
   {
-    title: 'Peer evaluation loops',
-    description: 'Lecturer and peer scoring feed directly into MemberEvaluation records for balanced grading.',
+    title: 'Milestone review loops',
+    description: 'Lecturer insights map directly into MemberEvaluation records for balanced grading.',
   },
   {
     title: 'Curriculum fidelity',
@@ -214,7 +214,7 @@ function Homepage() {
               One operating system for students, lecturers, and academic leadership to run AI-assisted project programmes.
             </h1>
             <p className="max-w-2xl text-base text-slate-300 md:text-lg">
-              CollabSphere threads user management, academic structure, and assessment workflows into a single source of truth. From approved project briefs to peer evaluations, every artefact stays connected and accreditation-ready.
+              CollabSphere threads user management, academic structure, and assessment workflows into a single source of truth. From approved project briefs to milestone reviews, every artefact stays connected and accreditation-ready.
             </p>
             <ul className="space-y-4 text-sm text-slate-300">
               {heroHighlights.map((item) => (
@@ -379,7 +379,7 @@ function Homepage() {
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary-300" aria-hidden="true" />
-                    Peer and lecturer insights combine for a balanced lens on individual contribution and skills development.
+                    Lecturer insights and milestone analytics combine for a balanced lens on individual contribution and skills development.
                   </li>
                 </ul>
               </div>
@@ -399,7 +399,7 @@ function Homepage() {
                       <span>18 artefacts</span>
                     </div>
                     <div className="flex items-center justify-between text-xs text-slate-300">
-                      <span>Peer evaluations</span>
+                      <span>Milestone feedback</span>
                       <span>96 responses</span>
                     </div>
                     <div className="flex items-center justify-between text-xs text-slate-300">

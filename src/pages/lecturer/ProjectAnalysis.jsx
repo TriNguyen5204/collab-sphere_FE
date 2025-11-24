@@ -128,7 +128,7 @@ const ProjectAnalysis = () => {
         category: 'Soft Skills',
         item: 'Communication skills',
         impact: 'medium',
-        recommendation: 'Add presentation requirements and peer review sessions'
+        recommendation: 'Add presentation requirements and structured reflection sessions'
       },
       {
         type: 'missing',
@@ -203,7 +203,7 @@ const ProjectAnalysis = () => {
         confidence: 0,
         evidence: [],
         mappedRequirements: [],
-        gaps: ['Team presentation component', 'Peer review process', 'Communication documentation']
+        gaps: ['Team presentation component', 'Reflection process', 'Communication documentation']
       }
     ]
   };
@@ -520,7 +520,7 @@ const ProjectAnalysis = () => {
           { item: 'Clear assessment criteria defined', status: 'compliant', priority: 'high' },
           { item: 'Multiple assessment methods included', status: 'compliant', priority: 'high' },
           { item: 'Rubric alignment with objectives', status: 'compliant', priority: 'high' },
-          { item: 'Peer evaluation components', status: 'partial', priority: 'medium' },
+          { item: 'Milestone reflection components', status: 'partial', priority: 'medium' },
           { item: 'Self-reflection requirements', status: 'non_compliant', priority: 'low' }
         ]
       },
@@ -551,9 +551,9 @@ const ProjectAnalysis = () => {
       {
         type: 'improvement',
         priority: 'medium',
-        item: 'Add peer evaluation component',
-        description: 'Include structured peer review sessions to enhance collaborative learning',
-        impact: 'Improves teamwork skills and provides multiple feedback perspectives'
+        item: 'Add milestone reflection component',
+        description: 'Include structured reflection sessions to enhance collaborative learning',
+        impact: 'Improves teamwork skills and provides actionable feedback loops'
       },
       {
         type: 'addition',
@@ -709,7 +709,7 @@ const ProjectAnalysis = () => {
           <div className={styles.insightItem}>
             <ExclamationTriangleIcon className="w-5 h-5 text-yellow-500" />
             <div>
-              <strong>Communication Skills Gap:</strong> Consider adding presentation components and peer review sessions to address soft skills development.
+              <strong>Communication Skills Gap:</strong> Consider adding presentation components and structured reflection sessions to address soft skills development.
             </div>
           </div>
           

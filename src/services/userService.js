@@ -274,7 +274,8 @@ export const createMultipleSubjects = async data => {
 };
 export const getSubjectById = async id => {
   try {
-    const response = await apiClient.get(`subject/${id}`);
+    const response = await apiClient.get(`/subject/${id}`);
+    console.log('Subject detail response:', response.data);
     return response.data;
   } catch (error) {
     console.log('Fetch failed', error);

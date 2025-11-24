@@ -14,29 +14,15 @@ const unwrapResponse = (payload) => {
   return payload;
 };
 
-export const getTeamEvaluationSummary = async (teamId, params = {}) => {
+export const getTeamEvaluationSummary = async (teamId) => {
   validateIdentifier(teamId, 'teamId');
   try {
-    const response = await apiClient.get(`/evaluate/team/${teamId}`);
+    const response = await apiClient.get(`/evaluate/lecturer/team/${teamId}`);
     const payload = response.data;
-    if (payload?.teamEvaluation || payload?.memberEvaluations || payload?.evaluationDetails) {
-      return payload;
+    if (payload?.lecturerEvaluateTeam) {
+      return payload.lecturerEvaluateTeam;
     }
-    return unwrapResponse(payload) ?? null;
-  } catch (error) {
-    if (error?.response?.status === 404) {
-      return null;
-    }
-    throw error;
-  }
-};
-
-export const getMilestoneEvaluationDetail = async (milestoneId) => {
-  validateIdentifier(milestoneId, 'milestoneId');
-  try {
-    const response = await apiClient.get(`/evaluate/milestone/${milestoneId}`);
-    console.log("milestone evaluation detail response:", response.data);
-    return unwrapResponse(response.data);
+    return null;
   } catch (error) {
     if (error?.response?.status === 404) {
       return null;
@@ -70,21 +56,16 @@ export const getMilestoneEvaluationsByTeam = async (teamId, params = {}) => {
         }
 
         try {
-          const detail = await getMilestoneEvaluationDetail(milestoneId);
+          const response = await apiClient.get(`/milestone/${milestoneId}`);
+          const detail = response.data?.milestoneEvaluation;
+          
           if (!detail) {
             return null;
           }
 
-          const normalizedDetail = detail?.lecturerEvaluateTeamMilestone
-            ? {
-                ...detail.lecturerEvaluateTeamMilestone,
-                teamMilestoneId: detail.lecturerEvaluateTeamMilestone.teamMilestoneId ?? milestoneId,
-              }
-            : detail;
-
           return {
-            ...normalizedDetail,
-            teamMilestoneId: normalizedDetail.teamMilestoneId ?? milestoneId,
+            ...detail,
+            teamMilestoneId: detail.teamMilestoneId ?? milestoneId,
             milestoneTitle: milestone?.title ?? milestone?.name,
             milestoneDueDate: milestone?.dueDate ?? milestone?.endDate ?? milestone?.targetDate,
           };
@@ -105,3 +86,24 @@ export const getMilestoneEvaluationsByTeam = async (teamId, params = {}) => {
     throw error;
   }
 };
+
+export const submitTeamEvaluation = async (teamId, payload = {}) => {
+  validateIdentifier(teamId, 'teamId');
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('payload is required to submit a team evaluation.');
+  }
+
+  const response = await apiClient.post(`/evaluate/lecturer/team/${teamId}`, payload);
+  return response.data;
+};
+
+export const submitMilestoneEvaluation = async (teamMilestoneId, payload = {}) => {
+  validateIdentifier(teamMilestoneId, 'teamMilestoneId');
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('payload is required to submit a milestone evaluation.');
+  }
+
+  const response = await apiClient.post(`/evaluate/milestone/${teamMilestoneId}`, payload);
+  return response.data;
+};
+

@@ -16,7 +16,6 @@ import StudentClassPage from '../pages/student/StudentClassPage';
 import StudentProfile from '../pages/student/StudentProfile';
 import ProjectBoard from '../pages/student/project/ProjectBoard';
 import MilestoneCheckpointPage from '../pages/student/project/MilestonePage';
-import PeerEvaluationPage from '../pages/student/project/PeerEvaluationPage';
 import TeamWorkspace from '../pages/student/project/TeamWorkspace';
 import GitHubAppCallback from '../pages/student/project/GitHubAppCallback';
 import ProfessionalAnalysisView from '../pages/student/project/ProfessionalAnalysisView';
@@ -35,6 +34,13 @@ import ProjectDetail from '../pages/lecturer/ProjectDetail';
 import ProjectAnalysis from '../pages/lecturer/ProjectAnalysis';
 import LecturerMonitoringDashboard from '../pages/lecturer/LecturerMonitoringDashboard';
 import ClassProjectAssignment from '../pages/lecturer/ClassProjectAssignment';
+import GradingDashboard from '../pages/lecturer/grading/GradingDashboard';
+import ClassGradingOverview from '../pages/lecturer/grading/ClassGradingOverview';
+import TeamEvaluationPage from '../pages/lecturer/evaluations/TeamEvaluationPage';
+import TeamMilestonesPage from '../pages/lecturer/evaluations/TeamMilestonesPage';
+import MilestoneDetailPage from '../pages/lecturer/evaluations/MilestoneDetailPage';
+import MilestoneEvaluationPage from '../pages/lecturer/evaluations/MilestoneEvaluationPage';
+import LecturerGradingDashboard from '../pages/lecturer/grading/LecturerGradingDashboard';
 
 // academic services (staff) pages
 import StaffPage from '../pages/staff/StaffPage';
@@ -96,7 +102,6 @@ const studentRoutes = [
   { path: '/student/profile', element: protectRoute(['STUDENT'], <StudentProfile />) },
   { path: '/student/project/:projectId/:projectName/:teamId', element: protectRoute(['STUDENT'], <ProjectBoard />) },
   { path: '/student/project/:projectId/:projectName/:teamId/milestones&checkpoints', element: protectRoute(['STUDENT'], <MilestoneCheckpointPage />) },
-  { path: '/student/project/:projectId/:projectName/:teamId/peer-evaluation', element: protectRoute(['STUDENT'], <PeerEvaluationPage />) },
   { path: '/student/project/:projectId/:projectName/:teamId/team-workspace', element: protectRoute(['STUDENT'], <TeamWorkspace />) },
   { path: '/student/project/:projectId/:projectName/:teamId/pr-analysis/:analysisId', element: protectRoute(['STUDENT'], <ProfessionalAnalysisView />) },
   { path: '/projects/github-callback', element: protectRoute(['STUDENT'], <GitHubAppCallback />) },
@@ -121,6 +126,17 @@ const lecturerRoutes = [
   { path: '/lecturer/projects/:projectId/analysis', element: protectRoute(['LECTURER'], <ProjectAnalysis />) },
   { path: '/lecturer/monitoring/:classId', element: protectRoute(['LECTURER'], <LecturerMonitoringDashboard />) },
   { path: '/lecturer/monitoring', element: protectRoute(['LECTURER'], <LecturerMonitoringDashboard />) },
+  { path: '/lecturer/grading', element: protectRoute(['LECTURER'], <GradingDashboard />) },
+  { path: '/lecturer/grading/:classId', element: protectRoute(['LECTURER'], <ClassGradingOverview />) },
+  { path: '/lecturer/grading/team/:teamId', element: protectRoute(['LECTURER'], <TeamEvaluationPage />) },
+  { path: '/lecturer/grading/class/:classId/team/:teamId', element: protectRoute(['LECTURER'], <TeamEvaluationPage />) },
+  { path: '/lecturer/grading/team/:teamId/milestones', element: protectRoute(['LECTURER'], <TeamMilestonesPage />) },
+  { path: '/lecturer/grading/class/:classId/team/:teamId/milestones', element: protectRoute(['LECTURER'], <TeamMilestonesPage />) },
+  { path: '/lecturer/grading/team/:teamId/milestones/evaluate', element: protectRoute(['LECTURER'], <MilestoneEvaluationPage />) },
+  { path: '/lecturer/grading/class/:classId/team/:teamId/milestones/evaluate', element: protectRoute(['LECTURER'], <MilestoneEvaluationPage />) },
+  { path: '/lecturer/grading/team/:teamId/milestones/:milestoneId', element: protectRoute(['LECTURER'], <MilestoneDetailPage />) },
+  { path: '/lecturer/grading/class/:classId/team/:teamId/milestones/:milestoneId', element: protectRoute(['LECTURER'], <MilestoneDetailPage />) },
+  { path: '/lecturer/grading/dashboard', element: protectRoute(['LECTURER'], <LecturerGradingDashboard />) },
 ];
 
 const staffRoutes = [
