@@ -25,8 +25,6 @@ export const getMilestonesByTeam = async (teamId) => {
     const status = error?.response?.status;
     const data = error?.response?.data;
 
-    // Some environments currently reply with HTTP 400 when a team has no milestones yet.
-    // Treat that case as a successful call returning an empty collection so the UI can render gracefully.
     if (status === 400 && data && (Array.isArray(data.teamMilestones) || Array.isArray(data.list) || Array.isArray(data.data))) {
       console.warn(`Received empty milestone payload with 400 status for team ID ${teamId}. Treating as empty result.`);
       return data;
@@ -44,6 +42,7 @@ export const getMilestoneDetail = async (milestoneId) => {
 
   try {
     const response = await apiClient.get(`/milestone/${milestoneId}`);
+    console.log('Milestone detail response:', response.data);
     return response.data;
   } catch (error) {
     console.error(`Error fetching milestone detail for ID ${milestoneId}:`, error);

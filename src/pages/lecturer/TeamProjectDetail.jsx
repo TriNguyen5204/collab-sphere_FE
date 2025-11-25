@@ -999,22 +999,6 @@ const TeamProjectDetail = () => {
                               <button type="button" onClick={() => openEditMilestoneModal(milestone, 'dates')}>
                                 Edit dates
                               </button>
-                              <button
-                                type="button"
-                                disabled={!milestone.isCustom}
-                                className={!milestone.isCustom ? styles.menuItemDisabled : ''}
-                                onClick={() => milestone.isCustom && openEditMilestoneModal(milestone, 'details')}
-                              >
-                                Edit details
-                              </button>
-                              <button
-                                type="button"
-                                disabled={!milestone.isCustom}
-                                className={`${styles.menuDanger} ${!milestone.isCustom ? styles.menuItemDisabled : ''}`.trim()}
-                                onClick={() => milestone.isCustom && openDeleteMilestoneDialog(milestone)}
-                              >
-                                Delete
-                              </button>
                             </div>
                           )}
                         </div>
