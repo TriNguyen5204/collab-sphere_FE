@@ -681,15 +681,6 @@ const CardModal = ({
               >
                 <div className='flex items-center justify-between'>
                   <div className='flex items-center gap-2'>
-                    <input
-                      type='checkbox'
-                      checked={task.isDone}
-                      onChange={() =>
-                        handleToggleTaskDone(task.taskId, task.isDone)
-                      }
-                      disabled={!isConnected}
-                      className='w-5 h-5'
-                    />
                     <span
                       className={`font-semibold text-lg ${
                         task.isDone ? 'line-through opacity-60' : ''

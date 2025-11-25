@@ -62,6 +62,7 @@ export const deleteMeeting = async meetingId => {
   }
 };
 export const getRecordUrl = async (videoFile) => {
+  console.log('video', videoFile)
   const formData = new FormData();
   formData.append('VideoFile', videoFile);
 

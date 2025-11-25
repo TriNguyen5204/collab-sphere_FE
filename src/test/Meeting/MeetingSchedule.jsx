@@ -5,9 +5,10 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { useEffect, useState } from 'react';
 import { createMeeting, getMeeting } from '../../services/meetingApi';
 import { toast } from 'sonner';
-import Sidebar from './Sidebar';
+import { useParams } from 'react-router-dom';
 
 const MeetingSchedulerFull = () => {
+  const {teamId} = useParams();
   const [events, setEvents] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -32,9 +33,9 @@ const MeetingSchedulerFull = () => {
     const fetchMeetings = async () => {
       try {
         const meetings = await getMeeting({
-          teamId: 2,
+          teamId: teamId,
         }); 
-        const formattedEvents = meetings.list.map(meeting => ({
+        const formattedEvents = meetings.paginatedMeeting.list.map(meeting => ({
           id: meeting.meetingId,
           title: meeting.title,
           start: meeting.scheduleTime,
@@ -166,7 +167,6 @@ const MeetingSchedulerFull = () => {
 
   return (
     <div className='flex'>
-      <Sidebar />
       <div className='flex-1 p-6 min-h-screen pt-28 px-6 pb-6 sm:px-14'>
         {/* Header */}
         <div className='text-center mb-8'>

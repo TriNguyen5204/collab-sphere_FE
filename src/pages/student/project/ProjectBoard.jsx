@@ -28,12 +28,12 @@ const ProjectBoard = () => {
     const fetchMembers = async () => {
       if (!teamId) return;
       try {
-        const teamData = await getTeamDetail(teamId); 
+        const teamData = await getTeamDetail(teamId);
         if (teamData && teamData.memberInfo) {
           const formattedMembers = teamData.memberInfo.members.map(member => ({
             studentId: member.studentId,
             studentName: member.studentName,
-            avatarImg: member.avatar,  // ✅ avatar → avatarImg
+            avatarImg: member.avatar, // ✅ avatar → avatarImg
           }));
           setMembers(formattedMembers);
           console.log('✅ Members loaded:', formattedMembers);
@@ -42,7 +42,7 @@ const ProjectBoard = () => {
         console.error('Error fetching team members:', error);
       }
     };
-    
+
     fetchMembers();
   }, [teamId]);
 
@@ -54,7 +54,6 @@ const ProjectBoard = () => {
         const data = await getWorkspace(teamId);
         if (data) {
           const detail = data.teamWorkspaceDetail;
-          console.log('data', detail);
           setWorkspace({
             id: detail.workspaceId,
             title: detail.title,
@@ -128,13 +127,16 @@ const ProjectBoard = () => {
       className='min-h-screen min-w-full'
       style={{ backgroundColor: '#D5DADF' }}
     >
-      <ProjectBoardHeader
-        selectedRole={selectedRole}
-        onRoleChange={setSelectedRole}
-        archivedItems={archivedItems}
-        onRestoreArchived={handleRestoreArchived}
-        onDeleteArchived={handleDeleteArchived}
-      />
+      {workspace && (
+        <ProjectBoardHeader
+          selectedRole={selectedRole}
+          onRoleChange={setSelectedRole}
+          archivedItems={archivedItems}
+          onRestoreArchived={handleRestoreArchived}
+          onDeleteArchived={handleDeleteArchived}
+          workspaceName={workspace.title}
+        />
+      )}
 
       <div className='p-6 overflow-auto min-h-screen'>
         {workspace && (
