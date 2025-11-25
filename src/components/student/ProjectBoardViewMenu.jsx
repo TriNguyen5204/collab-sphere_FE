@@ -39,8 +39,10 @@ const ProjectBoardViewMenu = () => {
     <div className="relative w-auto" ref={menuRef}>
       <button
         onClick={() => setOpen(!open)}
-        className={`flex items-center justify-between px-3 py-2 rounded transition ${
-          open ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+        className={`flex items-center justify-between px-3 py-2 rounded border transition ${
+          open
+            ? 'bg-white text-gray-900 border-gray-300 shadow'
+            : 'bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200'
         }`}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -53,7 +55,7 @@ const ProjectBoardViewMenu = () => {
       </button>
 
       {open && (
-        <ul className="absolute right-0 mt-2 bg-gray-800 text-white shadow-lg rounded-lg border border-gray-700 text-sm z-10 w-max min-w-full whitespace-nowrap">
+        <ul className="absolute right-0 mt-2 bg-white text-gray-900 shadow-lg rounded-lg border border-gray-200 text-sm z-10 w-max min-w-full whitespace-nowrap">
           {menuItems.map(({ name, icon: Icon, path }) => {
             const normalizedPath = normalizePath(path);
             const isActive = normalizedPath === activePath;
@@ -63,8 +65,8 @@ const ProjectBoardViewMenu = () => {
                 <Link
                   to={path}
                   onClick={() => setOpen(false)}
-                  className={`flex items-center px-4 py-2.5 hover:bg-gray-700 rounded transition ${
-                    isActive ? 'bg-gray-700 text-white font-semibold' : ''
+                  className={`flex items-center px-4 py-2.5 hover:bg-gray-100 rounded transition ${
+                    isActive ? 'bg-gray-100 text-gray-900 font-semibold' : ''
                   }`}
                 >
                   <Icon className="w-4 h-4 mr-3" />

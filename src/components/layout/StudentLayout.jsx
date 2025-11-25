@@ -7,10 +7,10 @@ const StudentLayout = ({ children }) => {
     <div className='min-h-screen w-full bg-slate-50'>
       <StudentHeader />
       <div className='flex'>
-        <div className=''>
+        <aside className='fixed top-16 left-0 h-[calc(100vh-4rem)] overflow-y-auto bg-slate-50 border-r border-slate-200'>
           <StudentSidebar />
-        </div>
-        <main className='flex-1 min-w-0 px-4 py-6 md:px-6 lg:px-8'>
+        </aside>
+        <main className='flex-1 min-h-screen min-w-0 px-4 py-6 md:px-6 lg:px-8 ml-64'>
           {children}
         </main>
       </div>

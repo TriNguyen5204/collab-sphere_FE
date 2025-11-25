@@ -20,7 +20,7 @@ const StudentHeader = () => {
   const [openSearch, setOpenSearch] = useState(false);
   const [openProfile, setOpenProfile] = useState(false);
   const avatar = useSelector((state) => state.user.avatar);
-  const fullname = useSelector((state) => state.user.fullname);
+  const fullname = useSelector((state) => state.user.fullName);
 
   const searchRef = useRef(null);
   useClickOutside(searchRef, () => setOpenSearch(false));

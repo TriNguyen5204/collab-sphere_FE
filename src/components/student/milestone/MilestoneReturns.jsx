@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { Upload, FileText, Trash2, Loader2, User, X } from 'lucide-react';
+import { useSecureFileHandler } from '../../../hooks/useSecureFileHandler';
 
 const VIETNAM_TIMEZONE = 'Asia/Ho_Chi_Minh';
 const VIETNAM_UTC_OFFSET_MS = 7 * 60 * 60 * 1000;
-const LINK_REFRESH_BUFFER_MS = 60 * 1000; // Refresh link if it will expire within the next minute
+const LINK_REFRESH_BUFFER_MS = 60 * 1000;
 
 const timezoneRegex = /([zZ])|([+-]\d{2}:?\d{2})$/;
 
@@ -104,6 +105,7 @@ const MilestoneReturns = ({
   const [localFiles, setLocalFiles] = useState([]);
   const [isUploadingReturns, setIsUploadingReturns] = useState(false);
   const [refreshingReturnId, setRefreshingReturnId] = useState(null);
+  const { openSecureFile } = useSecureFileHandler();
 
   const submissionsWithExpireInfo = useMemo(() => (
     submissions.map((submission) => ({
@@ -158,69 +160,39 @@ const MilestoneReturns = ({
       ?? returnItem.url
       ?? returnItem.path;
 
-    const SAFE_BUFFER = 5 * 60 * 1000;
     const expireInfo = currentSubmission?.expireInfo
       ?? buildExpireInfo(currentSubmission?.urlExpireTime || returnItem?.urlExpireTime);
 
+    const SAFE_BUFFER = 5 * 60 * 1000;
+    const canRefresh = typeof onRefreshMilestoneReturnLink === 'function' && id != null;
     const isRiskOfExpiring = expireInfo?.expireDateUtc
       ? (Date.now() + SAFE_BUFFER) >= expireInfo.expireDateUtc.getTime()
       : true;
+    const shouldForceRefresh = canRefresh && (isRiskOfExpiring || !fallbackUrl);
 
-    const canRefresh = typeof onRefreshMilestoneReturnLink === 'function' && id != null;
-    const shouldFetchNew = canRefresh && (isRiskOfExpiring || !fallbackUrl);
-
-    if (!shouldFetchNew) {
-      if (fallbackUrl) {
-        window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
-      }
+    if (!fallbackUrl && !canRefresh) {
+      alert('No document link available.');
       return;
     }
 
-    const newWindow = window.open('', '_blank');
-    if (!newWindow) {
-      alert('Please allow pop-ups for this website to view the file.');
+    if (!shouldForceRefresh) {
+      openSecureFile(
+        fallbackUrl,
+        () => Promise.resolve(fallbackUrl),
+        false,
+      );
       return;
     }
-
-    newWindow.document.write(`
-      <html>
-        <head><title>Loading Document...</title></head>
-        <body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;background:#f9fafb;">
-          <div style="text-align:center;">
-            <div style="margin-bottom:10px;">
-                <svg width="40" height="40" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-loader"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
-            </div>
-            <p style="color:#374151;">Generating secure link...</p>
-          </div>
-          <script>
-            const svg = document.querySelector('svg');
-            let deg = 0;
-            setInterval(() => { deg = (deg + 6) % 360; svg.style.transform = 'rotate(' + deg + 'deg)'; }, 16);
-          </script>
-        </body>
-      </html>
-    `);
 
     try {
       setRefreshingReturnId(id);
-      console.info(`Refreshing submission link for return ${id}`);
-      const refreshedUrl = await onRefreshMilestoneReturnLink(id);
-      const sanitizedRefreshedUrl = typeof refreshedUrl === 'string' ? refreshedUrl.trim() : '';
-      const finalUrl = sanitizedRefreshedUrl || fallbackUrl;
-
-      if (finalUrl) {
-        newWindow.location.href = finalUrl;
-      } else {
-        newWindow.document.body.innerHTML = '<p style="text-align:center;color:red;">Could not load document URL.</p>';
-      }
+      await openSecureFile(
+        fallbackUrl,
+        () => onRefreshMilestoneReturnLink(id),
+        true,
+      );
     } catch (error) {
-      console.error('Failed to refresh submission link', error);
-      if (fallbackUrl) {
-        newWindow.location.href = fallbackUrl;
-      } else {
-        newWindow.close();
-        alert('Failed to open document.');
-      }
+      console.error('Failed to open milestone submission', error);
     } finally {
       setRefreshingReturnId(null);
     }
@@ -228,7 +200,7 @@ const MilestoneReturns = ({
 
   return (
     <section>
-      <h4 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
+      <h4 className="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
         <Upload size={16} />
         Submissions ({submissions.length})
       </h4>

@@ -11,13 +11,13 @@ const iconMap = {
 
 const MilestoneTimeline = ({ milestones, selectedMilestone, onSelectMilestone }) => {
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 h-fit">
+    <div className="bg-white rounded-lg shadow-md p-6 w-full">
       <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
         <Flag size={24} />
         Milestone Timeline
       </h2>
 
-      <div className="space-y-3">
+      <div className="space-y-3 w-full">
         {milestones.map((milestone) => {
           const dueDate = milestone?.endDate;
           const daysRemaining = dueDate ? getDaysRemaining(dueDate) : 0;
@@ -29,7 +29,7 @@ const MilestoneTimeline = ({ milestones, selectedMilestone, onSelectMilestone })
           const isActive = activeId === milestoneId;
 
           return (
-            <div key={milestoneId} className="relative">
+            <div key={milestoneId} className="w-full">
               <button
                 onClick={() => onSelectMilestone(milestone)}
                 className={`w-full text-left p-4 rounded-lg border-2 transition ${isActive

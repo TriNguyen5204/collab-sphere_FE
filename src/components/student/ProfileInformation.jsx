@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Edit2, Loader2 } from "lucide-react";
 import { generateAvatarFromName } from "../../utils/avatar";
+import { toast } from "sonner";
 const ProfileInformation = ({
   user,
   avatar,
@@ -38,7 +39,6 @@ const ProfileInformation = ({
 
   const initialEditable = useMemo(
     () => ({
-      email: user?.email || "",
       phone: user?.phoneNumber || "",
       address: user?.address || "",
     }),
@@ -47,7 +47,6 @@ const ProfileInformation = ({
 
   const isDirty = useMemo(() => {
     return (
-      profileData.email !== initialEditable.email ||
       profileData.phone !== initialEditable.phone ||
       profileData.address !== initialEditable.address
     );
@@ -68,7 +67,6 @@ const ProfileInformation = ({
     if (!canEdit) return;
     setProfileData((prev) => ({
       ...prev,
-      email: initialEditable.email,
       phone: initialEditable.phone,
       address: initialEditable.address,
     }));
@@ -78,12 +76,13 @@ const ProfileInformation = ({
     if (!onUpdateProfile || !canEdit) return;
     try {
       await onUpdateProfile({
-        email: profileData.email,
         phoneNumber: profileData.phone,
         address: profileData.address,
       });
     } catch (error) {
-      // Intentionally swallow to keep form data so the user can retry
+      toast.error(
+        error?.message || "An error occurred while updating profile."
+      );
     }
   };
 
@@ -133,7 +132,7 @@ const ProfileInformation = ({
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-600 text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-70"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orangeFpt-500 text-white transition hover:bg-orangeFpt-600 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isSaving ? (
                 <>
@@ -217,9 +216,8 @@ const ProfileInformation = ({
             type="email"
             name="email"
             value={profileData.email}
-            onChange={handleInputChange}
-            disabled={!canEdit}
-            className={`w-full px-4 py-2 border rounded-lg transition ${appliedEditableClasses}`}
+            disabled
+            className={`w-full px-4 py-2 border rounded-lg transition ${readOnlyFieldClasses}`}
           />
         </div>
         <div>

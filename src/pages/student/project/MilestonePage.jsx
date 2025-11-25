@@ -329,6 +329,8 @@ const MilestonePage = () => {
 
     return {
       ...base,
+      title: detail?.title ?? base?.title ?? 'Milestone',
+      description: detail?.description ?? base?.description ?? 'Milestone Description',
       progress: Math.round(detail?.progress ?? base?.progress ?? 0),
       status: normalizedStatus,
       statusString: detail?.statusString ?? base?.statusString ?? normalizedStatus,
@@ -361,11 +363,11 @@ const MilestonePage = () => {
       const normalizedList = Array.isArray(list) ? list : [];
       setMilestones(normalizedList);
       if (normalizedList.length > 0) {
-        const first = normalizedList[0];
-        setSelectedMilestone(first);
-        const firstId = getMilestoneId(first);
+        const firstMilestone = normalizedList[0];
+        const firstId = getMilestoneId(firstMilestone);
+        setSelectedMilestone(firstMilestone);
         if (firstId) {
-          fetchMilestoneDetail(firstId);
+          await fetchMilestoneDetail(firstId, firstMilestone);
         }
       } else {
         setSelectedMilestone(null);
@@ -377,27 +379,44 @@ const MilestonePage = () => {
     }
   };
 
-  const fetchMilestoneDetail = async (milestoneId) => {
-  if (!milestoneId) return null;
+  // Fetch milestone detail
+  const fetchMilestoneDetail = async (milestoneId, overrideBase = null) => {
+    if (!milestoneId) return null;
 
-  try {
-    setIsLoadingDetail(true);
-    const detail = await getDetailOfMilestoneByMilestoneId(milestoneId);
-    const calculatedSelected = mergeDetailIntoMilestone(selectedMilestone || {}, detail);
-    setSelectedMilestone(calculatedSelected);
-    setMilestones((prev) => prev.map((m) => {
-      if (getMilestoneId(m) !== milestoneId) return m;
-      return mergeDetailIntoMilestone(m, detail);
-    }));
-    return calculatedSelected; 
+    try {
+      setIsLoadingDetail(true);
+      const detail = await getDetailOfMilestoneByMilestoneId(milestoneId);
 
-  } catch (error) {
-    console.error("Error fetching milestone detail:", error);
-    return null;
-  } finally {
-    setIsLoadingDetail(false);
-  }
-};
+      let baseMilestone = null;
+      if (overrideBase) {
+        baseMilestone = overrideBase;
+      } else {
+        baseMilestone = milestones.find(m => getMilestoneId(m) === milestoneId);
+      }
+
+      if (!baseMilestone && selectedMilestone && getMilestoneId(selectedMilestone) === milestoneId) {
+        baseMilestone = selectedMilestone;
+      }
+      const calculatedSelected = mergeDetailIntoMilestone(baseMilestone || {}, detail);
+
+      console.log('Fetched milestone detail:', detail);
+      console.log('Calculated selected milestone:', calculatedSelected);
+      setSelectedMilestone(calculatedSelected);
+
+      setMilestones((prev) => prev.map((m) => {
+        if (getMilestoneId(m) !== milestoneId) return m;
+        return mergeDetailIntoMilestone(m, detail);
+      }));
+
+      return calculatedSelected;
+
+    } catch (error) {
+      console.error("Error fetching milestone detail:", error);
+      return null;
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  };
 
   useEffect(() => {
     if (teamId) {
@@ -689,6 +708,7 @@ const MilestonePage = () => {
     }
 
     const milestoneId = getMilestoneId(selectedMilestone);
+    console.log('Milestone ID for regenerating link:', milestoneId);
     if (!milestoneId) {
       toast.error('Unable to refresh link: missing milestone reference');
       return;
@@ -857,13 +877,11 @@ const MilestonePage = () => {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#D5DADF" }}>
+    <div className="h-screen flex flex-col overflow-hidden" style={{ backgroundColor: "#D5DADF" }}>
       <ProjectBoardHeader />
-      <main className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-3">
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-6 p-6 overflow-hidden">
           {/* Left Sidebar - Milestone Timeline */}
-          <div className="lg:col-span-1">
-            <div className="lg:sticky lg:top-20 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto">
+            <aside className="col-span-1 h-full overflow-y-auto custom-scrollbar">
               {isLoadingList && milestones.length === 0 ? (
                 <div className="bg-white rounded-lg shadow-md p-6 flex items-center justify-center min-h-[220px]">
                   <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
@@ -875,10 +893,9 @@ const MilestonePage = () => {
                   onSelectMilestone={handleSelectMilestone}
                 />
               )}
-            </div>
-          </div>
+            </aside>
           {/* Main Content - Milestone Details */}
-          <div className="lg:col-span-3 space-y-6">
+          <main className="col-span-3 h-full overflow-y-auto pb-5 custom-scrollbar space-y-6">
             {selectedMilestone ? (
               isLoadingDetail ? (
                 <div className="bg-white rounded-lg shadow-md p-10 flex items-center justify-center">
@@ -981,9 +998,8 @@ const MilestonePage = () => {
                 )}
               </div>
             </section>
-          </div>
+          </main>
         </div>
-      </main>
       {/* Checkpoint Modals */}
       <CheckpointFormModal
         isOpen={showCreateModal}
@@ -994,9 +1010,6 @@ const MilestonePage = () => {
         onClose={closeModals}
       />
     </div>
-
-
-
   );
 };
 

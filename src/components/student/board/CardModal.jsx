@@ -421,7 +421,7 @@ const CardModal = ({
             {editedCard.tasks?.map(task => (
               <div
                 key={task.id}
-                className='bg-gray-800 text-white p-4 rounded-xl shadow'
+                className='bg-white text-gray-900 p-4 rounded-xl border border-gray-200 shadow-sm'
               >
                 {/* Task header */}
                 <div className='flex items-center justify-between'>
@@ -465,7 +465,7 @@ const CardModal = ({
                         };
                         setEditedCard(updated);
                       }}
-                      className='text-gray-300 hover:text-blue-400 px-2 py-1 rounded'
+                      className='text-gray-500 hover:text-blue-500 px-2 py-1 rounded'
                       title='Update Task'
                     >
                       <Pencil size={18} />
@@ -480,7 +480,7 @@ const CardModal = ({
                         };
                         setEditedCard(updated);
                       }}
-                      className='text-gray-300 hover:text-red-400 px-2 py-1 rounded'
+                      className='text-gray-500 hover:text-red-500 px-2 py-1 rounded'
                       title='Delete Task'
                     >
                       <Trash2 size={18} />

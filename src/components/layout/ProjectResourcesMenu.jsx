@@ -232,6 +232,7 @@ const ProjectResourcesMenu = () => {
       try {
         const response = await getTeamResourcesByTeamId(teamId);
         const normalized = normalizeGroupingResponse(response?.grouping);
+        console.log("Normalized resources:", normalized);
         setFolderMap(normalized);
         setCurrentFolder((prev) => (normalized[prev] ? prev : Object.keys(normalized)[0] ?? "/"));
       } catch (error) {
@@ -568,15 +569,15 @@ const ProjectResourcesMenu = () => {
       {isOpen && (
         <div
           ref={menuRef}
-          className="absolute right-0 mt-2 w-[28rem] rounded-2xl border border-gray-700 bg-gray-800 text-gray-100 shadow-2xl"
+          className="absolute right-0 mt-2 w-[28rem] rounded-2xl border border-gray-200 bg-white text-gray-900 shadow-2xl"
         >
-          <div className="border-b border-gray-700 p-4">
+          <div className="border-b border-gray-100 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-white">Manage team resources</h3>
-                <p className="text-xs text-gray-300">Files are organized by folder path.</p>
+                <h3 className="text-sm font-semibold text-gray-900">Manage team resources</h3>
+                <p className="text-xs text-gray-500">Files are organized by folder path.</p>
               </div>
-              <div className="text-xs text-gray-300">{totalFiles} files</div>
+              <div className="text-xs text-gray-500">{totalFiles} files</div>
             </div>
             {menuError && <p className="mt-2 text-xs text-red-600">{menuError}</p>}
             {!teamId && (
@@ -588,7 +589,7 @@ const ProjectResourcesMenu = () => {
               <div className="relative">
                 <div
                   ref={folderContainerRef}
-                  className="flex flex-wrap gap-2 overflow-hidden rounded-2xl border border-gray-700 bg-gray-900/40 px-2 py-2"
+                  className="flex flex-wrap gap-2 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 px-2 py-2"
                   style={{ maxHeight: FOLDER_CONTAINER_MAX_HEIGHT }}
                 >
                   {visibleFolderKeys.map((folderKey) => (
@@ -619,15 +620,15 @@ const ProjectResourcesMenu = () => {
                       }}
                       className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition ${
                         currentFolder === folderKey
-                          ? "border-orangeFpt-400 bg-gray-700 text-orangeFpt-200"
+                          ? "border-orangeFpt-300 bg-orangeFpt-50 text-orangeFpt-600"
                           : dragOverFolder === folderKey
-                            ? "border-orangeFpt-400 bg-gray-700 text-orangeFpt-200"
-                            : "border-gray-600 text-gray-200 hover:border-orangeFpt-400"
+                            ? "border-orangeFpt-300 bg-orangeFpt-50 text-orangeFpt-600"
+                            : "border-gray-200 text-gray-600 hover:border-orangeFpt-300"
                       }`}
                     >
                       <Folder className="h-3.5 w-3.5" />
                       <span>{formatFolderLabel(folderKey)}</span>
-                      <span className="rounded-full bg-gray-900/70 px-2 py-0.5 text-[10px] text-gray-200">
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-600">
                         {folderMap?.[folderKey]?.length ?? 0}
                       </span>
                     </button>
@@ -642,8 +643,8 @@ const ProjectResourcesMenu = () => {
                       onDragEnter={handleOverflowButtonDragOver}
                       className={`inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs font-medium transition ${
                         isOverflowMenuOpen
-                          ? "border-orangeFpt-400 bg-gray-700 text-orangeFpt-200"
-                          : "border-gray-600 text-gray-200 hover:border-orangeFpt-400"
+                          ? "border-orangeFpt-300 bg-orangeFpt-50 text-orangeFpt-600"
+                          : "border-gray-200 text-gray-600 hover:border-orangeFpt-300"
                       }`}
                       aria-haspopup="menu"
                       aria-expanded={isOverflowMenuOpen}
@@ -671,13 +672,13 @@ const ProjectResourcesMenu = () => {
                       }}
                       className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${
                         currentFolder === folderKey
-                          ? "border-orangeFpt-400 bg-gray-700 text-orangeFpt-200"
-                          : "border-gray-600 text-gray-200"
+                          ? "border-orangeFpt-300 bg-orangeFpt-50 text-orangeFpt-600"
+                          : "border-gray-200 text-gray-600"
                       }`}
                     >
                       <Folder className="h-3.5 w-3.5" />
                       <span>{formatFolderLabel(folderKey)}</span>
-                      <span className="rounded-full bg-gray-900/70 px-2 py-0.5 text-[10px] text-gray-200">
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-600">
                         {folderMap?.[folderKey]?.length ?? 0}
                       </span>
                     </div>
@@ -685,7 +686,7 @@ const ProjectResourcesMenu = () => {
                   <button
                     type="button"
                     ref={ellipsisMeasureRef}
-                    className="pointer-events-none inline-flex items-center justify-center rounded-full border border-gray-600 bg-gray-900 px-3 py-1 text-xs font-medium text-gray-100"
+                    className="pointer-events-none inline-flex items-center justify-center rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700"
                     tabIndex={-1}
                   >
                     <span className="text-base leading-none">&hellip;</span>
@@ -695,11 +696,11 @@ const ProjectResourcesMenu = () => {
                 {isOverflowMenuOpen && overflowFolderKeys.length > 0 && (
                   <div
                     ref={overflowMenuRef}
-                    className="absolute right-0 top-full z-30 mt-3 w-64 rounded-2xl border border-gray-700 bg-gray-800 shadow-2xl"
+                    className="absolute right-0 top-full z-30 mt-3 w-64 rounded-2xl border border-gray-200 bg-white shadow-2xl"
                   >
-                    <div className="border-b border-gray-700 px-4 py-3">
-                      <p className="text-xs font-semibold text-gray-100">More folders</p>
-                      <p className="text-[11px] text-gray-400">Select any hidden folder to jump to it.</p>
+                    <div className="border-b border-gray-100 px-4 py-3">
+                      <p className="text-xs font-semibold text-gray-900">More folders</p>
+                      <p className="text-[11px] text-gray-500">Select any hidden folder to jump to it.</p>
                     </div>
                     <div className="max-h-72 overflow-y-auto py-2">
                       {overflowFolderKeys.map((folderKey) => (
@@ -730,12 +731,12 @@ const ProjectResourcesMenu = () => {
                           }}
                           className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm transition ${
                             dragOverFolder === folderKey
-                              ? "bg-gray-700 text-orangeFpt-200"
-                              : "text-gray-200 hover:bg-gray-700"
+                              ? "bg-orangeFpt-50 text-orangeFpt-600"
+                              : "text-gray-700 hover:bg-gray-100"
                           }`}
                         >
                           <span className="truncate pr-3">{formatFolderLabel(folderKey)}</span>
-                          <span className="text-xs text-gray-400">{folderMap?.[folderKey]?.length ?? 0} files</span>
+                          <span className="text-xs text-gray-500">{folderMap?.[folderKey]?.length ?? 0} files</span>
                         </button>
                       ))}
                     </div>
@@ -747,7 +748,7 @@ const ProjectResourcesMenu = () => {
 
           <div className="max-h-80 overflow-y-auto px-4 py-4">
             {isLoadingResources ? (
-              <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-gray-600 bg-gray-900 p-6 text-sm text-gray-300">
+              <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 bg-white p-6 text-sm text-gray-900">
                 <Loader2 className="h-4 w-4 animate-spin" /> Loading resources...
               </div>
             ) : filesInFolder.length ? (
@@ -758,7 +759,7 @@ const ProjectResourcesMenu = () => {
                     draggable
                     onDragStart={() => handleDragStart(resource)}
                     onDragEnd={handleDragEnd}
-                    className={`flex gap-3 rounded-xl border border-gray-700 bg-gray-900 p-3 shadow-sm transition-opacity ${
+                    className={`flex gap-3 rounded-xl border border-gray-200 bg-white hover:bg-orangeFpt-100 p-3 shadow-sm transition-opacity ${
                       draggedFileId === resource.fileId ? "opacity-70" : "opacity-100"
                     } ${movingFileId === resource.fileId ? "ring-2 ring-orange-300" : ""}`}
                   >
@@ -776,15 +777,15 @@ const ProjectResourcesMenu = () => {
                       </div>
                       <div className="min-w-0 space-y-1">
                         <div className="flex items-center gap-2">
-                          <p className="truncate text-sm font-semibold text-gray-100 max-w-[13rem]">
+                          <p className="truncate text-sm font-semibold text-gray-900 max-w-[13rem]">
                             {resource.fileName}
                           </p>
                           <ChevronRight className="h-3 w-3 text-gray-400" />
-                          <span className="text-xs font-medium text-gray-300">
+                          <span className="text-xs font-medium text-gray-500">
                             {formatFileSize(resource.fileSize)}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-300">
+                        <p className="text-xs text-gray-500">
                           Uploaded by {resource.userName ?? "Unknown"}
                           {resource.createdAtLabel ? ` • ${resource.createdAtLabel}` : ""}
                         </p>
@@ -800,7 +801,7 @@ const ProjectResourcesMenu = () => {
                         type="button"
                         onClick={() => handleDeleteResource(resource)}
                         disabled={deletingFileId === resource.fileId}
-                        className="inline-flex items-center justify-center rounded-full border border-gray-700 p-2 text-red-400 hover:bg-red-900/30 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center justify-center rounded-full border border-gray-200 p-2 text-red-400 hover:bg-red-900/30 disabled:cursor-not-allowed disabled:opacity-50"
                         aria-label="Delete file"
                       >
                         {deletingFileId === resource.fileId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
@@ -816,10 +817,10 @@ const ProjectResourcesMenu = () => {
             )}
           </div>
 
-          <div className="border-t border-gray-700 p-4">
+          <div className="border-t border-gray-200 p-4">
             <div className="space-y-3">
               <div>
-                <label htmlFor="resource-folder" className="text-xs font-semibold text-gray-200">
+                <label htmlFor="resource-folder" className="text-xs font-semibold text-gray-900">
                   Folder path (optional)
                 </label>
                 <input
@@ -828,7 +829,7 @@ const ProjectResourcesMenu = () => {
                   value={pendingFolder}
                   onChange={(e) => setPendingFolder(e.target.value)}
                   placeholder="reports/week-1"
-                  className="mt-1 w-full rounded-lg border border-gray-600 bg-gray-900 px-3 py-2 text-sm text-gray-100 placeholder-gray-400 focus:border-orangeFpt-400 focus:outline-none"
+                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-orangeFpt-400 focus:outline-none"
                 />
                 <p className="mt-1 text-[11px] text-gray-400">
                   Leave empty for the general folder.
@@ -839,7 +840,7 @@ const ProjectResourcesMenu = () => {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center gap-2 rounded-full border border-dashed border-orangeFpt-300 px-4 py-2 text-sm font-semibold text-orangeFpt-300 hover:bg-gray-700"
+                  className="inline-flex items-center gap-2 rounded-full border border-dashed border-orangeFpt-300 px-4 py-2 text-sm font-semibold text-orangeFpt-300 hover:bg-orangeFpt-100"
                 >
                   <PlusCircle className="h-4 w-4" /> Select files
                 </button>

@@ -333,172 +333,166 @@ const ClassManagementDashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100">
-        <div className="relative w-full px-6 py-10 space-y-10 lg:px-10">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-64 translate-y-[-30%] bg-gradient-to-r from-sky-200/40 via-indigo-200/30 to-purple-200/40 blur-3xl" />
-          <header className="relative flex flex-col gap-4 rounded-3xl border border-indigo-100 bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-6 shadow-[0_25px_80px_rgba(15,23,42,0.08)] lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Lecturer workspace</p>
-              <h1 className="mt-2 text-3xl font-semibold text-slate-900">Class Dashboard</h1>
-              <p className="mt-1 text-sm text-slate-600">
-                {stats.totalClasses > 0
-                  ? `You are currently assigned to ${stats.totalClasses} classes (${stats.activeClasses} active).`
-                  : 'No classes are assigned to you yet.'}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleCreateProject}
-              className="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:-translate-y-0.5 hover:bg-indigo-700"
-            >
-              Create New Project
-            </button>
-          </header>
+      <div className="space-y-6">
+        <header className="relative flex flex-col gap-4 rounded-3xl border border-indigo-100 bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-6 shadow-[0_25px_80px_rgba(15,23,42,0.08)] lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Lecturer workspace</p>
+            <h1 className="mt-2 text-3xl font-semibold text-slate-900">Class Dashboard</h1>
+            <p className="mt-1 text-sm text-slate-600">
+              {stats.totalClasses > 0
+                ? `You are currently assigned to ${stats.totalClasses} classes (${stats.activeClasses} active).`
+                : 'No classes are assigned to you yet.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleCreateProject}
+            className="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:-translate-y-0.5 hover:bg-indigo-700"
+          >
+            Create New Project
+          </button>
+        </header>
 
-          <section className="relative">
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {showClassSkeleton
-                ? classStatCards.map((card) => renderClassStatSkeleton(card.id))
-                : classStatCards.map((card) => {
-                    const Icon = card.icon;
-                    return (
-                      <div key={card.id} className={`${glassPanelClass} rounded-2xl p-4`}>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">{card.label}</p>
-                            <p className="mt-2 text-2xl font-semibold text-slate-900">{card.value}</p>
-                          </div>
-                          <div className={`rounded-xl bg-gradient-to-br ${card.accent} p-3`}>
-                            <Icon className="h-5 w-5" aria-hidden="true" />
-                          </div>
-                        </div>
-                        <p className="mt-2 text-xs text-slate-600">{card.description}</p>
+        <section className="relative">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {showClassSkeleton
+              ? classStatCards.map((card) => renderClassStatSkeleton(card.id))
+              : classStatCards.map((card) => {
+                const Icon = card.icon;
+                return (
+                  <div key={card.id} className={`${glassPanelClass} rounded-2xl p-4`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">{card.label}</p>
+                        <p className="mt-2 text-2xl font-semibold text-slate-900">{card.value}</p>
                       </div>
-                    );
-                  })}
-            </div>
-          </section>
+                      <div className={`rounded-xl bg-gradient-to-br ${card.accent} p-3`}>
+                        <Icon className="h-5 w-5" aria-hidden="true" />
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-slate-600">{card.description}</p>
+                  </div>
+                );
+              })}
+          </div>
+        </section>
 
-          {error && (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-sm text-rose-700">
-              {error}
+        {error && (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-sm text-rose-700">
+            {error}
+          </div>
+        )}
+
+        <section className="space-y-6">
+          <div className={`${glassPanelClass} flex flex-col gap-4 rounded-3xl p-5 lg:flex-row lg:items-center lg:justify-between`}>
+            <div className="flex flex-1 flex-col gap-2">
+              <label className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Search classes</label>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="flex-1">
+                  <input
+                    value={searchTerm}
+                    onChange={(event) => updateSearchTerm(event.target.value)}
+                    onBlur={commitSearch}
+                    placeholder="Search by class, subject, or code"
+                    className="w-full rounded-2xl border border-slate-200 bg-white/70 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  />
+                  {recentSearches.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
+                      {recentSearches.map((term) => (
+                        <button
+                          key={term}
+                          type="button"
+                          className="rounded-full border border-slate-200 px-3 py-1 text-slate-600 transition hover:border-sky-200 hover:text-sky-700"
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            setSearchTerm(term);
+                          }}
+                        >
+                          {term}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="text-sm text-slate-600">{filteredClasses.length} result(s)</div>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {[
+                { id: 'all', label: 'All' },
+                { id: 'active', label: 'Active' },
+                { id: 'inactive', label: 'Inactive' }
+              ].map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setStatusFilter(option.id)}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition ${statusFilter === option.id
+                    ? 'bg-sky-500 text-white shadow-lg shadow-sky-200'
+                    : 'bg-white/80 text-slate-600 hover:bg-white'
+                    }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+              <div className="hidden h-6 w-px bg-slate-200 lg:block" />
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSubjectFilter('all')}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${subjectFilter === 'all'
+                    ? 'border-sky-200 bg-sky-50 text-sky-700'
+                    : 'border-slate-200 bg-white text-slate-600'
+                    }`}
+                >
+                  All subjects
+                </button>
+                {subjects.map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => setSubjectFilter(code)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${subjectFilter === code
+                      ? 'border-sky-200 bg-sky-50 text-sky-700'
+                      : 'border-slate-200 bg-white text-slate-600'
+                      }`}
+                  >
+                    {code}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Class roster</p>
+              <h2 className="text-xl font-semibold text-slate-900">Assigned classes</h2>
+            </div>
+            <span className="text-sm text-slate-500">{filteredClasses.length} item(s)</span>
+          </div>
+
+          {showClassSkeleton && (
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, index) => renderClassCardSkeleton(`skeleton-${index}`))}
             </div>
           )}
 
-          <section className="space-y-6">
-            <div className={`${glassPanelClass} flex flex-col gap-4 rounded-3xl p-5 lg:flex-row lg:items-center lg:justify-between`}>
-              <div className="flex flex-1 flex-col gap-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Search classes</label>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <div className="flex-1">
-                    <input
-                      value={searchTerm}
-                      onChange={(event) => updateSearchTerm(event.target.value)}
-                      onBlur={commitSearch}
-                      placeholder="Search by class, subject, or code"
-                      className="w-full rounded-2xl border border-slate-200 bg-white/70 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                    />
-                    {recentSearches.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-                        {recentSearches.map((term) => (
-                          <button
-                            key={term}
-                            type="button"
-                            className="rounded-full border border-slate-200 px-3 py-1 text-slate-600 transition hover:border-sky-200 hover:text-sky-700"
-                            onMouseDown={(event) => {
-                              event.preventDefault();
-                              setSearchTerm(term);
-                            }}
-                          >
-                            {term}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-sm text-slate-600">{filteredClasses.length} result(s)</div>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {[
-                  { id: 'all', label: 'All' },
-                  { id: 'active', label: 'Active' },
-                  { id: 'inactive', label: 'Inactive' }
-                ].map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setStatusFilter(option.id)}
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                      statusFilter === option.id
-                        ? 'bg-sky-500 text-white shadow-lg shadow-sky-200'
-                        : 'bg-white/80 text-slate-600 hover:bg-white'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-                <div className="hidden h-6 w-px bg-slate-200 lg:block" />
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSubjectFilter('all')}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                      subjectFilter === 'all'
-                        ? 'border-sky-200 bg-sky-50 text-sky-700'
-                        : 'border-slate-200 bg-white text-slate-600'
-                    }`}
-                  >
-                    All subjects
-                  </button>
-                  {subjects.map((code) => (
-                    <button
-                      key={code}
-                      type="button"
-                      onClick={() => setSubjectFilter(code)}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                        subjectFilter === code
-                          ? 'border-sky-200 bg-sky-50 text-sky-700'
-                          : 'border-slate-200 bg-white text-slate-600'
-                      }`}
-                    >
-                      {code}
-                    </button>
-                  ))}
-                </div>
-              </div>
+          {!showClassSkeleton && filteredClasses.length === 0 && (
+            <div className={`${glassPanelClass} flex flex-col items-center gap-3 rounded-3xl p-12 text-center`}>
+              <p className="text-sm font-semibold text-slate-800">No classes available</p>
+              <p className="text-sm text-slate-500">Classes assigned to you will appear here automatically.</p>
             </div>
+          )}
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Class roster</p>
-                <h2 className="text-xl font-semibold text-slate-900">Assigned classes</h2>
-              </div>
-              <span className="text-sm text-slate-500">{filteredClasses.length} item(s)</span>
+          {!showClassSkeleton && filteredClasses.length > 0 && (
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {filteredClasses.map((cls) => (
+                <ClassCard key={cls.classId} cls={cls} onView={handleViewClass} subjectGradient={subjectGradient} />
+              ))}
             </div>
-
-            {showClassSkeleton && (
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {Array.from({ length: 3 }).map((_, index) => renderClassCardSkeleton(`skeleton-${index}`))}
-              </div>
-            )}
-
-            {!showClassSkeleton && filteredClasses.length === 0 && (
-              <div className={`${glassPanelClass} flex flex-col items-center gap-3 rounded-3xl p-12 text-center`}>
-                <p className="text-sm font-semibold text-slate-800">No classes available</p>
-                <p className="text-sm text-slate-500">Classes assigned to you will appear here automatically.</p>
-              </div>
-            )}
-
-            {!showClassSkeleton && filteredClasses.length > 0 && (
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {filteredClasses.map((cls) => (
-                  <ClassCard key={cls.classId} cls={cls} onView={handleViewClass} subjectGradient={subjectGradient} />
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
+          )}
+        </section>
       </div>
     </DashboardLayout>
   );
@@ -506,11 +500,10 @@ const ClassManagementDashboard = () => {
 
 const StatusBadge = ({ isActive }) => (
   <span
-    className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${
-      isActive
-        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-        : 'border-slate-200 bg-slate-100 text-slate-600'
-    }`}
+    className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${isActive
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+      : 'border-slate-200 bg-slate-100 text-slate-600'
+      }`}
   >
     {isActive ? 'Active' : 'Inactive'}
   </span>

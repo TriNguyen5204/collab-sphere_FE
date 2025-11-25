@@ -329,7 +329,7 @@ export default function AdminDashboard() {
                           className='w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg hover:from-blue-600 hover:to-blue-500 transition-all cursor-pointer relative group'
                           style={{ height: `${height}%` }}
                         >
-                          <div className='absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap'>
+                          <div className='absolute -top-8 left-1/2 transform -translate-x-1/2 bg-white text-gray-900 border border-gray-200 px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow'>
                             {stat.users.toLocaleString()} users
                           </div>
                         </div>

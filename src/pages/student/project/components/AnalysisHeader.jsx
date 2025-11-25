@@ -61,7 +61,7 @@ const AnalysisHeader = ({ analysis }) => {
             href={analysis.prUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+            className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-white text-gray-900 font-semibold rounded-lg border border-gray-300 transition-colors duration-200 shadow-sm hover:bg-gray-50"
           >
             <span>View on GitHub</span>
             <ExternalLink className="w-4 h-4" />

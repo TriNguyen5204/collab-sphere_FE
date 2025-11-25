@@ -149,7 +149,6 @@ const ProfilePage = () => {
 				const payload = buildProfilePayload({
 					address: updates.address,
 					phoneNumber: updates.phoneNumber,
-					email: updates.email,
 				});
 				const response = await putUpdateUserProfile(effectiveUserId, payload);
 				toast.success(response?.message || "Profile updated successfully.");

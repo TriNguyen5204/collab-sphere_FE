@@ -132,7 +132,7 @@ const CodeAnnotation = ({ annotation, codeSnippet }) => {
       {/* PART 1: CODE SNIPPET VIEW */}
       <div className="bg-gray-900 text-gray-100 overflow-x-auto">
         {/* Code Header */}
-        <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
+        <div className="flex items-center justify-between px-4 py-2 bg-gray-100 border-b border-gray-200">
           <div className="flex items-center gap-2">
             <Code2 className="w-4 h-4 text-gray-400" />
             <span className="text-xs font-mono text-gray-400">
@@ -149,10 +149,10 @@ const CodeAnnotation = ({ annotation, codeSnippet }) => {
           {computedLines.map((line, idx) => (
             <div
               key={`${line.number ?? 'unknown'}-${idx}`}
-              className={`flex ${config.highlightBg} hover:bg-gray-800/50 transition-colors`}
+              className={`flex ${config.highlightBg} hover:bg-gray-100 transition-colors`}
             >
               {/* Line Number Gutter */}
-              <div className="select-none flex-shrink-0 w-16 px-4 py-2 text-right text-gray-500 bg-gray-800/50 border-r border-gray-700">
+              <div className="select-none flex-shrink-0 w-16 px-4 py-2 text-right text-gray-500 bg-gray-50 border-r border-gray-200">
                 {typeof line.number === 'number' ? line.number : '--'}
               </div>
               
@@ -166,7 +166,7 @@ const CodeAnnotation = ({ annotation, codeSnippet }) => {
 
         {/* Context Lines Indicator (Optional) */}
         {computedLines.length > 3 && (
-          <div className="px-4 py-2 bg-gray-800 border-t border-gray-700">
+          <div className="px-4 py-2 bg-gray-100 border-t border-gray-200">
             <div className="text-xs text-gray-500 flex items-center gap-2">
               <div className="flex gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-gray-600"></span>

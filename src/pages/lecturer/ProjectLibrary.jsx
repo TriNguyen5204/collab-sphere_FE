@@ -108,23 +108,23 @@ const mapApiProjectToViewModel = (rawProject = {}) => {
 
   const objectives = Array.isArray(rawProject.objectives)
     ? rawProject.objectives.map((objective) => {
-        const milestones = Array.isArray(objective.objectiveMilestones)
-          ? objective.objectiveMilestones.map((milestone) => ({
-              objectiveMilestoneId: milestone.objectiveMilestoneId ?? milestone.id ?? null,
-              title: milestone.title ?? 'Untitled milestone',
-              description: milestone.description ?? '',
-              startDate: milestone.startDate ?? milestone.beginDate ?? null,
-              endDate: milestone.endDate ?? milestone.finishDate ?? null
-            }))
-          : [];
+      const milestones = Array.isArray(objective.objectiveMilestones)
+        ? objective.objectiveMilestones.map((milestone) => ({
+          objectiveMilestoneId: milestone.objectiveMilestoneId ?? milestone.id ?? null,
+          title: milestone.title ?? 'Untitled milestone',
+          description: milestone.description ?? '',
+          startDate: milestone.startDate ?? milestone.beginDate ?? null,
+          endDate: milestone.endDate ?? milestone.finishDate ?? null
+        }))
+        : [];
 
-        return {
-          objectiveId: objective.objectiveId ?? objective.id ?? null,
-          description: objective.description ?? 'Objective description unavailable',
-          priority: objective.priority ?? 'Normal',
-          milestones
-        };
-      })
+      return {
+        objectiveId: objective.objectiveId ?? objective.id ?? null,
+        description: objective.description ?? 'Objective description unavailable',
+        priority: objective.priority ?? 'Normal',
+        milestones
+      };
+    })
     : [];
 
   const milestones = objectives.flatMap((objective) =>
@@ -312,8 +312,7 @@ const ProjectLibrary = () => {
           missingFields.forEach((field) => {
             const reason = REQUIRED_PROJECT_FIELDS[field];
             console.warn(
-              `[Lecturer Project Library] Missing '${field}' in /api/project/lecturer response. ${
-                reason ?? 'This field powers lecturer project dashboard UI elements.'
+              `[Lecturer Project Library] Missing '${field}' in /api/project/lecturer response. ${reason ?? 'This field powers lecturer project dashboard UI elements.'
               }`
             );
           });
@@ -452,238 +451,224 @@ const ProjectLibrary = () => {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100">
-        <div className="relative w-full px-6 py-12 lg:px-10 2xl:px-16">
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -left-24 top-0 h-72 w-72 rounded-full bg-sky-200/40 blur-[120px]" />
-            <div className="absolute right-0 top-24 h-80 w-80 rounded-full bg-indigo-200/30 blur-[140px]" />
-            <div className="absolute bottom-0 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-emerald-200/30 blur-[130px]" />
-          </div>
-
-          <div className="relative z-10 space-y-10">
-            <section className="relative overflow-hidden rounded-[32px] border border-indigo-100 bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-8 shadow-[0_25px_80px_rgba(15,23,42,0.08)]">
-              <div className="pointer-events-none absolute inset-0 opacity-70">
-                <div className="absolute -top-10 right-10 h-44 w-44 rounded-full bg-white/40 blur-[80px]" />
-                <div className="absolute bottom-0 left-0 h-56 w-56 rounded-full bg-sky-200/30 blur-[80px]" />
+      <div className="space-y-6">
+        <section className="relative overflow-hidden rounded-[32px] border border-indigo-100 bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-8 shadow-[0_25px_80px_rgba(15,23,42,0.08)]">
+          <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-3xl space-y-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-slate-500">Lecturer project space</p>
+              <h1 className="text-4xl font-semibold text-slate-900">Project Library</h1>
+              <p className="text-base text-slate-600">
+                Browse live lecturer projects, surface objectives, and keep milestone plans synchronized with the refreshed workspace.
+              </p>
+              <div className="flex flex-wrap gap-3 text-xs font-semibold text-slate-600">
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 px-4 py-1.5">
+                  <SparklesIcon className="h-4 w-4 text-sky-500" />
+                  API-sourced data
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 px-4 py-1.5">
+                  <ClipboardDocumentListIcon className="h-4 w-4 text-indigo-500" />
+                  Objectives & milestones linked
+                </span>
               </div>
-              <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-                <div className="max-w-3xl space-y-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-slate-500">Lecturer project space</p>
-                  <h1 className="text-4xl font-semibold text-slate-900">Project Library</h1>
-                  <p className="text-base text-slate-600">
-                    Browse live lecturer projects, surface objectives, and keep milestone plans synchronized with the refreshed workspace.
-                  </p>
-                  <div className="flex flex-wrap gap-3 text-xs font-semibold text-slate-600">
-                    <span className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 px-4 py-1.5">
-                      <SparklesIcon className="h-4 w-4 text-sky-500" />
-                      API-sourced data
-                    </span>
-                    <span className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 px-4 py-1.5">
-                      <ClipboardDocumentListIcon className="h-4 w-4 text-indigo-500" />
-                      Objectives & milestones linked
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <button
-                    onClick={handleCreateProject}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white shadow-[0_20px_45px_rgba(79,70,229,0.35)] transition hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                    New project
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:gap-6">
-              {showProjectSkeleton
-                ? projectStatCards.map((card) => renderProjectStatSkeleton(card.id))
-                : projectStatCards.map((card, index) => {
-                    const Icon = card.icon;
-                    const accent = card.accent ?? statAccentTokens[index % statAccentTokens.length];
-                    return (
-                      <div key={card.id} className={`relative overflow-hidden rounded-[24px] ${glassPanelClass} p-6`}>
-                        <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${accent.background}`} />
-                        <div className="relative flex items-start justify-between gap-4">
-                          <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">{card.label}</p>
-                            <p className="mt-3 text-3xl font-semibold text-slate-900">{card.value}</p>
-                            <p className="mt-2 text-xs text-slate-600">{card.description || 'Live insight from lecturer data.'}</p>
-                          </div>
-                          <div className={`rounded-2xl bg-gradient-to-br ${accent.iconBg} p-3 ${accent.iconText} ${accent.glow}`}>
-                            <Icon className="h-7 w-7" />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-            </section>
-
-            <div className="grid grid-cols-1 gap-8 xl:grid-cols-12">
-              <section className="space-y-6 xl:col-span-8 2xl:col-span-9">
-                <div className={`rounded-[32px] ${glassPanelClass} p-6`}>
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                      <p className="text-[21px] font-semibold uppercase tracking-[0.35em] text-slate-500">Projects</p>
-                      {isLoadingProjects && (
-                        <p className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-200/50 bg-white/70 px-3 py-1 text-[11px] font-medium text-slate-600">
-                          <SparklesIcon className="h-3 w-3 animate-spin" />
-                          Refreshing data…
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex w-full flex-col gap-3 lg:w-auto lg:flex-row lg:items-center">
-                      <div className="relative w-full lg:w-64">
-                        <input
-                          type="text"
-                          value={searchTerm}
-                          onChange={(event) => setSearchTerm(event.target.value)}
-                          placeholder="Search project or subject"
-                          className="w-full rounded-2xl border border-slate-200/70 bg-white/70 py-3 pl-11 pr-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                        />
-                        <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                      </div>
-                      <select
-                        value={statusFilter}
-                        onChange={(event) => setStatusFilter(event.target.value)}
-                        className="w-full rounded-2xl border border-slate-200/70 bg-white/70 px-4 py-3 text-sm font-medium text-slate-600 transition focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100 lg:w-48"
-                      >
-                        <option value="all">All statuses</option>
-                        {availableStatuses.map((status) => (
-                          <option key={status} value={status}>
-                            {STATUS_LABELS[status] ?? status}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {showProjectSkeleton ? (
-                    <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
-                      {Array.from({ length: 4 }).map((_, index) =>
-                        renderProjectCardSkeleton(`project-skeleton-${index}`)
-                      )}
-                    </div>
-                  ) : filteredProjects.length === 0 ? (
-                    <div className="mt-10 rounded-[28px] border border-dashed border-slate-200/70 bg-white/60 py-12 text-center">
-                      <BookOpenIcon className="mx-auto h-12 w-12 text-slate-300" />
-                      <p className="mt-4 text-base font-semibold text-slate-700">No projects match the filters</p>
-                      <p className="mt-1 text-sm text-slate-500">Adjust filters or create a new project to populate the library.</p>
-                    </div>
-                  ) : (
-                    <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-                      {filteredProjects.map((project) => (
-                        <div key={project.projectId ?? project.projectName} className="relative">
-                          <div className={`absolute inset-0 rounded-[28px] bg-gradient-to-br ${getSubjectGradient(project.subjectCode)} opacity-80 blur-sm`} />
-                          <div className={`relative flex h-full flex-col rounded-[28px] ${glassPanelClass} p-6`}>
-                            <div className="flex items-start justify-between gap-4">
-                              <div>
-                                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600">{project.subjectCode}</p>
-                                <h3 className="mt-2 text-xl font-semibold text-slate-900">{project.projectName}</h3>
-                                <p className="mt-2 text-sm text-slate-600">{project.description}</p>
-                                <p className="mt-2 text-xs text-slate-500">Lecturer | {project.lecturerName}</p>
-                              </div>
-                              <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeStyles(project.status)}`}>
-                                {project.statusLabel}
-                              </span>
-                            </div>
-
-                            <div className="mt-6 grid grid-cols-2 gap-4 text-sm text-slate-600">
-                              <div className="space-y-1">
-                                <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">Objectives</p>
-                                <p className="text-2xl font-semibold text-slate-900">{project.objectives.length}</p>
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">Milestones</p>
-                                <p className="text-2xl font-semibold text-slate-900">{project.milestoneCount}</p>
-                              </div>
-                              <div className="col-span-2 space-y-1">
-                                <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">Recent objective</p>
-                                <p className="text-sm text-slate-600">
-                                  {project.objectives[0]?.description ?? 'Objectives will appear when provided.'}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="mt-auto flex flex-col gap-3 pt-6 sm:flex-row">
-                              <button
-                                onClick={() => handleViewProject(project.projectId)}
-                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-200/70 bg-white/60 px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:border-sky-200 hover:bg-white"
-                              >
-                                Open detail
-                              </button>
-                              <button
-                                onClick={() => navigate(`/lecturer/projects/${project.projectId}/analysis`)}
-                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_35px_rgba(15,23,42,0.25)] transition hover:bg-slate-800"
-                              >
-                                AI insights
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </section>
-
-              <aside className="space-y-6 xl:col-span-4 2xl:col-span-3">
-
-                <div className={`rounded-[28px] ${glassPanelClass} p-6`}>
-                  <div className="flex items-center gap-3">
-                    <CalendarDaysIcon className="h-5 w-5 text-indigo-500" />
-                    <h2 className="text-xl font-semibold text-slate-900">Upcoming milestones</h2>
-                  </div>
-                  <p className="mt-1 text-xs text-slate-500">Directly sourced from objective milestones.</p>
-                  <div className="mt-4 space-y-4">
-                    {showProjectSkeleton ? (
-                      Array.from({ length: 3 }).map((_, index) =>
-                        renderMilestoneSkeleton(`milestone-skeleton-${index}`)
-                      )
-                    ) : upcomingMilestones.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-white/60 bg-white/50 px-4 py-6 text-center text-sm text-slate-600">
-                        Milestones will appear once objectives define schedules.
-                      </div>
-                    ) : (
-                      upcomingMilestones.map((milestone) => (
-                        <div
-                          key={`${milestone.objectiveMilestoneId}-${milestone.projectId}`}
-                          className="rounded-2xl border border-white/60 bg-white/60 px-4 py-3"
-                        >
-                          <p className="text-sm font-semibold text-slate-900">{milestone.title}</p>
-                          <p className="text-xs text-slate-500">{milestone.projectName} | {milestone.subjectCode}</p>
-                          <p className="mt-1 text-xs text-slate-500">{formatDate(milestone.startDate)} – {formatDate(milestone.endDate)}</p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                <div className={`rounded-[28px] ${glassPanelClass} p-6`}>
-                  <div className="flex items-center gap-3">
-                    <CheckCircleIcon className="h-5 w-5 text-indigo-500" />
-                    <h2 className="text-xl font-semibold text-slate-900">Lecturer checklist</h2>
-                  </div>
-                  <p className="mt-1 text-xs text-slate-500">Keep teams aligned with library best practices.</p>
-                  <ul className="mt-5 space-y-4 text-sm text-slate-600">
-                    <li className="flex items-start gap-3">
-                      <CheckCircleIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
-                      Confirm each project exposes at least one clear objective before assignment.
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <CheckCircleIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
-                      Align milestone dates with class pacing so checkpoints feel achievable.
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <CheckCircleIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
-                      Share payload gaps with the backend early—missing fields are logged in devtools.
-                    </li>
-                  </ul>
-                </div>
-              </aside>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={handleCreateProject}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white shadow-[0_20px_45px_rgba(79,70,229,0.35)] transition hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200"
+              >
+                <PlusIcon className="h-4 w-4" />
+                New project
+              </button>
             </div>
           </div>
+        </section>
+
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:gap-6">
+          {showProjectSkeleton
+            ? projectStatCards.map((card) => renderProjectStatSkeleton(card.id))
+            : projectStatCards.map((card, index) => {
+              const Icon = card.icon;
+              const accent = card.accent ?? statAccentTokens[index % statAccentTokens.length];
+              return (
+                <div key={card.id} className={`relative overflow-hidden rounded-[24px] ${glassPanelClass} p-6`}>
+                  <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${accent.background}`} />
+                  <div className="relative flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">{card.label}</p>
+                      <p className="mt-3 text-3xl font-semibold text-slate-900">{card.value}</p>
+                      <p className="mt-2 text-xs text-slate-600">{card.description || 'Live insight from lecturer data.'}</p>
+                    </div>
+                    <div className={`rounded-2xl bg-gradient-to-br ${accent.iconBg} p-3 ${accent.iconText} ${accent.glow}`}>
+                      <Icon className="h-7 w-7" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+        </section>
+
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-12">
+          <section className="space-y-6 xl:col-span-8 2xl:col-span-9">
+            <div className={`rounded-[32px] ${glassPanelClass} p-6`}>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-[21px] font-semibold uppercase tracking-[0.35em] text-slate-500">Projects</p>
+                  {isLoadingProjects && (
+                    <p className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-200/50 bg-white/70 px-3 py-1 text-[11px] font-medium text-slate-600">
+                      <SparklesIcon className="h-3 w-3 animate-spin" />
+                      Refreshing data…
+                    </p>
+                  )}
+                </div>
+                <div className="flex w-full flex-col gap-3 lg:w-auto lg:flex-row lg:items-center">
+                  <div className="relative w-full lg:w-64">
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                      placeholder="Search project or subject"
+                      className="w-full rounded-2xl border border-slate-200/70 bg-white/70 py-3 pl-11 pr-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    />
+                    <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  </div>
+                  <select
+                    value={statusFilter}
+                    onChange={(event) => setStatusFilter(event.target.value)}
+                    className="w-full rounded-2xl border border-slate-200/70 bg-white/70 px-4 py-3 text-sm font-medium text-slate-600 transition focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100 lg:w-48"
+                  >
+                    <option value="all">All statuses</option>
+                    {availableStatuses.map((status) => (
+                      <option key={status} value={status}>
+                        {STATUS_LABELS[status] ?? status}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {showProjectSkeleton ? (
+                <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
+                  {Array.from({ length: 4 }).map((_, index) =>
+                    renderProjectCardSkeleton(`project-skeleton-${index}`)
+                  )}
+                </div>
+              ) : filteredProjects.length === 0 ? (
+                <div className="mt-10 rounded-[28px] border border-dashed border-slate-200/70 bg-white/60 py-12 text-center">
+                  <BookOpenIcon className="mx-auto h-12 w-12 text-slate-300" />
+                  <p className="mt-4 text-base font-semibold text-slate-700">No projects match the filters</p>
+                  <p className="mt-1 text-sm text-slate-500">Adjust filters or create a new project to populate the library.</p>
+                </div>
+              ) : (
+                <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                  {filteredProjects.map((project) => (
+                    <div key={project.projectId ?? project.projectName} className="relative">
+                      <div className={`absolute inset-0 rounded-[28px] bg-gradient-to-br ${getSubjectGradient(project.subjectCode)} opacity-80 blur-sm`} />
+                      <div className={`relative flex h-full flex-col rounded-[28px] ${glassPanelClass} p-6`}>
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600">{project.subjectCode}</p>
+                            <h3 className="mt-2 text-xl font-semibold text-slate-900">{project.projectName}</h3>
+                            <p className="mt-2 text-sm text-slate-600">{project.description}</p>
+                            <p className="mt-2 text-xs text-slate-500">Lecturer | {project.lecturerName}</p>
+                          </div>
+                          <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeStyles(project.status)}`}>
+                            {project.statusLabel}
+                          </span>
+                        </div>
+
+                        <div className="mt-6 grid grid-cols-2 gap-4 text-sm text-slate-600">
+                          <div className="space-y-1">
+                            <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">Objectives</p>
+                            <p className="text-2xl font-semibold text-slate-900">{project.objectives.length}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">Milestones</p>
+                            <p className="text-2xl font-semibold text-slate-900">{project.milestoneCount}</p>
+                          </div>
+                          <div className="col-span-2 space-y-1">
+                            <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">Recent objective</p>
+                            <p className="text-sm text-slate-600">
+                              {project.objectives[0]?.description ?? 'Objectives will appear when provided.'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-auto flex flex-col gap-3 pt-6 sm:flex-row">
+                          <button
+                            onClick={() => handleViewProject(project.projectId)}
+                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-200/70 bg-white/60 px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:border-sky-200 hover:bg-white"
+                          >
+                            Open detail
+                          </button>
+                          <button
+                            onClick={() => navigate(`/lecturer/projects/${project.projectId}/analysis`)}
+                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_35px_rgba(15,23,42,0.25)] transition hover:bg-slate-800"
+                          >
+                            AI insights
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <aside className="space-y-6 xl:col-span-4 2xl:col-span-3">
+
+            <div className={`rounded-[28px] ${glassPanelClass} p-6`}>
+              <div className="flex items-center gap-3">
+                <CalendarDaysIcon className="h-5 w-5 text-indigo-500" />
+                <h2 className="text-xl font-semibold text-slate-900">Upcoming milestones</h2>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">Directly sourced from objective milestones.</p>
+              <div className="mt-4 space-y-4">
+                {showProjectSkeleton ? (
+                  Array.from({ length: 3 }).map((_, index) =>
+                    renderMilestoneSkeleton(`milestone-skeleton-${index}`)
+                  )
+                ) : upcomingMilestones.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-white/60 bg-white/50 px-4 py-6 text-center text-sm text-slate-600">
+                    Milestones will appear once objectives define schedules.
+                  </div>
+                ) : (
+                  upcomingMilestones.map((milestone) => (
+                    <div
+                      key={`${milestone.objectiveMilestoneId}-${milestone.projectId}`}
+                      className="rounded-2xl border border-white/60 bg-white/60 px-4 py-3"
+                    >
+                      <p className="text-sm font-semibold text-slate-900">{milestone.title}</p>
+                      <p className="text-xs text-slate-500">{milestone.projectName} | {milestone.subjectCode}</p>
+                      <p className="mt-1 text-xs text-slate-500">{formatDate(milestone.startDate)} – {formatDate(milestone.endDate)}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className={`rounded-[28px] ${glassPanelClass} p-6`}>
+              <div className="flex items-center gap-3">
+                <CheckCircleIcon className="h-5 w-5 text-indigo-500" />
+                <h2 className="text-xl font-semibold text-slate-900">Lecturer checklist</h2>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">Keep teams aligned with library best practices.</p>
+              <ul className="mt-5 space-y-4 text-sm text-slate-600">
+                <li className="flex items-start gap-3">
+                  <CheckCircleIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
+                  Confirm each project exposes at least one clear objective before assignment.
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircleIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
+                  Align milestone dates with class pacing so checkpoints feel achievable.
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircleIcon className="mt-0.5 h-4 w-4 text-emerald-500" />
+                  Share payload gaps with the backend early—missing fields are logged in devtools.
+                </li>
+              </ul>
+            </div>
+          </aside>
         </div>
       </div>
     </DashboardLayout>

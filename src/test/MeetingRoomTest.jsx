@@ -137,9 +137,9 @@ function MeetingRoom() {
       {/* Top Bar */}
       <div className='flex items-center justify-between px-4 py-2 bg-gray-900/95 backdrop-blur-sm border-b border-gray-800'>
         <div className='flex items-center gap-3'>
-          <div className='flex items-center gap-2 px-3 py-1.5 bg-gray-800 rounded-lg'>
+          <div className='flex items-center gap-2 px-3 py-1.5 bg-white text-gray-800 rounded-lg border border-gray-200'>
             <div className='w-2 h-2 bg-green-500 rounded-full'></div>
-            <span className='text-xs text-gray-300 font-medium'>
+            <span className='text-xs text-gray-600 font-medium'>
               {new Date().toLocaleTimeString([], {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -153,7 +153,7 @@ function MeetingRoom() {
         <div className='flex items-center gap-2'>
           <button
             onClick={() => setShowInfo(!showInfo)}
-            className='p-2 hover:bg-gray-800 rounded-full transition'
+            className='p-2 hover:bg-gray-100 rounded-full transition'
             title='Meeting info'
           >
             <svg
@@ -316,7 +316,7 @@ function MeetingRoom() {
                 {groupPeers.length === 0 && (
                   <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
                     <div className='text-center'>
-                      <div className='w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3'>
+                      <div className='w-16 h-16 bg-white border border-gray-200 rounded-full flex items-center justify-center mx-auto mb-3'>
                         <span className='text-3xl'>👥</span>
                       </div>
                       <p className='text-gray-400 text-sm'>

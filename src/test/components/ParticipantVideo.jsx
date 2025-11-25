@@ -161,7 +161,7 @@ export const ParticipantVideo = ({ peer, userId, userName, isSharing, isMainView
         </div>
 
         {!hasStream && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+          <div className="absolute inset-0 flex items-center justify-center bg-white/90">
             <div className="w-8 h-8 border-3 border-gray-600 border-t-blue-500 rounded-full animate-spin"></div>
           </div>
         )}
@@ -172,7 +172,7 @@ export const ParticipantVideo = ({ peer, userId, userName, isSharing, isMainView
   // Default grid view (layout bình thường)
   return (
     <div className="relative group">
-      <div className="relative aspect-video rounded-xl overflow-hidden bg-gray-800 shadow-2xl ring-2 ring-gray-700 group-hover:ring-purple-500/50 transition-all">
+      <div className="relative aspect-video rounded-xl overflow-hidden bg-white shadow-2xl ring-2 ring-gray-200 group-hover:ring-purple-500/50 transition-all">
         <video ref={ref} autoPlay playsInline className="w-full h-full object-cover" />
         
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>

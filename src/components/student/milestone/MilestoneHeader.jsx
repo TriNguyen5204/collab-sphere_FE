@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Calendar, MessageSquare, CheckCircle, Award, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calendar, MessageSquare, CheckCircle, Award, FileText, ChevronDown, ChevronUp, User, Quote } from 'lucide-react';
 import { getStatusColor, normalizeMilestoneStatus } from '../../../utils/milestoneHelpers';
 import MilestoneFilesModal from './MilestoneFilesModal';
 import MilestoneQuestions from './MilestoneQuestions';
@@ -174,33 +174,93 @@ const MilestoneHeader = ({
           onDeleteMilestoneReturn={onDeleteMilestoneReturn}
           onRefreshMilestoneReturnLink={onRefreshMilestoneReturnLink}
         />
-
+      </div>
+      <div className='p-6 border-t '>
         {/* Evaluation */}
         {milestone.evaluation && (
-          <section className='mt-6 pt-6 border-t'>
-            <h4 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
-              <Award size={16} />
-              Evaluation
-            </h4>
-            <div className="space-y-1">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                <div>
-                  <p className="text-xs text-gray-600">Score</p>
-                  <p className="text-sm font-bold text-green-700">{milestone.evaluation.score}</p>
+          <section className="animate-fade-in ">
+            {/* Header Section */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className=" bg-orange-100 rounded-lg text-orange-600">
+                <Award size={16} strokeWidth={2.5} />
+              </div>
+              <h4 className="text-sm font-bold text-gray-800">
+                Milestone Evaluation
+              </h4>
+            </div>
+
+            {/* Main Card */}
+            <div className="bg-white border border-orange-200 rounded-xl shadow-sm overflow-hidden">
+
+              {/* Top Row: Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-12 border-b border-orange-100">
+
+                {/* Left: Score (Điểm số - Quan trọng nhất) */}
+                <div className="md:col-span-3 bg-orange-50/50 p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-orange-100">
+                  <span className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Score</span>
+                  <div className="relative">
+                    <span className="text-5xl font-extrabold text-orange-600 tracking-tight">
+                      {milestone.evaluation.score}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-600">Lecturer</p>
-                  <p className="text-sm font-semibold">{milestone.evaluation.lecturer?.name} {milestone.evaluation.lecturer?.code ? `(${milestone.evaluation.lecturer.code})` : ''}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600">Date</p>
-                  <p className="text-sm">{milestone.evaluation.createdDate ? new Date(milestone.evaluation.createdDate).toLocaleString() : ''}</p>
+
+                {/* Right: Metadata  */}
+                <div className="md:col-span-9 p-6 flex flex-col justify-center gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+                    {/* Lecturer Info */}
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1 text-gray-400">
+                        <User size={18} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase mb-0.5">Lecturer</p>
+                        <p className="font-semibold text-gray-900 text-base">
+                          {milestone.evaluation.lecturer?.name || 'N/A'}
+                        </p>
+                        {milestone.evaluation.lecturer?.code && (
+                          <span className="inline-block mt-1 px-2 py-0.5 bg-orangeFpt-100 text-orangeFpt-700 text-xs rounded-md font-medium">
+                            {milestone.evaluation.lecturer.code}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Date Info */}
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1 text-gray-400">
+                        <Calendar size={18} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase mb-0.5">Graded Date</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {milestone.evaluation.createdDate
+                            ? new Date(milestone.evaluation.createdDate).toLocaleString('vi-VN', {
+                              hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
+                            })
+                            : '---'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              {/* Bottom: Comment Section */}
               {milestone.evaluation.comment && (
-                <div className="mt-1">
-                  <p className="text-xs text-gray-600">Comment</p>
-                  <p className="text-sm text-gray-900 whitespace-pre-wrap">{milestone.evaluation.comment}</p>
+                <div className="p-6 bg-white">
+                  <div className="flex gap-3">
+                    <div className="text-orange-400 mt-1">
+                      <Quote size={20} className="rotate-180 fill-current opacity-30" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-gray-400 uppercase mb-2">Lecturer Comment</p>
+                      <div className="text-gray-700 leading-relaxed whitespace-pre-wrap text-sm bg-gray-50 p-4 rounded-lg border border-gray-100">
+                        {milestone.evaluation.comment}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
