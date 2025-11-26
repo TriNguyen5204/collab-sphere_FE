@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import ProjectBoardViewMenu from "../student/ProjectBoardViewMenu";
 import ProjectMemberAvatars from "../student/ProjectMemberAvatars";
 import ProjectMemberPopover from "../student/ProjectMemberPopover";
@@ -10,6 +10,7 @@ import ProjectResourcesMenu from "./ProjectResourcesMenu";
 
 const ProjectBoardHeader = ({ archivedItems, onRestoreArchived, onDeleteArchived, workspaceName }) => {
   const navigate = useNavigate();
+  const { projectName } = useParams();
   const [selectedMember, setSelectedMember] = useState(null);
   const [popoverAnchor, setPopoverAnchor] = useState(null);
   const { clearTeam, team } = useTeam();
@@ -31,7 +32,7 @@ const ProjectBoardHeader = ({ archivedItems, onRestoreArchived, onDeleteArchived
           alt="Project Avatar"
           className="w-10 h-10 rounded-full object-cover border"
         />
-        <h1 className="text-2xl font-bold">{workspaceName}</h1>
+        <h1 className="text-2xl font-bold">{workspaceName || projectName}</h1>
         <ProjectBoardViewMenu />
       </div>
 
