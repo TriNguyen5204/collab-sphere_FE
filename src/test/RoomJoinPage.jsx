@@ -8,7 +8,7 @@ import ClipLoader from 'react-spinners/ClipLoader';
 
 function JoinPage() {
   const myName = useSelector(state => state.user.fullName);
-  const teamId = useParams();
+  const {teamId} = useParams();
   const [groupId, setGroupId] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');

@@ -99,7 +99,7 @@ function MeetingRoom() {
   };
 
   const handleLeave = () => {
-    navigate('/room');
+    navigate(-2, { replace: true });
   };
 
   // Tìm người đang share màn hình
