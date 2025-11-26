@@ -1,56 +1,69 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import {
+  Users,
+  BookOpen,
+  Calendar,
+  Layers,
+  MoreHorizontal,
+  ArrowRight,
+  GraduationCap,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  AlertCircle
+} from 'lucide-react';
 import DashboardLayout from '../../components/DashboardLayout';
 import styles from './ClassDetailPage.module.css';
 import { getClassDetail } from '../../services/userService';
 import { normaliseClassDetailPayload } from './classDetailNormalizer';
 import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
+import { useAvatar } from '../../hooks/useAvatar';
 
+const Avatar = ({ src, name, className = "" }) => {
+  const { initials, colorClass, setImageError, shouldShowImage } = useAvatar(name, src);
+
+  if (shouldShowImage) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className={`${className} object-cover bg-white`}
+        onError={() => setImageError(true)}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`${className} ${colorClass} flex items-center justify-center font-bold uppercase select-none shadow-sm border border-white`}
+      style={{ fontSize: '0.85em' }}
+    >
+      {initials}
+    </div>
+  );
+};
+
+// --- Utility Functions ---
 const formatDate = (value, fallback = '—') => {
-  if (!value) {
-    return fallback;
-  }
-
+  if (!value) return fallback;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return fallback;
-  }
-
-  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  return Number.isNaN(date.getTime())
+    ? fallback
+    : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 };
-
-const assignmentStatusMeta = (status) => {
-  if (status === 1) return { label: 'Approved', token: 'approved' };
-  if (status === 2) return { label: 'Denied', token: 'denied' };
-  return { label: 'Pending', token: 'pending' };
-};
-
-const teamStatusMeta = (status) => {
-  if (status === 2) return { label: 'Inactive', token: 'inactive' };
-  return { label: 'Active', token: 'active' };
-};
-
-const roleLabel = (role) => (role === 1 ? 'Leader' : 'Member');
 
 const getInitials = (name = '') => {
-  const segments = String(name)
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+  const segments = String(name).trim().split(/\s+/).filter(Boolean);
+  if (!segments.length) return 'NA';
+  if (segments.length === 1) return segments[0].slice(0, 2).toUpperCase();
+  return (segments[0].charAt(0) + segments[segments.length - 1].charAt(0)).toUpperCase();
+};
 
-  if (!segments.length) {
-    return 'NA';
-  }
-
-  if (segments.length === 1) {
-    return segments[0].slice(0, 2).toUpperCase();
-  }
-
-  const first = segments[0].charAt(0) || '';
-  const last = segments[segments.length - 1].charAt(0) || '';
-  const initials = `${first}${last}`.toUpperCase();
-
-  return initials || segments[0].slice(0, 2).toUpperCase();
+const getStatusColor = (status) => {
+  if (status === "ACTIVE") return 'bg-green-100 text-green-700 border-green-200';
+  if (status === "INACTIVE") return 'bg-red-100 text-red-700 border-red-200';
+  return 'bg-orangeFpt-100 text-orangeFpt-700 border-orangeFpt-200';
 };
 
 const ClassDetailPage = () => {
@@ -63,59 +76,51 @@ const ClassDetailPage = () => {
 
   useEffect(() => {
     let ignore = false;
-
     const loadDetail = async () => {
-      if (!classId) {
-        setDetail(null);
-        setNormalisedDetail(null);
-        setError('');
-        return;
-      }
-
+      if (!classId) return;
       setLoading(true);
       setError('');
-
       try {
         const response = await getClassDetail(classId);
-        if (ignore) {
-          return;
-        }
+        if (ignore) return;
         setDetail(response);
         setNormalisedDetail(normaliseClassDetailPayload(response, numericClassId));
       } catch (err) {
-        if (ignore) {
-          return;
-        }
-        console.error('Failed to load class workspace.', err);
-        setDetail(null);
-        setNormalisedDetail(null);
-        setError('Unable to load this class right now.');
+        if (!ignore) setError('Unable to load this class right now.');
       } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
+        if (!ignore) setLoading(false);
       }
     };
-
     loadDetail();
-
-    return () => {
-      ignore = true;
-    };
+    return () => { ignore = true; };
   }, [classId, numericClassId]);
 
+  // --- Derived State ---
   const summaryStats = useMemo(() => {
-    if (!detail) {
-      return [];
-    }
-
-    const assignmentTotal = detail.projectAssignments ? detail.projectAssignments.length : 0;
-
+    if (!detail) return [];
+    const assignmentTotal = detail.projectAssignments?.length || 0;
     return [
-      { label: 'Students', value: detail.memberCount ?? normalisedDetail?.summary?.totalStudents ?? 0, helper: 'Enrolled' },
-      { label: 'Teams', value: detail.teamCount ?? normalisedDetail?.summary?.totalTeams ?? 0, helper: 'Formed teams' },
-      { label: 'Assignments', value: assignmentTotal, helper: 'Project queue' },
-      { label: 'Status', value: detail.isActive ? 'Active' : 'Inactive', helper: 'Class state' },
+      {
+        label: 'Students Enrolled',
+        value: detail.memberCount ?? normalisedDetail?.summary?.totalStudents ?? 0,
+        icon: Users,
+        color: 'text-blue-600',
+        bg: 'bg-blue-50'
+      },
+      {
+        label: 'Formed Teams',
+        value: detail.teamCount ?? normalisedDetail?.summary?.totalTeams ?? 0,
+        icon: Layers,
+        color: 'text-purple-600',
+        bg: 'bg-purple-50'
+      },
+      {
+        label: 'Assignments',
+        value: assignmentTotal,
+        icon: BookOpen,
+        color: 'text-orangeFpt-600',
+        bg: 'bg-orangeFpt-50'
+      },
     ];
   }, [detail, normalisedDetail]);
 
@@ -123,204 +128,282 @@ const ClassDetailPage = () => {
   const assignments = detail?.projectAssignments ?? [];
   const members = detail?.classMembers ?? [];
 
-  const breadcrumbItems = useMemo(
-    () => [
-      { label: 'Classes', href: '/lecturer/classes' },
-      { label: detail?.className ?? 'Class workspace' },
-    ],
-    [detail?.className]
+  const breadcrumbItems = useMemo(() => [
+    { label: 'Classes', href: '/lecturer/classes' },
+    { label: detail?.className ?? 'Class workspace' },
+  ], [detail?.className]);
+
+  // --- Render Helpers ---
+  if (loading) return (
+    <DashboardLayout>
+      <div className="flex h-96 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-orangeFpt-200 border-t-orangeFpt-500"></div>
+      </div>
+    </DashboardLayout>
   );
 
-  const showEmptyState = !loading && !detail && !error;
+  if (error) return (
+    <DashboardLayout>
+      <div className="mx-auto mt-10 max-w-2xl rounded-xl border border-red-200 bg-red-50 p-6 text-center text-red-800">
+        <AlertCircle className="mx-auto mb-2 h-8 w-8 text-red-500" />
+        {error}
+      </div>
+    </DashboardLayout>
+  );
+
+  if (!detail) return null;
 
   return (
     <DashboardLayout>
-      <div className={styles.screen}>
-        <LecturerBreadcrumbs items={breadcrumbItems} className={styles.breadcrumbSlot} />
+      <div className="min-h-screen space-y-8 bg-slate-50/50 p-6 lg:p-8">
 
-        {error && <div className={styles.errorBanner}>{error}</div>}
-        {loading && <div className={styles.placeholder}>Loading class workspace…</div>}
-        {showEmptyState && <div className={styles.placeholder}>Select a class to view its workspace.</div>}
+        {/* Breadcrumbs */}
+        <LecturerBreadcrumbs items={breadcrumbItems} />
 
-        {detail && !loading && (
-          <>
-            <header className={styles.heroCard}>
+        {/* --- HERO SECTION --- */}
+        <div className="relative overflow-hidden rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50">
+          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-orangeFpt-100/50 blur-3xl"></div>
+          <div className="absolute bottom-0 right-20 h-32 w-32 rounded-full bg-blue-50/50 blur-2xl"></div>
+
+          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center rounded-lg bg-orangeFpt-100 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-orangeFpt-700">
+                  {detail.subjectCode || 'CLASS'}
+                </span>
+                <span className="text-sm font-medium text-slate-500 flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5" />
+                  {detail.semesterName || 'Current Semester'}
+                </span>
+              </div>
+
               <div>
-                <p className={styles.eyebrow}>Lecturer workspace · Class overview</p>
-                <h1>{detail.className}</h1>
-                {(detail.subjectCode || detail.subjectName) && (
-                  <p className={styles.subjectLine}>
-                    {detail.subjectCode && <span className={styles.subjectCode}>{detail.subjectCode}</span>}
-                    {detail.subjectName && <span>{detail.subjectName}</span>}
-                  </p>
-                )}
-                <p className={styles.helper}>Review roster, teams, and project assignments for this class.</p>
-                <div className={styles.metaChips}>
-                  {detail.semesterName && <span>{detail.semesterName}</span>}
-                  <span>{detail.memberCount ?? members.length} Students</span>
-                  <span>{teams.length} Teams</span>
-                  <span>{assignments.length} Assignments</span>
+                <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">{detail.className}</h1>
+                <p className="mt-2 text-lg text-slate-500">
+                  {detail.subjectName || 'Class Management Workspace'}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-6 pt-2 text-sm text-slate-600">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-600 font-bold">
+                    {getInitials(detail.lecturerName)}
+                  </div>
+                  <span className="font-medium">{detail.lecturerName || 'No Lecturer'}</span>
+                </div>
+                <div className="h-4 w-px bg-slate-300"></div>
+                <div>
+                  <span className="text-slate-400">Join Key: </span>
+                  <code className="rounded bg-slate-100 px-2 py-1 font-mono font-bold text-slate-800">
+                    {detail.enrolKey || '—'}
+                  </code>
                 </div>
               </div>
-              <div className={styles.heroMeta}>
-                <div>
-                  <p>Lecturer</p>
-                  <strong>{detail.lecturerName ?? '—'}</strong>
-                </div>
-                <div>
-                  <p>Enrol key</p>
-                  <strong>{detail.enrolKey ?? '—'}</strong>
-                </div>
-                <div>
-                  <p>Created</p>
-                  <strong>{formatDate(detail.createdDate)}</strong>
-                </div>
-                <Link to={`/lecturer/classes/${classId}/projects`} className={styles.primaryAction}>
-                  Class project overview
-                </Link>
-              </div>
-            </header>
-
-            <section className={styles.statsGrid}>
-              {summaryStats.map((stat) => (
-                <div key={stat.label} className={styles.statCard}>
-                  <p>{stat.label}</p>
-                  <strong>{stat.value}</strong>
-                  <span>{stat.helper}</span>
-                </div>
-              ))}
-            </section>
-
-            <div className={styles.contentGrid}>
-              <section className={styles.card}>
-                <div className={styles.sectionHeader}>
-                  <div>
-                    <p className={styles.eyebrow}>Teams</p>
-                    <h2>Active teams</h2>
-                  </div>
-                  <span>{teams.length}</span>
-                </div>
-                {teams.length ? (
-                  <ul className={styles.teamList}>
-                    {teams.map((team) => {
-                      const status = teamStatusMeta(team.status);
-                      return (
-                        <li key={team.teamId} className={styles.teamRow}>
-                          <div>
-                            <p className={styles.teamName}>{team.teamName}</p>
-                            <span className={styles.teamProject}>{team.projectName ?? 'Unlinked project'}</span>
-                          </div>
-                          <div className={styles.teamMeta}>
-                            <div>
-                              <p>Project assignment</p>
-                              <strong>{team.projectAssignmentId ? `#${team.projectAssignmentId}` : '—'}</strong>
-                            </div>
-                            <div>
-                              <p>Due date</p>
-                              <strong>{formatDate(team.endDate)}</strong>
-                            </div>
-                            <div>
-                              <p>Status</p>
-                              <span className={`${styles.statusBadge} ${styles[status.token]}`}>{status.label}</span>
-                            </div>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : (
-                  <div className={styles.placeholder}>No teams created for this class.</div>
-                )}
-              </section>
-
-              <section className={styles.card}>
-                <div className={styles.sectionHeader}>
-                  <div>
-                    <p className={styles.eyebrow}>Assignments</p>
-                    <h2>Project queue</h2>
-                  </div>
-                  <span>{assignments.length}</span>
-                </div>
-                {assignments.length ? (
-                  <div className={styles.assignmentScroller}>
-                    {assignments.map((assignment) => {
-                      const status = assignmentStatusMeta(assignment.status);
-                      return (
-                        <article key={assignment.projectAssignmentId} className={styles.assignmentCard}>
-                          <div className={styles.assignmentHeader}>
-                            <span className={styles.assignmentId}>#{assignment.projectAssignmentId}</span>
-                          </div>
-                          <h3>{assignment.projectName}</h3>
-                          <p className={styles.assignmentDescription}>{assignment.description ?? 'Description updating soon.'}</p>
-                          <dl className={styles.assignmentMetaGrid}>
-                            <div>
-                              <dt>Assigned</dt>
-                              <dd>{formatDate(assignment.assignedDate)}</dd>
-                            </div>
-                          </dl>
-                        </article>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className={styles.placeholder}>No project assignments recorded.</div>
-                )}
-              </section>
             </div>
 
-            <section className={styles.card}>
-              <div className={styles.sectionHeader}>
-                <div>
-                  <p className={styles.eyebrow}>Roster</p>
-                  <h2>Class members</h2>
-                </div>
-                <span>{members.length}</span>
+            <Link
+              to={`/lecturer/classes/${classId}/projects`}
+              className="group flex items-center gap-2 rounded-xl bg-orangeFpt-500 px-6 py-3 font-semibold text-white shadow-lg shadow-orangeFpt-200 transition-all hover:bg-orangeFpt-600 hover:shadow-orangeFpt-300 active:scale-95"
+            >
+              <BookOpen className="h-5 w-5" />
+              <span>Manage Projects</span>
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </div>
+        </div>
+
+        {/* --- STATS GRID --- */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {summaryStats.map((stat, idx) => (
+            <div key={idx} className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md">
+              <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${stat.bg} ${stat.color}`}>
+                <stat.icon className="h-6 w-6" />
               </div>
-              {members.length ? (
-                <div className={styles.tableWrapper}>
-                  <table className={styles.rosterTable}>
-                    <thead>
+              <div>
+                <p className="text-sm font-medium text-slate-500">{stat.label}</p>
+                <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+              </div>
+            </div>
+          ))}
+          <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md">
+            <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${detail.isActive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+              {detail.isActive ? <CheckCircle2 className="h-6 w-6" /> : <XCircle className="h-6 w-6" />}
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-500">Class Status</p>
+              <p className="text-xl font-bold text-slate-900">{detail.isActive ? 'Active' : 'Inactive'}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
+
+          {/* --- LEFT COL: TEAMS LIST --- */}
+          <div className="flex flex-col gap-6 xl:col-span-2">
+            <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+              <div className="mb-6 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-slate-800">Student Teams</h2>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                  {teams.length}
+                </span>
+              </div>
+
+              {teams.length > 0 ? (
+                <div className="flex flex-col gap-4">
+                  {teams.map((team) => (
+                    <div key={team.teamId} className="group relative flex flex-col gap-4 rounded-2xl border border-slate-100 bg-slate-50/50 p-5 transition-all hover:bg-white hover:shadow-md sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-start gap-4">
+                        {/* --- USING NEW AVATAR COMPONENT --- */}
+                        <Avatar
+                          src={team.team?.teamImage || team.teamImage}
+                          name={team.teamName}
+                          className="h-10 w-10 rounded-full border border-slate-200 shadow-sm"
+                        />
+                        <div>
+                          <h3 className="font-bold text-slate-900 group-hover:text-orangeFpt-600 transition-colors">
+                            {team.teamName}
+                          </h3>
+                          <p className="text-sm text-slate-500">
+                            {team.projectName || 'No Project Selected'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-6 text-sm">
+                        <div className="hidden flex-col items-end sm:flex">
+                          <span className="text-xs uppercase tracking-wider text-slate-400">Due Date</span>
+                          <span className="font-medium text-slate-700">{formatDate(team.endDate)}</span>
+                        </div>
+                        <div className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(team.status)}`}>
+                          {team.status === "ACTIVE" ? 'Active' : 'Inactive'}
+                        </div>
+                        <button className="text-slate-400 hover:text-orangeFpt-500">
+                          <MoreHorizontal className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-12">
+                  <Users className="h-10 w-10 text-slate-300 mb-2" />
+                  <p className="text-slate-500">No teams formed yet.</p>
+                </div>
+              )}
+            </div>
+
+            {/* --- ROSTER TABLE --- */}
+            <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+              <div className="mb-6 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-slate-800">Class Roster</h2>
+              </div>
+
+              {members.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm text-slate-600">
+                    <thead className="bg-slate-50/50 text-xs uppercase text-slate-400">
                       <tr>
-                        <th scope="col">Student</th>
-                        <th scope="col">Student code</th>
-                        <th scope="col">Team</th>
-                        <th scope="col">Role</th>
-                        <th scope="col">Phone</th>
-                        <th scope="col">Address</th>
+                        <th className="px-4 py-3 font-semibold">Student</th>
+                        <th className="px-4 py-3 font-semibold">ID</th>
+                        <th className="px-4 py-3 font-semibold">Team</th>
+                        <th className="px-4 py-3 font-semibold">Role</th>
+                        <th className="hidden px-4 py-3 font-semibold sm:table-cell">Contact</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100">
                       {members.map((member) => (
-                        <tr key={member.classMemberId}>
-                          <td>
-                            <div className={styles.personCell}>
-                              {member.avatarImg ? (
-                                <img src={member.avatarImg} alt={member.fullname} />
-                              ) : (
-                                <span className={styles.avatarFallback}>{getInitials(member.fullname)}</span>
-                              )}
+                        <tr key={member.classMemberId} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <Avatar
+                                src={member.avatarImg}
+                                name={member.fullname}
+                                className="h-9 w-9 rounded-full border border-slate-200 shadow-sm"
+                              />
                               <div>
-                                <p>{member.fullname}</p>
-                                <span>{member.email ?? ''}</span>
+                                <p className="font-semibold text-slate-900">{member.fullname}</p>
+                                <p className="text-xs text-slate-400">{member.email}</p>
                               </div>
                             </div>
                           </td>
-                          <td>{member.studentCode ?? '—'}</td>
-                          <td>{member.teamName ?? 'Unassigned'}</td>
-                          <td>{roleLabel(member.teamRole)}</td>
-                          <td>{member.phoneNumber ?? '—'}</td>
-                          <td>{member.address ?? '—'}</td>
+                          <td className="px-4 py-3 font-mono text-slate-500">{member.studentCode || '—'}</td>
+                          <td className="px-4 py-3">
+                            {member.teamName ? (
+                              <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                                {member.teamName}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 italic">Unassigned</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {member.teamRole === 1 && (
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-orangeFpt-600">
+                                <GraduationCap className="h-3 w-3" /> Leader
+                              </span>
+                            )}
+                            {member.teamRole !== 1 && <span className="text-slate-500">Member</span>}
+                          </td>
+                          <td className="hidden px-4 py-3 text-xs sm:table-cell">
+                            <div className="flex flex-col">
+                              <span>{member.phoneNumber || '—'}</span>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               ) : (
-                <div className={styles.placeholder}>This class has no enrolled students yet.</div>
+                <div className="text-center py-10 text-slate-500">No students enrolled.</div>
               )}
-            </section>
-          </>
-        )}
+            </div>
+          </div>
+
+          {/* --- RIGHT COL: ASSIGNMENTS --- */}
+          <div className="flex flex-col gap-6 xl:col-span-1">
+            <div className="sticky top-6 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-slate-800">Project Queue</h2>
+              </div>
+
+              {assignments.length > 0 ? (
+                <div className={`flex flex-col gap-4 overflow-y-auto pr-1 ${styles.assignmentScroller}`} style={{ maxHeight: '800px' }}>
+                  {assignments.map((assignment) => (
+                    <div key={assignment.projectAssignmentId} className="group flex flex-col gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 transition-all hover:border-orangeFpt-200 hover:bg-orangeFpt-50/30 hover:shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400 group-hover:text-orangeFpt-400">
+                          #{assignment.projectAssignmentId}
+                        </span>
+                        <span className={`h-2 w-2 rounded-full ${assignment.status === 1 ? 'bg-green-500' : 'bg-orangeFpt-400'}`}></span>
+                      </div>
+
+                      <div>
+                        <h3 className="font-semibold text-slate-800 line-clamp-2 leading-tight">
+                          {assignment.projectName}
+                        </h3>
+                        <p className="mt-1 text-xs text-slate-500 line-clamp-2">
+                          {assignment.description || 'No description provided.'}
+                        </p>
+                      </div>
+
+                      <div className="mt-2 flex items-center gap-2 border-t border-slate-200 pt-3">
+                        <Clock className="h-3.5 w-3.5 text-slate-400" />
+                        <span className="text-xs font-medium text-slate-600">
+                          Assigned: {formatDate(assignment.assignedDate)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center text-sm text-slate-500">
+                  No assignments active.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );
