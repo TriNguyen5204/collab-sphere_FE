@@ -5,8 +5,6 @@
  * @returns {number} Position mới
  */
 export const calculateNewPosition = (prevPosition, nextPosition) => {
-  // ✅ Debug
-  console.log('🔍 Input:', { prevPosition, nextPosition });
 
   // ✅ Convert to number và handle null/undefined
   const prev =
@@ -40,16 +38,15 @@ export const calculateNewPosition = (prevPosition, nextPosition) => {
     result = 1.0;
   }
 
-  const floatResult = parseFloat(result.toFixed(1));
+  // ✅ BỎ LÀM TRÒN - giữ nguyên precision của JavaScript
+  // const floatResult = parseFloat(result.toFixed(1)); // ❌ CŨ
 
   // ✅ Final check
-  if (isNaN(floatResult)) {
+  if (isNaN(result)) {
     console.error('❌ NaN result!');
     return 1.0;
   }
-
-  console.log('✅ Output:', floatResult);
-  return floatResult;
+  return result;
 };
 
 /**

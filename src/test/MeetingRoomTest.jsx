@@ -99,7 +99,7 @@ function MeetingRoom() {
   };
 
   const handleLeave = () => {
-    navigate('/room');
+    navigate('/student/projects', { replace: true });
   };
 
   // Tìm người đang share màn hình
