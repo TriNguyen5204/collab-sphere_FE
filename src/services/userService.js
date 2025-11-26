@@ -389,6 +389,15 @@ export const deactivateAccount = async (userId) => {
     throw error;
   }
 }
+export const createAccount = async (data) => {
+  try{
+    const response = await apiClient.post('/admin/user/head-department-staff', data);
+    return response.data;
+  }catch(error){
+    console.error('Error creating account:', error);
+    throw error;
+  }
+}
 
 //Student
 export const getClassesByStudentId = async (studentId) => {

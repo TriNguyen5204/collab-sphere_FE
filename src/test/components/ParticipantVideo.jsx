@@ -120,7 +120,7 @@ export const ParticipantVideo = ({ peer, userId, userName, isSharing, isMainView
         />
         
         {isSharing && (
-          <div className="absolute top-4 left-4 px-3 py-1.5 bg-red-500 rounded-lg flex items-center gap-2 shadow-lg">
+          <div className="absolute top-6 left-6 px-4 py-2 bg-red-500 rounded-full flex items-center gap-2 shadow-lg">
             <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
             <span className="text-sm text-white font-semibold">
               {displayName} is presenting
@@ -129,10 +129,10 @@ export const ParticipantVideo = ({ peer, userId, userName, isSharing, isMainView
         )}
 
         {!hasStream && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+          <div className="absolute inset-0 flex items-center justify-center bg-[#202124]">
             <div className="text-center">
-              <div className="w-16 h-16 border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin mx-auto mb-3"></div>
-              <p className="text-sm text-gray-400">Loading presentation...</p>
+              <div className="w-16 h-16 border-4 border-[#5f6368] border-t-[#8ab4f8] rounded-full animate-spin mx-auto mb-3"></div>
+              <p className="text-sm text-[#9aa0a6]">Loading presentation...</p>
             </div>
           </div>
         )}
@@ -143,7 +143,7 @@ export const ParticipantVideo = ({ peer, userId, userName, isSharing, isMainView
   // Thumbnail view (sidebar nhỏ)
   if (isThumbnail) {
     return (
-      <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video group hover:ring-2 hover:ring-blue-500 transition-all">
+      <div className="relative bg-[#3c4043] rounded-xl overflow-hidden aspect-video group hover:ring-2 hover:ring-[#8ab4f8] transition-all shadow-lg">
         <video 
           ref={ref} 
           autoPlay 
@@ -151,53 +151,63 @@ export const ParticipantVideo = ({ peer, userId, userName, isSharing, isMainView
           className="w-full h-full object-cover" 
         />
         
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
         
-        <div className="absolute bottom-2 left-2 flex items-center gap-2">
-          <div className={`w-1.5 h-1.5 rounded-full ${hasStream ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`}></div>
-          <span className="text-xs font-medium text-white drop-shadow-md">
+        <div className="absolute bottom-3 left-3 flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${hasStream ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`}></div>
+          <span className="text-sm font-medium text-white drop-shadow-lg">
             {displayName}
           </span>
         </div>
 
         {!hasStream && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-            <div className="w-8 h-8 border-3 border-gray-600 border-t-blue-500 rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center bg-[#3c4043]">
+            <div className="w-8 h-8 border-3 border-[#5f6368] border-t-[#8ab4f8] rounded-full animate-spin"></div>
           </div>
         )}
       </div>
     );
   }
 
-  // Default grid view (layout bình thường)
+  // Default grid view (layout bình thường) - Google Meet Style
   return (
-    <div className="relative group">
-      <div className="relative aspect-video rounded-xl overflow-hidden bg-gray-800 shadow-2xl ring-2 ring-gray-700 group-hover:ring-purple-500/50 transition-all">
+    <div className="relative group h-full">
+      <div className="relative h-full rounded-2xl overflow-hidden bg-[#3c4043] shadow-xl hover:shadow-2xl transition-all">
         <video ref={ref} autoPlay playsInline className="w-full h-full object-cover" />
         
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none"></div>
         
-        <div className="absolute bottom-3 left-3 flex items-center gap-2">
+        {/* Name Tag - Always visible like Google Meet */}
+        <div className="absolute bottom-4 left-4 flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${hasStream ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`}></div>
-          <span className="text-sm font-semibold text-white drop-shadow-lg">
+          <span className="text-sm font-medium text-white drop-shadow-lg">
             {displayName}
           </span>
         </div>
 
+        {/* Screen Share Badge */}
         {isSharing && (
-          <div className="absolute top-3 right-3 px-3 py-1 bg-red-500 rounded-full text-xs font-bold animate-pulse">
-            🖥️ Sharing
+          <div className="absolute top-4 right-4 px-3 py-1.5 bg-[#8ab4f8] rounded-lg flex items-center gap-1.5 shadow-lg">
+            <svg className='w-4 h-4 text-[#202124]' fill='currentColor' viewBox='0 0 20 20'>
+              <path fillRule='evenodd' d='M3 4a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 1v10h10V5H5z' clipRule='evenodd' />
+            </svg>
+            <span className="text-xs font-semibold text-[#202124]">Presenting</span>
           </div>
         )}
 
+        {/* Loading State */}
         {!hasStream && (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center bg-[#3c4043]">
             <div className="text-center">
-              <div className="w-12 h-12 border-4 border-gray-600 border-t-blue-500 rounded-full animate-spin mx-auto mb-2"></div>
-              <p className="text-sm text-gray-400">Connecting...</p>
+              <div className="w-12 h-12 border-4 border-[#5f6368] border-t-[#8ab4f8] rounded-full animate-spin mx-auto mb-2"></div>
+              <p className="text-sm text-[#9aa0a6]">Connecting...</p>
             </div>
           </div>
         )}
+
+        {/* Hover Overlay - Google Meet Style */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all pointer-events-none"></div>
       </div>
     </div>
   );

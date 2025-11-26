@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { Kanban, Flag, MessageSquare, ChevronDown, UsersRound } from 'lucide-react';
+import { Kanban, Flag, CheckSquare, MessageSquare, ClipboardList, ChevronDown, UsersRound, VideoIcon  } from 'lucide-react';
 import useClickOutside from '../../hooks/useClickOutside';
 
 const ProjectBoardViewMenu = () => {
@@ -17,6 +17,7 @@ const ProjectBoardViewMenu = () => {
     { name: 'Task Board', icon: Kanban, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}` },
     { name: 'Milestones & Checkpoints', icon: Flag, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/milestones&checkpoints` },
     { name: 'Communication', icon: MessageSquare, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/communication` },
+    { name: 'Meeting room', icon: VideoIcon, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/meeting-room`}
   ];
 
   const normalizePath = (p) => (p || '').replace(/\/+$/, '');

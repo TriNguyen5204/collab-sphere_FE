@@ -5,6 +5,7 @@ import { Server } from 'socket.io';
 const app = express();
 const server = http.createServer(app);
 const recorders = {};
+const chatHistory = {};
 const io = new Server(server, {
   cors: {
     origin: 'http://localhost:5173',
@@ -25,22 +26,49 @@ io.on('connection', socket => {
     if (roomId) {
       console.log(`${socket.name} (${socket.id}) disconnected from ${roomId}`);
       socket.to(roomId).emit('userLeft', socket.id);
+      const clientsInRoom = io.sockets.adapter.rooms.get(roomId);
+      // Xóa lịch sử nếu không còn ai trong room
+      if (!clientsInRoom || clientsInRoom.size === 0) {
+        console.log(`🗑️ Room ${roomId} is empty, cleaning up chat history`);
+        delete chatHistory[roomId];
+      }
     }
     socket.isSharing = false;
     for (const [roomId, recorderId] of Object.entries(recorders)) {
       if (recorderId === socket.id) {
         delete recorders[roomId];
-        io.to(roomId).emit("recordStopped", { userId: socket.id });
+        io.to(roomId).emit('recordStopped', { userId: socket.id });
       }
     }
   });
 
   socket.on('chatMessage', ({ roomId, sender, message }) => {
-    io.to(roomId).emit('chatMessage', {
+    const chatMsg = {
       sender,
       message,
-      timestamp: Date.now(),
-    });
+      timestamp: new Date().toISOString(),
+      userId: socket.id,
+    };
+
+    // Lưu vào lịch sử
+    if (!chatHistory[roomId]) {
+      chatHistory[roomId] = [];
+    }
+    chatHistory[roomId].push(chatMsg);
+
+    // Giới hạn số lượng (optional)
+    const MAX_MESSAGES = 100;
+    if (chatHistory[roomId].length > MAX_MESSAGES) {
+      chatHistory[roomId] = chatHistory[roomId].slice(-MAX_MESSAGES);
+    }
+
+    // Broadcast đến tất cả
+    io.to(roomId).emit('chatMessage', chatMsg);
+  });
+  socket.on('requestChatHistory', roomId => {
+    const history = chatHistory[roomId] || [];
+    socket.emit('chatHistory', history);
+    console.log(`✅ Sent ${history.length} messages to ${socket.id}`);
   });
 
   socket.on('joinRoom', ({ roomId, name }) => {
@@ -99,7 +127,7 @@ io.on('connection', socket => {
     });
   });
 
-  socket.on('screenShareStatus', ({ roomId, isSharing, userId }) => {
+  socket.on('screenShareStatus', ({ roomId, isSharing }) => {
     console.log(
       `${socket.name} (${socket.id}) ${isSharing ? 'started' : 'stopped'} screen sharing`
     );

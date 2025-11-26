@@ -88,11 +88,10 @@ const publicRoutes = [
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
   { path: '/unauthorized', element: <Unauthorized /> },
-  { path: '/room', element: <RoomJoinPage/>},
+
   { path: '/room/:roomId', element: <MeetingRoomTest/>},
-  { path: '/test/meeting', element: <Layout/> },
-  { path: '/test/meeting/history', element: <MeetingManagement/> },
-  { path: '/test/meeting/schedule', element: <MeetingSchedulerFull/> },
+  { path: '/meeting/history/:teamId', element: <MeetingManagement/> },
+  { path: '/meeting/schedule/:teamId', element: <MeetingSchedulerFull/> },
   { path: '/test/kanban', element: <TestKanbanBoard /> },
 ];
 
@@ -105,6 +104,8 @@ const studentRoutes = [
   { path: '/student/project/:projectId/:projectName/:teamId/milestones&checkpoints', element: protectRoute(['STUDENT'], <MilestoneCheckpointPage />) },
   { path: '/student/project/:projectId/:projectName/:teamId/team-workspace', element: protectRoute(['STUDENT'], <TeamWorkspace />) },
   { path: '/student/project/:projectId/:projectName/:teamId/pr-analysis/:analysisId', element: protectRoute(['STUDENT'], <ProfessionalAnalysisView />) },
+  { path: '/student/project/:projectId/:projectName/:teamId/meeting-room', element: <Layout/> },
+  { path: '/student/project/join-room/:teamId', element: <RoomJoinPage/>},
   { path: '/projects/github-callback', element: protectRoute(['STUDENT'], <GitHubAppCallback />) },
   { path: '/student/ai/pr-analysis', element: protectRoute(['STUDENT'], <StudentPRAnalysisPage />) },
   { path: '/student/:className/members', element: protectRoute(['STUDENT'], <StudentClassMembersPage />) },

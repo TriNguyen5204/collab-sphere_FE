@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { LogIn, Video, Plus, Users, Clock } from 'lucide-react';
 import { createMeeting } from '../services/meetingApi';
 import { toast } from 'sonner';
@@ -8,6 +8,7 @@ import ClipLoader from 'react-spinners/ClipLoader';
 
 function JoinPage() {
   const myName = useSelector(state => state.user.fullName);
+  const teamId = useParams();
   const [groupId, setGroupId] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -38,10 +39,10 @@ function JoinPage() {
     const now = new Date();
     const vnOffsetMs = 7 * 60 * 60 * 1000;
     const payload = {
-      teamId: 2,
+      teamId: teamId,
       title,
       description,
-      meetingUrl: `http://localhost:5173/room/${newRoomId}`,
+      meetingUrl: `${import.meta.env.VITE_FRONTEND_URL}/room/${newRoomId}`,
       scheduleTime: new Date(now.getTime() + vnOffsetMs).toISOString(),
     };
 
