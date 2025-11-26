@@ -9,7 +9,7 @@ const MeetingTypeList = ({ teamId }) => {
 
   useEffect(() => {
     if (meetingState === 'isInstantMeeting') {
-      navigate(`/student/project/join-room/${teamId}`);
+      navigate(`/student/project/join-room`);
     } else if (meetingState === 'history') {
       navigate(`/meeting/history/${teamId}`);
     } else if (meetingState === 'schedule') {
