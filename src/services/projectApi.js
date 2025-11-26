@@ -19,6 +19,11 @@ export const createProject = async (projectPayload = {}) => {
 	return response.data;
 };
 
+export const createFullProject = async (payload) => {
+	const response = await apiClient.post('/projects/create-full', payload);
+	return response.data;
+};
+
 export const updateProjectBeforeApproval = async (projectPayload = {}) => {
 	const projectId = projectPayload.projectId ?? projectPayload.id;
 	if (projectId === undefined || projectId === null) {

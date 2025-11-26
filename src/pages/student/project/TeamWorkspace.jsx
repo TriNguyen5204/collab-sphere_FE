@@ -8,11 +8,19 @@ import ActivityFeed from '../../../components/student/ActivityFeed';
 import ProjectOverview from '../../../components/student/ProjectOverview';
 import { Skeleton } from '../../../components/skeletons/StudentSkeletons';
 import { getDetailOfProjectByProjectId, getDetailOfTeamByTeamId } from '../../../services/studentApi';
+import { handleCallback } from '../../../services/githubApi';
 import useTeam from '../../../context/useTeam';
 import AICodeReviewTab from './AICodeReviewTab';
+import { toast } from 'sonner';
 
 const TeamWorkspace = () => {
-  const { projectId, teamId, projectName } = useParams();
+  // const { projectId, teamId, projectName } = useParams();
+  const [projectContext] = useState(() => {
+    const stored = localStorage.getItem('currentProjectContext');
+    return stored ? JSON.parse(stored) : {};
+  });
+  const { projectId, teamId, projectName } = projectContext;
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedRole, setSelectedRole] = useState('all');
   const [activeTab, setActiveTab] = useState('overview');
@@ -21,8 +29,79 @@ const TeamWorkspace = () => {
 
   // Handle query parameters for tab switching and success toast
   useEffect(() => {
+    const handleGitHubCallback = async () => {
+      const installationId = searchParams.get('installation_id');
+      const state = searchParams.get('state');
+      const setupAction = searchParams.get('setup_action');
+
+      if (installationId) {
+        // If it's an update action, we might not need to call the callback API if no state is present,
+        // or we might just want to show a success message.
+        if (setupAction === 'update' && !state) {
+          setActiveTab('ai-review'); // Switch tab immediately for updates
+          toast.success('GitHub settings updated successfully');
+          setSearchParams({}); // Clear params
+          return;
+        }
+
+        if (!state) {
+          toast.error('Missing security token (state). Please try connecting again.');
+          setSearchParams({});
+          return;
+        }
+
+        try {
+          const response = await handleCallback(installationId, state);
+          if (response && response.success) {
+            setActiveTab('ai-review'); // Switch tab after successful connection
+            setShowSuccessToast(true);
+            setTimeout(() => setShowSuccessToast(false), 5000);
+            toast.success('Successfully connected to GitHub!');
+          } else {
+            toast.error(response?.message || 'Failed to connect to GitHub');
+          }
+        } catch (error) {
+          console.error('GitHub callback error:', error);
+          if (error.response && error.response.data) {
+             console.error('Server Error Details:', error.response.data);
+             
+             let errorMsg = 'Failed to connect to GitHub';
+
+             // Handle specific errorList format from backend (e.g. { errorList: [{ message: "..." }] })
+             if (error.response.data.errorList && Array.isArray(error.response.data.errorList)) {
+                errorMsg = error.response.data.errorList.map(e => e.message).join('\n');
+             }
+             // Handle Array of errors (legacy/other format)
+             else if (Array.isArray(error.response.data)) {
+                errorMsg = error.response.data.map(e => e.message).join('\n');
+             } 
+             // Handle Standard ASP.NET Validation Problem Details
+             else if (typeof error.response.data === 'object') {
+                errorMsg = error.response.data.title || errorMsg;
+                if (error.response.data.errors) {
+                   const details = Object.values(error.response.data.errors).flat().join(', ');
+                   if (details) errorMsg += `: ${details}`;
+                }
+             } else if (typeof error.response.data === 'string') {
+                errorMsg = error.response.data;
+             }
+             
+             toast.error(errorMsg);
+          } else {
+             toast.error(error.message || 'Failed to connect to GitHub');
+          }
+        } finally {
+          // Clear query params to clean up URL
+          setSearchParams({});
+        }
+      }
+    };
+
+    handleGitHubCallback();
+
     const tab = searchParams.get('tab');
-    if (tab === 'ai-review') {
+    const active = searchParams.get('active');
+    if (tab === 'ai-review' || active === 'ai-review') {
       setActiveTab('ai-review');
     }
 

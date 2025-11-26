@@ -13,7 +13,7 @@ const ProjectBoardViewMenu = () => {
   const effectiveTeamId = teamId || legacyTeamId;
 
   const menuItems = [
-    { name: 'Team Workspace', icon: UsersRound, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/team-workspace` },
+    { name: 'Team Workspace', icon: UsersRound, path: `/student/project/team-workspace` },
     { name: 'Task Board', icon: Kanban, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}` },
     { name: 'Milestones & Checkpoints', icon: Flag, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/milestones&checkpoints` },
     { name: 'Communication', icon: MessageSquare, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/communication` },
@@ -62,7 +62,12 @@ const ProjectBoardViewMenu = () => {
               <li key={name}>
                 <Link
                   to={path}
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    if (name === 'Team Workspace') {
+                      localStorage.setItem('currentProjectContext', JSON.stringify({ projectId, teamId: effectiveTeamId, projectName }));
+                    }
+                    setOpen(false);
+                  }}
                   className={`flex items-center px-4 py-2.5 hover:bg-gray-700 rounded transition ${
                     isActive ? 'bg-gray-700 text-white font-semibold' : ''
                   }`}
