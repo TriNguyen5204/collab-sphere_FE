@@ -227,8 +227,8 @@ const ProjectBoardSetting = ({ archivedItems, onRestoreArchived, onDeleteArchive
         </button>
 
         {isOpen && (
-          <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 max-h-[80vh] overflow-y-auto">
-            <div className="px-4 py-2 border-b">
+          <div className="absolute right-0 mt-2 w-80 bg-white text-gray-900 rounded-lg shadow-xl border border-gray-200 py-2 z-50 max-h-[80vh] overflow-y-auto">
+            <div className="px-4 py-2 border-b border-gray-100">
               <h3 className="font-semibold text-gray-900">Project Settings</h3>
               <p className="text-xs text-gray-500 mt-1">{decodeURIComponent(projectName)}</p>
             </div>
@@ -246,7 +246,7 @@ const ProjectBoardSetting = ({ archivedItems, onRestoreArchived, onDeleteArchive
                     <button
                       key={itemIdx}
                       onClick={item.action}
-                      className={`w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors flex items-start gap-3 ${item.className || ''}`}
+                      className={`w-full px-4 py-2 text-left hover:bg-gray-100 transition-colors flex items-start gap-3 ${item.className || ''}`}
                     >
                       <Icon size={18} className="mt-0.5 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -257,7 +257,7 @@ const ProjectBoardSetting = ({ archivedItems, onRestoreArchived, onDeleteArchive
                   );
                 })}
                 {sectionIdx < menuItems.length - 1 && (
-                  <div className="border-t my-2" />
+                  <div className="border-t border-gray-100 my-2" />
                 )}
               </div>
             ))}
@@ -383,9 +383,9 @@ const ProjectSettingsModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-3xl">
-        <div className="p-6 border-b">
-          <h2 className="text-2xl font-bold">Team Settings</h2>
+      <div className="bg-white text-gray-900 border border-gray-200 rounded-lg w-full max-w-3xl shadow-2xl">
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-2xl font-bold text-gray-900">Team Settings</h2>
           <p className="text-sm text-gray-500 mt-1">Update your team avatar and basic information.</p>
         </div>
 
@@ -394,9 +394,9 @@ const ProjectSettingsModal = ({
             <div className=" grid grid-cols-3 gap-6">
               <div className="col-span-1">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Team Avatar</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">Team Avatar</label>
                   <div
-                    className="w-full h-auto rounded-lg overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center text-gray-500 cursor-pointer group"
+                    className="w-64 h-64 sm:w-56 sm:h-56 rounded-full overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500 cursor-pointer group relative"
                     onClick={() => fileInputRef.current?.click()}
                     role="button"
                     tabIndex={0}
@@ -412,12 +412,19 @@ const ProjectSettingsModal = ({
                       <img
                         src={currentAvatar}
                         alt="Team avatar preview"
-                        className="w-full h-full object-cover transition-opacity group-hover:opacity-80"
+                        className="w-full h-full object-cover transition-opacity group-hover:opacity-80 rounded-full"
                         title="Upload"
                       />
                     ) : (
                       <span className="text-xs">No Image</span>
                     )}
+
+                    <span className="absolute inset-0 flex items-center justify-center rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="p-2 bg-black bg-opacity-60 rounded-full">
+                        <Upload size={16} className="text-white" />
+                      </span>
+                    </span>
+
                     <input
                       id="team-avatar-upload"
                       type="file"
@@ -431,32 +438,32 @@ const ProjectSettingsModal = ({
               </div>
               <div className="col-span-2">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Team Name</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">Team Name</label>
                   <input
                     type="text"
                     value={formValues.teamName}
                     onChange={handleChange('teamName')}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:border-orangeFpt-400 focus:outline-none"
                     placeholder="Enter team name"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Description</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">Description</label>
                   <textarea
                     value={formValues.description}
                     onChange={handleChange('description')}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:border-orangeFpt-400 focus:outline-none"
                     rows={3}
                     placeholder="Describe your team"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Git Repository Link</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">Git Repository Link</label>
                   <input
                     type="url"
                     value={formValues.gitLink}
                     onChange={handleChange('gitLink')}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:border-orangeFpt-400 focus:outline-none"
                     placeholder="https://"
                   />
                 </div>
@@ -467,7 +474,7 @@ const ProjectSettingsModal = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-100"
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 text-gray-700"
               >
                 Cancel
               </button>

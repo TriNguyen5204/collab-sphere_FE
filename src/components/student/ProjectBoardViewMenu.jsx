@@ -16,6 +16,7 @@ const ProjectBoardViewMenu = () => {
     { name: 'Team Workspace', icon: UsersRound, path: `/student/project/team-workspace` },
     { name: 'Task Board', icon: Kanban, path: `/student/project/project-board` },
     { name: 'Milestones & Checkpoints', icon: Flag, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/milestones&checkpoints` },
+    { name: 'Peer Evaluation', icon: UsersRound, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/peer-evaluation` },
     { name: 'Communication', icon: MessageSquare, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/communication` },
     { name: 'Meeting room', icon: VideoIcon, path: `/student/project/meeting-room`}
   ];
@@ -39,8 +40,10 @@ const ProjectBoardViewMenu = () => {
     <div className="relative w-auto" ref={menuRef}>
       <button
         onClick={() => setOpen(!open)}
-        className={`flex items-center justify-between px-3 py-2 rounded transition ${
-          open ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+        className={`flex items-center justify-between px-3 py-2 rounded border transition ${
+          open
+            ? 'bg-white text-gray-900 border-gray-300 shadow'
+            : 'bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200'
         }`}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -53,7 +56,7 @@ const ProjectBoardViewMenu = () => {
       </button>
 
       {open && (
-        <ul className="absolute right-0 mt-2 bg-gray-800 text-white shadow-lg rounded-lg border border-gray-700 text-sm z-10 w-max min-w-full whitespace-nowrap">
+        <ul className="absolute right-0 mt-2 bg-white text-gray-900 shadow-lg rounded-lg border border-gray-200 text-sm z-10 w-max min-w-full whitespace-nowrap">
           {menuItems.map(({ name, icon: Icon, path }) => {
             const normalizedPath = normalizePath(path);
             const isActive = normalizedPath === activePath;
@@ -74,7 +77,7 @@ const ProjectBoardViewMenu = () => {
                 >
                   <Icon className="w-4 h-4 mr-3" />
                   <span className="flex-1">{name}</span>
-                  {isActive && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
+                  {isActive && <div className="w-2 h-2 bg-orangeFpt-500 rounded-full"></div>}
                 </Link>
               </li>
             );

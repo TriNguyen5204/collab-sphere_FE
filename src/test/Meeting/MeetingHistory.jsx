@@ -108,7 +108,7 @@ const MeetingHistory = () => {
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               filter === 'all'
                 ? 'bg-blue-600 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
             }`}
           >
             All Meetings
@@ -118,7 +118,7 @@ const MeetingHistory = () => {
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               filter === '2'
                 ? 'bg-blue-600 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
             }`}
           >
             Upcoming
@@ -128,7 +128,7 @@ const MeetingHistory = () => {
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               filter === '1'
                 ? 'bg-blue-600 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
             }`}
           >
             Completed
@@ -138,7 +138,7 @@ const MeetingHistory = () => {
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               filter === '0'
                 ? 'bg-blue-600 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
             }`}
           >
             Canceled

@@ -141,83 +141,79 @@ const GradingDashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100">
-        <div className="relative w-full px-6 py-10 space-y-10 lg:px-10">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-64 translate-y-[-30%] bg-gradient-to-r from-sky-200/40 via-indigo-200/30 to-purple-200/40 blur-3xl" />
-
-          <header className={`${glassPanelClass} relative rounded-3xl border border-indigo-100 bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-6 shadow-[0_25px_80px_rgba(15,23,42,0.08)]`}>
-            <div className="space-y-4">
-              <LecturerBreadcrumbs items={breadcrumbItems} />
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Lecturer workspace · Grading</p>
-                <h1 className="mt-2 text-3xl font-semibold text-slate-900">Class grading overview</h1>
-                <p className="mt-2 text-sm text-slate-600">
-                  Review every class you teach, monitor grading progress, and drill down into teams that still need attention.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleRefresh}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5"
-                disabled={loading}
-              >
-                <ArrowPathIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" /> Refresh data
-              </button>
+      <div className="space-y-6">
+        <header className={`${glassPanelClass} relative rounded-3xl border border-indigo-100 bg-gradient-to-br from-sky-50 via-white to-indigo-50 shadow-[0_25px_80px_rgba(15,23,42,0.08)]`}>
+          <div className="space-y-4 p-6 ">
+            <LecturerBreadcrumbs items={breadcrumbItems} />
+            <div className="">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Lecturer workspace · Grading</p>
+              <h1 className="mt-2 text-3xl font-semibold text-slate-900">Class grading overview</h1>
+              <p className="mt-2 text-sm text-slate-600">
+                Review every class you teach, monitor grading progress, and drill down into teams that still need attention.
+              </p>
             </div>
-          </header>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5"
+              disabled={loading}
+            >
+              <ArrowPathIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" /> Refresh data
+            </button>
+          </div>
+        </header>
 
-          <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {loading && !cards.length ? (
-              Array.from({ length: 3 }).map((_, index) => (
-                <div key={`skeleton-${index}`} className={`${glassPanelClass} animate-pulse rounded-3xl p-6`}>
-                  <div className="h-5 w-1/2 rounded bg-slate-200" />
-                  <div className="mt-3 h-4 w-2/3 rounded bg-slate-100" />
-                  <div className="mt-6 h-3 w-full rounded bg-slate-200" />
-                  <div className="mt-2 h-3 w-3/4 rounded bg-slate-100" />
-                </div>
-              ))
-            ) : cards.length ? (
-              cards.map((cls) => {
-                const completion = cls.totalTeams ? Math.round((cls.gradedTeams / cls.totalTeams) * 100) : 0;
-                return (
-                  <button
-                    key={cls.classId}
-                    type="button"
-                    onClick={() => handleOpenClass(cls.classId)}
-                    className={`${glassPanelClass} flex flex-col gap-4 rounded-3xl p-6 text-left transition hover:-translate-y-1`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">{cls.subjectCode}</p>
-                        <h3 className="mt-2 text-xl font-semibold text-slate-900">{cls.className}</h3>
-                        <p className="text-sm text-slate-600">{cls.subjectName}</p>
-                      </div>
-                      <span className="rounded-2xl bg-white/70 p-3 text-slate-500">
-                        <ClipboardDocumentListIcon className="h-5 w-5" aria-hidden="true" />
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Grading progress</p>
-                      <div className="mt-2 h-2 rounded-full bg-slate-100">
-                        <div
-                          className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-sky-400"
-                          style={{ width: `${completion}%` }}
-                        />
-                      </div>
-                      <p className="mt-2 text-sm font-medium text-slate-700">
-                        {cls.gradedTeams}/{cls.totalTeams} teams graded
-                      </p>
-                    </div>
-                  </button>
-                );
-              })
-            ) : (
-              <div className={`${glassPanelClass} rounded-3xl p-6 text-sm text-slate-600`}>
-                No classes found. Assignments appear here once you are linked to a class.
+        <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {loading && !cards.length ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <div key={`skeleton-${index}`} className={`${glassPanelClass} animate-pulse rounded-3xl p-6`}>
+                <div className="h-5 w-1/2 rounded bg-slate-200" />
+                <div className="mt-3 h-4 w-2/3 rounded bg-slate-100" />
+                <div className="mt-6 h-3 w-full rounded bg-slate-200" />
+                <div className="mt-2 h-3 w-3/4 rounded bg-slate-100" />
               </div>
-            )}
-          </section>
-        </div>
+            ))
+          ) : cards.length ? (
+            cards.map((cls) => {
+              const completion = cls.totalTeams ? Math.round((cls.gradedTeams / cls.totalTeams) * 100) : 0;
+              return (
+                <button
+                  key={cls.classId}
+                  type="button"
+                  onClick={() => handleOpenClass(cls.classId)}
+                  className={`${glassPanelClass} flex flex-col gap-4 rounded-3xl p-6 text-left transition hover:-translate-y-1`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.3em] text-slate-500">{cls.subjectCode}</p>
+                      <h3 className="mt-2 text-xl font-semibold text-slate-900">{cls.className}</h3>
+                      <p className="text-sm text-slate-600">{cls.subjectName}</p>
+                    </div>
+                    <span className="rounded-2xl bg-white/70 p-3 text-slate-500">
+                      <ClipboardDocumentListIcon className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Grading progress</p>
+                    <div className="mt-2 h-2 rounded-full bg-slate-100">
+                      <div
+                        className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-sky-400"
+                        style={{ width: `${completion}%` }}
+                      />
+                    </div>
+                    <p className="mt-2 text-sm font-medium text-slate-700">
+                      {cls.gradedTeams}/{cls.totalTeams} teams graded
+                    </p>
+                  </div>
+                </button>
+              );
+            })
+          ) : (
+            <div className={`${glassPanelClass} rounded-3xl p-6 text-sm text-slate-600`}>
+              No classes found. Assignments appear here once you are linked to a class.
+            </div>
+          )}
+        </section>
       </div>
     </DashboardLayout>
   );

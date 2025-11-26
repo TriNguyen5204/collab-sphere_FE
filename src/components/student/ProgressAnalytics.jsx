@@ -9,7 +9,7 @@ const clampPercent = (n) => {
   return Math.round(num);
 };
 
-const ProgressBar = ({ label, rightLabel, value, color = 'bg-blue-600' }) => (
+const ProgressBar = ({ label, rightLabel, value, color = 'bg-orangeFpt-500' }) => (
   <div>
     <div className="flex justify-between text-sm mb-2">
       <span className="text-gray-600">{label}</span>

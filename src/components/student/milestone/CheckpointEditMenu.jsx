@@ -37,7 +37,7 @@ const CheckpointEditMenu = React.forwardRef((
         onClick={onToggleMenu}
         disabled={disabled}
         title={canEdit ? 'Edit checkpoint details' : 'Editing locked'}
-        className={`p-2 rounded-lg transition ${disabled ? 'text-gray-400 cursor-not-allowed' : 'text-blue-600 hover:bg-blue-50'}`}
+        className={`p-2 rounded-lg transition ${disabled ? 'text-gray-400 cursor-not-allowed' : 'text-orangeFpt-600 hover:bg-orangeFpt-50'}`}
       >
         <Edit2 size={18} />
       </button>
@@ -56,7 +56,7 @@ const CheckpointEditMenu = React.forwardRef((
                 type="text"
                 value={state.title ?? ''}
                 onChange={(event) => handleFieldChange('title', event.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-1 focus:ring-orangeFpt-500"
                 placeholder="Checkpoint title"
               />
             </div>
@@ -73,8 +73,8 @@ const CheckpointEditMenu = React.forwardRef((
                       onClick={() => handleFieldChange('complexity', option.value)}
                       className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
                         isActive
-                          ? 'border-orange-500 bg-orange-50 text-orange-700'
-                          : 'border-gray-200 bg-white text-gray-600 hover:border-orange-300'
+                          ? 'border-orangeFpt-500 bg-orangeFpt-50 text-orangeFpt-700'
+                          : 'border-gray-200 bg-white text-gray-600 hover:border-orangeFpt-300'
                       }`}
                     >
                       {option.label}
@@ -91,7 +91,7 @@ const CheckpointEditMenu = React.forwardRef((
                   type="date"
                   value={state.startDate ?? ''}
                   onChange={(event) => handleFieldChange('startDate', event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-1 focus:ring-orangeFpt-500"
                 />
               </div>
               <div>
@@ -100,7 +100,7 @@ const CheckpointEditMenu = React.forwardRef((
                   type="date"
                   value={state.dueDate ?? ''}
                   onChange={(event) => handleFieldChange('dueDate', event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-1 focus:ring-orangeFpt-500"
                 />
               </div>
             </div>
@@ -111,7 +111,7 @@ const CheckpointEditMenu = React.forwardRef((
                 value={state.description ?? ''}
                 onChange={(event) => handleFieldChange('description', event.target.value)}
                 rows={3}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-1 focus:ring-orangeFpt-500"
                 placeholder="Describe the checkpoint"
               />
             </div>
@@ -137,7 +137,7 @@ const CheckpointEditMenu = React.forwardRef((
               onClick={onSubmit}
               disabled={isSubmitting}
               className={`rounded-lg px-3 py-1.5 text-sm font-semibold text-white transition ${
-                isSubmitting ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                isSubmitting ? 'bg-orangeFpt-300 cursor-not-allowed' : 'bg-orangeFpt-600 hover:bg-orangeFpt-700'
               }`}
             >
                 {isSubmitting ? 'Saving...' : 'Save changes'}

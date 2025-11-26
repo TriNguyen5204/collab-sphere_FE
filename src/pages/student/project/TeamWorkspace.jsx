@@ -4,7 +4,6 @@ import { Users, GraduationCap, CheckCircle, Flag, CheckSquare, LayoutDashboard, 
 import ProjectBoardHeader from '../../../components/layout/ProjectBoardHeader';
 import StatCard from '../../../components/student/StatCard';
 import ProgressAnalytics from '../../../components/student/ProgressAnalytics';
-import ActivityFeed from '../../../components/student/ActivityFeed';
 import ProjectOverview from '../../../components/student/ProjectOverview';
 import { Skeleton } from '../../../components/skeletons/StudentSkeletons';
 import { getDetailOfProjectByProjectId, getDetailOfTeamByTeamId } from '../../../services/studentApi';
@@ -22,7 +21,6 @@ const TeamWorkspace = () => {
   const { projectId, teamId, projectName } = projectContext;
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedRole, setSelectedRole] = useState('all');
   const [activeTab, setActiveTab] = useState('overview');
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const { setTeam, team } = useTeam();
@@ -168,130 +166,6 @@ const TeamWorkspace = () => {
     }
   }, [projectId]);
 
-  // Sample data
-  const [teamData] = useState({
-    leader: {
-      id: 1,
-      name: "Alice Johnson",
-      email: "alice@example.com",
-      avatar: "https://i.pravatar.cc/150?u=1",
-      role: "Leader",
-      projectRoles: ["Frontend", "UI/UX"],
-      tasksCompleted: 15,
-      tasksInProgress: 3,
-      contribution: 35,
-    },
-    members: [
-      {
-        id: 2,
-        name: "Bob Smith",
-        email: "bob@example.com",
-        avatar: "https://i.pravatar.cc/150?u=2",
-        role: "Member",
-        projectRoles: ["Backend"],
-        tasksCompleted: 12,
-        tasksInProgress: 2,
-        contribution: 28,
-        status: "online",
-      },
-      {
-        id: 3,
-        name: "Charlie Brown",
-        email: "charlie@example.com",
-        avatar: "https://i.pravatar.cc/150?u=3",
-        role: "Member",
-        projectRoles: ["Frontend"],
-        tasksCompleted: 10,
-        tasksInProgress: 4,
-        contribution: 22,
-        status: "away",
-      },
-      {
-        id: 4,
-        name: "Diana Prince",
-        email: "diana@example.com",
-        avatar: "https://i.pravatar.cc/150?u=4",
-        role: "Member",
-        projectRoles: ["UI/UX"],
-        tasksCompleted: 8,
-        tasksInProgress: 1,
-        contribution: 15,
-        status: "offline",
-      },
-    ],
-    gitRepo: {
-      url: "https://github.com/team-alpha/collab-sphere",
-      branch: "main",
-      lastCommit: "2025-10-05T14:30:00",
-      commits: 147,
-      contributors: 4,
-    },
-    progress: {
-      overall: 65,
-      tasksTotal: 50,
-      tasksCompleted: 32,
-      tasksInProgress: 10,
-      tasksBlocked: 2,
-      tasksTodo: 6,
-    },
-    activity: [
-      { id: 1, user: "Alice", action: "completed task", task: "Design homepage", time: "2 hours ago" },
-      { id: 2, user: "Bob", action: "committed code", task: "Auth API implementation", time: "3 hours ago" },
-      { id: 3, user: "Charlie", action: "started task", task: "Navigation component", time: "5 hours ago" },
-      { id: 4, user: "Diana", action: "commented on", task: "Design homepage", time: "6 hours ago" },
-    ],
-  });
-
-  // const [aiMessages, setAiMessages] = useState([
-  //   {
-  //     id: 1,
-  //     type: 'ai',
-  //     content: 'Hello! I\'m your AI assistant. I can help analyze your team\'s Git activity, suggest improvements, and provide advice on project management.',
-  //     timestamp: new Date().toISOString(),
-  //   },
-  //   {
-  //     id: 2,
-  //     type: 'ai',
-  //     content: 'Based on your recent commits, I notice that the authentication module has been updated. Would you like me to review the code quality or suggest security best practices?',
-  //     timestamp: new Date().toISOString(),
-  //   }
-  // ]);
-  const [aiInput, setAiInput] = useState('');
-  const [chatOpen, setChatOpen] = useState(false);
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "online": return "bg-green-500";
-      case "away": return "bg-yellow-500";
-      case "offline": return "bg-gray-400";
-      default: return "bg-gray-400";
-    }
-  };
-
-  // const handleSendMessage = () => {
-  //   if (aiInput.trim()) {
-  //     const newMessage = {
-  //       id: aiMessages.length + 1,
-  //       type: 'user',
-  //       content: aiInput,
-  //       timestamp: new Date().toISOString(),
-  //     };
-  //     setAiMessages([...aiMessages, newMessage]);
-  //     setAiInput('');
-
-  //     // Simulate AI response
-  //     setTimeout(() => {
-  //       const aiResponse = {
-  //         id: aiMessages.length + 2,
-  //         type: 'ai',
-  //         content: 'I\'m analyzing your request. This is a simulated response. In production, this would connect to an AI service to provide intelligent insights about your project.',
-  //         timestamp: new Date().toISOString(),
-  //       };
-  //       setAiMessages(prev => [...prev, aiResponse]);
-  //     }, 1000);
-  //   }
-  // };
-
   const convertTeamRole = (teamRole) => {
     switch (teamRole) {
       case 1:
@@ -304,9 +178,7 @@ const TeamWorkspace = () => {
   return (
     <>
       <div className="min-h-screen" style={{ backgroundColor: "#D5DADF" }}>
-        <ProjectBoardHeader selectedRole={selectedRole} onRoleChange={setSelectedRole} />
-
-        {/* Success Toast */}
+        <ProjectBoardHeader />
         {showSuccessToast && (
           <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 z-50 animate-slide-in-right">
             <CheckCircle className="w-5 h-5 flex-shrink-0" />
@@ -365,7 +237,7 @@ const TeamWorkspace = () => {
               <ProgressAnalytics progress={team?.teamProgress} loading={teamLoading} />
 
               {/* 2) Milestone Summary */}
-              <div className="">
+              {/* <div className="">
                 {teamLoading ? (
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <Skeleton className="h-20 w-full" />
@@ -407,10 +279,7 @@ const TeamWorkspace = () => {
                     );
                   })()
                 )}
-              </div>
-
-              {/* 3) Recent Activity */}
-              <ActivityFeed activities={teamData.activity} loading={teamLoading} />
+              </div> */}
             </div>
 
             {/* Right Column - Overview, Team, Lecturer, Git */}

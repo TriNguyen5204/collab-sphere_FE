@@ -4,6 +4,26 @@ import { getMilestonesByTeam, getMilestoneDetail } from './milestoneApi';
 
 // Student-specific API 
 
+const normalizePathPrefix = (rawValue) => {
+  if (typeof rawValue !== 'string') return '/';
+  const trimmed = rawValue.trim();
+  if (!trimmed || trimmed === '/') return '/';
+  const withoutLeading = trimmed.replace(/^\/+/, '');
+  const withoutTrailing = withoutLeading.replace(/\/+$/, '');
+  return withoutTrailing ? `${withoutTrailing}/` : '/';
+};
+
+// Subject API (Student-flow)
+export const getSyllabusOfSubjectBySubjectId = async (subjectId) => {
+  try {
+    const response = await apiClient.get(`/subject/${subjectId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching syllabus for subject ID ${subjectId}:`, error);
+    throw error;
+  }
+};
+
 // Class API (Student-flow)
 export const getClassesByStudentId = async (studentId) => {
   try {
@@ -90,6 +110,71 @@ export const getAssignedTeamByClassId = async (classId) => {
     return response.data;
   } catch (error) {
     console.error(`Error fetching assigned team for class ID ${classId}:`, error);
+    throw error;
+  }
+};
+
+export const getTeamResourcesByTeamId = async (teamId) => {
+  try {
+    const response = await apiClient.get(`/team/${teamId}/files`);
+    console.log('Team resources data:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching resources for team ID ${teamId}:`, error);
+    throw error;
+  }
+};
+
+export const postTeamResourceFilebyTeamId = async (teamId, formData) => {
+  try {
+    const response = await apiClient.post(`/team/${teamId}/files`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error uploading resource for team ID ${teamId}:`, error);
+    throw error;
+  }
+};
+
+export const patchChangeTeamResourceFilePathByTeamIdAndFileId = async (teamId, fileId, newPath) => {
+  try {
+    const normalizedPath = normalizePathPrefix(newPath);
+    const formData = new FormData();
+    formData.append('pathPrefix', normalizedPath);
+    formData.append('newPath', normalizedPath);
+    const response = await apiClient.patch(`/team/${teamId}/files/${fileId}/file-path`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    const data = response.data;
+    if (data?.isSuccess === false) {
+      const error = new Error(data?.message || 'Unable to move resource to the selected folder.');
+      error.responseData = data;
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    console.error(`Error changing file path for team ID ${teamId} and file ID ${fileId}:`, error);
+    throw error;
+  }
+};
+
+export const patchGenerateNewTeamResourceFileLinkByTeamIdAndFileId = async (teamId, fileId) => {
+  try {
+    const response = await apiClient.patch(`/team/${teamId}/files/${fileId}/new-url`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error regenerating file link for team ID ${teamId} and file ID ${fileId}:`, error);
+    throw error;
+  }
+};
+
+export const deleteTeamResourceFileByTeamIdAndFileId = async (teamId, fileId) => {
+  try {
+    const response = await apiClient.delete(`/team/${teamId}/files/${fileId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error deleting file for team ID ${teamId} and file ID ${fileId}:`, error);
     throw error;
   }
 };
@@ -193,6 +278,7 @@ export const deleteCheckpointFileByCheckpointIdAndFileId = async (checkpointId, 
 export const patchGenerateNewCheckpointFileLinkByCheckpointIdAndFileId = async (checkpointId, fileId) => {
   try {
     const response = await apiClient.patch(`/checkpoint/${checkpointId}/files/${fileId}/new-url`);
+    console.log('Regenerated checkpoint file link data:', response.data);
     return response.data;
   } catch (error) {
     console.error(`Error regenerating file link for checkpoint ID ${checkpointId} and file ID ${fileId}:`, error);
@@ -285,6 +371,16 @@ export const getOwnEvaluationByTeamId = async (teamId) => {
   }
 };
 
+export const getLecturerEvaluationByTeamId = async (teamId) => {
+  try {
+    const response = await apiClient.get(`/evaluate/lecturer/team/${teamId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching lecturer evaluation for team ID ${teamId}:`, error);
+    throw error;
+  }
+};
+
 // Milestone API (Student-flow)
 export const getAllMilestonesByTeamId = async (teamId) => getMilestonesByTeam(teamId);
 
@@ -309,6 +405,7 @@ export const patchMarkDoneMilestoneByMilestoneId = async (teamMilestoneId, isDon
 export const patchGenerateNewMilestoneFileLinkByMilestoneIdAndFileId = async (milestoneId, fileId) => {
   try {
     const response = await apiClient.patch(`/milestone/${milestoneId}/files/${fileId}/new-url`);
+    console.log('Regenerated milestone file link data:', response.data);
     return response.data;
   } catch (error) {
     console.error(`Error regenerating file link for milestone ID ${milestoneId} and file ID ${fileId}:`, error);
@@ -341,6 +438,7 @@ export const deleteMilestoneFileByMilestoneIdAndMileReturnId = async (milestoneI
 export const patchGenerateNewReturnFileLinkByMilestoneIdAndMileReturnId = async (milestoneId, mileReturnId) => {
   try {
     const response = await apiClient.patch(`/milestone/${milestoneId}/returns/${mileReturnId}/new-url`);
+    console.log('Regenerated return file link data:', response.data);
     return response.data;
   } catch (error) {
     console.error(`Error regenerating return file link for milestone ID ${milestoneId} and return ID ${mileReturnId}:`, error);
@@ -396,8 +494,8 @@ export const postEvaluateAndFeedbackMilestoneAnswer = async (answerId, feedbackP
       feedbackPayload && typeof feedbackPayload === 'object'
         ? feedbackPayload
         : { feedback: feedbackPayload };
-
     const response = await apiClient.post(`/evaluate/answer/${answerId}`, payload);
+    console.log('Feedback submitted:', response.data);
     return response.data;
   } catch (error) {
     console.error(`Error submitting feedback for answer ID ${answerId}:`, error);

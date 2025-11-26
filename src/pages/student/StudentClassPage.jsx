@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BookOpen, Users, Calendar } from 'lucide-react';
+import { BookOpen, Users, Calendar, FileText } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getClassesByStudentId, getClassDetailsById, getAssignedTeamByClassId } from '../../services/studentApi';
@@ -54,6 +54,12 @@ const StudentClassPage = () => {
     navigate(`/student/${slug}/projects`, { state: { details: selectedDetails } });
   };
 
+  const handleViewSyllabus = () => {
+    if (!selectedClass) return;
+    const slug = slugify(selectedClass.className);
+    navigate(`/student/${slug}/syllabus`, { state: { details: selectedDetails } });
+  };
+
   const formatDate = (iso) => {
     try {
       return new Date(iso).toLocaleDateString();
@@ -74,7 +80,7 @@ const StudentClassPage = () => {
       setAssignedTeamByClassId((prev) => ({ ...prev, [classId]: team }));
       return team;
     } catch (error) {
-      toast.error('Failed to fetch assigned team');
+      // toast.error(error.response?.data?.errorList?.[0]?.message || 'Failed to load assigned team');
       setAssignedTeamByClassId((prev) => {
         const next = { ...prev };
         delete next[classId];
@@ -277,6 +283,18 @@ const StudentClassPage = () => {
                           <span className="inline-flex items-center gap-2">
                             <BookOpen className="w-4 h-4" />
                             Projects ({selectedDetails?.projectAssignments?.length ?? 0})
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleViewSyllabus}
+                          disabled={!(selectedDetails?.subjectId || selectedDetails?.subject?.subjectId)}
+                          className="px-3 py-2 text-sm rounded-md border bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="View syllabus"
+                        >
+                          <span className="inline-flex items-center gap-2">
+                            <FileText className="w-4 h-4" />
+                            Syllabus
                           </span>
                         </button>
                       </div>

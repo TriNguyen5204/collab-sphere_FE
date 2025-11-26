@@ -1,7 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Calendar, Clock, X, AlertCircle, FileText, Loader2, Trash2, History, User, Upload, CheckCircle, RefreshCcw } from 'lucide-react';
+import { Calendar, Clock, X, AlertCircle, FileText, Loader2, Trash2, History, User, Upload, CheckCircle, ChevronRight } from 'lucide-react';
 import useClickOutside from '../../../hooks/useClickOutside';
 import useTeam from '../../../context/useTeam';
+import { useSecureFileHandler } from '../../../hooks/useSecureFileHandler';
+import useIsoToLocalTime from '../../../hooks/useIsoToLocalTime';
+import useFileSizeFormatter from '../../../hooks/useFileSizeFormatter';
+import useToastConfirmation from '../../../hooks/useToastConfirmation.jsx';
+import { patchGenerateNewCheckpointFileLinkByCheckpointIdAndFileId } from '../../../services/studentApi';
 import CheckpointAssignMenu from './CheckpointAssignMenu';
 import CheckpointEditMenu from './CheckpointEditMenu';
 
@@ -33,6 +38,32 @@ const getStatusBadgeStyles = (status) => {
         default:
             return 'bg-gray-100 text-gray-700 border border-gray-200';
     }
+};
+
+const interpretStatusDisplay = (statusRaw) => {
+    if (!statusRaw) {
+        return { badgeKey: '', displayText: '' };
+    }
+
+    const stringValue = statusRaw.toString().trim();
+    if (!stringValue) {
+        return { badgeKey: '', displayText: '' };
+    }
+
+    const upperValue = stringValue.toUpperCase();
+
+    if (upperValue === 'DONE') {
+        return { badgeKey: 'COMPLETED', displayText: 'Completed' };
+    }
+
+    if (upperValue === 'NOT_DONE') {
+        return { badgeKey: 'PROCESSING', displayText: 'Processing' };
+    }
+
+    return {
+        badgeKey: upperValue,
+        displayText: stringValue.replace(/_/g, ' '),
+    };
 };
 
 const countTimeRemaining = (dueDate) => {
@@ -82,6 +113,40 @@ const countTimeRemaining = (dueDate) => {
     }
 };
 
+const getSubmissionFileUrl = (submission) => (
+    submission?.url
+    ?? submission?.fileUrl
+    ?? submission?.downloadUrl
+    ?? submission?.path
+    ?? submission?.filePath
+    ?? submission?.raw?.fileUrl
+    ?? submission?.raw?.url
+    ?? submission?.raw?.downloadUrl
+    ?? submission?.raw?.path
+    ?? submission?.raw?.filePath
+    ?? null
+);
+
+const getSubmissionKey = (submission) => (
+    submission?.fileId
+    ?? submission?.checkpointFileId
+    ?? submission?.submissionId
+    ?? submission?.id
+    ?? null
+);
+
+const extractUrlLike = (payload) => {
+    if (!payload) return null;
+    console.log('API Generate Link Response:', payload);
+    let target = typeof payload === 'object' && payload !== null && 'data' in payload ? payload.data : payload;
+    if (typeof target === 'string') return target;
+    if (typeof target === 'object' && target !== null) {
+        return target.filePath || null;
+    }
+
+    return null;
+};
+
 const toDateInputValue = (value) => {
     if (!value) {
         return '';
@@ -89,7 +154,6 @@ const toDateInputValue = (value) => {
 
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
-        // assume the value is already in YYYY-MM-DD format
         return value;
     }
 
@@ -121,7 +185,6 @@ const CheckpointCardModal = ({
     onDeleteSubmission,
     canAssign = false,
     onAssignMembers,
-    onGenerateFileLink,
     onUpdateCheckpoint,
     onDeleteCheckpoint,
 }) => {
@@ -135,6 +198,12 @@ const CheckpointCardModal = ({
     const [editError, setEditError] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState(null);
+    const [activeSubmissionKey, setActiveSubmissionKey] = useState(null);
+    const [deletingSubmissionId, setDeletingSubmissionId] = useState(null);
+    const { openSecureFile } = useSecureFileHandler();
+    const { formatIsoString } = useIsoToLocalTime();
+    const { formatFileSize } = useFileSizeFormatter();
+    const confirmWithToast = useToastConfirmation();
 
     const resolvedDetail = detail ?? fallbackCheckpoint ?? {};
 
@@ -286,22 +355,30 @@ const CheckpointCardModal = ({
             .filter((member) => member.classMemberId != null);
     }, [team]);
 
-    const normalizedFiles = useMemo(
+    const normalizedSubmissions = useMemo(
         () =>
             checkpointFiles.map((file, index) => {
                 const resolvedId = file.fileId ?? file.checkpointFileId ?? file.submissionId ?? file.id ?? index;
+                const fileKey = getSubmissionKey(file) ?? `submission-${index}`;
+                const rawSubmittedAt = file.uploadedAt ?? file.createdAt ?? file.submittedAt ?? file.createdDate ?? null;
+                const sizeValue = typeof file.fileSize === 'number' ? file.fileSize : (typeof file.size === 'number' ? file.size : null);
                 return {
                     id: resolvedId,
                     fileId: resolvedId,
                     name: file.originalFileName ?? file.fileName ?? file.name ?? `Attachment ${index + 1}`,
-                    url: file.fileUrl ?? file.url ?? file.downloadUrl ?? file.path ?? file.filePath ?? null,
+                    url: getSubmissionFileUrl({ ...file, raw: file }),
                     uploadedBy: file.uploadedByName ?? file.uploadedBy ?? file.userName ?? file.createdBy ?? '',
-                    uploadedAt: file.uploadedAt ?? file.createdAt ?? file.submittedAt ?? file.createdDate ?? '',
-                    size: file.fileSize ?? file.size ?? null,
+                    uploadedAt: rawSubmittedAt,
+                    size: sizeValue,
+                    sizeLabel: formatFileSize(sizeValue),
+                    avatar: file.avatar ?? file.avatarImg ?? file.uploadedByAvatar ?? file.studentAvatar ?? null,
+                    studentName: file.uploadedByName ?? file.uploadedBy ?? file.userName ?? file.createdBy ?? '',
+                    submittedAtLabel: formatIsoString(rawSubmittedAt),
                     raw: file,
+                    _itemKey: fileKey,
                 };
             }),
-        [checkpointFiles]
+        [checkpointFiles, formatIsoString, formatFileSize]
     );
 
     const checkpointId = resolvedDetail?.checkpointId ?? resolvedDetail?.id ?? resolvedDetail?.checkpointID ?? fallbackCheckpoint?.id ?? null;
@@ -319,11 +396,18 @@ const CheckpointCardModal = ({
         setIsAssignMenuOpen((open) => !open);
     };
 
-    const handleConfirmAssign = () => {
-        if (typeof onAssignMembers === 'function' && checkpointId != null) {
-            onAssignMembers(checkpointId, selectedMemberIds);
+    const handleConfirmAssign = async () => {
+        if (typeof onAssignMembers !== 'function' || checkpointId == null) {
+            setIsAssignMenuOpen(false);
+            return;
         }
-        setIsAssignMenuOpen(false);
+        try {
+            await onAssignMembers(checkpointId, selectedMemberIds);
+        } catch (assignError) {
+            console.error('Failed to assign checkpoint members', assignError);
+        } finally {
+            setIsAssignMenuOpen(false);
+        }
     };
 
     const handleToggleEditMenu = () => {
@@ -421,7 +505,12 @@ const CheckpointCardModal = ({
             return;
         }
 
-        const confirmed = window.confirm('Are you sure you want to delete this checkpoint?');
+        const checkpointTitle = resolvedDetail?.title ?? fallbackTitle ?? 'this checkpoint';
+        const confirmed = await confirmWithToast({
+            message: `Delete ${checkpointTitle}? This action cannot be undone.`,
+            confirmLabel: 'Delete checkpoint',
+            variant: 'danger',
+        });
         if (!confirmed) {
             return;
         }
@@ -456,20 +545,44 @@ const CheckpointCardModal = ({
         }
     };
 
+    const handleDeleteSubmission = async (submissionId, submissionName) => {
+        if (readOnly || typeof onDeleteSubmission !== 'function' || checkpointId == null || submissionId == null) {
+            return;
+        }
+
+        const confirmed = await confirmWithToast({
+            message: `Delete ${submissionName || 'this file'}? This action cannot be undone.`,
+            confirmLabel: 'Delete file',
+            variant: 'danger',
+        });
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            setDeletingSubmissionId(submissionId);
+            await onDeleteSubmission(checkpointId, submissionId);
+        } catch (error) {
+            console.error('Failed to delete checkpoint submission', error);
+        } finally {
+            setDeletingSubmissionId(null);
+        }
+    };
+
     if (!isOpen) {
         return null;
     }
 
     const statusRaw = resolvedDetail?.statusString ?? resolvedDetail?.status ?? fallbackCheckpoint?.statusString ?? fallbackCheckpoint?.status ?? '';
-    const statusForBadge = typeof statusRaw === 'string' ? statusRaw : statusRaw?.toString?.() ?? '';
-    const normalizedStatus = statusForBadge
-        ? statusForBadge.toString().replace(/_/g, ' ')
-        : '';
+    const {
+        badgeKey: statusBadgeKey,
+        displayText: statusDisplayText,
+    } = interpretStatusDisplay(statusRaw);
     const complexity = resolvedDetail?.complexity ?? fallbackCheckpoint?.complexity ?? '';
     const description = resolvedDetail?.description ?? fallbackCheckpoint?.description ?? '';
     const startDate = resolvedDetail?.startDate ?? fallbackCheckpoint?.startDate ?? null;
     const dueDate = resolvedDetail?.dueDate ?? resolvedDetail?.deadline ?? resolvedDetail?.endDate ?? fallbackCheckpoint?.dueDate ?? null;
-    const submissionsCount = normalizedFiles.length;
+    const submissionsCount = normalizedSubmissions.length;
     const assignmentsCount = assignments.length;
     const lacksAssignments = assignmentsCount === 0;
     const markCompleteDisabledTitle = lacksAssignments
@@ -489,14 +602,63 @@ const CheckpointCardModal = ({
             ? 'Deletion locked'
             : 'Delete checkpoint';
 
+    const handleMarkCompleteClick = async () => {
+        if (markCompleteButtonDisabled || typeof onMarkComplete !== 'function' || checkpointId == null) {
+            return;
+        }
+        try {
+            await onMarkComplete(checkpointId);
+        } catch (markError) {
+            console.error('Failed to mark checkpoint complete', markError);
+        }
+    };
+
+    const handleOpenSubmission = async (submission) => {
+        if (!submission) return;
+        const fallbackUrl = getSubmissionFileUrl(submission);
+        const resolvedSubmissionId = submission.fileId ?? submission.id ?? getSubmissionKey(submission);
+        const shouldRefresh = checkpointId != null && resolvedSubmissionId != null;
+
+        if (!fallbackUrl && !shouldRefresh) {
+            alert('No document link available.');
+            return;
+        }
+
+        const secureFetcher = async () => {
+            if (!shouldRefresh) {
+                return fallbackUrl;
+            }
+            const refreshed = await patchGenerateNewCheckpointFileLinkByCheckpointIdAndFileId(
+                checkpointId,
+                resolvedSubmissionId,
+            );
+            return extractUrlLike(refreshed);
+        };
+
+        const forceRefresh = shouldRefresh || !fallbackUrl;
+        const keyForState = submission._itemKey ?? getSubmissionKey(submission) ?? `submission-${Date.now()}`;
+        setActiveSubmissionKey(keyForState);
+
+        try {
+            await openSecureFile(
+                fallbackUrl,
+                secureFetcher,
+                forceRefresh,
+            );
+        } catch (error) {
+            console.error('Failed to open checkpoint submission', error);
+        } finally {
+            setActiveSubmissionKey(null);
+        }
+    };
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div
                 ref={modalRef}
-                className="w-full max-w-3xl overflow-hidden rounded-xl bg-white shadow-2xl"
+                className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl border border-gray-100"
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby="checkpoint-modal-title"
             >
                 <div className="flex items-start justify-between border-b px-6 py-4">
                     <div>
@@ -512,9 +674,9 @@ const CheckpointCardModal = ({
                                     {complexity || ''}
                                 </span>
                             </div>
-                            {normalizedStatus && (
-                                <span className={`rounded-full px-3 py-1 ml-2 text-xs font-semibold uppercase ${getStatusBadgeStyles(statusForBadge)}`}>
-                                    {normalizedStatus}
+                            {statusDisplayText && (
+                                <span className={`rounded-full px-3 py-1 ml-2 text-xs font-semibold ${getStatusBadgeStyles(statusBadgeKey)}`}>
+                                    {statusDisplayText}
                                 </span>
                             )}
                         </div>
@@ -553,11 +715,10 @@ const CheckpointCardModal = ({
                                 onClick={handleConfirmDelete}
                                 disabled={deleteDisabled}
                                 title={deleteButtonTitle}
-                                className={`p-2 rounded-lg transition ${
-                                    deleteDisabled
-                                        ? 'cursor-not-allowed text-gray-400'
-                                        : 'text-red-600 hover:bg-red-50'
-                                }`}
+                                className={`p-2 rounded-lg transition ${deleteDisabled
+                                    ? 'cursor-not-allowed text-gray-400'
+                                    : 'text-red-600 hover:bg-red-50'
+                                    }`}
                                 aria-label="Delete checkpoint"
                             >
                                 {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 size={18} />}
@@ -605,11 +766,11 @@ const CheckpointCardModal = ({
                         <div className="space-y-6">
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                            <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-                                                <History size={20}/>
-                                                <span>Overview</span>
-                                            </h3>
-                                        </div>
+                                    <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+                                        <History size={20} />
+                                        <span>Overview</span>
+                                    </h3>
+                                </div>
                                 <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                                     <div className="space-y-3">
                                         <div className="rounded-lg border border-gray-200 bg-white shadow-sm px-4 py-3 text-sm text-gray-700 flex flex-col">
@@ -675,7 +836,6 @@ const CheckpointCardModal = ({
                                     </div>
                                 </div>
                             </div>
-
                             <div className="">
                                 <div className="">
                                     <div className="space-y-5">
@@ -687,61 +847,84 @@ const CheckpointCardModal = ({
                                         </div>
                                         {submissionsCount === 0 ? (
                                             <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-6 py-8 text-center">
-                                                <p className="text-sm text-gray-600">No submissions yet. Upload your first file to get started.</p>
+                                                <p className="text-sm text-gray-600">No submissions yet.</p>
                                             </div>
                                         ) : (
                                             <ul className="space-y-3">
-                                                {normalizedFiles.map((file) => (
-                                                    <li
-                                                        key={file.id}
-                                                        className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between"
-                                                    >
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-                                                                <FileText size={18} />
-                                                            </div>
-                                                            <div>
-                                                                <p className="font-medium text-gray-900">{file.name}</p>
-                                                                <div className="text-xs text-gray-500 space-x-3">
-                                                                    {file.uploadedBy && <span>by {file.uploadedBy}</span>}
-                                                                    {file.uploadedAt && <span>{formatDate(file.uploadedAt)}</span>}
+                                                {normalizedSubmissions.map((submission) => {
+                                                    const submissionKey = submission._itemKey ?? submission.id;
+                                                    const submissionId = submission.fileId ?? submission.id;
+                                                    const isOpening = activeSubmissionKey === submissionKey;
+                                                    return (
+                                                        <li
+                                                            key={submissionKey}
+                                                            className="flex gap-3 rounded-xl border border-gray-200 bg-white hover:bg-orangeFpt-100 p-3 shadow-sm transition-opacity"
+                                                        >
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleOpenSubmission(submission)}
+                                                                className="flex flex-1 items-start gap-3 text-left"
+                                                            >
+                                                                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-orangeFpt-100 text-orangeFpt-500">
+                                                                    {isOpening ? (
+                                                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                                                    ) : (
+                                                                        <FileText size={18} />
+                                                                    )}
                                                                 </div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-3 sm:justify-end">
-                                                            {file.url ? (
-                                                                <a
-                                                                    href={file.url}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="text-sm font-medium text-blue-600 transition hover:text-blue-700"
-                                                                >
-                                                                    View
-                                                                </a>
-                                                            ) : null}
-                                                            {typeof onGenerateFileLink === 'function' && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => checkpointId != null && onGenerateFileLink(checkpointId, file.fileId ?? file.id)}
-                                                                    className="flex items-center gap-1 rounded-md border border-transparent px-2 py-1 text-sm text-gray-600 transition hover:border-gray-300 hover:text-gray-800"
-                                                                >
-                                                                    <RefreshCcw size={16} />
-                                                                    Refresh link
-                                                                </button>
-                                                            )}
+                                                                <div className="min-w-0 space-y-1">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <p className="truncate text-sm font-semibold text-orangeFpt-500 max-w-[26rem]">
+                                                                            {submission.name}
+                                                                        </p>
+                                                                        <ChevronRight size={16} className="text-gray-400" />
+                                                                        <span className="text-xs text-gray-500">
+                                                                            {submission.sizeLabel}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                                                                        <p>Submitted by</p>
+                                                                        {(submission.studentName || submission.uploadedBy) && (
+                                                                            <span className="flex items-center gap-2">
+                                                                                {submission.avatar ? (
+                                                                                    <img
+                                                                                        src={submission.avatar}
+                                                                                        alt={`${submission.studentName || submission.uploadedBy || 'Student'} avatar`}
+                                                                                        className="h-5 w-5 flex-shrink-0 rounded-full object-cover"
+                                                                                    />
+                                                                                ) : (
+                                                                                    <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-500">
+                                                                                        <User size={16} />
+                                                                                    </div>
+                                                                                )}
+                                                                                <span className="font-medium text-gray-700">
+                                                                                    {submission.studentName || submission.uploadedBy || "Student"} • <span className="text-gray-500"> {submission.submittedAtLabel} </span>
+                                                                                </span>
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </button>
                                                             {!readOnly && typeof onDeleteSubmission === 'function' && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => checkpointId != null && onDeleteSubmission?.(checkpointId, file.fileId ?? file.id)}
-                                                                    className="text-red-600 transition hover:text-red-700"
-                                                                    aria-label="Remove submission"
-                                                                >
-                                                                    <Trash2 size={18} />
-                                                                </button>
+                                                                <div className="flex flex-col justify-between">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleDeleteSubmission(submissionId, submission.name)}
+                                                                        className="inline-flex items-center justify-center rounded-full border border-gray-200 p-2 text-red-400 hover:text-red-600 hover:border-red-200 hover:bg-red-100 disabled:opacity-60"
+                                                                        aria-label="Delete submission"
+                                                                        disabled={deletingSubmissionId === submissionId}
+                                                                    >
+                                                                        {deletingSubmissionId === submissionId ? (
+                                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                                        ) : (
+                                                                            <Trash2 className="h-4 w-4" />
+                                                                        )}
+                                                                    </button>
+                                                                </div>
                                                             )}
-                                                        </div>
-                                                    </li>
-                                                ))}
+                                                        </li>
+                                                    );
+                                                })}
                                             </ul>
                                         )}
 
@@ -760,7 +943,7 @@ const CheckpointCardModal = ({
                                                     <label
                                                         htmlFor={fileInputId}
                                                         className={`font-semibold ${typeof onSelectLocalFiles === 'function'
-                                                            ? 'cursor-pointer text-blue-600 hover:text-blue-700'
+                                                            ? 'cursor-pointer text-orangeFpt-500 hover:text-orangeFpt-600'
                                                             : 'cursor-not-allowed text-gray-400'
                                                             }`}
                                                     >
@@ -774,11 +957,11 @@ const CheckpointCardModal = ({
                                                         <h5 className="text-sm font-semibold text-gray-800">
                                                             Files selected ({localFiles.length}):
                                                         </h5>
-                                                        <ul className="space-y-2">
+                                                        <ul className="flex gap-3 w-full flex-wrap">
                                                             {localFiles.map((file, index) => (
                                                                 <li
                                                                     key={`${file.name}-${index}`}
-                                                                    className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2"
+                                                                    className="flex items-center justify-between rounded-lg bg-gray-200 p-3"
                                                                 >
                                                                     <span className="truncate pr-4 text-sm text-gray-900">{file.name}</span>
                                                                     {typeof onRemoveLocalFile === 'function' && (
@@ -799,7 +982,7 @@ const CheckpointCardModal = ({
                                                                 type="button"
                                                                 onClick={onUploadLocalFiles}
                                                                 disabled={uploadDisabled || typeof onUploadLocalFiles !== 'function'}
-                                                                className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                                                className="rounded-lg bg-orangeFpt-500 px-4 py-2 font-semibold text-white transition hover:bg-orangeFpt-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
                                                             >
                                                                 Upload ({localFiles.length})
                                                             </button>
@@ -819,11 +1002,7 @@ const CheckpointCardModal = ({
                     <div className="border-t border-gray-200 bg-gray-50 px-5 py-4">
                         <button
                             type="button"
-                            onClick={() => {
-                                if (!markCompleteButtonDisabled) {
-                                    onMarkComplete?.(checkpointId);
-                                }
-                            }}
+                            onClick={handleMarkCompleteClick}
                             disabled={markCompleteButtonDisabled}
                             title={markCompleteDisabledTitle}
                             className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 font-semibold text-white transition hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
