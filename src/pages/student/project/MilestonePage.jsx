@@ -17,15 +17,12 @@ import {
   postUploadCheckpointFilebyCheckpointId,
   deleteCheckpointFileByCheckpointIdAndFileId,
   deleteCheckpointByCheckpointId,
-  patchGenerateNewCheckpointFileLinkByCheckpointIdAndFileId,
   patchMarkDoneCheckpointByCheckpointId,
   putUpdateCheckpointByCheckpointId,
   postUploadMilestoneFilebyMilestoneId,
   deleteMilestoneFileByMilestoneIdAndMileReturnId,
-  patchGenerateNewReturnFileLinkByMilestoneIdAndMileReturnId,
 } from '../../../services/studentApi';
 import { normalizeMilestoneStatus } from '../../../utils/milestoneHelpers';
-import { useSelector } from 'react-redux';
 import { toast } from 'sonner';
 
 const MilestonePage = () => {
@@ -37,8 +34,6 @@ const MilestonePage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newCheckpoint, setNewCheckpoint] = useState({ title: '', description: '', startDate: '', dueDate: '', complexity: 'LOW' });
   const [activeTab, setActiveTab] = useState('all');
-
-  const role = useSelector((state) => state.user.roleName);
 
   const normalizeCheckpointStatus = (statusValue) => {
     if (statusValue === null || statusValue === undefined) return 'PROCESSING';
@@ -282,8 +277,10 @@ const MilestonePage = () => {
     const lecturerFiles = lecturerFilesRaw.map((f, idx) => ({
       id: f.fileId ?? idx,
       name: f.fileName ?? f.name ?? f.type ?? 'File',
-      path: f.filePath ?? f.path ?? '',
-      type: f.type ?? (f.filePath ? f.filePath.split('.').pop()?.toUpperCase() : ''),
+      owner: f?.userName ?? 'Lecturer',
+      ownerAvatar: f?.avatarImg ?? null,
+      createAt: f?.createdAt ?? '',
+      fileSize: f?.fileSize ?? null,
     }));
 
     const returnsRaw = detail?.milestoneReturns || [];
@@ -670,12 +667,6 @@ const MilestonePage = () => {
       toast.error('Unable to delete submission: missing identifier');
       return;
     }
-
-    const confirmed = window.confirm('Are you sure you want to delete this submission?');
-    if (!confirmed) {
-      return;
-    }
-
     const milestoneId = getMilestoneId(selectedMilestone);
     if (!milestoneId) {
       toast.error('Unable to delete submission: missing milestone reference');
@@ -688,47 +679,7 @@ const MilestonePage = () => {
       await fetchMilestoneDetail(milestoneId);
       return true;
     } catch (error) {
-      const responseData = error?.response?.data;
-      let message = error?.message ?? 'Failed to delete submission';
-      if (typeof responseData === 'string') {
-        message = responseData;
-      } else if (responseData && typeof responseData === 'object' && responseData.message) {
-        message = responseData.message;
-      }
-      toast.error(message);
-      throw error;
-    }
-  };
-
-  const handleRegenerateMilestoneReturnLink = async (mileReturnId) => {
-    if (!selectedMilestone) return;
-    if (mileReturnId == null) {
-      toast.error('Unable to refresh link: missing submission identifier');
-      return;
-    }
-
-    const milestoneId = getMilestoneId(selectedMilestone);
-    console.log('Milestone ID for regenerating link:', milestoneId);
-    if (!milestoneId) {
-      toast.error('Unable to refresh link: missing milestone reference');
-      return;
-    }
-
-    try {
-      await patchGenerateNewReturnFileLinkByMilestoneIdAndMileReturnId(milestoneId, mileReturnId);
-      toast.success('A new download link has been generated');
-      const updated = await fetchMilestoneDetail(milestoneId);
-      const refreshed = updated?.returns?.find((item) => item.id === mileReturnId);
-      return refreshed?.url || refreshed?.path || '';
-    } catch (error) {
-      const responseData = error?.response?.data;
-      let message = error?.message ?? 'Failed to refresh link';
-      if (typeof responseData === 'string') {
-        message = responseData;
-      } else if (responseData && typeof responseData === 'object' && responseData.message) {
-        message = responseData.message;
-      }
-      toast.error(message);
+      toast.error(error?.response?.data?.errorList?.[0]?.message || 'Failed to delete submission');
       throw error;
     }
   };
@@ -756,10 +707,6 @@ const MilestonePage = () => {
 
   const handleDeleteSubmission = async (checkpointId, submissionId) => {
     if (!selectedMilestone) return;
-
-    const confirmed = window.confirm('Are you sure you want to delete this file?');
-    if (!confirmed) return;
-
     try {
       await deleteCheckpointFileByCheckpointIdAndFileId(checkpointId, submissionId);
       toast.success('Submission deleted');
@@ -768,22 +715,6 @@ const MilestonePage = () => {
     } catch (error) {
       const message = error?.response?.data?.message || 'Failed to delete file';
       toast.error(message);
-    }
-  };
-
-  const handleRegenerateCheckpointFileLink = async (checkpointId, fileId) => {
-    if (!selectedMilestone) return;
-    if (!checkpointId || !fileId) return;
-
-    try {
-      const refreshed = await patchGenerateNewCheckpointFileLinkByCheckpointIdAndFileId(checkpointId, fileId);
-      toast.success('A new download link has been generated');
-      await refreshCheckpointDetail(checkpointId);
-      return refreshed?.url || refreshed?.path || '';
-    } catch (error) {
-      const message = error?.response?.data?.message || 'Failed to refresh file link';
-      toast.error(message);
-      throw error;
     }
   };
 
@@ -879,127 +810,125 @@ const MilestonePage = () => {
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ backgroundColor: "#D5DADF" }}>
       <ProjectBoardHeader />
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-6 p-6 overflow-hidden">
-          {/* Left Sidebar - Milestone Timeline */}
-            <aside className="col-span-1 h-full overflow-y-auto custom-scrollbar">
-              {isLoadingList && milestones.length === 0 ? (
-                <div className="bg-white rounded-lg shadow-md p-6 flex items-center justify-center min-h-[220px]">
-                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
-                </div>
-              ) : (
-                <MilestoneTimeline
-                  milestones={milestones}
-                  selectedMilestone={selectedMilestone}
-                  onSelectMilestone={handleSelectMilestone}
-                />
-              )}
-            </aside>
-          {/* Main Content - Milestone Details */}
-          <main className="col-span-3 h-full overflow-y-auto pb-5 custom-scrollbar space-y-6">
-            {selectedMilestone ? (
-              isLoadingDetail ? (
-                <div className="bg-white rounded-lg shadow-md p-10 flex items-center justify-center">
-                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
-                </div>
-              ) : (
-                <MilestoneHeader
-                  milestone={selectedMilestone}
-                  readOnly={false}
-                  onComplete={handleCompleteMilestone}
-                  onUploadMilestoneFiles={handleUploadMilestoneReturns}
-                  onDeleteMilestoneReturn={handleDeleteMilestoneReturn}
-                  onRefreshMilestoneReturnLink={handleRegenerateMilestoneReturnLink}
-                  onAnswerSubmitted={handleQuestionAnswered}
-                />
-              )
-            ) : (
-              <div className="bg-white rounded-lg shadow-md p-10 text-center text-gray-600">
-                There are no milestones available yet.
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-6 p-6 overflow-hidden">
+        {/* Left Sidebar - Milestone Timeline */}
+        <aside className="col-span-1 h-full overflow-y-auto custom-scrollbar">
+          {isLoadingList && milestones.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-md p-6 flex items-center justify-center min-h-[220px]">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+            </div>
+          ) : (
+            <MilestoneTimeline
+              milestones={milestones}
+              selectedMilestone={selectedMilestone}
+              onSelectMilestone={handleSelectMilestone}
+            />
+          )}
+        </aside>
+        {/* Main Content - Milestone Details */}
+        <main className="col-span-3 h-full overflow-y-auto pb-5 custom-scrollbar space-y-6">
+          {selectedMilestone ? (
+            isLoadingDetail ? (
+              <div className="bg-white rounded-lg shadow-md p-10 flex items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
               </div>
+            ) : (
+              <MilestoneHeader
+                milestone={selectedMilestone}
+                readOnly={false}
+                onComplete={handleCompleteMilestone}
+                onUploadMilestoneFiles={handleUploadMilestoneReturns}
+                onDeleteMilestoneReturn={handleDeleteMilestoneReturn}
+                onAnswerSubmitted={handleQuestionAnswered}
+              />
+            )
+          ) : (
+            <div className="bg-white rounded-lg shadow-md p-10 text-center text-gray-600">
+              There are no milestones available yet.
+            </div>
+          )}
+
+
+          {/* Checkpoints Section */}
+          <section className="space-y-4 bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col">
+                <h3 className="text-2xl font-semibold text-gray-800">Checkpoints</h3>
+                <span className="text-sm text-gray-600">{checkpointProgress.completed}/{checkpointProgress.total} completed ({checkpointProgress.percent}%)</span>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-orangeFpt-500 text-white rounded-lg hover:bg-orangeFpt-600 transition"
+              >
+                <Plus size={18} />
+                Create Checkpoint
+              </button>
+            </div>
+
+            {isLoadingDetail ? (
+              <div className="flex justify-center py-6">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+              </div>
+            ) : (
+              <CheckpointSummaryCards checkpoints={selectedCheckpoints} />
             )}
 
-
-            {/* Checkpoints Section */}
-            <section className="space-y-4 bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <h3 className="text-2xl font-semibold text-gray-800">Checkpoints</h3>
-                  <span className="text-sm text-gray-600">{checkpointProgress.completed}/{checkpointProgress.total} completed ({checkpointProgress.percent}%)</span>
-                </div>
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="flex items-center gap-2 px-3 py-2 bg-orangeFpt-500 text-white rounded-lg hover:bg-orangeFpt-600 transition"
-                >
-                  <Plus size={18} />
-                  Create Checkpoint
-                </button>
+            <div className="space-y-4">
+              {/* Folder Tabs */}
+              <div className="flex items-center gap-3 border-b">
+                {[
+                  { key: 'all', label: 'All', count: checkpointGroups.all.length, badge: 'bg-gray-100 text-gray-700' },
+                  { key: 'processing', label: 'Processing', count: checkpointGroups.processing.length, badge: 'bg-blue-50 text-blue-700' },
+                  { key: 'completed', label: 'Completed', count: checkpointGroups.completed.length, badge: 'bg-green-50 text-green-700' }
+                ].map(tab => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`flex items-center gap-2 px-3 py-2 -mb-px border-b-2 ${activeTab === tab.key ? 'border-orangeFpt-500' : 'border-transparent hover:border-gray-300'
+                      }`}
+                  >
+                    <Folder size={18} className={activeTab === tab.key ? 'text-orangeFpt-500' : 'text-gray-600'} />
+                    <span className={`text-sm font-medium ${activeTab === tab.key ? 'text-orangeFpt-500' : 'text-gray-700'}`}>{tab.label}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${tab.badge}`}>{tab.count}</span>
+                  </button>
+                ))}
               </div>
 
-              {isLoadingDetail ? (
-                <div className="flex justify-center py-6">
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
-                </div>
-              ) : (
-                <CheckpointSummaryCards checkpoints={selectedCheckpoints} />
-              )}
-
-              <div className="space-y-4">
-                {/* Folder Tabs */}
-                <div className="flex items-center gap-3 border-b">
-                  {[
-                    { key: 'all', label: 'All', count: checkpointGroups.all.length, badge: 'bg-gray-100 text-gray-700' },
-                    { key: 'processing', label: 'Processing', count: checkpointGroups.processing.length, badge: 'bg-blue-50 text-blue-700' },
-                    { key: 'completed', label: 'Completed', count: checkpointGroups.completed.length, badge: 'bg-green-50 text-green-700' }
-                  ].map(tab => (
-                    <button
-                      key={tab.key}
-                      onClick={() => setActiveTab(tab.key)}
-                      className={`flex items-center gap-2 px-3 py-2 -mb-px border-b-2 ${activeTab === tab.key ? 'border-orangeFpt-500' : 'border-transparent hover:border-gray-300'
-                        }`}
-                    >
-                      <Folder size={18} className={activeTab === tab.key ? 'text-orangeFpt-500' : 'text-gray-600'} />
-                      <span className={`text-sm font-medium ${activeTab === tab.key ? 'text-orangeFpt-500' : 'text-gray-700'}`}>{tab.label}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${tab.badge}`}>{tab.count}</span>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Active Tab Content */}
-                <div className="space-y-3">
-                  {isLoadingDetail ? (
-                    <div className="flex justify-center py-10">
-                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
-                    </div>
-                  ) : (
-                    (checkpointGroups[activeTab] || []).map((checkpoint) => {
-                      const isCheckpointCompleted = getCheckpointUiStatus(checkpoint) === 'completed';
-                      return (
-                        <CheckpointCard
-                          key={checkpoint.id}
-                          checkpoint={checkpoint}
-                          readOnly={isCheckpointCompleted}
-                          onEdit={(cpId, payload) => !isCheckpointCompleted && handleUpdateCheckpoint(cpId, payload)}
-                          onDelete={(id) => !isCheckpointCompleted && handleDeleteCheckpoint(id)}
-                          onUploadFiles={(id, files) => !isCheckpointCompleted && handleUploadCheckpointFiles(id, files)}
-                          onMarkComplete={(id) => !isCheckpointCompleted && handleMarkComplete(id)}
-                          onDeleteSubmission={(cpId, subId) => !isCheckpointCompleted && handleDeleteSubmission(cpId, subId)}
-                          onAssign={(cpId, memberIds) => openAssignModal(cpId, memberIds)}
-                          onGenerateFileLink={(cpId, fileId) => handleRegenerateCheckpointFileLink(cpId, fileId)}
-                        />
-                      );
-                    })
-                  )}
-                </div>
-
-                {!isLoadingDetail && (checkpointGroups[activeTab] || []).length === 0 && (
-                  <div className="rounded-lg border border-dashed border-gray-300 p-10 text-center text-gray-600">
-                    Don't have any checkpoints yet.
+              {/* Active Tab Content */}
+              <div>
+                {isLoadingDetail ? (
+                  <div className="flex justify-center py-10">
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
                   </div>
+                ) : (
+                  (checkpointGroups[activeTab] || []).map((checkpoint) => {
+                    const isCheckpointCompleted = getCheckpointUiStatus(checkpoint) === 'completed';
+                    return (
+                      <CheckpointCard
+                        key={checkpoint.id}
+                        checkpoint={checkpoint}
+                        readOnly={isCheckpointCompleted}
+                        onEdit={(cpId, payload) => !isCheckpointCompleted && handleUpdateCheckpoint(cpId, payload)}
+                        onDelete={(id) => !isCheckpointCompleted && handleDeleteCheckpoint(id)}
+                        onUploadFiles={(id, files) => !isCheckpointCompleted && handleUploadCheckpointFiles(id, files)}
+                        onMarkComplete={(id) => !isCheckpointCompleted && handleMarkComplete(id)}
+                        onDeleteSubmission={(cpId, subId) => !isCheckpointCompleted && handleDeleteSubmission(cpId, subId)}
+                        onAssign={(cpId, memberIds) => openAssignModal(cpId, memberIds)}
+                      />
+                    );
+                  })
                 )}
               </div>
-            </section>
-          </main>
-        </div>
+
+              {!isLoadingDetail && (checkpointGroups[activeTab] || []).length === 0 && (
+                <div className="rounded-lg border border-dashed border-gray-300 p-10 text-center text-gray-600">
+                  Don't have any checkpoints yet.
+                </div>
+              )}
+            </div>
+          </section>
+        </main>
+      </div>
       {/* Checkpoint Modals */}
       <CheckpointFormModal
         isOpen={showCreateModal}

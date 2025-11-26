@@ -4,7 +4,7 @@ export const getStatusColor = (status) => {
       return "text-green-600 bg-green-50 border-green-200";
     case "Pending":
     default:
-      return "text-gray-600 bg-gray-50 border-gray-200";
+      return "text-yellow-600 bg-yellow-50 border-yellow-200";
   }
 };
 

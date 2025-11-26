@@ -278,6 +278,7 @@ export const deleteCheckpointFileByCheckpointIdAndFileId = async (checkpointId, 
 export const patchGenerateNewCheckpointFileLinkByCheckpointIdAndFileId = async (checkpointId, fileId) => {
   try {
     const response = await apiClient.patch(`/checkpoint/${checkpointId}/files/${fileId}/new-url`);
+    console.log('Regenerated checkpoint file link data:', response.data);
     return response.data;
   } catch (error) {
     console.error(`Error regenerating file link for checkpoint ID ${checkpointId} and file ID ${fileId}:`, error);

@@ -17,6 +17,7 @@ import {
   patchGenerateNewTeamResourceFileLinkByTeamIdAndFileId,
   postTeamResourceFilebyTeamId,
 } from "../../services/studentApi";
+import useToastConfirmation from "../../hooks/useToastConfirmation.jsx";
 
 const VIETNAM_TIMEZONE = "Asia/Ho_Chi_Minh";
 const VIETNAM_UTC_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -176,6 +177,7 @@ const ProjectResourcesMenu = () => {
   const autoRefreshQueueRef = useRef(new Set());
   const { team } = useTeam();
   const teamId = team?.teamId ?? team?.id;
+  const confirmWithToast = useToastConfirmation();
 
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
@@ -491,7 +493,11 @@ const ProjectResourcesMenu = () => {
 
   const handleDeleteResource = async (resource) => {
     if (!teamId || !resource?.fileId) return;
-    const confirmed = window.confirm(`Delete ${resource.fileName}? This action cannot be undone.`);
+    const confirmed = await confirmWithToast({
+      message: `Delete ${resource.fileName || 'this file'}? This action cannot be undone.`,
+      confirmLabel: 'Delete file',
+      variant: 'danger',
+    });
     if (!confirmed) return;
     setDeletingFileId(resource.fileId);
     try {
@@ -577,7 +583,6 @@ const ProjectResourcesMenu = () => {
                 <h3 className="text-sm font-semibold text-gray-900">Manage team resources</h3>
                 <p className="text-xs text-gray-500">Files are organized by folder path.</p>
               </div>
-              <div className="text-xs text-gray-500">{totalFiles} files</div>
             </div>
             {menuError && <p className="mt-2 text-xs text-red-600">{menuError}</p>}
             {!teamId && (
@@ -768,7 +773,7 @@ const ProjectResourcesMenu = () => {
                       onClick={() => handleOpenResource(resource)}
                       className="flex flex-1 items-start gap-3 text-left"
                     >
-                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-orangeFpt-100 text-orangeFpt-600">
+                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-orangeFpt-100 text-orangeFpt-500">
                         {openingFileId === resource.fileId ? (
                           <Loader2 className="h-5 w-5 animate-spin" />
                         ) : (
@@ -777,7 +782,7 @@ const ProjectResourcesMenu = () => {
                       </div>
                       <div className="min-w-0 space-y-1">
                         <div className="flex items-center gap-2">
-                          <p className="truncate text-sm font-semibold text-gray-900 max-w-[13rem]">
+                          <p className="truncate text-sm font-semibold text-orangeFpt-500 max-w-[13rem]">
                             {resource.fileName}
                           </p>
                           <ChevronRight className="h-3 w-3 text-gray-400" />
@@ -801,7 +806,7 @@ const ProjectResourcesMenu = () => {
                         type="button"
                         onClick={() => handleDeleteResource(resource)}
                         disabled={deletingFileId === resource.fileId}
-                        className="inline-flex items-center justify-center rounded-full border border-gray-200 p-2 text-red-400 hover:bg-red-900/30 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center justify-center rounded-full border border-gray-200 p-2 text-red-400 hover:text-red-600 hover:border-red-200 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
                         aria-label="Delete file"
                       >
                         {deletingFileId === resource.fileId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
@@ -811,7 +816,7 @@ const ProjectResourcesMenu = () => {
                 ))}
               </ul>
             ) : (
-              <div className="rounded-xl border border-dashed border-gray-600 bg-gray-900 px-6 py-6 text-center text-sm text-gray-300">
+              <div className="rounded-xl border border-dashed border-gray-300 bg-white px-6 py-6 text-center text-sm text-gray-700">
                 No files in this folder yet. Upload a file to get started.
               </div>
             )}
@@ -874,7 +879,7 @@ const ProjectResourcesMenu = () => {
               )}
 
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-300">Total files: {totalFiles}</span>
+                <span className="text-xs text-gray-700">Total files: {totalFiles}</span>
                 <button
                   type="button"
                   onClick={handleUpload}

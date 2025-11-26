@@ -1,7 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Calendar, Clock, X, AlertCircle, FileText, Loader2, Trash2, History, User, Upload, CheckCircle } from 'lucide-react';
+import { Calendar, Clock, X, AlertCircle, FileText, Loader2, Trash2, History, User, Upload, CheckCircle, ChevronRight } from 'lucide-react';
 import useClickOutside from '../../../hooks/useClickOutside';
 import useTeam from '../../../context/useTeam';
+import { useSecureFileHandler } from '../../../hooks/useSecureFileHandler';
+import useIsoToLocalTime from '../../../hooks/useIsoToLocalTime';
+import useFileSizeFormatter from '../../../hooks/useFileSizeFormatter';
+import useToastConfirmation from '../../../hooks/useToastConfirmation.jsx';
+import { patchGenerateNewCheckpointFileLinkByCheckpointIdAndFileId } from '../../../services/studentApi';
 import CheckpointAssignMenu from './CheckpointAssignMenu';
 import CheckpointEditMenu from './CheckpointEditMenu';
 
@@ -108,109 +113,38 @@ const countTimeRemaining = (dueDate) => {
     }
 };
 
-const VIETNAM_TIMEZONE = 'Asia/Ho_Chi_Minh';
-const VIETNAM_UTC_OFFSET_MS = 7 * 60 * 60 * 1000;
-const LINK_REFRESH_BUFFER_MS = 60 * 1000;
-const timezoneRegex = /([zZ])|([+-]\d{2}:?\d{2})$/;
+const getSubmissionFileUrl = (submission) => (
+    submission?.url
+    ?? submission?.fileUrl
+    ?? submission?.downloadUrl
+    ?? submission?.path
+    ?? submission?.filePath
+    ?? submission?.raw?.fileUrl
+    ?? submission?.raw?.url
+    ?? submission?.raw?.downloadUrl
+    ?? submission?.raw?.path
+    ?? submission?.raw?.filePath
+    ?? null
+);
 
-const normalizeUtcString = (rawValue) => {
-    if (typeof rawValue !== 'string') return null;
-    let value = rawValue.trim();
+const getSubmissionKey = (submission) => (
+    submission?.fileId
+    ?? submission?.checkpointFileId
+    ?? submission?.submissionId
+    ?? submission?.id
+    ?? null
+);
 
-    if (!value) return null;
-
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        return `${value}T00:00:00Z`;
-    }
-
-    if (value.includes(' ')) {
-        value = value.replace(' ', 'T');
-    }
-
-    if (!timezoneRegex.test(value)) {
-        value = value.endsWith('Z') ? value : `${value}Z`;
-    }
-
-    return value;
-};
-
-const parseUtcDate = (value) => {
-    if (!value) return null;
-
-    if (value instanceof Date) {
-        return Number.isNaN(value.getTime()) ? null : value;
-    }
-
-    if (typeof value === 'number') {
-        const date = new Date(value);
-        return Number.isNaN(date.getTime()) ? null : date;
-    }
-
-    if (typeof value === 'string') {
-        const normalized = normalizeUtcString(value);
-        if (!normalized) return null;
-        const date = new Date(normalized);
-        return Number.isNaN(date.getTime()) ? null : date;
+const extractUrlLike = (payload) => {
+    if (!payload) return null;
+    console.log('API Generate Link Response:', payload);
+    let target = typeof payload === 'object' && payload !== null && 'data' in payload ? payload.data : payload;
+    if (typeof target === 'string') return target;
+    if (typeof target === 'object' && target !== null) {
+        return target.filePath || null;
     }
 
     return null;
-};
-
-const vietnamFormatter = (typeof Intl !== 'undefined' && typeof Intl.DateTimeFormat === 'function')
-    ? new Intl.DateTimeFormat('vi-VN', {
-        timeZone: VIETNAM_TIMEZONE,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-    })
-    : null;
-
-const formatVietnamTimeLabel = (utcDate) => {
-    if (!utcDate) return '';
-    if (vietnamFormatter) {
-        return vietnamFormatter.format(utcDate);
-    }
-    const fallback = new Date(utcDate.getTime() + VIETNAM_UTC_OFFSET_MS);
-    return fallback.toLocaleString('vi-VN');
-};
-
-const buildExpireInfo = (rawExpireTime) => {
-    const expireDateUtc = parseUtcDate(rawExpireTime);
-
-    if (!expireDateUtc) {
-        return {
-            expireDateUtc: null,
-            expireLabel: '',
-            isExpired: false,
-            shouldRefresh: true,
-        };
-    }
-
-    const expireMs = expireDateUtc.getTime();
-    const nowMs = Date.now();
-
-    return {
-        expireDateUtc,
-        expireLabel: formatVietnamTimeLabel(expireDateUtc),
-        isExpired: nowMs >= expireMs,
-        shouldRefresh: (nowMs + LINK_REFRESH_BUFFER_MS) >= expireMs,
-    };
-};
-
-const buildSubmittedAtLabel = (rawValue) => {
-    if (!rawValue) return '';
-    const parsed = parseUtcDate(rawValue);
-    if (parsed) {
-        return formatVietnamTimeLabel(parsed);
-    }
-    const fallbackDate = new Date(rawValue);
-    if (!Number.isNaN(fallbackDate.getTime())) {
-        return fallbackDate.toLocaleString('vi-VN');
-    }
-    return typeof rawValue === 'string' ? rawValue : '';
 };
 
 const toDateInputValue = (value) => {
@@ -220,7 +154,6 @@ const toDateInputValue = (value) => {
 
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
-        // assume the value is already in YYYY-MM-DD format
         return value;
     }
 
@@ -252,7 +185,6 @@ const CheckpointCardModal = ({
     onDeleteSubmission,
     canAssign = false,
     onAssignMembers,
-    onGenerateFileLink,
     onUpdateCheckpoint,
     onDeleteCheckpoint,
 }) => {
@@ -266,7 +198,12 @@ const CheckpointCardModal = ({
     const [editError, setEditError] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState(null);
-    const [refreshingSubmissionId, setRefreshingSubmissionId] = useState(null);
+    const [activeSubmissionKey, setActiveSubmissionKey] = useState(null);
+    const [deletingSubmissionId, setDeletingSubmissionId] = useState(null);
+    const { openSecureFile } = useSecureFileHandler();
+    const { formatIsoString } = useIsoToLocalTime();
+    const { formatFileSize } = useFileSizeFormatter();
+    const confirmWithToast = useToastConfirmation();
 
     const resolvedDetail = detail ?? fallbackCheckpoint ?? {};
 
@@ -418,42 +355,30 @@ const CheckpointCardModal = ({
             .filter((member) => member.classMemberId != null);
     }, [team]);
 
-    const normalizedFiles = useMemo(
+    const normalizedSubmissions = useMemo(
         () =>
             checkpointFiles.map((file, index) => {
                 const resolvedId = file.fileId ?? file.checkpointFileId ?? file.submissionId ?? file.id ?? index;
+                const fileKey = getSubmissionKey(file) ?? `submission-${index}`;
                 const rawSubmittedAt = file.uploadedAt ?? file.createdAt ?? file.submittedAt ?? file.createdDate ?? null;
+                const sizeValue = typeof file.fileSize === 'number' ? file.fileSize : (typeof file.size === 'number' ? file.size : null);
                 return {
                     id: resolvedId,
                     fileId: resolvedId,
                     name: file.originalFileName ?? file.fileName ?? file.name ?? `Attachment ${index + 1}`,
-                    url: file.fileUrl ?? file.url ?? file.downloadUrl ?? file.path ?? file.filePath ?? null,
+                    url: getSubmissionFileUrl({ ...file, raw: file }),
                     uploadedBy: file.uploadedByName ?? file.uploadedBy ?? file.userName ?? file.createdBy ?? '',
                     uploadedAt: rawSubmittedAt,
-                    size: file.fileSize ?? file.size ?? null,
+                    size: sizeValue,
+                    sizeLabel: formatFileSize(sizeValue),
                     avatar: file.avatar ?? file.avatarImg ?? file.uploadedByAvatar ?? file.studentAvatar ?? null,
                     studentName: file.uploadedByName ?? file.uploadedBy ?? file.userName ?? file.createdBy ?? '',
-                    submittedAtLabel: buildSubmittedAtLabel(rawSubmittedAt),
+                    submittedAtLabel: formatIsoString(rawSubmittedAt),
                     raw: file,
+                    _itemKey: fileKey,
                 };
             }),
-        [checkpointFiles]
-    );
-
-    const submissionsWithExpireInfo = useMemo(
-        () =>
-            normalizedFiles.map((file) => ({
-                ...file,
-                expireInfo: buildExpireInfo(
-                    file.raw?.urlExpireTime
-                    ?? file.raw?.urlExpireAt
-                    ?? file.raw?.expireTime
-                    ?? file.raw?.expiredAt
-                    ?? file.raw?.linkExpiredAt
-                    ?? file.raw?.urlExpiredAt
-                ),
-            })),
-        [normalizedFiles]
+        [checkpointFiles, formatIsoString, formatFileSize]
     );
 
     const checkpointId = resolvedDetail?.checkpointId ?? resolvedDetail?.id ?? resolvedDetail?.checkpointID ?? fallbackCheckpoint?.id ?? null;
@@ -580,7 +505,12 @@ const CheckpointCardModal = ({
             return;
         }
 
-        const confirmed = window.confirm('Are you sure you want to delete this checkpoint?');
+        const checkpointTitle = resolvedDetail?.title ?? fallbackTitle ?? 'this checkpoint';
+        const confirmed = await confirmWithToast({
+            message: `Delete ${checkpointTitle}? This action cannot be undone.`,
+            confirmLabel: 'Delete checkpoint',
+            variant: 'danger',
+        });
         if (!confirmed) {
             return;
         }
@@ -615,6 +545,30 @@ const CheckpointCardModal = ({
         }
     };
 
+    const handleDeleteSubmission = async (submissionId, submissionName) => {
+        if (readOnly || typeof onDeleteSubmission !== 'function' || checkpointId == null || submissionId == null) {
+            return;
+        }
+
+        const confirmed = await confirmWithToast({
+            message: `Delete ${submissionName || 'this file'}? This action cannot be undone.`,
+            confirmLabel: 'Delete file',
+            variant: 'danger',
+        });
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            setDeletingSubmissionId(submissionId);
+            await onDeleteSubmission(checkpointId, submissionId);
+        } catch (error) {
+            console.error('Failed to delete checkpoint submission', error);
+        } finally {
+            setDeletingSubmissionId(null);
+        }
+    };
+
     if (!isOpen) {
         return null;
     }
@@ -628,7 +582,7 @@ const CheckpointCardModal = ({
     const description = resolvedDetail?.description ?? fallbackCheckpoint?.description ?? '';
     const startDate = resolvedDetail?.startDate ?? fallbackCheckpoint?.startDate ?? null;
     const dueDate = resolvedDetail?.dueDate ?? resolvedDetail?.deadline ?? resolvedDetail?.endDate ?? fallbackCheckpoint?.dueDate ?? null;
-    const submissionsCount = submissionsWithExpireInfo.length;
+    const submissionsCount = normalizedSubmissions.length;
     const assignmentsCount = assignments.length;
     const lacksAssignments = assignmentsCount === 0;
     const markCompleteDisabledTitle = lacksAssignments
@@ -661,62 +615,50 @@ const CheckpointCardModal = ({
 
     const handleOpenSubmission = async (submission) => {
         if (!submission) return;
-        const submissionId = submission.fileId ?? submission.id;
-        const fallbackUrl = submission.url
-            ?? submission.raw?.fileUrl
-            ?? submission.raw?.url
-            ?? submission.raw?.downloadUrl
-            ?? submission.raw?.path
-            ?? submission.raw?.filePath
-            ?? null;
+        const fallbackUrl = getSubmissionFileUrl(submission);
+        const resolvedSubmissionId = submission.fileId ?? submission.id ?? getSubmissionKey(submission);
+        const shouldRefresh = checkpointId != null && resolvedSubmissionId != null;
 
-        const expireInfo = submission.expireInfo
-            ?? buildExpireInfo(
-                submission.raw?.urlExpireTime
-                ?? submission.raw?.urlExpireAt
-                ?? submission.raw?.expireTime
-                ?? submission.raw?.expiredAt
-                ?? submission.raw?.linkExpiredAt
-                ?? submission.raw?.urlExpiredAt
-            );
-
-        const canRefresh = typeof onGenerateFileLink === 'function' && checkpointId != null && submissionId != null;
-        const needsRefresh = canRefresh && (expireInfo?.shouldRefresh || !fallbackUrl);
-
-        if (!needsRefresh) {
-            if (fallbackUrl) {
-                window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
-            }
+        if (!fallbackUrl && !shouldRefresh) {
+            alert('No document link available.');
             return;
         }
 
-        try {
-            setRefreshingSubmissionId(submissionId);
-            const refreshedUrl = await onGenerateFileLink(checkpointId, submissionId);
-            const sanitizedUrl = typeof refreshedUrl === 'string' ? refreshedUrl.trim() : '';
-            const finalUrl = sanitizedUrl || fallbackUrl;
+        const secureFetcher = async () => {
+            if (!shouldRefresh) {
+                return fallbackUrl;
+            }
+            const refreshed = await patchGenerateNewCheckpointFileLinkByCheckpointIdAndFileId(
+                checkpointId,
+                resolvedSubmissionId,
+            );
+            return extractUrlLike(refreshed);
+        };
 
-            if (finalUrl) {
-                window.open(finalUrl, '_blank', 'noopener,noreferrer');
-            }
+        const forceRefresh = shouldRefresh || !fallbackUrl;
+        const keyForState = submission._itemKey ?? getSubmissionKey(submission) ?? `submission-${Date.now()}`;
+        setActiveSubmissionKey(keyForState);
+
+        try {
+            await openSecureFile(
+                fallbackUrl,
+                secureFetcher,
+                forceRefresh,
+            );
         } catch (error) {
-            console.error('Failed to refresh checkpoint submission link', error);
-            if (fallbackUrl) {
-                window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
-            }
+            console.error('Failed to open checkpoint submission', error);
         } finally {
-            setRefreshingSubmissionId(null);
+            setActiveSubmissionKey(null);
         }
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 ">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div
                 ref={modalRef}
-                className="w-full max-w-3xl overflow-hidden rounded-xl bg-white shadow-2xl"
+                className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl border border-gray-100"
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby="checkpoint-modal-title"
             >
                 <div className="flex items-start justify-between border-b px-6 py-4">
                     <div>
@@ -773,11 +715,10 @@ const CheckpointCardModal = ({
                                 onClick={handleConfirmDelete}
                                 disabled={deleteDisabled}
                                 title={deleteButtonTitle}
-                                className={`p-2 rounded-lg transition ${
-                                    deleteDisabled
-                                        ? 'cursor-not-allowed text-gray-400'
-                                        : 'text-red-600 hover:bg-red-50'
-                                }`}
+                                className={`p-2 rounded-lg transition ${deleteDisabled
+                                    ? 'cursor-not-allowed text-gray-400'
+                                    : 'text-red-600 hover:bg-red-50'
+                                    }`}
                                 aria-label="Delete checkpoint"
                             >
                                 {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 size={18} />}
@@ -825,11 +766,11 @@ const CheckpointCardModal = ({
                         <div className="space-y-6">
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                            <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-                                                <History size={20}/>
-                                                <span>Overview</span>
-                                            </h3>
-                                        </div>
+                                    <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+                                        <History size={20} />
+                                        <span>Overview</span>
+                                    </h3>
+                                </div>
                                 <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                                     <div className="space-y-3">
                                         <div className="rounded-lg border border-gray-200 bg-white shadow-sm px-4 py-3 text-sm text-gray-700 flex flex-col">
@@ -910,79 +851,76 @@ const CheckpointCardModal = ({
                                             </div>
                                         ) : (
                                             <ul className="space-y-3">
-                                                {submissionsWithExpireInfo.map((submission) => {
+                                                {normalizedSubmissions.map((submission) => {
+                                                    const submissionKey = submission._itemKey ?? submission.id;
                                                     const submissionId = submission.fileId ?? submission.id;
+                                                    const isOpening = activeSubmissionKey === submissionKey;
                                                     return (
                                                         <li
-                                                            key={submission.id}
-                                                            className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white  shadow-sm"
+                                                            key={submissionKey}
+                                                            className="flex gap-3 rounded-xl border border-gray-200 bg-white hover:bg-orangeFpt-100 p-3 shadow-sm transition-opacity"
                                                         >
-                                                            <div className="flex-1 space-y-1 min-w-0">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleOpenSubmission(submission)}
-                                                                    className="flex w-full min-w-0 items-center gap-3 rounded-md border border-transparent bg-orangeFpt-50 px-3 py-2 text-left transition hover:border-orangeFpt-200 hover:bg-orangeFpt-100"
-                                                                >
-                                                                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-orangeFpt-100 text-orangeFpt-500">
-                                                                        {refreshingSubmissionId === submissionId ? (
-                                                                            <Loader2 className="h-5 w-5 animate-spin" />
-                                                                        ) : (
-                                                                            <FileText size={18} />
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="min-w-0 flex flex-1 items-center gap-3">
-                                                                        <p
-                                                                            className="text-sm font-semibold text-orangeFpt-600 overflow-hidden text-ellipsis whitespace-nowrap"
-                                                                            title={submission.name}
-                                                                        >
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleOpenSubmission(submission)}
+                                                                className="flex flex-1 items-start gap-3 text-left"
+                                                            >
+                                                                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-orangeFpt-100 text-orangeFpt-500">
+                                                                    {isOpening ? (
+                                                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                                                    ) : (
+                                                                        <FileText size={18} />
+                                                                    )}
+                                                                </div>
+                                                                <div className="min-w-0 space-y-1">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <p className="truncate text-sm font-semibold text-orangeFpt-500 max-w-[26rem]">
                                                                             {submission.name}
                                                                         </p>
-                                                                        <div className="flex items-center gap-2 text-xs text-gray-500 truncate">
-                                                                            {(submission.studentName || submission.uploadedBy) && (
-                                                                                <span className="flex items-center gap-2">
-                                                                                    {submission.avatar ? (
-                                                                                        <img
-                                                                                            src={submission.avatar}
-                                                                                            alt={`${submission.studentName || submission.uploadedBy || 'Student'} avatar`}
-                                                                                            className="h-5 w-5 flex-shrink-0 rounded-full object-cover"
-                                                                                        />
-                                                                                    ) : (
-                                                                                        <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-500">
-                                                                                            <User size={16} />
-                                                                                        </div>
-                                                                                    )}
-                                                                                    <span className="font-medium text-gray-700">
-                                                                                        {submission.studentName || submission.uploadedBy}
-                                                                                    </span>
-                                                                                </span>
-                                                                            )}
-                                                                            {submission.submittedAtLabel && (
-                                                                                <span className="text-gray-500">
-                                                                                    {submission.submittedAtLabel}
-                                                                                </span>
-                                                                            )}
-                                                                        </div>
+                                                                        <ChevronRight size={16} className="text-gray-400" />
+                                                                        <span className="text-xs text-gray-500">
+                                                                            {submission.sizeLabel}
+                                                                        </span>
                                                                     </div>
-                                                                </button>
-                                                            </div>
+                                                                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                                                                        <p>Submitted by</p>
+                                                                        {(submission.studentName || submission.uploadedBy) && (
+                                                                            <span className="flex items-center gap-2">
+                                                                                {submission.avatar ? (
+                                                                                    <img
+                                                                                        src={submission.avatar}
+                                                                                        alt={`${submission.studentName || submission.uploadedBy || 'Student'} avatar`}
+                                                                                        className="h-5 w-5 flex-shrink-0 rounded-full object-cover"
+                                                                                    />
+                                                                                ) : (
+                                                                                    <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-500">
+                                                                                        <User size={16} />
+                                                                                    </div>
+                                                                                )}
+                                                                                <span className="font-medium text-gray-700">
+                                                                                    {submission.studentName || submission.uploadedBy || "Student"} • <span className="text-gray-500"> {submission.submittedAtLabel} </span>
+                                                                                </span>
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </button>
                                                             {!readOnly && typeof onDeleteSubmission === 'function' && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={async () => {
-                                                                        if (checkpointId == null) {
-                                                                            return;
-                                                                        }
-                                                                        try {
-                                                                            await onDeleteSubmission(checkpointId, submission.fileId ?? submission.id);
-                                                                        } catch (deleteError) {
-                                                                            console.error('Failed to delete checkpoint submission', deleteError);
-                                                                        }
-                                                                    }}
-                                                                    className="flex h-8 w-8 items-center justify-center rounded-full text-red-600 transition hover:bg-red-50 hover:text-red-700"
-                                                                    aria-label="Remove submission"
-                                                                >
-                                                                    <Trash2 size={18} />
-                                                                </button>
+                                                                <div className="flex flex-col justify-between">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleDeleteSubmission(submissionId, submission.name)}
+                                                                        className="inline-flex items-center justify-center rounded-full border border-gray-200 p-2 text-red-400 hover:text-red-600 hover:border-red-200 hover:bg-red-100 disabled:opacity-60"
+                                                                        aria-label="Delete submission"
+                                                                        disabled={deletingSubmissionId === submissionId}
+                                                                    >
+                                                                        {deletingSubmissionId === submissionId ? (
+                                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                                        ) : (
+                                                                            <Trash2 className="h-4 w-4" />
+                                                                        )}
+                                                                    </button>
+                                                                </div>
                                                             )}
                                                         </li>
                                                     );

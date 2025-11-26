@@ -1,98 +1,23 @@
-import React, { useMemo, useState } from 'react';
-import { Upload, FileText, Trash2, Loader2, User, X } from 'lucide-react';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Upload, FileText, Trash2, Loader2, User, X, ChevronRight } from 'lucide-react';
 import { useSecureFileHandler } from '../../../hooks/useSecureFileHandler';
+import useIsoToLocalTime from '../../../hooks/useIsoToLocalTime';
+import { patchGenerateNewReturnFileLinkByMilestoneIdAndMileReturnId } from '../../../services/studentApi';
+import useFileSizeFormatter from '../../../hooks/useFileSizeFormatter';
+import useToastConfirmation from '../../../hooks/useToastConfirmation.jsx';
 
-const VIETNAM_TIMEZONE = 'Asia/Ho_Chi_Minh';
-const VIETNAM_UTC_OFFSET_MS = 7 * 60 * 60 * 1000;
-const LINK_REFRESH_BUFFER_MS = 60 * 1000;
+const getReturnFileUrl = (submission) => submission?.url || submission?.fileUrl || submission?.path || null;
 
-const timezoneRegex = /([zZ])|([+-]\d{2}:?\d{2})$/;
+const getReturnKey = (submission) => submission?.id ?? submission?.mileReturnId ?? null;
 
-const normalizeUtcString = (rawValue) => {
-  if (typeof rawValue !== 'string') return null;
-  let value = rawValue.trim();
-
-  if (!value) return null;
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return `${value}T00:00:00Z`;
+const extractUrlLike = (payload) => {
+  if (!payload) return null;
+  const target = typeof payload === 'object' && payload !== null && 'data' in payload ? payload.data : payload;
+  if (typeof target === 'string') return target;
+  if (typeof target === 'object' && target !== null) {
+    return target.fileUrl || target.url || target.path || null;
   }
-
-  if (value.includes(' ')) {
-    value = value.replace(' ', 'T');
-  }
-
-  if (!timezoneRegex.test(value)) {
-    value = value.endsWith('Z') ? value : `${value}Z`;
-  }
-
-  return value;
-};
-
-const parseUtcDate = (value) => {
-  if (!value) return null;
-
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? null : value;
-  }
-
-  if (typeof value === 'number') {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  if (typeof value === 'string') {
-    const normalized = normalizeUtcString(value);
-    if (!normalized) return null;
-    const date = new Date(normalized);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
   return null;
-};
-
-const vietnamFormatter = (typeof Intl !== 'undefined' && typeof Intl.DateTimeFormat === 'function')
-  ? new Intl.DateTimeFormat('vi-VN', {
-    timeZone: VIETNAM_TIMEZONE,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })
-  : null;
-
-const formatVietnamTimeLabel = (utcDate) => {
-  if (!utcDate) return '';
-  if (vietnamFormatter) {
-    return vietnamFormatter.format(utcDate);
-  }
-  const fallback = new Date(utcDate.getTime() + VIETNAM_UTC_OFFSET_MS);
-  return fallback.toLocaleString('vi-VN');
-};
-
-const buildExpireInfo = (rawExpireTime) => {
-  const expireDateUtc = parseUtcDate(rawExpireTime);
-
-  if (!expireDateUtc) {
-    return {
-      expireDateUtc: null,
-      expireLabel: '',
-      isExpired: false,
-      shouldRefresh: true,
-    };
-  }
-
-  const expireMs = expireDateUtc.getTime();
-  const nowMs = Date.now();
-
-  return {
-    expireDateUtc,
-    expireLabel: formatVietnamTimeLabel(expireDateUtc),
-    isExpired: nowMs >= expireMs,
-    shouldRefresh: (nowMs + LINK_REFRESH_BUFFER_MS) >= expireMs,
-  };
 };
 
 const MilestoneReturns = ({
@@ -100,25 +25,37 @@ const MilestoneReturns = ({
   canManageReturns = false,
   onUploadMilestoneFiles = () => { },
   onDeleteMilestoneReturn,
-  onRefreshMilestoneReturnLink,
+  milestoneId = null,
 }) => {
   const [localFiles, setLocalFiles] = useState([]);
   const [isUploadingReturns, setIsUploadingReturns] = useState(false);
-  const [refreshingReturnId, setRefreshingReturnId] = useState(null);
+  const [activeReturnKey, setActiveReturnKey] = useState(null);
+  const [deletingReturnId, setDeletingReturnId] = useState(null);
   const { openSecureFile } = useSecureFileHandler();
+  const { formatIsoString } = useIsoToLocalTime();
+  const { formatFileSize } = useFileSizeFormatter();
+  const confirmWithToast = useToastConfirmation();
 
-  const submissionsWithExpireInfo = useMemo(() => (
-    submissions.map((submission) => ({
-      ...submission,
-      expireInfo: buildExpireInfo(
-        submission?.urlExpireTime
-        ?? submission?.urlExpireAt
-        ?? submission?.expireTime
-        ?? submission?.expiredAt
-        ?? submission?.linkExpiredAt
-      ),
-    }))
-  ), [submissions]);
+  const normalizedSubmissions = useMemo(() => (
+    (Array.isArray(submissions) ? submissions : []).map((submission, index) => {
+      const fileKey = getReturnKey(submission) ?? `return-${index}`;
+      const fileSize = typeof submission.size === 'number' ? submission.size : submission.fileSize;
+      const submittedAtSource = submission.submittedAt
+        ?? submission.submittedDate
+        ?? submission.submitedDate
+        ?? submission.createdAt
+        ?? submission.createdDate
+        ?? submission.submittedAtLabel
+        ?? null;
+
+      return {
+        ...submission,
+        _fileKey: fileKey,
+        sizeLabel: formatFileSize(fileSize),
+        submittedAtLabel: formatIsoString(submittedAtSource),
+      };
+    })
+  ), [submissions, formatIsoString]);
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files || []);
@@ -147,90 +84,106 @@ const MilestoneReturns = ({
     }
   };
 
-  const handleOpenReturn = async (returnItem) => {
+  const handleOpenReturn = useCallback(async (returnItem) => {
     if (!returnItem) return;
-    const { id } = returnItem;
+    const fallbackUrl = getReturnFileUrl(returnItem);
+    const resolvedReturnId = returnItem?.id ?? null;
+    const shouldRefresh = milestoneId != null && resolvedReturnId != null;
 
-    const currentSubmission = (id != null
-      ? submissionsWithExpireInfo.find((item) => item.id === id)
-      : null) || returnItem;
-
-    const fallbackUrl = currentSubmission?.url
-      ?? submissions.find((item) => item.id === id)?.url
-      ?? returnItem.url
-      ?? returnItem.path;
-
-    const expireInfo = currentSubmission?.expireInfo
-      ?? buildExpireInfo(currentSubmission?.urlExpireTime || returnItem?.urlExpireTime);
-
-    const SAFE_BUFFER = 5 * 60 * 1000;
-    const canRefresh = typeof onRefreshMilestoneReturnLink === 'function' && id != null;
-    const isRiskOfExpiring = expireInfo?.expireDateUtc
-      ? (Date.now() + SAFE_BUFFER) >= expireInfo.expireDateUtc.getTime()
-      : true;
-    const shouldForceRefresh = canRefresh && (isRiskOfExpiring || !fallbackUrl);
-
-    if (!fallbackUrl && !canRefresh) {
+    if (!fallbackUrl && !shouldRefresh) {
       alert('No document link available.');
       return;
     }
 
-    if (!shouldForceRefresh) {
-      openSecureFile(
-        fallbackUrl,
-        () => Promise.resolve(fallbackUrl),
-        false,
+    const secureFetcher = async () => {
+      if (!shouldRefresh) {
+        return fallbackUrl;
+      }
+      const refreshed = await patchGenerateNewReturnFileLinkByMilestoneIdAndMileReturnId(
+        milestoneId,
+        resolvedReturnId,
       );
-      return;
-    }
+      return extractUrlLike(refreshed) || fallbackUrl;
+    };
+
+    const forceRefresh = shouldRefresh || !fallbackUrl;
+    const keyForState = getReturnKey(returnItem) ?? `return-${Date.now()}`;
+    setActiveReturnKey(keyForState);
 
     try {
-      setRefreshingReturnId(id);
       await openSecureFile(
         fallbackUrl,
-        () => onRefreshMilestoneReturnLink(id),
-        true,
+        secureFetcher,
+        forceRefresh,
       );
     } catch (error) {
       console.error('Failed to open milestone submission', error);
     } finally {
-      setRefreshingReturnId(null);
+      setActiveReturnKey(null);
     }
-  };
+  }, [milestoneId, openSecureFile]);
+
+  const handleDeleteReturn = useCallback(async (returnItem) => {
+    if (!returnItem || typeof onDeleteMilestoneReturn !== 'function') return;
+    const resolvedId = returnItem.id ?? returnItem.mileReturnId ?? null;
+    if (resolvedId == null) return;
+
+    const confirmed = await confirmWithToast({
+      message: `Delete ${returnItem.name || 'this submission'}? This action cannot be undone.`,
+      confirmLabel: 'Delete file',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
+    try {
+      setDeletingReturnId(resolvedId);
+      await onDeleteMilestoneReturn(resolvedId);
+    } catch (error) {
+      console.error('Failed to delete milestone submission', error);
+    } finally {
+      setDeletingReturnId(null);
+    }
+  }, [confirmWithToast, onDeleteMilestoneReturn]);
 
   return (
     <section>
       <h4 className="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
         <Upload size={16} />
-        Submissions ({submissions.length})
+        Submissions ({normalizedSubmissions.length})
       </h4>
-      {submissionsWithExpireInfo.length > 0 ? (
+      {normalizedSubmissions.length > 0 ? (
         <ul className="grid grid-cols-1 gap-6 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-2">
-          {submissionsWithExpireInfo.map((item) => (
-            <li
-              key={item.id}
-              className="flex h-full items-center gap-3 rounded-lg border border-gray-200 bg-white shadow-sm"
-            >
-              <div className="flex-1 space-y-1 min-w-0">
+          {normalizedSubmissions.map((item) => {
+            const fileKey = item._fileKey;
+            const isOpening = activeReturnKey === fileKey;
+
+            return (
+              <li
+                key={fileKey}
+                className="flex gap-3 rounded-xl border border-gray-200 bg-white hover:bg-orangeFpt-100 p-3 shadow-sm transition-opacity"
+              >
                 <button
                   type="button"
                   onClick={() => handleOpenReturn(item)}
-                  className="flex w-full min-w-0 items-start gap-3 rounded-md border border-transparent bg-gray-50 p-3 text-left transition hover:border-orangeFpt-200 hover:bg-orangeFpt-50"
+                  className="flex flex-1 items-start gap-3 text-left"
                 >
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-orangeFpt-100 text-orangeFpt-500">
-                    {refreshingReturnId === item.id ? (
+                    {isOpening ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
                       <FileText size={18} />
                     )}
                   </div>
-                  <div className="min-w-0">
-                    <p
-                      className="text-sm font-semibold text-orangeFpt-500 overflow-hidden text-ellipsis whitespace-nowrap"
-                      title={item.name}
-                    >
-                      {item.name}
-                    </p>
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-semibold text-orangeFpt-500 max-w-[26rem]">
+                        {item.name}
+                      </p>
+                      <ChevronRight className="h-3 w-3 text-gray-400" />
+                      <span className='text-xs font-medium text-gray-500'>
+                        {item.sizeLabel}
+                      </span>
+                    </div>
                     <div className="flex flex-wrap items-center gap-x-3 text-xs text-gray-500">
                       {item.submittedAtLabel && (
                         <span className="flex items-center gap-2">
@@ -246,25 +199,35 @@ const MilestoneReturns = ({
                               <User size={20} />
                             </div>
                           )}
-                          {item.studentName || 'Unknown student'} at {item.submittedAtLabel}
+                          <span className="font-medium text-gray-700">
+                            {item.studentName || 'Student'} • <span className='text-gray-500'>{item.submittedAtLabel}</span>
+                          </span>
                         </span>
                       )}
                     </div>
                   </div>
                 </button>
-              </div>
-              {typeof onDeleteMilestoneReturn === 'function' && canManageReturns && (
-                <button
-                  type="button"
-                  onClick={() => onDeleteMilestoneReturn(item.id)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-red-600 transition hover:bg-red-50 hover:text-red-700"
-                  aria-label="Delete submission"
-                >
-                  <Trash2 size={18} />
-                </button>
-              )}
-            </li>
-          ))}
+                {typeof onDeleteMilestoneReturn === 'function' && canManageReturns && (
+                  <div className="flex flex-col justify-between">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteReturn(item)}
+                      className="inline-flex items-center justify-center rounded-full border border-gray-200 p-2 text-red-400 hover:text-red-600 hover:border-red-200 hover:bg-red-100 disabled:opacity-60"
+                      aria-label="Delete submission"
+                      disabled={deletingReturnId === item.id}
+                    >
+                      {deletingReturnId === item.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                )}
+
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-6 py-6 text-center text-sm text-gray-600">

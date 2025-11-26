@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ChevronDown, ChevronUp, Clock, Loader2, MessageCircle, MoreVertical, Pencil, Trash2, User } from 'lucide-react';
+import { ChevronDown, ChevronUp, Clock, Loader2, MessageCircle, MoreVertical, Pencil, Trash2, User } from 'lucide-react';
 import { toast } from 'sonner';
+import useToastConfirmation from '../../../hooks/useToastConfirmation.jsx';
 import QuestionAnswerRatings from './QuestionAnswerRatings';
 
 const MAX_SCORE = 5;
@@ -92,55 +93,6 @@ const defaultAutoResizeTextarea = (element) => {
   element.style.height = `${element.scrollHeight}px`;
 };
 
-const awaitToastConfirmation = (message) =>
-  new Promise((resolve) => {
-    let isResolved = false;
-    let toastId;
-
-    const complete = (result) => {
-      if (isResolved) return;
-      isResolved = true;
-      if (toastId) {
-        toast.dismiss(toastId);
-      }
-      resolve(result);
-    };
-
-    toastId = toast.custom(
-      () => (
-        <div className="flex w-full max-w-sm items-start gap-3 rounded-2xl border border-amber-200 bg-white p-4 text-left shadow-xl">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-50 text-amber-600">
-            <AlertTriangle size={18} />
-          </div>
-          <div className="flex-1 text-sm">
-            <p className="font-semibold text-amber-700">{message}</p>
-            <div className="mt-4 flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => complete(false)}
-                className="rounded-lg border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => complete(true)}
-                className="rounded-lg bg-orangeFpt-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-orangeFpt-600"
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      ),
-      {
-        duration: Infinity,
-        position: 'top-right',
-        onDismiss: () => complete(false),
-      },
-    );
-  });
-
 const QuestionAnswers = ({
   answers = [],
   isLoading = false,
@@ -162,6 +114,7 @@ const QuestionAnswers = ({
   const [editDrafts, setEditDrafts] = useState({});
   const [openActionsAnswerId, setOpenActionsAnswerId] = useState(null);
   const [localExpandedEvaluations, setLocalExpandedEvaluations] = useState({});
+  const confirmWithToast = useToastConfirmation();
 
   const actionMenuRefs = useRef({});
   const editTextareaRefs = useRef({});
@@ -381,7 +334,11 @@ const QuestionAnswers = ({
     if (openActionsAnswerId === answerId) {
       setOpenActionsAnswerId(null);
     }
-    const confirmed = await awaitToastConfirmation('Delete this answer? This action cannot be undone.');
+    const confirmed = await confirmWithToast({
+      message: 'Delete this answer? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
     if (!confirmed) {
       return;
     }

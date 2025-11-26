@@ -13,7 +13,6 @@ const CheckpointCard = ({
   onMarkComplete,
   onDeleteSubmission,
   onAssign,
-  onGenerateFileLink,
 }) => {
   const resolveUiStatus = (value) => {
     if (typeof value === 'string') return value.toLowerCase();
@@ -217,7 +216,6 @@ const CheckpointCard = ({
         onDeleteSubmission={handleDeleteSubmissionInternal}
         canAssign={canAssign}
         onAssignMembers={handleAssignMembers}
-        onGenerateFileLink={onGenerateFileLink}
         onUpdateCheckpoint={handleUpdateCheckpoint}
         canDelete={canEdit && typeof onDelete === 'function'}
         onDeleteCheckpoint={(id) => onDelete?.(id ?? checkpoint.id)}

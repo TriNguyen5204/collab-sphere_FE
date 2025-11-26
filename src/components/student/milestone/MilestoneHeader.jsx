@@ -4,24 +4,7 @@ import { getStatusColor, normalizeMilestoneStatus } from '../../../utils/milesto
 import MilestoneFilesModal from './MilestoneFilesModal';
 import MilestoneQuestions from './MilestoneQuestions';
 import MilestoneReturns from './MilestoneReturns';
-
-const formatFileSize = (bytes) => {
-  if (typeof bytes !== 'number' || Number.isNaN(bytes) || bytes <= 0) {
-    return '';
-  }
-
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let size = bytes;
-  let unitIndex = 0;
-
-  while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024;
-    unitIndex += 1;
-  }
-
-  const precision = size < 10 && unitIndex > 0 ? 1 : 0;
-  return `${size.toFixed(precision)} ${units[unitIndex]}`;
-};
+import useFileSizeFormatter from '../../../hooks/useFileSizeFormatter';
 
 const formatSubmittedAt = (value) => {
   if (!value) {
@@ -42,11 +25,11 @@ const MilestoneHeader = ({
   readOnly = false,
   onUploadMilestoneFiles = () => { },
   onDeleteMilestoneReturn = () => { },
-  onRefreshMilestoneReturnLink = () => { },
   onAnswerSubmitted = () => { },
 }) => {
   const [showFilesModal, setShowFilesModal] = useState(false);
   const [showQuestions, setShowQuestions] = useState(false);
+  const { formatFileSize } = useFileSizeFormatter();
   const status = normalizeMilestoneStatus(milestone?.status);
   const isMilestoneCompleted = status === 'Completed';
   const dueDate = milestone?.endDate;
@@ -56,6 +39,7 @@ const MilestoneHeader = ({
   const returns = Array.isArray(milestone?.returns) ? milestone.returns : [];
   const completedAnswers = milestone?.completedAnswers ?? 0;
   const requiredAnswers = milestone?.requiredAnswers ?? milestone?.milestoneQuestionCount ?? 0;
+  const resolvedMilestoneId = milestone?.teamMilestoneId ?? milestone?.milestoneId ?? milestone?.id ?? null;
 
   const questionCount = useMemo(() => Array.isArray(milestone?.questions) ? milestone.questions.length : 0, [milestone]);
   const canToggleQuestions = questionCount > 0;
@@ -163,6 +147,7 @@ const MilestoneHeader = ({
         <MilestoneFilesModal
           isOpen={showFilesModal}
           files={lecturerFiles}
+          milestoneId={resolvedMilestoneId}
           onClose={() => setShowFilesModal(false)}
         />
 
@@ -172,7 +157,7 @@ const MilestoneHeader = ({
           canManageReturns={canManageReturns}
           onUploadMilestoneFiles={onUploadMilestoneFiles}
           onDeleteMilestoneReturn={onDeleteMilestoneReturn}
-          onRefreshMilestoneReturnLink={onRefreshMilestoneReturnLink}
+          milestoneId={resolvedMilestoneId}
         />
       </div>
       <div className='p-6 border-t '>
