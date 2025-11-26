@@ -32,6 +32,7 @@ import ClassDetailPage from '../pages/lecturer/ClassDetailPage';
 import ClassProjectOverview from '../pages/lecturer/ClassProjectOverview';
 import TeamProjectDetail from '../pages/lecturer/TeamProjectDetail';
 import CreateProject from '../pages/lecturer/CreateProject';
+import CreateProjectAI from '../pages/lecturer/CreateProjectAI';
 import ProjectLibrary from '../pages/lecturer/ProjectLibrary';
 import ProjectDetail from '../pages/lecturer/ProjectDetail';
 import ProjectAnalysis from '../pages/lecturer/ProjectAnalysis';
@@ -44,6 +45,7 @@ import TeamMilestonesPage from '../pages/lecturer/evaluations/TeamMilestonesPage
 import MilestoneDetailPage from '../pages/lecturer/evaluations/MilestoneDetailPage';
 import MilestoneEvaluationPage from '../pages/lecturer/evaluations/MilestoneEvaluationPage';
 import LecturerGradingDashboard from '../pages/lecturer/grading/LecturerGradingDashboard';
+import CreateTeamPage from '../pages/lecturer/CreateTeamPage';
 
 // academic services (staff) pages
 import StaffPage from '../pages/staff/StaffPage';
@@ -90,11 +92,10 @@ const publicRoutes = [
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
   { path: '/unauthorized', element: <Unauthorized /> },
-  { path: '/room', element: <RoomJoinPage/>},
+
   { path: '/room/:roomId', element: <MeetingRoomTest/>},
-  { path: '/test/meeting', element: <Layout/> },
-  { path: '/test/meeting/history', element: <MeetingManagement/> },
-  { path: '/test/meeting/schedule', element: <MeetingSchedulerFull/> },
+  { path: '/meeting/history/:teamId', element: <MeetingManagement/> },
+  { path: '/meeting/schedule/:teamId', element: <MeetingSchedulerFull/> },
   { path: '/test/kanban', element: <TestKanbanBoard /> },
 ];
 
@@ -105,9 +106,12 @@ const studentRoutes = [
   { path: '/student/profile', element: protectRoute(['STUDENT'], <StudentProfile />) },
   { path: '/student/project/:projectId/:projectName/:teamId', element: protectRoute(['STUDENT'], <ProjectBoard />) },
   { path: '/student/project/:projectId/:projectName/:teamId/milestones&checkpoints', element: protectRoute(['STUDENT'], <MilestoneCheckpointPage />) },
-  { path: '/student/project/:projectId/:projectName/:teamId/team-workspace', element: protectRoute(['STUDENT'], <TeamWorkspace />) },
+  { path: '/student/project/team-workspace', element: protectRoute(['STUDENT'], <TeamWorkspace />) },
   { path: '/student/project/:projectId/:projectName/:teamId/pr-analysis/:analysisId', element: protectRoute(['STUDENT'], <ProfessionalAnalysisView />) },
+  { path: '/student/project/:projectId/:projectName/:teamId/meeting-room', element: <Layout/> },
+  { path: '/student/project/join-room/:teamId', element: <RoomJoinPage/>},
   { path: '/projects/github-callback', element: protectRoute(['STUDENT'], <GitHubAppCallback />) },
+  { path: '/github-callback', element: protectRoute(['STUDENT'], <GitHubAppCallback />) },
   { path: '/student/ai/pr-analysis', element: protectRoute(['STUDENT'], <StudentPRAnalysisPage />) },
   { path: '/student/:className/members', element: protectRoute(['STUDENT'], <StudentClassMembersPage />) },
   { path: '/student/:className/projects', element: protectRoute(['STUDENT'], <StudentClassProjectsPage />) },
@@ -127,7 +131,9 @@ const lecturerRoutes = [
   { path: '/lecturer/classes/:classId/projects', element: protectRoute(['LECTURER'], <ClassProjectOverview />) },
   { path: '/lecturer/classes/:classId/project-assignments', element: protectRoute(['LECTURER'], <ClassProjectAssignment />) },
   { path: '/lecturer/classes/:classId/team/:teamId', element: protectRoute(['LECTURER'], <TeamProjectDetail />) },
+  { path: '/lecturer/classes/:classId/create-team', element: protectRoute(['LECTURER'], <CreateTeamPage />) },
   { path: '/lecturer/create-project', element: protectRoute(['LECTURER'], <CreateProject />) },
+  { path: '/lecturer/projects/create-with-ai', element: protectRoute(['LECTURER'], <CreateProjectAI />) },
   { path: '/lecturer/classes/:classId/create-project', element: protectRoute(['LECTURER'], <CreateProject />) },
   { path: '/lecturer/projects', element: protectRoute(['LECTURER'], <ProjectLibrary />) },
   { path: '/lecturer/projects/create', element: protectRoute(['LECTURER'], <CreateProject />) },

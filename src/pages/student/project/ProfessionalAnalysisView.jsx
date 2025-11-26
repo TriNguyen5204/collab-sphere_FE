@@ -73,7 +73,10 @@ const ProfessionalAnalysisView = () => {
       <div className="min-h-screen bg-[#f7f7f8] px-4 py-16">
         <div className="mx-auto max-w-2xl">
           <button
-            onClick={() => navigate(`/student/project/${projectId}/${projectName}/${teamId}/team-workspace?tab=ai-review`)}
+            onClick={() => {
+              localStorage.setItem('currentProjectContext', JSON.stringify({ projectId, teamId, projectName }));
+              navigate(`/student/project/team-workspace?tab=ai-review`);
+            }}
             className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-gray-600"
           >
             <ArrowLeft className="h-4 w-4" /> Back to AI reviews
@@ -91,7 +94,10 @@ const ProfessionalAnalysisView = () => {
     <div className="min-h-screen bg-[#f7f7f8] px-4 py-10">
       <div className="mx-auto max-w-7xl">
         <button
-          onClick={() => navigate(`/student/project/${projectId}/${projectName}/${teamId}/team-workspace?tab=ai-review`)}
+          onClick={() => {
+            localStorage.setItem('currentProjectContext', JSON.stringify({ projectId, teamId, projectName }));
+            navigate(`/student/project/team-workspace?tab=ai-review`);
+          }}
           className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft className="h-4 w-4" /> Back to workspace

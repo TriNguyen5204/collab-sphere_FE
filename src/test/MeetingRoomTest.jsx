@@ -99,19 +99,24 @@ function MeetingRoom() {
   };
 
   const handleLeave = () => {
-    navigate('/room');
+    navigate('/student/projects', { replace: true });
   };
 
   // Tìm người đang share màn hình
   const sharingPeer = groupPeers.find(({ id }) => peersSharingScreen.has(id));
   const hasScreenShare = isSharing || sharingPeer;
 
+  // ✅ DEBUG: Log showChat state
+  useEffect(() => {
+    console.log('🔍 showChat state changed:', showChat);
+  }, [showChat]);
+
   return (
-    <div className='h-screen bg-black flex flex-col overflow-hidden'>
+    <div className='h-screen bg-[#202124] flex flex-col overflow-hidden'>
       {/* Upload Progress Overlay */}
       {isUploading && (
-        <div className='fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center'>
-          <div className='bg-gray-900 rounded-xl p-6 max-w-md w-full mx-4 border border-gray-700'>
+        <div className='fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center'>
+          <div className='bg-[#3c4043] rounded-xl p-8 max-w-md w-full mx-4 border border-[#5f6368]'>
             <div className='text-center'>
               <div className='mb-4'>
                 <svg className='w-16 h-16 mx-auto text-blue-500 animate-spin' fill='none' viewBox='0 0 24 24'>
@@ -120,44 +125,70 @@ function MeetingRoom() {
                 </svg>
               </div>
               <h3 className='text-xl font-semibold text-white mb-2'>Đang upload video...</h3>
-              <p className='text-gray-400 mb-4'>Vui lòng không đóng trang này</p>
+              <p className='text-[#9aa0a6] mb-4'>Vui lòng không đóng trang này</p>
               
-              <div className='w-full bg-gray-700 rounded-full h-3 mb-2'>
+              <div className='w-full bg-[#5f6368] rounded-full h-2 mb-2'>
                 <div 
-                  className='bg-blue-500 h-3 rounded-full transition-all duration-300'
+                  className='bg-blue-500 h-2 rounded-full transition-all duration-300'
                   style={{ width: `${uploadProgress}%` }}
                 ></div>
               </div>
-              <p className='text-sm text-gray-300'>{uploadProgress}%</p>
+              <p className='text-sm text-[#e8eaed]'>{uploadProgress}%</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Top Bar */}
-      <div className='flex items-center justify-between px-4 py-2 bg-gray-900/95 backdrop-blur-sm border-b border-gray-800'>
-        <div className='flex items-center gap-3'>
-          <div className='flex items-center gap-2 px-3 py-1.5 bg-white text-gray-800 rounded-lg border border-gray-200'>
-            <div className='w-2 h-2 bg-green-500 rounded-full'></div>
-            <span className='text-xs text-gray-600 font-medium'>
+      {/* Top Bar - Google Meet Style */}
+      <div className='flex items-center justify-between px-6 py-4 bg-transparent backdrop-blur-sm z-10'>
+        <div className='flex items-center gap-4'>
+          {/* Time Badge */}
+          <div className='flex items-center gap-2 px-3 py-2 bg-[#3c4043] rounded-full'>
+            <div className='w-2 h-2 bg-green-500 rounded-full animate-pulse'></div>
+            <span className='text-xs text-[#e8eaed] font-medium'>
               {new Date().toLocaleTimeString([], {
                 hour: '2-digit',
                 minute: '2-digit',
               })}
             </span>
           </div>
-          <span className='text-sm text-gray-400'>|</span>
-          <span className='text-sm text-gray-300 font-medium'>{roomId}</span>
+          
+          {/* Meeting Code */}
+          <div className='flex items-center gap-2 px-3 py-2 bg-[#3c4043] rounded-full cursor-pointer hover:bg-[#5f6368] transition-colors'>
+            <span className='text-sm text-[#e8eaed] font-mono'>{roomId}</span>
+            <button
+              onClick={() => copyToClipboard(roomId)}
+              className='text-[#8ab4f8] hover:text-[#aecbfa] transition-colors'
+              title='Copy meeting code'
+            >
+              <svg className='w-4 h-4' fill='currentColor' viewBox='0 0 20 20'>
+                <path d='M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z' />
+                <path d='M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z' />
+              </svg>
+            </button>
+          </div>
         </div>
 
+        {/* Right Side Actions */}
         <div className='flex items-center gap-2'>
+          {/* Recording Indicator */}
+          {recordingUserId && (
+            <div className='flex items-center gap-2 px-3 py-2 bg-red-600/20 rounded-full'>
+              <div className='w-2 h-2 bg-red-500 rounded-full animate-pulse'></div>
+              <span className='text-xs text-red-400 font-medium'>
+                {recordingUserId === me ? 'Bạn đang ghi' : 'Đang ghi'}
+              </span>
+            </div>
+          )}
+
+          {/* Info Button */}
           <button
             onClick={() => setShowInfo(!showInfo)}
-            className='p-2 hover:bg-gray-100 rounded-full transition'
+            className='p-2 hover:bg-[#5f6368] rounded-full transition-colors'
             title='Meeting info'
           >
             <svg
-              className='w-5 h-5 text-gray-300'
+              className='w-5 h-5 text-[#e8eaed]'
               fill='none'
               stroke='currentColor'
               viewBox='0 0 24 24'
@@ -173,16 +204,16 @@ function MeetingRoom() {
         </div>
       </div>
 
-      {/* Main Content Area */}
+      {/* ✅ FIXED: Main Content Area - Removed relative positioning that was blocking chat */}
       <div className='flex-1 flex overflow-hidden'>
-        {/* Video Area */}
-        <div className={`flex-1 flex overflow-hidden transition-all duration-300 ${showChat ? 'mr-0' : ''}`}>
+        {/* Video Area - Adjusted width when chat is open */}
+        <div className={`flex overflow-hidden transition-all duration-300 ${showChat ? 'flex-1' : 'w-full'}`}>
           
           {/* Layout khi CÓ người share màn hình */}
           {hasScreenShare ? (
-            <div className='flex w-full h-full gap-2 p-2'>
+            <div className='flex w-full h-full gap-3 p-4'>
               {/* Main Screen Share Area (bên trái) */}
-              <div className='flex-1 flex items-center justify-center bg-gray-950 rounded-lg'>
+              <div className='flex-1 flex items-center justify-center bg-black rounded-2xl overflow-hidden shadow-2xl'>
                 {isSharing ? (
                   // Tôi đang share
                   <div className='relative w-full h-full flex items-center justify-center'>
@@ -193,7 +224,7 @@ function MeetingRoom() {
                       muted
                       className='max-w-full max-h-full object-contain'
                     />
-                    <div className='absolute top-4 left-4 px-3 py-1.5 bg-red-500 rounded-lg flex items-center gap-2'>
+                    <div className='absolute top-6 left-6 px-4 py-2 bg-red-500 rounded-full flex items-center gap-2 shadow-lg'>
                       <div className='w-2 h-2 bg-white rounded-full animate-pulse'></div>
                       <span className='text-sm text-white font-semibold'>You are presenting</span>
                     </div>
@@ -217,7 +248,7 @@ function MeetingRoom() {
               <div className='w-80 flex flex-col gap-2 overflow-y-auto py-1 pr-1 custom-scrollbar'>
                 {/* Video của tôi - LUÔN HIỂN THỊ (camera) khi người khác share */}
                 {!isSharing && (
-                  <div className='relative bg-gray-900 rounded-lg overflow-hidden aspect-video flex-shrink-0 group hover:ring-2 hover:ring-blue-500 transition-all'>
+                  <div className='relative bg-[#3c4043] rounded-xl overflow-hidden aspect-video flex-shrink-0 group hover:ring-2 hover:ring-blue-500 transition-all shadow-lg'>
                     <video
                       playsInline
                       autoPlay
@@ -229,9 +260,9 @@ function MeetingRoom() {
                       }}
                       className='w-full h-full object-cover'
                     />
-                    <div className='absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none'></div>
-                    <div className='absolute bottom-2 left-2 px-2 py-1 bg-gray-900/90 backdrop-blur-sm rounded text-xs text-white font-medium'>
-                      You ({myName})
+                    <div className='absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none'></div>
+                    <div className='absolute bottom-3 left-3 px-3 py-1.5 bg-black/80 backdrop-blur-sm rounded-lg'>
+                      <span className='text-sm text-white font-medium'>You ({myName})</span>
                     </div>
                   </div>
                 )}
@@ -257,7 +288,7 @@ function MeetingRoom() {
             <div className='flex-1 flex items-center justify-center p-4'>
               <div className='w-full h-full flex items-center justify-center'>
                 <div
-                  className='grid gap-2 w-full h-full'
+                  className='grid gap-3 w-full h-full'
                   style={{
                     gridTemplateColumns:
                       groupPeers.length === 0
@@ -280,7 +311,7 @@ function MeetingRoom() {
                   }}
                 >
                   {/* My Video */}
-                  <div className='relative bg-gray-900 rounded-lg overflow-hidden group min-h-0'>
+                  <div className='relative bg-[#3c4043] rounded-2xl overflow-hidden group min-h-0 shadow-xl'>
                     <video
                       playsInline
                       autoPlay
@@ -292,9 +323,9 @@ function MeetingRoom() {
                       }}
                       className='w-full h-full object-cover'
                     />
-                    <div className='absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none'></div>
-                    <div className='absolute bottom-2 left-2 px-2 py-1 bg-gray-900/80 backdrop-blur-sm rounded'>
-                      <span className='text-xs text-white font-medium'>
+                    <div className='absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none'></div>
+                    <div className='absolute bottom-4 left-4 px-3 py-2 bg-black/80 backdrop-blur-sm rounded-xl'>
+                      <span className='text-sm text-white font-semibold'>
                         You ({myName})
                       </span>
                     </div>
@@ -316,10 +347,12 @@ function MeetingRoom() {
                 {groupPeers.length === 0 && (
                   <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
                     <div className='text-center'>
-                      <div className='w-16 h-16 bg-white border border-gray-200 rounded-full flex items-center justify-center mx-auto mb-3'>
-                        <span className='text-3xl'>👥</span>
+                      <div className='w-20 h-20 bg-[#3c4043] rounded-full flex items-center justify-center mx-auto mb-4 shadow-xl'>
+                        <svg className='w-10 h-10 text-[#9aa0a6]' fill='currentColor' viewBox='0 0 20 20'>
+                          <path d='M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z' />
+                        </svg>
                       </div>
-                      <p className='text-gray-400 text-sm'>
+                      <p className='text-[#9aa0a6] text-base font-medium'>
                         Waiting for others to join
                       </p>
                     </div>
@@ -330,9 +363,9 @@ function MeetingRoom() {
           )}
         </div>
 
-        {/* Chat Sidebar */}
+        {/* ✅ FIXED: Chat Sidebar with proper z-index and positioning */}
         {showChat && (
-          <div className='w-80 bg-white border-l border-gray-200 flex flex-col animate-slide-in'>
+          <div className='w-96 bg-white border-l border-[#5f6368] flex flex-col shadow-2xl z-20'>
             <ChatBox
               socket={socket}
               roomId={roomId}
@@ -343,8 +376,8 @@ function MeetingRoom() {
         )}
       </div>
 
-      {/* Bottom Control Bar */}
-      <div className='bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 px-4 py-3'>
+      {/* Bottom Control Bar - Google Meet Style */}
+      <div className='pb-6 px-4 relative z-30'>
         <ControlBar
           isSharing={isSharing}
           onShareScreen={shareScreen}
@@ -354,7 +387,10 @@ function MeetingRoom() {
           onLeave={handleLeave}
           initialAudio={true}
           initialVideo={true}
-          onToggleChat={() => setShowChat(!showChat)}
+          onToggleChat={() => {
+            console.log('🔄 Toggling chat from:', showChat, 'to:', !showChat);
+            setShowChat(!showChat);
+          }}
           showChat={showChat}
           participantCount={groupPeers.length + 1}
           roomId={roomId}

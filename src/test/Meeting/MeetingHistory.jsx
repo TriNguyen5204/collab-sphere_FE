@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { CalendarClock, User, Users, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
-import Sidebar from './Sidebar';
 
 const MeetingHistory = () => {
   const [meetings] = useState([
@@ -94,7 +93,6 @@ const MeetingHistory = () => {
 
   return (
     <div className='flex bg-gray-950 min-h-screen'>
-      <Sidebar />
       
       <section className='flex-1 px-6 py-8 sm:px-10 lg:px-16 max-w-7xl mx-auto w-full'>
         {/* Header */}

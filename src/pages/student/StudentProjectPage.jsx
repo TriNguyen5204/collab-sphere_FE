@@ -47,7 +47,12 @@ const StudentProjectPage = () => {
     const projectId = team?.projectId;
     const projectName = team?.projectName || 'project';
     if (!teamId || !projectId) return;
-    navigate(`/student/project/${projectId}/${encodeURIComponent(projectName)}/${teamId}/team-workspace`);
+    localStorage.setItem('currentProjectContext', JSON.stringify({
+      projectId,
+      teamId,
+      projectName
+    }));
+    navigate('/student/project/team-workspace');
   };
 
   const classes = useMemo(() => {

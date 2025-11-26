@@ -60,7 +60,12 @@ const StudentHomePage = () => {
   const navigate = useNavigate();
 
   const handleCardClick = (project) => {
-    navigate(`/student/project/${project.ProjectId}/${encodeURIComponent(project.ProjectName)}/team-workspace`);
+    localStorage.setItem('currentProjectContext', JSON.stringify({
+      projectId: project.ProjectId,
+      teamId: project.TeamId || 1, // Default to 1 if missing in sample data
+      projectName: project.ProjectName
+    }));
+    navigate('/student/project/team-workspace');
   };
 
 

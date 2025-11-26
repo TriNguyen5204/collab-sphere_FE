@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader, AlertTriangle } from 'lucide-react';
-import apiClient from '../../../services/apiClient';
+import { handleCallback } from '../../../services/githubApi';
 
 const GitHubAppCallback = () => {
   const navigate = useNavigate();
@@ -18,185 +18,79 @@ const GitHubAppCallback = () => {
       if (hasProcessedRef.current) {
         return;
       }
+      hasProcessedRef.current = true;
 
       try {
-        // Retrieve projectId from localStorage (saved before redirect to GitHub)
-        const rawContext = localStorage.getItem('github_installation_context');
-        let parsedContext = null;
-        if (rawContext) {
-          try {
-            parsedContext = JSON.parse(rawContext);
-          } catch (parseError) {
-            console.warn('Failed to parse GitHub installation context, falling back to legacy key.', parseError);
-          }
-        }
-
-    const legacyProjectId = localStorage.getItem('github_installation_project_id');
-    const projectId = parsedContext?.projectId || legacyProjectId;
-
-        setInstallContext(parsedContext || (legacyProjectId ? { projectId: legacyProjectId } : null));
-
-        if (!projectId) {
-          setStatus('error');
-          setMessage('Project ID not found');
-          setErrorDetails('We could not identify the project to link. Please restart the installation from the project page.');
-          return;
-        }
-
-        // Validate projectId is a valid number
-        const projectIdNumber = Number(projectId);
-        if (Number.isNaN(projectIdNumber) || projectIdNumber <= 0) {
-          setStatus('error');
-          setMessage('Invalid project ID');
-          setErrorDetails(`The project ID (${projectId}) is not valid. Please restart the installation from the project page.`);
-          return;
-        }
-        
-        // Extract installation_id from URL query params
         const installationId = searchParams.get('installation_id');
-        
+        const state = searchParams.get('state');
+        const setupAction = searchParams.get('setup_action');
+
         if (!installationId) {
           setStatus('error');
           setMessage('Installation ID not found');
           setErrorDetails('GitHub did not return an installation ID. Please try again.');
           return;
         }
-        setMessage('Finalizing setup...');
 
-        // Get teamId from parsed context
-        const teamId = parsedContext?.teamId;
-        
-        if (!teamId) {
-          setStatus('error');
-          setMessage('Team ID not found');
-          setErrorDetails('We could not identify the team to link. Please restart the installation from the project page.');
-          return;
-        }
-
-        // Validate installationId
-        const installationIdNumber = Number(installationId);
-        if (Number.isNaN(installationIdNumber) || installationIdNumber <= 0) {
-          setStatus('error');
-          setMessage('Invalid installation ID');
-          setErrorDetails('The installation ID returned by GitHub is not a valid number.');
-          return;
-        }
-
-        const teamIdNumber = Number(teamId);
-        if (Number.isNaN(teamIdNumber) || teamIdNumber <= 0) {
-          setStatus('error');
-          setMessage('Invalid team ID');
-          setErrorDetails('The team ID is not valid. Please restart the installation from the project page.');
-          return;
-        }
-
-        // Step 1: Fetch repositories from AWS Lambda
-        setMessage('Fetching repository details from GitHub...');
-        let repositories = [];
-        
-        try {
-          const lambdaUrl = `https://jxjfrgahhf.execute-api.ap-southeast-1.amazonaws.com/default/get_repositories?installationId=${installationIdNumber}`;
-          console.log('[GitHubAppCallback] Calling AWS Lambda:', lambdaUrl);
+        // Handle missing state parameter
+        if (!state) {
+          if (setupAction === 'update') {
+            setStatus('success');
+            setMessage('GitHub settings updated.');
+            setTimeout(() => navigate('/student/projects'), 1500);
+            return;
+          }
           
-          const repoResponse = await fetch(lambdaUrl, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json'
+          setStatus('error');
+          setMessage('Invalid Connection Request');
+          setErrorDetails('Missing security token (state). Please try connecting again from the Project Workspace.');
+          return;
+        }
+
+        setMessage('Finalizing setup with GitHub...');
+        
+        // Call the new backend API to handle the callback
+        const response = await handleCallback(installationId, state);
+
+        if (response && response.success) {
+          setStatus('success');
+          setMessage('Successfully connected to GitHub!');
+          
+          // Retrieve redirect path from localStorage if available
+          const rawContext = localStorage.getItem('github_installation_context');
+          let redirectPath = '/student/projects'; // Default fallback
+          
+          if (rawContext) {
+            try {
+              const context = JSON.parse(rawContext);
+              if (context.redirectPath) {
+                redirectPath = context.redirectPath;
+              }
+              // Clean up localStorage
+              localStorage.removeItem('github_installation_context');
+              localStorage.removeItem('github_installation_project_id');
+            } catch (e) {
+              console.warn('Failed to parse context', e);
             }
-          });
-
-          if (!repoResponse.ok) {
-            const errorText = await repoResponse.text();
-            throw new Error(`AWS Lambda API returned status ${repoResponse.status}: ${errorText}`);
           }
 
-          const repoData = await repoResponse.json();
-          console.log('[GitHubAppCallback] AWS Lambda response:', repoData);
-          
-          // The API returns an array of repository objects
-          repositories = Array.isArray(repoData) ? repoData : [];
-          
-          if (repositories.length === 0) {
-            setStatus('error');
-            setMessage('No repositories found');
-            setErrorDetails('No repositories were granted access during GitHub App installation. Please try again and select at least one repository.');
-            return;
-          }
-
-        } catch (lambdaError) {
-          console.error('[GitHubAppCallback] Error fetching repositories from AWS Lambda:', lambdaError);
-          setStatus('error');
-          setMessage('Failed to fetch repositories');
-          setErrorDetails(`Could not retrieve repository information from GitHub: ${lambdaError.message}`);
-          return;
-        }
-
-        // Step 2: Send installationId, teamId, and repositories to backend
-        setMessage('Saving installation...');
-        
-        const payload = { 
-          installationId: installationIdNumber,
-          teamId: teamIdNumber,
-          repositories: repositories.map(repo => ({
-            repositoryFullName: repo.repositoryFullName,
-            repositoryId: repo.repositoryId
-          }))
-        };
-
-        console.log('[GitHubAppCallback] POST /project/%s/installation', projectIdNumber, 'body:', payload);
-
-        const response = await apiClient.post(`/project/${projectIdNumber}/installation`, payload);
-        console.log('[GitHubAppCallback] Installation API response:', response);
-
-  hasProcessedRef.current = true;
-
-        setStatus('success');
-        setMessage('Installation successful!');
-
-        localStorage.removeItem('github_installation_context');
-        localStorage.removeItem('github_installation_project_id');
-        
-        setTimeout(() => {
-          if (parsedContext?.projectId && parsedContext?.teamId && parsedContext?.projectName) {
-            navigate(
-              `/student/project/${parsedContext.projectId}/${parsedContext.projectName}/${parsedContext.teamId}/team-workspace?tab=ai-review&firstConnect=true`
-            );
-            return;
-          }
-          const redirectPath = parsedContext?.redirectPath;
-          if (redirectPath) {
+          setTimeout(() => {
             navigate(redirectPath);
-            return;
-          }
-
-          navigate('/student/projects');
-        }, 3000);
+          }, 1500);
+        } else {
+          throw new Error(response?.message || 'Failed to complete GitHub connection');
+        }
 
       } catch (error) {
-        console.error('Error processing installation:', error);
-        
-        // Clean up localStorage on error
-        localStorage.removeItem('github_installation_context');
-        localStorage.removeItem('github_installation_project_id');
-        
+        console.error('GitHub callback error:', error);
         setStatus('error');
-        setMessage('An error occurred');
-
-        if (error?.response) {
-          const formatted = {
-            status: error.response.status,
-            message: error.response.data?.message || error.message,
-            data: error.response.data,
-          };
-          setErrorDetails(JSON.stringify(formatted, null, 2));
-        } else {
-          setErrorDetails(error?.message || 'Unknown error. Please check the console for more details.');
-        }
+        setMessage('Connection Failed');
+        setErrorDetails(error.message || 'An unexpected error occurred while connecting to GitHub.');
       }
     };
 
     processInstallation();
-  }, [searchParams, navigate]); // Removed projectId from dependency array
+  }, [navigate, searchParams]);
 
   /**
    * Render loading state
@@ -285,7 +179,12 @@ const GitHubAppCallback = () => {
                 }
 
                 if (installContext?.projectId && installContext?.projectName && installContext?.teamId) {
-                  navigate(`/student/project/${installContext.projectId}/${installContext.projectName}/${installContext.teamId}/team-workspace`);
+                  localStorage.setItem('currentProjectContext', JSON.stringify({
+                    projectId: installContext.projectId,
+                    teamId: installContext.teamId,
+                    projectName: installContext.projectName
+                  }));
+                  navigate('/student/project/team-workspace');
                   return;
                 }
 

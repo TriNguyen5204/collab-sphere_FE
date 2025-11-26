@@ -74,7 +74,8 @@ const StudentHeader = () => {
       const pid = item.raw?.projectId || item.id;
       const tid = item.raw?.teamId || item.teamId;
       if (pid && tid) {
-        navigate(`/student/project/${pid}/${encodeURIComponent(name)}/p${tid}/team-workspace`);
+        localStorage.setItem('currentProjectContext', JSON.stringify({ projectId: pid, teamId: tid, projectName: name }));
+        navigate('/student/project/team-workspace');
       } else if (pid) {
         navigate('/student/projects');
       }

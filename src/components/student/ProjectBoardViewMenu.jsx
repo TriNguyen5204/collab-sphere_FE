@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { Kanban, Flag, MessageSquare, ChevronDown, UsersRound } from 'lucide-react';
+import { Kanban, Flag, CheckSquare, MessageSquare, ClipboardList, ChevronDown, UsersRound, VideoIcon  } from 'lucide-react';
 import useClickOutside from '../../hooks/useClickOutside';
 
 const ProjectBoardViewMenu = () => {
@@ -13,11 +13,12 @@ const ProjectBoardViewMenu = () => {
   const effectiveTeamId = teamId || legacyTeamId;
 
   const menuItems = [
-    { name: 'Team Workspace', icon: UsersRound, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/team-workspace` },
+    { name: 'Team Workspace', icon: UsersRound, path: `/student/project/team-workspace` },
     { name: 'Task Board', icon: Kanban, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}` },
     { name: 'Milestones & Checkpoints', icon: Flag, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/milestones&checkpoints` },
     { name: 'Peer Evaluation', icon: UsersRound, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/peer-evaluation` },
     { name: 'Communication', icon: MessageSquare, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/communication` },
+    { name: 'Meeting room', icon: VideoIcon, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/meeting-room`}
   ];
 
   const normalizePath = (p) => (p || '').replace(/\/+$/, '');
@@ -64,9 +65,14 @@ const ProjectBoardViewMenu = () => {
               <li key={name}>
                 <Link
                   to={path}
-                  onClick={() => setOpen(false)}
-                  className={`flex items-center px-4 py-2.5 hover:bg-gray-100 rounded transition ${
-                    isActive ? 'bg-gray-100 text-gray-900 font-semibold' : ''
+                  onClick={() => {
+                    if (name === 'Team Workspace') {
+                      localStorage.setItem('currentProjectContext', JSON.stringify({ projectId, teamId: effectiveTeamId, projectName }));
+                    }
+                    setOpen(false);
+                  }}
+                  className={`flex items-center px-4 py-2.5 hover:bg-gray-700 rounded transition ${
+                    isActive ? 'bg-gray-700 text-white font-semibold' : ''
                   }`}
                 >
                   <Icon className="w-4 h-4 mr-3" />

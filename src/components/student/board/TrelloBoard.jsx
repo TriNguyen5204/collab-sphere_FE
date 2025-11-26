@@ -1,10 +1,4 @@
-import React, {
-  useMemo,
-  useState,
-  useImperativeHandle,
-  forwardRef,
-  useEffect,
-} from 'react';
+import React, { useMemo, useState, forwardRef, useEffect, useRef } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -15,7 +9,6 @@ import {
 } from '@dnd-kit/core';
 import {
   SortableContext,
-  arrayMove,
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Plus } from 'lucide-react';
@@ -23,235 +16,28 @@ import { Plus } from 'lucide-react';
 import BoardList from './BoardList';
 import CardModal from './CardModal';
 import UndoNotification from './UndoNotification';
-
-// ────────────────────────────────────────────────────────────────────────────────
-// Fake members (re‑use across cards)
-const members = [
-  {
-    id: 1,
-    name: 'Alice',
-    role: 'Leader',
-    avatar: 'https://i.pravatar.cc/40?u=1',
-    tags: ['Frontend', 'UI/UX'],
-  },
-  {
-    id: 2,
-    name: 'Bob',
-    role: 'Member',
-    avatar: 'https://i.pravatar.cc/40?u=2',
-    tags: ['Backend'],
-  },
-  {
-    id: 3,
-    name: 'Charlie',
-    role: 'Member',
-    avatar: 'https://i.pravatar.cc/40?u=3',
-    tags: ['Frontend'],
-  },
-  {
-    id: 4,
-    name: 'Diana',
-    role: 'Member',
-    avatar: 'https://i.pravatar.cc/40?u=4',
-    tags: ['UI/UX'],
-  },
-  {
-    id: 5,
-    name: 'Eve',
-    role: 'Member',
-    avatar: 'https://i.pravatar.cc/40?u=5',
-    tags: ['QA'],
-  },
-  {
-    id: 6,
-    name: 'Frank',
-    role: 'Member',
-    avatar: 'https://i.pravatar.cc/40?u=6',
-    tags: ['Backend', 'DevOps'],
-  },
-];
-
-// ────────────────────────────────────────────────────────────────────────────────
-// Initial lists data
-const initialLists = [
-  {
-    id: 'list-1',
-    title: 'To Do',
-    cards: [
-      {
-        id: 'card-1',
-        title: 'Design homepage',
-        description: 'Create wireframes + hero section mockups',
-        assignedMembers: [
-          {
-            id: 1,
-            name: 'Alice',
-            role: 'Leader',
-            avatar: 'https://i.pravatar.cc/40?u=1',
-            tags: ['Frontend', 'UI/UX'],
-          },
-          {
-            id: 4,
-            name: 'Diana',
-            role: 'Member',
-            avatar: 'https://i.pravatar.cc/40?u=4',
-            tags: ['UI/UX'],
-          },
-        ],
-        dueDate: '2025-10-10',
-        isCompleted: false,
-        attachments: [],
-        riskLevel: 'medium',
-        milestones: [
-          {
-            id: 'ms-1',
-            title: 'UI Skeleton',
-            checkpoints: [
-              { id: 'cp-1', title: 'Header/Navigation', done: false },
-              { id: 'cp-2', title: 'Hero layout', done: false },
-            ],
-          },
-        ],
-        tasks: [
-          {
-            id: 'task-1',
-            title: 'Wireframe layout',
-            status: false,
-            subtasks: [
-              { id: 'sub-1', title: 'Header structure', status: false },
-              { id: 'sub-2', title: 'Hero layout', status: false },
-              { id: 'sub-3', title: 'Footer layout', status: false },
-            ],
-          },
-          {
-            id: 'task-2',
-            title: 'Design hero section',
-            status: false,
-            subtasks: [
-              { id: 'sub-4', title: 'Typography setup', status: false },
-              { id: 'sub-5', title: 'Color palette', status: true },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'list-2',
-    title: 'In Progress',
-    cards: [
-      {
-        id: 'card-2',
-        title: 'Implement auth API',
-        description: 'Login / Register / Refresh token endpoints',
-        assignedMembers: [
-          {
-            id: 2,
-            name: 'Bob',
-            role: 'Member',
-            avatar: 'https://i.pravatar.cc/40?u=2',
-            tags: ['Backend'],
-          },
-          {
-            id: 6,
-            name: 'Frank',
-            role: 'Member',
-            avatar: 'https://i.pravatar.cc/40?u=6',
-            tags: ['Backend', 'DevOps'],
-          },
-        ],
-        dueDate: '2025-10-08',
-        isCompleted: false,
-        attachments: [],
-        riskLevel: 'high',
-        milestones: [
-          {
-            id: 'ms-2',
-            title: 'JWT flow',
-            checkpoints: [
-              { id: 'cp-3', title: 'Access/Refresh model', done: true },
-              { id: 'cp-4', title: 'Role guard', done: false },
-            ],
-          },
-        ],
-        tasks: [
-          {
-            id: 'task-3',
-            title: 'Create User model',
-            status: true,
-            subtasks: [
-              { id: 'sub-6', title: 'Schema design', status: true },
-              { id: 'sub-7', title: 'Validation', status: true },
-            ],
-          },
-          {
-            id: 'task-4',
-            title: 'Implement login endpoint',
-            status: false,
-            subtasks: [
-              { id: 'sub-8', title: 'Handle input', status: true },
-              { id: 'sub-9', title: 'Return JWT', status: false },
-            ],
-          },
-        ],
-      },
-      {
-        id: 'card-3',
-        title: 'Kanban DnD',
-        description: 'Drag & drop lists + cards with dnd-kit',
-        assignedMembers: [
-          {
-            id: 1,
-            name: 'Alice',
-            role: 'Leader',
-            avatar: 'https://i.pravatar.cc/40?u=1',
-            tags: ['Frontend', 'UI/UX'],
-          },
-          {
-            id: 3,
-            name: 'Charlie',
-            role: 'Member',
-            avatar: 'https://i.pravatar.cc/40?u=3',
-            tags: ['Frontend'],
-          },
-        ],
-        dueDate: '2025-10-12',
-        isCompleted: false,
-        attachments: [],
-        riskLevel: 'low',
-        milestones: [],
-        tasks: [
-          {
-            id: 'task-5',
-            title: 'Setup DnD sensors',
-            status: true,
-            subtasks: [
-              { id: 'sub-10', title: 'Pointer sensor', status: true },
-              { id: 'sub-11', title: 'Keyboard sensor', status: true },
-            ],
-          },
-          {
-            id: 'task-6',
-            title: 'Make cards draggable',
-            status: false,
-            subtasks: [
-              { id: 'sub-12', title: 'Card wrapper', status: false },
-              { id: 'sub-13', title: 'Drag overlay', status: false },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  { id: 'list-3', title: 'Review', cards: [] },
-  { id: 'list-4', title: 'Done', cards: [] },
-];
+import { useSignalRContext } from '../../../context/kanban/useSignalRContext';
+import {
+  createList,
+  moveList,
+  moveCard as moveCardSignalR,
+  updateCardDetails,
+  deleteCard as deleteCardSignalR,
+} from '../../../hooks/kanban/signalRHelper';
+import { getPositionForIndex } from '../../../utils/positionHelper';
+import {
+  sortListsAndCards,
+  sortListsByPosition,
+} from '../../../utils/sortHelper';
 
 const TrelloBoard = forwardRef(function TrelloBoard(
-  { selectedRole, onUpdateArchived },
+  { onUpdateArchived, workspaceData, members },
   ref
 ) {
-  const [lists, setLists] = useState(initialLists);
+  const workspaceId = workspaceData?.id;
+  const { connection, isConnected } = useSignalRContext();
+
+  const [lists, setLists] = useState([]);
   const [archivedItems, setArchivedItems] = useState({ cards: [], lists: [] });
   const [activeCard, setActiveCard] = useState(null);
   const [activeList, setActiveList] = useState(null);
@@ -259,6 +45,608 @@ const TrelloBoard = forwardRef(function TrelloBoard(
   const [isAddingList, setIsAddingList] = useState(false);
   const [newListTitle, setNewListTitle] = useState('');
   const [undoAction, setUndoAction] = useState(null);
+
+  // ✅ Ref để lưu trữ snapshot trước khi drag
+  const dragSnapshotRef = useRef(null);
+  // ref để track đã init chưa
+  const isInitializedRef = useRef(false);
+
+  // Initialize lists from workspace data
+  useEffect(() => {
+    if (!workspaceData) return;
+    if (isInitializedRef.current) {
+      return;
+    }
+    isInitializedRef.current = true;
+
+    const convertedLists = workspaceData.lists.map(list => ({
+      id: String(list.id), // ✅ Đảm bảo là string
+      title: list.title,
+      position: list.position,
+      cards: list.cards.map(card => ({
+        id: String(card.id), // ✅ Đảm bảo là string
+        title: card.title,
+        description: card.description ?? '',
+        riskLevel: card.riskLevel,
+        dueAt: card.dueAt,
+        createdAt: card.createdAt,
+        position: card.position,
+        isCompleted: card.isComplete,
+        assignedMembers: card.assignedMembers.map(member => ({
+          studentId: member.studentId,
+          studentName: member.studentName,
+          avatarImg: member.avatarImg,
+        })),
+        tasks: (card.tasks ?? []).map(task => ({
+          taskId: task.taskId,
+          taskTitle: task.taskTitle,
+          isDone: task.isDone,
+          subTaskDtos: (task.subTaskDtos ?? []).map(subtask => ({
+            subTaskId: subtask.subTaskId,
+            subTaskTitle: subtask.subTaskTitle,
+            isDone: subtask.isDone,
+          })),
+        })),
+      })),
+    }));
+
+    setLists(sortListsAndCards(convertedLists));
+  }, [workspaceData]);
+
+  console.log('Lists: ', lists);
+
+  // SignalR event listeners
+  useEffect(() => {
+    if (!connection || !isConnected) return;
+
+    // ===================== LIST EVENTS =====================
+
+    connection.on('ReceiveListCreated', message => {
+      console.log('📋 ReceiveListCreated:', message);
+      try {
+        const data = JSON.parse(message);
+        console.log('data', data);
+        setLists(prev => {
+          const updated = [
+            ...prev,
+            {
+              id: String(data.ListId), // ✅ Đảm bảo là string
+              title: data.Title,
+              position: data.Position,
+              cards: [],
+            },
+          ];
+          return updated.sort((a, b) => a.position - b.position);
+        });
+      } catch (e) {
+        console.error('Error parsing ListCreated:', e);
+      }
+    });
+
+    connection.on('ReceiveListRenamed', (listId, newTitle) => {
+      console.log('📝 ReceiveListRenamed:', { listId, newTitle });
+      setLists(prev =>
+        prev.map(l =>
+          String(l.id) === String(listId) ? { ...l, title: newTitle } : l
+        )
+      );
+    });
+
+    connection.on('ReceiveListMoved', (listId, newPosition) => {
+      console.log('🚀 ReceiveListMoved:', { listId, newPosition });
+
+      setLists(prev => {
+        const updated = prev.map(l =>
+          String(l.id) === String(listId) ? { ...l, position: newPosition } : l
+        );
+        return updated.sort((a, b) => a.position - b.position);
+      });
+
+      console.log('✅ List moved successfully via SignalR');
+    });
+
+    // ===================== CARD EVENTS =====================
+
+    connection.on('ReceiveCardCreated', (listId, message) => {
+      console.log('📋 ReceiveCardCreated:', { listId });
+      try {
+        const cardData = JSON.parse(message);
+        setLists(prev =>
+          prev.map(l =>
+            String(l.id) === String(listId)
+              ? {
+                  ...l,
+                  cards: [
+                    ...l.cards,
+                    {
+                      id: String(cardData.CardId), // ✅ Đảm bảo là string
+                      title: cardData.Title,
+                      description: cardData.Description ?? '',
+                      riskLevel: cardData.RiskLevel,
+                      dueAt: cardData.DueAt,
+                      position: cardData.Position,
+                      isCompleted: cardData.IsCompleted,
+                      assignedMembers: (cardData.CardAssignments || []).map(
+                        a => ({
+                          studentId: a.StudentId,
+                          studentName: a.StudentName,
+                          avatarImg: a.Avatar,
+                        })
+                      ),
+                      tasks: (cardData.Tasks || []).map(t => ({
+                        taskId: t.TaskId,
+                        taskTitle: t.TaskTitle,
+                        isDone: t.IsDone ?? false,
+                        subTaskDtos: (t.SubTasks || []).map(st => ({
+                          subTaskId: st.SubTaskId,
+                          subTaskTitle: st.SubTaskTitle,
+                          isDone: st.IsDone ?? false,
+                        })),
+                      })),
+                    },
+                  ].sort((a, b) => a.position - b.position),
+                }
+              : l
+          )
+        );
+      } catch (e) {
+        console.error('Error parsing CardCreated:', e);
+      }
+    });
+
+    connection.on('ReceiveCardMoved', (cardId, newListId, newPosition) => {
+      console.log('🚀 ReceiveCardMoved:', { cardId, newListId, newPosition });
+
+      setLists(prev => {
+        const draft = structuredClone(prev);
+
+        let movedCard = null;
+        for (const list of draft) {
+          const cardIndex = list.cards.findIndex(
+            c => String(c.id) === String(cardId)
+          );
+          if (cardIndex !== -1) {
+            [movedCard] = list.cards.splice(cardIndex, 1);
+            break;
+          }
+        }
+
+        if (!movedCard) {
+          console.warn('❌ Card not found:', cardId);
+          return prev;
+        }
+
+        const targetList = draft.find(l => String(l.id) === String(newListId));
+        if (!targetList) {
+          console.warn('❌ Target list not found:', newListId);
+          return prev;
+        }
+
+        movedCard.position = newPosition;
+        targetList.cards.push(movedCard);
+        targetList.cards.sort((a, b) => a.position - b.position);
+
+        console.log('✅ Card moved successfully via SignalR');
+        return draft;
+      });
+    });
+
+    connection.on('ReceiveCardUpdated', (cardId, message) => {
+      console.log('📝 ReceiveCardUpdated:', cardId);
+
+      try {
+        const updates = JSON.parse(message);
+        console.log('📝 ReceiveCardUpdated PARSED:', updates);
+        setLists(prev =>
+          prev.map(l => ({
+            ...l,
+            cards: l.cards.map(c =>
+              String(c.id) === String(cardId)
+                ? {
+                    ...c,
+                    title: updates.Title,
+                    description: updates.Description,
+                    riskLevel: updates.RiskLevel,
+                    dueAt: updates.DueAt,
+                  }
+                : c
+            ),
+          }))
+        );
+      } catch (e) {
+        console.error('Error parsing ReceiveCardUpdated:', e);
+      }
+    });
+
+    connection.on('ReceiveCardComplete', (listId, cardId, isComplete) => {
+      console.log('✅ ReceiveCardComplete:', { listId, cardId, isComplete });
+      setLists(prev =>
+        prev.map(l =>
+          String(l.id) === String(listId)
+            ? {
+                ...l,
+                cards: l.cards.map(c =>
+                  String(c.id) === String(cardId)
+                    ? { ...c, isCompleted: isComplete }
+                    : c
+                ),
+              }
+            : l
+        )
+      );
+    });
+
+    connection.on('ReceiveCardDeleted', (listId, cardId) => {
+      console.log('🗑️ ReceiveCardDeleted:', { listId, cardId });
+      setLists(prev =>
+        prev.map(l =>
+          String(l.id) === String(listId)
+            ? {
+                ...l,
+                cards: l.cards.filter(c => String(c.id) !== String(cardId)),
+              }
+            : l
+        )
+      );
+    });
+
+    connection.on('ReceiveCardAssigned', (listId, cardId, message) => {
+      console.log('👤 ReceiveCardAssigned:', { listId, cardId });
+      try {
+        const memberData = JSON.parse(message);
+        setLists(prev =>
+          prev.map(l =>
+            String(l.id) === String(listId)
+              ? {
+                  ...l,
+                  cards: l.cards.map(c =>
+                    String(c.id) === String(cardId)
+                      ? {
+                          ...c,
+                          assignedMembers: [
+                            ...(c.assignedMembers || []),
+                            {
+                              studentId:
+                                memberData.studentId || memberData.StudentId,
+                              studentName:
+                                memberData.studentName ||
+                                memberData.StudentName,
+                              avatarImg:
+                                memberData.Avatar,
+                            },
+                          ],
+                        }
+                      : c
+                  ),
+                }
+              : l
+          )
+        );
+      } catch (e) {
+        console.error('Error parsing ReceiveCardAssigned:', e);
+      }
+    });
+
+    connection.on('ReceiveCardUnAssigned', (listId, cardId, studentId) => {
+      console.log('👤 ReceiveCardUnAssigned:', { listId, cardId, studentId });
+      setLists(prev =>
+        prev.map(l =>
+          String(l.id) === String(listId)
+            ? {
+                ...l,
+                cards: l.cards.map(c =>
+                  String(c.id) === String(cardId)
+                    ? {
+                        ...c,
+                        assignedMembers: (c.assignedMembers || []).filter(
+                          m => m.studentId !== studentId
+                        ),
+                      }
+                    : c
+                ),
+              }
+            : l
+        )
+      );
+    });
+
+    // ===================== TASK EVENTS =====================
+
+    connection.on('ReceiveTaskCreated', (listId, cardId, message) => {
+      console.log('📋 ReceiveTaskCreated:', { listId, cardId });
+      try {
+        const taskData = JSON.parse(message);
+        console.log('✅ Parsed task data:', taskData);
+
+        setLists(prev =>
+          prev.map(l =>
+            String(l.id) === String(listId)
+              ? {
+                  ...l,
+                  cards: l.cards.map(c =>
+                    String(c.id) === String(cardId)
+                      ? {
+                          ...c,
+                          tasks: [
+                            ...(c.tasks || []),
+                            {
+                              taskId: taskData.TaskId || taskData.taskId,
+                              taskTitle:
+                                taskData.TaskTitle || taskData.taskTitle,
+                              isDone:
+                                taskData.IsDone || taskData.isDone || false,
+                              subTaskDtos: (
+                                taskData.SubTasks ||
+                                taskData.subTaskDtos ||
+                                []
+                              ).map(st => ({
+                                subTaskId: st.SubTaskId || st.subTaskId,
+                                subTaskTitle:
+                                  st.SubTaskTitle || st.subTaskTitle,
+                                isDone: st.IsDone || st.isDone || false,
+                              })),
+                            },
+                          ],
+                        }
+                      : c
+                  ),
+                }
+              : l
+          )
+        );
+      } catch (e) {
+        console.error('Error parsing ReceiveTaskCreated:', e);
+      }
+    });
+
+    connection.on('ReceiveTaskRenamed', (listId, cardId, taskId, newTitle) => {
+      console.log('📝 ReceiveTaskRenamed:', {
+        listId,
+        cardId,
+        taskId,
+        newTitle,
+      });
+      setLists(prev =>
+        prev.map(l =>
+          String(l.id) === String(listId)
+            ? {
+                ...l,
+                cards: l.cards.map(c =>
+                  String(c.id) === String(cardId)
+                    ? {
+                        ...c,
+                        tasks: (c.tasks || []).map(t =>
+                          t.taskId === taskId
+                            ? { ...t, taskTitle: newTitle }
+                            : t
+                        ),
+                      }
+                    : c
+                ),
+              }
+            : l
+        )
+      );
+    });
+
+    connection.on('ReceiveTaskDeleted', (listId, cardId, taskId) => {
+      console.log('🗑️ ReceiveTaskDeleted:', { listId, cardId, taskId });
+      setLists(prev =>
+        prev.map(l =>
+          String(l.id) === String(listId)
+            ? {
+                ...l,
+                cards: l.cards.map(c =>
+                  String(c.id) === String(cardId)
+                    ? {
+                        ...c,
+                        tasks: (c.tasks || []).filter(t => t.taskId !== taskId),
+                      }
+                    : c
+                ),
+              }
+            : l
+        )
+      );
+    });
+
+    // ===================== SUBTASK EVENTS =====================
+
+    connection.on(
+      'ReceiveSubTaskCreated',
+      (listId, cardId, taskId, message) => {
+        console.log('📋 ReceiveSubTaskCreated:', { listId, cardId, taskId });
+        try {
+          const subTaskData = JSON.parse(message);
+          setLists(prev =>
+            prev.map(l =>
+              String(l.id) === String(listId)
+                ? {
+                    ...l,
+                    cards: l.cards.map(c =>
+                      String(c.id) === String(cardId)
+                        ? {
+                            ...c,
+                            tasks: (c.tasks || []).map(t =>
+                              t.taskId === taskId
+                                ? {
+                                    ...t,
+                                    subTaskDtos: [
+                                      ...(t.subTaskDtos || []),
+                                      {
+                                        subTaskId:
+                                          subTaskData.SubTaskId ||
+                                          subTaskData.subTaskId,
+                                        subTaskTitle:
+                                          subTaskData.SubTaskTitle ||
+                                          subTaskData.subTaskTitle,
+                                        isDone:
+                                          subTaskData.IsDone ||
+                                          subTaskData.isDone ||
+                                          false,
+                                      },
+                                    ],
+                                  }
+                                : t
+                            ),
+                          }
+                        : c
+                    ),
+                  }
+                : l
+            )
+          );
+        } catch (e) {
+          console.error('Error parsing ReceiveSubTaskCreated:', e);
+        }
+      }
+    );
+
+    connection.on(
+      'ReceiveSubTaskRenamed',
+      (listId, cardId, taskId, subTaskId, newTitle) => {
+        console.log('📝 ReceiveSubTaskRenamed:', {
+          listId,
+          cardId,
+          taskId,
+          subTaskId,
+          newTitle,
+          // Debug types
+          listIdType: typeof listId,
+          taskIdType: typeof taskId,
+          subTaskIdType: typeof subTaskId,
+        });
+        setLists(prev =>
+          prev.map(l =>
+            String(l.id) === String(listId)
+              ? {
+                  ...l,
+                  cards: l.cards.map(c =>
+                    String(c.id) === String(cardId)
+                      ? {
+                          ...c,
+                          tasks: (c.tasks || []).map(t =>
+                            t.taskId === taskId
+                              ? {
+                                  ...t,
+                                  subTaskDtos: (t.subTaskDtos || []).map(s =>
+                                    s.subTaskId === subTaskId
+                                      ? { ...s, subTaskTitle: newTitle }
+                                      : s
+                                  ),
+                                }
+                              : t
+                          ),
+                        }
+                      : c
+                  ),
+                }
+              : l
+          )
+        );
+      }
+    );
+
+    connection.on(
+      'ReceiveSubTaskDeleted',
+      (listId, cardId, taskId, subTaskId) => {
+        console.log('🗑️ ReceiveSubTaskDeleted:', {
+          listId,
+          cardId,
+          taskId,
+          subTaskId,
+        });
+        setLists(prev =>
+          prev.map(l =>
+            String(l.id) === String(listId)
+              ? {
+                  ...l,
+                  cards: l.cards.map(c =>
+                    String(c.id) === String(cardId)
+                      ? {
+                          ...c,
+                          tasks: (c.tasks || []).map(t =>
+                            t.taskId === taskId
+                              ? {
+                                  ...t,
+                                  subTaskDtos: (t.subTaskDtos || []).filter(
+                                    s => s.subTaskId !== subTaskId
+                                  ),
+                                }
+                              : t
+                          ),
+                        }
+                      : c
+                  ),
+                }
+              : l
+          )
+        );
+      }
+    );
+
+    connection.on(
+      'ReceiveSubTaskMarkDone',
+      (listId, cardId, taskId, subTaskId, isDone) => {
+        console.log('✅ ReceiveSubTaskMarkDone:', {
+          listId,
+          cardId,
+          taskId,
+          subTaskId,
+          isDone,
+        });
+        setLists(prev =>
+          prev.map(l =>
+            String(l.id) === String(listId)
+              ? {
+                  ...l,
+                  cards: l.cards.map(c =>
+                    String(c.id) === String(cardId)
+                      ? {
+                          ...c,
+                          tasks: (c.tasks || []).map(t =>
+                            t.taskId === taskId
+                              ? {
+                                  ...t,
+                                  subTaskDtos: (t.subTaskDtos || []).map(s =>
+                                    s.subTaskId === subTaskId
+                                      ? { ...s, isDone: isDone }
+                                      : s
+                                  ),
+                                }
+                              : t
+                          ),
+                        }
+                      : c
+                  ),
+                }
+              : l
+          )
+        );
+      }
+    );
+
+    // Cleanup
+    return () => {
+      connection.off('ReceiveListCreated');
+      connection.off('ReceiveListRenamed');
+      connection.off('ReceiveListMoved');
+      connection.off('ReceiveCardCreated');
+      connection.off('ReceiveCardMoved');
+      connection.off('ReceiveCardUpdated');
+      connection.off('ReceiveCardComplete');
+      connection.off('ReceiveCardDeleted');
+      connection.off('ReceiveCardAssigned');
+      connection.off('ReceiveCardUnAssigned');
+      connection.off('ReceiveTaskCreated');
+      connection.off('ReceiveTaskRenamed');
+      connection.off('ReceiveTaskDeleted');
+      connection.off('ReceiveSubTaskCreated');
+      connection.off('ReceiveSubTaskRenamed');
+      connection.off('ReceiveSubTaskDeleted');
+      connection.off('ReceiveSubTaskMarkDone');
+    };
+  }, [connection, isConnected]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -269,22 +657,6 @@ const TrelloBoard = forwardRef(function TrelloBoard(
       onUpdateArchived(archivedItems);
     }
   }, [archivedItems, onUpdateArchived]);
-
-  console.log('List', lists);
-  // Filter lists based on selected role
-  const filteredLists = useMemo(() => {
-    if (selectedRole === 'all') return lists;
-
-    return lists.map(list => ({
-      ...list,
-      cards: list.cards.filter(card =>
-        card.assignedMembers?.some(member =>
-          member.tags?.includes(selectedRole)
-        )
-      ),
-    }));
-  }, [lists, selectedRole]);
-  console.log('Filtered Lists:', filteredLists);
 
   // Custom collision detection
   const collisionDetectionStrategy = args => {
@@ -312,51 +684,48 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     return closestCorners(args);
   };
 
-  const listIds = useMemo(() => lists.map(l => l.id), [lists]);
+  const orderedLists = useMemo(() => sortListsByPosition(lists), [lists]);
+  const listIds = useMemo(() => orderedLists.map(l => l.id), [orderedLists]);
 
-  // Helper functions
+  // ✅ Helper function với String comparison
   const findCard = cardId => {
+    console.log('🔍 findCard called with:', cardId, 'type:', typeof cardId);
+
     for (const list of lists) {
-      const idx = list.cards.findIndex(c => c.id === cardId);
-      if (idx !== -1)
+      const idx = list.cards.findIndex(c => String(c.id) === String(cardId));
+      if (idx !== -1) {
+        console.log('✅ Found card in list:', list.id);
         return { listId: list.id, cardIndex: idx, card: list.cards[idx] };
+      }
     }
+
+    console.log('❌ Card not found!');
     return null;
   };
 
-  const moveCard = (cardId, toListId, toIndex) => {
-    setLists(prev => {
-      const draft = structuredClone(prev);
-      const from = findCard(cardId);
-      if (!from) return prev;
-      const [moved] = draft
-        .find(l => l.id === from.listId)
-        .cards.splice(from.cardIndex, 1);
-      const targetList = draft.find(l => l.id === toListId);
-      targetList.cards.splice(toIndex, 0, moved);
-      return draft;
-    });
-  };
+  // ===================== DnD EVENT HANDLERS =====================
 
-  const reorderList = (fromId, toId) => {
-    setLists(prev => {
-      const oldIndex = prev.findIndex(l => l.id === fromId);
-      const newIndex = prev.findIndex(l => l.id === toId);
-      return arrayMove(prev, oldIndex, newIndex);
-    });
-  };
-
-  // DnD event handlers
   function handleDragStart(event) {
     const { active } = event;
     const data = active.data?.current;
 
+    console.log('🟢 handleDragStart:', {
+      activeId: active.id,
+      activeIdType: typeof active.id,
+      dataType: data?.type,
+    });
+
+    // ✅ Lưu snapshot trước khi drag để rollback nếu cần
+    dragSnapshotRef.current = structuredClone(lists);
+
     if (data?.type === 'card') {
       const found = findCard(active.id);
+      console.log('🔍 findCard result:', found);
       setActiveCard(found?.card || null);
       setActiveList(null);
     } else if (data?.type === 'list') {
-      const list = lists.find(l => l.id === active.id);
+      // ✅ FIX: So sánh string
+      const list = lists.find(l => String(l.id) === String(active.id));
       setActiveList(list || null);
       setActiveCard(null);
     }
@@ -364,137 +733,343 @@ const TrelloBoard = forwardRef(function TrelloBoard(
 
   function handleDragOver(event) {
     const { active, over } = event;
+
+    console.log('🟡 handleDragOver:', {
+      activeId: active?.id,
+      overId: over?.id,
+      overType: over?.data?.current?.type,
+    });
+
     if (!over) return;
 
     const activeData = active.data?.current;
     const overData = over.data?.current;
 
-    if (over.data?.current?.type === 'add-card') return;
+    if (overData?.type === 'add-card') return;
 
+    // ✅ Optimistic UI update CHỈ cho card (để UX mượt hơn)
     if (activeData?.type === 'card' && overData?.type === 'card') {
       const from = findCard(active.id);
       const to = findCard(over.id);
       if (!from || !to) return;
-      if (from.listId !== to.listId) {
-        moveCard(active.id, to.listId, to.cardIndex);
+
+      // ✅ FIX: So sánh string
+      if (String(from.listId) !== String(to.listId)) {
+        setLists(prev => {
+          const draft = structuredClone(prev);
+
+          // ✅ FIX: So sánh string
+          const sourceList = draft.find(
+            l => String(l.id) === String(from.listId)
+          );
+          const targetList = draft.find(
+            l => String(l.id) === String(to.listId)
+          );
+
+          if (!sourceList || !targetList) return prev;
+
+          const [moved] = sourceList.cards.splice(from.cardIndex, 1);
+          targetList.cards.splice(to.cardIndex, 0, moved);
+
+          return draft;
+        });
       }
     }
 
     if (activeData?.type === 'card' && overData?.type === 'cards') {
       const from = findCard(active.id);
       const toListId = overData.listId;
-      if (from && toListId && from.listId !== toListId) {
-        const toList = lists.find(l => l.id === toListId);
+
+      // ✅ FIX: So sánh string
+      if (from && toListId && String(from.listId) !== String(toListId)) {
+        const toList = lists.find(l => String(l.id) === String(toListId));
         if (toList) {
-          moveCard(active.id, toListId, toList.cards.length);
+          setLists(prev => {
+            const draft = structuredClone(prev);
+
+            // ✅ FIX: So sánh string
+            const sourceList = draft.find(
+              l => String(l.id) === String(from.listId)
+            );
+            const targetList = draft.find(
+              l => String(l.id) === String(toListId)
+            );
+
+            if (!sourceList || !targetList) return prev;
+
+            const [moved] = sourceList.cards.splice(from.cardIndex, 1);
+            targetList.cards.push(moved);
+
+            return draft;
+          });
         }
       }
     }
   }
 
-  function handleDragEnd(event) {
+  async function handleDragEnd(event) {
     const { active, over } = event;
+
+    console.log('🔴 handleDragEnd:', {
+      activeId: active?.id,
+      overId: over?.id,
+      activeType: active?.data?.current?.type,
+      overType: over?.data?.current?.type,
+    });
+
     setActiveCard(null);
     setActiveList(null);
-    if (!over) return;
+
+    if (!over) {
+      console.log('❌ No over target - rollback');
+      if (dragSnapshotRef.current) {
+        setLists(dragSnapshotRef.current);
+      }
+      return;
+    }
 
     const activeData = active.data?.current;
     const overData = over.data?.current;
 
-    if (active.id === over.id) return;
-
-    if (overData?.type === 'add-card') return;
-
-    if (activeData?.type === 'list' && overData?.type === 'list') {
-      reorderList(active.id, over.id);
+    if (overData?.type === 'add-card') {
+      console.log('❌ Over add-card - returning');
       return;
     }
 
+    // ===================== MOVE LIST =====================
+    if (activeData?.type === 'list' && overData?.type === 'list') {
+      console.log('✅ List to List move detected');
+
+      // ✅ FIX: So sánh string
+      const activeListItem = orderedLists.find(
+        l => String(l.id) === String(active.id)
+      );
+      const overListItem = orderedLists.find(
+        l => String(l.id) === String(over.id)
+      );
+
+      if (
+        !activeListItem ||
+        !overListItem ||
+        String(activeListItem.id) === String(overListItem.id)
+      ) {
+        return;
+      }
+
+      // Tính toán position mới
+      // ✅ FIX: So sánh string
+      const tempLists = orderedLists
+        .filter(l => String(l.id) !== String(active.id))
+        .sort((a, b) => a.position - b.position);
+
+      const activeIndexInOriginal = orderedLists.findIndex(
+        l => String(l.id) === String(active.id)
+      );
+      const overIndexInOriginal = orderedLists.findIndex(
+        l => String(l.id) === String(over.id)
+      );
+      const overIndexInTemp = tempLists.findIndex(
+        l => String(l.id) === String(over.id)
+      );
+
+      const insertIndex =
+        activeIndexInOriginal < overIndexInOriginal
+          ? overIndexInTemp + 1
+          : overIndexInTemp;
+
+      const newPosition = getPositionForIndex(tempLists, insertIndex);
+
+      console.log('📤 Sending MoveList:', {
+        listId: active.id,
+        newPosition,
+        from: activeIndexInOriginal,
+        to: overIndexInOriginal,
+      });
+
+      try {
+        await moveList(
+          connection,
+          workspaceData.id,
+          parseInt(active.id),
+          newPosition
+        );
+
+        console.log('✅ MoveList request sent successfully');
+      } catch (error) {
+        console.error('❌ Error moving list:', error);
+        alert('Failed to move list');
+      }
+
+      return;
+    }
+
+    // ===================== MOVE CARD TO CARD =====================
     if (activeData?.type === 'card' && overData?.type === 'card') {
+      console.log('✅ Card to Card move detected');
+
       const from = findCard(active.id);
       const to = findCard(over.id);
-      if (!from || !to) return;
-      setLists(prev => {
-        const draft = structuredClone(prev);
-        const sourceList = draft.find(l => l.id === from.listId);
-        if (!sourceList) return prev;
-        const [moved] = sourceList.cards.splice(from.cardIndex, 1);
-        const targetList = draft.find(l => l.id === to.listId);
-        if (!targetList) return prev;
-        targetList.cards.splice(to.cardIndex, 0, moved);
-        return draft;
+
+      console.log('📍 From:', from);
+      console.log('📍 To:', to);
+
+      if (!from || !to) {
+        console.log('❌ from or to is null - returning');
+        return;
+      }
+
+      // ✅ FIX: So sánh string
+      const targetList = lists.find(l => String(l.id) === String(to.listId));
+      if (!targetList) {
+        console.log('❌ Target list not found - returning');
+        return;
+      }
+
+      // Tính position mới
+      let tempCards =
+        String(from.listId) === String(to.listId)
+          ? targetList.cards.filter(c => String(c.id) !== String(active.id))
+          : [...targetList.cards];
+
+      tempCards.sort((a, b) => a.position - b.position);
+
+      let targetIndex = to.cardIndex;
+      if (
+        String(from.listId) === String(to.listId) &&
+        from.cardIndex < to.cardIndex
+      ) {
+        targetIndex = to.cardIndex - 1;
+      }
+
+      const newPosition = getPositionForIndex(tempCards, targetIndex);
+
+      console.log('📤 Sending MoveCard:', {
+        cardId: active.id,
+        fromListId: from.listId,
+        toListId: to.listId,
+        newPosition,
       });
+
+      try {
+        console.log('🚀 About to call moveCardSignalR...');
+
+        await moveCardSignalR(
+          connection,
+          workspaceId,
+          parseInt(from.listId),
+          parseInt(active.id),
+          parseInt(to.listId),
+          newPosition
+        );
+
+        console.log('✅ MoveCard request sent successfully');
+      } catch (error) {
+        console.error('❌ Error moving card:', error);
+        if (dragSnapshotRef.current) {
+          setLists(dragSnapshotRef.current);
+        }
+      }
+
       return;
     }
 
+    // ===================== MOVE CARD TO EMPTY LIST =====================
     if (activeData?.type === 'card' && overData?.type === 'cards') {
+      console.log('✅ Card to Empty List move detected');
+
       const from = findCard(active.id);
       const toListId = overData.listId;
-      if (!from || !toListId) return;
-      setLists(prev => {
-        const draft = structuredClone(prev);
-        const sourceList = draft.find(l => l.id === from.listId);
-        if (!sourceList) return prev;
-        const [moved] = sourceList.cards.splice(from.cardIndex, 1);
-        const targetList = draft.find(l => l.id === toListId);
-        if (!targetList) return prev;
-        targetList.cards.push(moved);
-        return draft;
+
+      // ✅ FIX: So sánh string
+      const targetList = lists.find(l => String(l.id) === String(toListId));
+      if (!targetList || !from) {
+        console.log('❌ targetList or from is null - returning');
+        return;
+      }
+
+      const existingCards = targetList.cards
+        .filter(c => String(c.id) !== String(active.id))
+        .sort((a, b) => a.position - b.position);
+
+      const newPosition = getPositionForIndex(
+        existingCards,
+        existingCards.length
+      );
+
+      console.log('📤 Sending MoveCard to empty list:', {
+        cardId: active.id,
+        fromListId: from.listId,
+        toListId,
+        newPosition,
       });
+
+      try {
+        await moveCardSignalR(
+          connection,
+          workspaceId,
+          parseInt(from.listId),
+          parseInt(active.id),
+          parseInt(toListId),
+          newPosition
+        );
+
+        console.log('✅ MoveCard to empty list sent successfully');
+      } catch (error) {
+        console.error('❌ Error moving card to empty list:', error);
+        if (dragSnapshotRef.current) {
+          setLists(dragSnapshotRef.current);
+        }
+      }
     }
+
+    console.log('❌ No matching condition for move');
   }
 
-  // CRUD operations
-  const addList = () => {
+  // ===================== CRUD OPERATIONS =====================
+
+  const addList = async () => {
     const title = newListTitle.trim();
     if (!title) return;
-    setLists(prev => [...prev, { id: `list-${Date.now()}`, title, cards: [] }]);
-    setNewListTitle('');
-    setIsAddingList(false);
+
+    try {
+      const sortedLists = [...lists].sort((a, b) => a.position - b.position);
+      const newPosition = getPositionForIndex(sortedLists, sortedLists.length);
+
+      console.log('📤 Creating new list:', { title, newPosition });
+
+      await createList(connection, workspaceData.id, title, newPosition);
+
+      setNewListTitle('');
+      setIsAddingList(false);
+    } catch (error) {
+      console.error('Error creating list:', error);
+      alert('Failed to create list');
+    }
   };
 
-  // Ensure addCard takes (listId, title) in this order
-  const addCard = (listId, title) => {
-    const safeTitle = (title ?? '').toString().trim();
-    if (!safeTitle) return;
-    setLists(prev =>
-      prev.map(l => {
-        if (l.id !== listId) return l;
-        const newCard = {
-          id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          title: safeTitle,
-          description: '',
-          isCompleted: false,
-          archived: false,
-          createdAt: new Date().toISOString(),
-          assignedMembers: [],
-          attachments: [],
-          labels: [],
-          riskLevel: 'low',
-        };
-        return { ...l, cards: [...l.cards, newCard] };
-      })
-    );
-  };
-
-  const updateCard = (listId, updatedCard) => {
-    setLists(prev =>
-      prev.map(l =>
-        l.id === listId
-          ? {
-              ...l,
-              cards: l.cards.map(c =>
-                c.id === updatedCard.id ? updatedCard : c
-              ),
-            }
-          : l
-      )
-    );
+  const updateCard = async (listId, updatedCard) => {
+    try {
+      await updateCardDetails(
+        connection,
+        workspaceData.id,
+        parseInt(listId),
+        parseInt(updatedCard.id),
+        {
+          title: updatedCard.title,
+          description: updatedCard.description,
+          riskLevel: updatedCard.riskLevel,
+          dueAt: updatedCard.dueAt,
+        }
+      );
+    } catch (error) {
+      console.error('Error updating card:', error);
+    }
   };
 
   const archiveCard = (listId, cardId) => {
     const from = findCard(cardId);
     if (!from) return;
+
     const archivedCard = {
       ...from.card,
       listId,
@@ -508,8 +1083,11 @@ const TrelloBoard = forwardRef(function TrelloBoard(
 
     setLists(prev =>
       prev.map(l =>
-        l.id === listId
-          ? { ...l, cards: l.cards.filter(c => c.id !== cardId) }
+        String(l.id) === String(listId)
+          ? {
+              ...l,
+              cards: l.cards.filter(c => String(c.id) !== String(cardId)),
+            }
           : l
       )
     );
@@ -522,28 +1100,27 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     });
   };
 
-  const deleteCard = (listId, cardId) => {
-    setLists(prev =>
-      prev.map(l =>
-        l.id === listId
-          ? { ...l, cards: l.cards.filter(c => c.id !== cardId) }
-          : l
-      )
-    );
+  const deleteCard = async (listId, cardId) => {
+    try {
+      await deleteCardSignalR(
+        connection,
+        workspaceData.id,
+        parseInt(listId),
+        parseInt(cardId)
+      );
+    } catch (error) {
+      console.error('Error deleting card:', error);
+    }
   };
 
   const archiveList = listId => {
-    const list = lists.find(l => l.id === listId);
+    // ✅ FIX: So sánh string
+    const list = lists.find(l => String(l.id) === String(listId));
     if (!list) return;
 
     const archivedList = { ...list, archivedAt: new Date().toISOString() };
 
-    setArchivedItems(prev => ({
-      ...prev,
-      lists: [...prev.lists, archivedList],
-    }));
-
-    setLists(prev => prev.filter(l => l.id !== listId));
+    setLists(prev => prev.filter(l => String(l.id) !== String(listId)));
 
     setUndoAction({
       type: 'list',
@@ -553,12 +1130,15 @@ const TrelloBoard = forwardRef(function TrelloBoard(
   };
 
   const restoreCard = (cardId, listId) => {
-    const archivedCard = archivedItems.cards.find(c => c.id === cardId);
+    // ✅ FIX: So sánh string
+    const archivedCard = archivedItems.cards.find(
+      c => String(c.id) === String(cardId)
+    );
     if (!archivedCard) return;
 
     setLists(prev =>
       prev.map(l =>
-        l.id === listId
+        String(l.id) === String(listId)
           ? {
               ...l,
               cards: [...l.cards, { ...archivedCard, archivedAt: undefined }],
@@ -569,33 +1149,22 @@ const TrelloBoard = forwardRef(function TrelloBoard(
 
     setArchivedItems(prev => ({
       ...prev,
-      cards: prev.cards.filter(c => c.id !== cardId),
+      cards: prev.cards.filter(c => String(c.id) !== String(cardId)),
     }));
   };
 
   const restoreList = listId => {
-    const archivedList = archivedItems.lists.find(l => l.id === listId);
+    // ✅ FIX: So sánh string
+    const archivedList = archivedItems.lists.find(
+      l => String(l.id) === String(listId)
+    );
     if (!archivedList) return;
 
     setLists(prev => [...prev, { ...archivedList, archivedAt: undefined }]);
 
     setArchivedItems(prev => ({
       ...prev,
-      lists: prev.lists.filter(l => l.id !== listId),
-    }));
-  };
-
-  const permanentlyDeleteCard = cardId => {
-    setArchivedItems(prev => ({
-      ...prev,
-      cards: prev.cards.filter(c => c.id !== cardId),
-    }));
-  };
-
-  const permanentlyDeleteList = listId => {
-    setArchivedItems(prev => ({
-      ...prev,
-      lists: prev.lists.filter(l => l.id !== listId),
+      lists: prev.lists.filter(l => String(l.id) !== String(listId)),
     }));
   };
 
@@ -611,16 +1180,17 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     setUndoAction(null);
   };
 
-  // Expose imperative API for settings modal actions
-  useImperativeHandle(ref, () => ({
-    restoreCard: (cardId, listId) => restoreCard(cardId, listId),
-    restoreList: listId => restoreList(listId),
-    permanentlyDeleteCard: cardId => permanentlyDeleteCard(cardId),
-    permanentlyDeleteList: listId => permanentlyDeleteList(listId),
-  }));
+  // ===================== RENDER =====================
 
   return (
     <>
+      {!isConnected && (
+        <div className='mb-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-3 rounded'>
+          <p className='font-semibold'>⚠️ Disconnected from server</p>
+          <p className='text-sm'>Reconnecting...</p>
+        </div>
+      )}
+
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetectionStrategy}
@@ -628,17 +1198,16 @@ const TrelloBoard = forwardRef(function TrelloBoard(
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className='flex items-start gap-4 pb-6'>
+        <div ref={ref} className='flex items-start gap-4 pb-6'>
           <SortableContext
             items={listIds}
             strategy={horizontalListSortingStrategy}
           >
-            {lists.map(list => (
+            {orderedLists.map(list => (
               <BoardList
                 key={list.id}
                 list={list}
                 members={members}
-                onAddCard={(listId, cardTitle) => addCard(listId, cardTitle)}
                 onCardClick={card =>
                   setEditingCard({
                     listId: list.id,
@@ -648,10 +1217,10 @@ const TrelloBoard = forwardRef(function TrelloBoard(
                 }
                 onUpdateCard={updateCard}
                 onArchiveList={() => archiveList(list.id)}
+                workspaceId={workspaceId}
               />
             ))}
 
-            {/* Add List button */}
             <div className='min-w-[280px] flex-shrink-0'>
               {isAddingList ? (
                 <div className='bg-white/80 rounded-xl p-3 backdrop-blur border'>
@@ -705,7 +1274,6 @@ const TrelloBoard = forwardRef(function TrelloBoard(
           </SortableContext>
         </div>
 
-        {/* Drag Overlay */}
         <DragOverlay>
           {activeCard && (
             <div className='w-[260px] p-3 rounded-lg bg-white shadow-2xl opacity-90 rotate-2'>
@@ -735,13 +1303,14 @@ const TrelloBoard = forwardRef(function TrelloBoard(
         </DragOverlay>
       </DndContext>
 
-      {/* Edit Card Modal */}
       {editingCard && (
         <CardModal
           listId={editingCard.listId}
           listTitle={editingCard.listTitle}
+          lists={lists}
           card={editingCard.card}
           members={members}
+          workspaceId={workspaceData?.id}
           onClose={() => setEditingCard(null)}
           onUpdate={(listId, card) => updateCard(listId, card)}
           onDelete={(listId, cardId) => {
@@ -755,7 +1324,6 @@ const TrelloBoard = forwardRef(function TrelloBoard(
         />
       )}
 
-      {/* Undo Notification */}
       {undoAction && (
         <UndoNotification
           message={undoAction.message}

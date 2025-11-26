@@ -34,8 +34,8 @@ export default function ClassListStaff() {
 
   const [filters, setFilters] = useState({
     ClassName: '',
-    SubjectId: null,
-    LecturerId: null,
+    SubjectIds: null,
+    LecturerIds: null,
     OrderBy: 'ClassName',
     // Descending: false,
     PageNum: 1,
@@ -162,11 +162,11 @@ export default function ClassListStaff() {
               </label>
               <select
                 className='w-full border border-gray-300 rounded-lg px-3 py-2'
-                value={filters.SubjectId ?? ''}
+                value={filters.SubjectIds ?? ''}
                 onChange={e =>
                   setFilters({
                     ...filters,
-                    SubjectId: e.target.value ? parseInt(e.target.value) : null,
+                    SubjectIds: e.target.value ? parseInt(e.target.value) : null,
                   })
                 }
               >
@@ -186,11 +186,11 @@ export default function ClassListStaff() {
               </label>
               <select
                 className='w-full border border-gray-300 rounded-lg px-3 py-2'
-                value={filters.LecturerId ?? ''}
+                value={filters.LecturerIds ?? ''}
                 onChange={e =>
                   setFilters({
                     ...filters,
-                    LecturerId: e.target.value
+                    LecturerIds: e.target.value
                       ? parseInt(e.target.value)
                       : null,
                   })

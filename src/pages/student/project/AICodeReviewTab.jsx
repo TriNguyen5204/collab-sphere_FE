@@ -15,12 +15,14 @@ import {
   ArrowUpRight,
   RefreshCcw
 } from 'lucide-react';
-import apiClient from '../../../services/apiClient';
 import { getPRAnalysesByTeam } from '../../../services/prAnalysisApi';
+import { initConnection, getProjectInstallation } from '../../../services/githubApi';
+import { toast } from 'sonner';
 
 const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionInfo, setConnectionInfo] = useState(null);
   const [showConnectModal, setShowConnectModal] = useState(false);
@@ -31,7 +33,7 @@ const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
 
   useEffect(() => {
     const checkConnection = async () => {
-      if (!projectId || !teamId) {
+      if (!projectId) {
         setLoading(false);
         return;
       }
@@ -39,21 +41,22 @@ const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
       try {
         setLoading(true);
         setError(null);
-        const response = await apiClient.get(`/project/${projectId}/installation`);
-        const installations = response.data?.installations || [];
-        const teamInstallation = installations.find((inst) => {
-          const instTeamId = inst?.teamId ?? inst?.team_id;
-          return Number(instTeamId) === Number(teamId);
-        });
-
-        if (teamInstallation && teamInstallation.repositories?.length) {
+        
+        // Use new API to get project specific installations
+        const response = await getProjectInstallation(projectId);
+        const installations = response?.installations || [];
+        
+        // Filter for the current team
+        const teamInstallation = installations.find(inst => Number(inst.teamId) === Number(teamId));
+        
+        if (teamInstallation && teamInstallation.repositories && teamInstallation.repositories.length > 0) {
+          const repos = teamInstallation.repositories;
+          console.log('Connected Repositories for Team:', repos);
+          
           setIsConnected(true);
           setConnectionInfo({
-            teamId: teamInstallation.teamId,
-            teamName: teamInstallation.teamName,
-            repositories: teamInstallation.repositories,
-            githubInstallationId: teamInstallation.githubInstallationId,
-            installedAt: teamInstallation.installedAt
+            repositories: repos,
+            teamId: teamInstallation.teamId
           });
         } else {
           setIsConnected(false);
@@ -61,12 +64,18 @@ const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
         }
       } catch (err) {
         console.error('Failed to check GitHub connection:', err);
-        const status = err?.response?.status;
-        if (status === 404) {
-          setIsConnected(false);
-        } else {
-          setError('Failed to check connection status. Please try again.');
+        
+        if (err.response?.status === 500) {
+          const errorMessage = typeof err.response.data === 'string' 
+            ? err.response.data 
+            : 'Internal Server Error';
+          setError(errorMessage);
+        } else if (err.response?.status !== 404) {
+          setError('Failed to check connection status.');
         }
+
+        setIsConnected(false);
+        setConnectionInfo(null);
       } finally {
         setLoading(false);
       }
@@ -79,24 +88,49 @@ const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
     if (!connectionInfo?.repositories?.length) {
       return;
     }
-    const primaryRepo = connectionInfo.repositories[0];
-    const repositoryId = primaryRepo?.repositoryId ?? primaryRepo?.repository_id;
-    if (!repositoryId) {
-      setAnalysesError('Repository information is incomplete.');
-      return;
-    }
 
     try {
       setLoadingAnalyses(true);
       setAnalysesError(null);
-      const response = await getPRAnalysesByTeam(teamId, repositoryId);
-      const analyses = normalizeAnalysesResponse(response);
-      console.log('Fetched PR Analyses:', analyses);
-      setPrAnalyses(analyses);
+
+      const promises = connectionInfo.repositories.map(async (repo) => {
+        // Support multiple property names for ID
+        const repositoryId = repo?.repositoryId ?? repo?.repository_id ?? repo?.id;
+        const repositoryName = repo?.repositoryFullName ?? repo?.repository_full_name ?? repo?.full_name ?? repo?.name;
+        
+        if (!repositoryId) return [];
+
+        try {
+          const response = await getPRAnalysesByTeam(teamId, repositoryId);
+          const analyses = normalizeAnalysesResponse(response);
+          
+          // Attach repository info to each analysis to ensure we can distinguish them in UI
+          return analyses.map(analysis => ({
+            ...analysis,
+            repositoryFullName: analysis.repositoryFullName || repositoryName,
+            repositoryId: analysis.repositoryId || repositoryId
+          }));
+        } catch (err) {
+          console.warn(`Failed to fetch analyses for repo ${repositoryId}:`, err);
+          return [];
+        }
+      });
+
+      const results = await Promise.all(promises);
+      const allAnalyses = results.flat();
+
+      // Sort by date descending (newest first)
+      allAnalyses.sort((a, b) => {
+        const dateA = new Date(a.analyzedAt || a.analyzeAt || 0);
+        const dateB = new Date(b.analyzedAt || b.analyzeAt || 0);
+        return dateB - dateA;
+      });
+
+      console.log('Fetched All PR Analyses:', allAnalyses);
+      setPrAnalyses(allAnalyses);
     } catch (err) {
       console.error('Unable to fetch PR analyses:', err);
-      const message = err?.response?.data?.message || 'Unable to fetch PR analyses.';
-      setAnalysesError(message);
+      setAnalysesError('Unable to fetch PR analyses.');
     } finally {
       setLoadingAnalyses(false);
     }
@@ -112,23 +146,44 @@ const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
     setShowConnectModal(true);
   };
 
-  const handleConfirmConnect = () => {
-    const GITHUB_APP_NAME = import.meta.env.VITE_GITHUB_APP_NAME || 'collabsphere-ai-reviewer';
-    const context = {
-      projectId,
-      teamId,
-      projectName,
-      redirectPath: window.location.pathname,
-      savedAt: new Date().toISOString()
-    };
-    localStorage.setItem('github_installation_context', JSON.stringify(context));
-    localStorage.setItem('github_installation_project_id', projectId);
-    setShowConnectModal(false);
-    window.location.href = `https://github.com/apps/${GITHUB_APP_NAME}/installations/new`;
+  const handleConfirmConnect = async () => {
+    try {
+      setConnecting(true);
+      // Save context for callback page to redirect back
+      const context = {
+        projectId,
+        teamId,
+        projectName,
+        redirectPath: window.location.pathname,
+        savedAt: new Date().toISOString()
+      };
+      localStorage.setItem('github_installation_context', JSON.stringify(context));
+      
+      const response = await initConnection(projectId, teamId);
+      console.log('GitHub Connection Init Response:', response);
+
+      // Support different response structures
+      const connectionUrl = response?.generatedUrl || response?.url || response?.result?.url || response?.data?.url;
+
+      if (connectionUrl) {
+        window.location.href = connectionUrl;
+      } else {
+        console.error('URL not found in response:', response);
+        toast.error(response?.message || 'Failed to get GitHub connection URL');
+      }
+    } catch (error) {
+      console.error('Failed to initiate GitHub connection:', error);
+      toast.error('Failed to initiate GitHub connection');
+    } finally {
+      setConnecting(false);
+      setShowConnectModal(false);
+    }
   };
 
   const handleManageClick = () => {
-    window.open('https://github.com/settings/installations', '_blank');
+    // We use the same flow as connecting to ensure a 'state' token is generated.
+    // This allows the backend to verify and sync the updated data when redirected back.
+    handleConfirmConnect();
   };
 
   const handleViewAnalysis = (analysisId) => {
@@ -207,9 +262,17 @@ const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
                 </button>
                 <button
                   onClick={handleConfirmConnect}
-                  className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                  disabled={connecting}
+                  className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Continue to GitHub →
+                  {connecting ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Connecting...
+                    </>
+                  ) : (
+                    'Continue to GitHub →'
+                  )}
                 </button>
               </div>
             </div>
@@ -219,46 +282,72 @@ const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
     );
   }
 
-  const repoNames = connectionInfo?.repositories?.map((repo) => repo.repositoryFullName || repo.repository_full_name) || [];
+  // Support multiple property names for full name (repositoryFullName, repository_full_name, or full_name from GitHub API)
+  const repoNames = connectionInfo?.repositories?.map((repo) => 
+    repo.repositoryFullName || 
+    repo.repository_full_name || 
+    repo.full_name || 
+    repo.fullName || 
+    repo.name
+  ) || [];
   const repoSummary = repoNames.length > 1 ? `${repoNames[0]} + ${repoNames.length - 1} more` : repoNames[0];
   const lastAnalyzedAt = prAnalyses[0]?.analyzeAt || prAnalyses[0]?.analyzedAt;
 
   return (
-    <div className="space-y-10">
-      <header className="space-y-3">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="space-y-8">
+      <header className="space-y-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm font-semibold text-gray-900">AI Code Review</p>
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-600">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <span>AI reviewer is active on {repoSummary || 'your repository'}</span>
-            </div>
-            <p className="text-xs text-gray-500">Last sync {lastAnalyzedAt ? formatDate(lastAnalyzedAt, true) : 'awaiting first analysis'}</p>
+            <h1 className="text-2xl font-bold text-gray-900">AI Code Review</h1>
+            <p className="text-sm text-gray-500">Automated pull request analysis and feedback</p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={fetchPRAnalyses}
-              className="inline-flex items-center gap-2 rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:text-gray-900 transition-all"
             >
-              <RefreshCcw className="h-4 w-4" /> Refresh analyses
+              <RefreshCcw className="h-3.5 w-3.5" /> Refresh
             </button>
             <button
               onClick={handleManageClick}
-              className="inline-flex items-center gap-2 rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:text-gray-900 transition-all"
             >
-              <Settings className="h-4 w-4" /> Manage repositories
+              <Settings className="h-3.5 w-3.5" /> Manage
             </button>
           </div>
         </div>
-        {repoNames.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {repoNames.map((repo) => (
-              <span key={repo} className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-mono text-gray-700">
-                {repo}
-              </span>
-            ))}
-          </div>
-        )}
+
+        {/* Subtle Repository Status Bar */}
+        <div className="flex flex-col gap-4 rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3 overflow-hidden sm:items-center">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
+                    <Github className="h-5 w-5 text-gray-700" />
+                </div>
+                <div className="flex flex-col gap-1">
+                    <span className="text-[15px] font-bold uppercase tracking-wider text-gray-400">Monitoring Repositories</span>
+                    <div className="flex flex-wrap gap-2">
+                        {repoNames.length > 0 ? (
+                            repoNames.map((repo) => (
+                                <span key={repo} className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-0.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-200">
+                                    <span className="relative flex h-2 w-2">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                    </span>
+                                    {repo}
+                                </span>
+                            ))
+                        ) : (
+                            <span className="text-xs text-gray-400 italic">No repositories connected</span>
+                        )}
+                    </div>
+                </div>
+            </div>
+            
+            <div className="flex items-center gap-2 text-xs text-gray-500 sm:border-l sm:border-gray-200 sm:pl-4">
+                <Clock className="h-3.5 w-3.5 text-gray-400" />
+                <span>Last sync: <span className="font-medium text-gray-700">{lastAnalyzedAt ? formatDate(lastAnalyzedAt, true) : 'Never'}</span></span>
+            </div>
+        </div>
       </header>
 
       {analysesError && (
@@ -322,16 +411,19 @@ const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
                         {analysis.prTitle || 'Untitled Pull Request'}
                         {renderPRStateBadge(analysis.prState)}
                       </div>
-                      <p className="text-xs font-mono text-gray-500">
-                        {analysis.repositoryFullName || analysis.repository || repoNames[0] || 'Connected repository'}
-                      </p>
+                      <div className="mt-1 flex items-center gap-1.5">
+                         <div className="flex items-center gap-1 rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 border border-gray-200">
+                            <Github className="h-3 w-3" />
+                            {analysis.repositoryFullName || 'Unknown Repository'}
+                         </div>
+                      </div>
                     </div>
                     <div className="text-sm text-gray-600">
                       Opened by <span className="font-medium text-gray-900">{analysis.prAuthorGithubUsername || 'Unknown'}</span>
                       <span className="mx-1 text-gray-400">•</span>
                       {formatDate(analysis.prCreatedAt, true)}
                     </div>
-                    <div className="text-sm text-gray-700 line-clamp-2">
+                    <div className="text-sm text-gray-700">
                       {analysis.aiSummary || 'AI summary is not available yet for this review.'}
                     </div>
                     <div className="flex flex-wrap items-center gap-4 text-xs font-medium">

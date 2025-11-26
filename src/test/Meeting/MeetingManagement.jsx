@@ -4,7 +4,6 @@ import {
   deleteMeeting,
   updateMeeting,
 } from '../../services/meetingApi';
-import Sidebar from './Sidebar';
 import { toast } from 'sonner';
 import {
   Calendar,
@@ -13,18 +12,31 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  Search,
+  Clock,
+  User,
+  MoreVertical,
+  X,
+  Check,
+  AlertCircle,
+  Plus,
+  RefreshCw,
 } from 'lucide-react';
+import { useParams } from 'react-router-dom';
 
 const MeetingManagement = () => {
+  const { teamId } = useParams();
+  const teamIdNumber = parseInt(teamId) || 2;
+  
   const [meetings, setMeetings] = useState([]);
   const [filters, setFilters] = useState({
-    teamId: 2,
+    teamId: teamIdNumber,
     title: '',
     scheduleTime: '',
     status: '',
     isDesc: true,
     pageNum: 1,
-    pageSize: 6,
+    pageSize: 8,
   });
   const [pagination, setPagination] = useState({ pageCount: 1, itemCount: 0 });
   const [editingMeeting, setEditingMeeting] = useState(null);
@@ -35,8 +47,29 @@ const MeetingManagement = () => {
     ScheduleTime: '',
     Status: '',
   });
+  const [loading, setLoading] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
-  // 🧭 UTC conversion
+  // Status badge helper
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      0: { label: 'Cancelled', color: 'bg-red-100 text-red-700 border-red-200', icon: X },
+      1: { label: 'Completed', color: 'bg-green-100 text-green-700 border-green-200', icon: Check },
+      2: { label: 'Upcoming', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Clock },
+    };
+    
+    const config = statusConfig[status] || { label: 'Unknown', color: 'bg-gray-100 text-gray-700', icon: AlertCircle };
+    const Icon = config.icon;
+    
+    return (
+      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${config.color}`}>
+        <Icon className="w-3.5 h-3.5" />
+        {config.label}
+      </span>
+    );
+  };
+
+  // UTC conversion
   const convertToUTC = localDateStr => {
     if (!localDateStr) return '';
     const localDate = new Date(localDateStr);
@@ -45,14 +78,17 @@ const MeetingManagement = () => {
     ).toISOString();
   };
 
-  // 🧠 Fetch meetings
+  // Fetch meetings
   const fetchMeetings = async () => {
+    setLoading(true);
     try {
       const payload = {
         ...filters,
         scheduleTime: convertToUTC(filters.scheduleTime),
       };
+      
       const res = await getMeeting(payload);
+      
       if (res?.isSuccess && res.paginatedMeeting?.list) {
         setMeetings(res.paginatedMeeting.list);
         setPagination({
@@ -66,6 +102,8 @@ const MeetingManagement = () => {
     } catch (err) {
       console.error(err);
       toast.error('Failed to fetch meetings');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -83,13 +121,26 @@ const MeetingManagement = () => {
     fetchMeetings();
   };
 
+  const handleReset = () => {
+    setFilters({
+      teamId: teamIdNumber,
+      title: '',
+      scheduleTime: '',
+      status: '',
+      isDesc: true,
+      pageNum: 1,
+      pageSize: 8,
+    });
+    fetchMeetings();
+  };
+
   const handlePageChange = newPage => {
     if (newPage >= 1 && newPage <= pagination.pageCount) {
       setFilters(prev => ({ ...prev, pageNum: newPage }));
     }
   };
 
-  // 🗑️ Delete
+  // Delete
   const handleDelete = async id => {
     if (!window.confirm('Are you sure you want to delete this meeting?'))
       return;
@@ -100,8 +151,7 @@ const MeetingManagement = () => {
         fetchMeetings();
       } else toast.error('Failed to delete meeting');
     } catch (err) {
-      const backendError = err.response.data;
-      console.log(backendError);
+      const backendError = err.response?.data;
       if (backendError?.errorList) {
         const message = backendError.errorList.map(e => e.message).join(', ');
         toast.error(`⚠️ ${message}`);
@@ -111,7 +161,7 @@ const MeetingManagement = () => {
     }
   };
 
-  // ✏️ Open edit modal
+  // Open edit modal
   const openEditModal = m => {
     setEditingMeeting(m);
     setEditForm({
@@ -125,7 +175,7 @@ const MeetingManagement = () => {
     });
   };
 
-  // 💾 Submit update
+  // Submit update
   const handleUpdateSubmit = async e => {
     e.preventDefault();
     const title = editForm.Title.trim() || editingMeeting.title;
@@ -142,7 +192,7 @@ const MeetingManagement = () => {
     try {
       const res = await updateMeeting(payload);
       if (res?.isSuccess) {
-        toast.success('✅ Meeting updated');
+        toast.success('✅ Meeting updated successfully');
         setEditingMeeting(null);
         fetchMeetings();
       } else toast.error('Failed to update meeting');
@@ -157,282 +207,408 @@ const MeetingManagement = () => {
     }
   };
 
+  // Format date
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   return (
-    <div className='flex'>
-      <Sidebar />
-      <section className='flex min-h-screen flex-1 flex-col px-6 pb-6 pt-28 max-md:pd-14 sm:px-14'>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
         {/* Header */}
-        <div className='flex items-center justify-between'>
-          <h1 className='text-3xl font-bold text-gray-900 flex items-center gap-2'>
-            <Calendar className='w-7 h-7 text-blue-600' />
-            Meeting Management
-          </h1>
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 flex items-center gap-3">
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
+                  <Calendar className="w-8 h-8 text-white" />
+                </div>
+                Meeting Management
+              </h1>
+              <p className="text-gray-600 mt-2 ml-1">
+                Team #{teamIdNumber} • {pagination.itemCount} total meetings
+              </p>
+            </div>
+            
+            <button
+              onClick={fetchMeetings}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
         </div>
 
-        {/* Filters */}
-        <div className='bg-white p-5 rounded-xl shadow-md border border-gray-200'>
-          <div className='grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4'>
-            <div>
-              <label className='text-sm font-medium text-gray-700'>Title</label>
-              <input
-                type='text'
-                name='title'
-                value={filters.title}
-                onChange={handleFilterChange}
-                placeholder='Search by title'
-                className='w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500'
-              />
-            </div>
-
-            <div>
-              <label className='text-sm font-medium text-gray-700'>
-                Schedule Time
-              </label>
-              <input
-                type='datetime-local'
-                name='scheduleTime'
-                value={filters.scheduleTime}
-                onChange={handleFilterChange}
-                className='w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500'
-              />
-            </div>
-
-            <div>
-              <label className='text-sm font-medium text-gray-700'>
-                Status
-              </label>
-              <input
-                type='number'
-                name='status'
-                value={filters.status}
-                onChange={handleFilterChange}
-                placeholder='0 / 1 / 2'
-                className='w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500'
-              />
-            </div>
-
-            <div>
-              <label className='text-sm font-medium text-gray-700'>
-                Is Desc
-              </label>
-              <select
-                name='isDesc'
-                value={filters.isDesc}
-                onChange={handleFilterChange}
-                className='w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500'
-              >
-                <option value={true}>True</option>
-                <option value={false}>False</option>
-              </select>
-            </div>
+        {/* Filters Card */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 mb-6 overflow-hidden">
+          <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center justify-between w-full"
+            >
+              <div className="flex items-center gap-2">
+                <Filter className="w-5 h-5 text-gray-700" />
+                <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
+              </div>
+              <span className="text-sm text-gray-500">
+                {showFilters ? 'Hide' : 'Show'}
+              </span>
+            </button>
           </div>
 
-          <button
-            onClick={handleSearch}
-            className='mt-4 flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all'
-          >
-            <Filter className='w-4 h-4' /> Apply Filters
-          </button>
+          {showFilters && (
+            <div className="p-6 bg-white">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Search Title
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      name="title"
+                      value={filters.title}
+                      onChange={handleFilterChange}
+                      placeholder="Search meetings..."
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Schedule Time
+                  </label>
+                  <input
+                    type="datetime-local"
+                    name="scheduleTime"
+                    value={filters.scheduleTime}
+                    onChange={handleFilterChange}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Status
+                  </label>
+                  <select
+                    name="status"
+                    value={filters.status}
+                    onChange={handleFilterChange}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  >
+                    <option value="">All Status</option>
+                    <option value="0">Cancelled</option>
+                    <option value="1">Completed</option>
+                    <option value="2">Upcoming</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Sort Order
+                  </label>
+                  <select
+                    name="isDesc"
+                    value={filters.isDesc}
+                    onChange={handleFilterChange}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  >
+                    <option value={true}>Newest First</option>
+                    <option value={false}>Oldest First</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSearch}
+                  className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2.5 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+                >
+                  <Search className="w-4 h-4" />
+                  Apply Filters
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="px-6 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Table */}
-        <div className='bg-white shadow-lg rounded-xl border border-gray-100 overflow-hidden'>
-          <table className='w-full text-sm text-left'>
-            <thead className='bg-gray-50 sticky top-0 text-gray-700 font-semibold'>
-              <tr>
-                <th className='px-4 py-3'>#</th>
-                <th className='px-4 py-3'>Title</th>
-                <th className='px-4 py-3'>Description</th>
-                <th className='px-4 py-3'>Schedule Time</th>
-                <th className='px-4 py-3'>Creator</th>
-                <th className='px-4 py-3 text-right'>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {meetings.length === 0 ? (
-                <tr>
-                  <td colSpan='7' className='text-center py-6 text-gray-500'>
-                    No meetings found.
-                  </td>
-                </tr>
-              ) : (
-                meetings.map((m, idx) => (
-                  <tr
-                    key={m.meetingId}
-                    className='border-t hover:bg-gray-50 transition-colors'
-                  >
-                    <td className='px-4 py-2'>{idx + 1}</td>
-                    <td className='px-4 py-2 font-medium text-gray-800'>
-                      {m.title}
-                    </td>
-                    <td className='px-4 py-2 text-gray-700 truncate max-w-[200px]'>
-                      {m.description || '—'}
-                    </td>
-                    <td className='px-4 py-2'>
-                      {new Date(m.scheduleTime).toLocaleString()}
-                    </td>
-                    <td className='px-4 py-2'>{m.creatorName}</td>
-                    <td className='px-4 py-2 text-right flex justify-end gap-2'>
+        {/* Meetings Grid */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading meetings...</p>
+            </div>
+          </div>
+        ) : meetings.length === 0 ? (
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
+            <div className="max-w-md mx-auto">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Calendar className="w-10 h-10 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">No meetings found</h3>
+              <p className="text-gray-600">Try adjusting your filters or create a new meeting</p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {meetings.map((meeting, idx) => (
+              <div
+                key={meeting.meetingId}
+                className="bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 overflow-hidden group"
+              >
+                {/* Card Header */}
+                <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                        {meeting.title}
+                      </h3>
+                      {getStatusBadge(meeting.status)}
+                    </div>
+                    
+                    <div className="flex gap-2">
                       <button
-                        onClick={() => openEditModal(m)}
-                        className='p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200'
+                        onClick={() => openEditModal(meeting)}
+                        className="p-2 hover:bg-blue-50 rounded-lg transition-colors group/btn"
+                        title="Edit meeting"
                       >
-                        <Edit size={16} />
+                        <Edit className="w-4 h-4 text-gray-400 group-hover/btn:text-blue-600" />
                       </button>
                       <button
-                        onClick={() => handleDelete(m.meetingId)}
-                        className='p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200'
+                        onClick={() => handleDelete(meeting.meetingId)}
+                        className="p-2 hover:bg-red-50 rounded-lg transition-colors group/btn"
+                        title="Delete meeting"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 className="w-4 h-4 text-gray-400 group-hover/btn:text-red-600" />
                       </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card Body */}
+                <div className="p-6 space-y-4">
+                  {meeting.description && (
+                    <p className="text-gray-600 line-clamp-2">
+                      {meeting.description}
+                    </p>
+                  )}
+
+                  <div className="space-y-3 pt-3 border-t border-gray-100">
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Clock className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">{formatDate(meeting.scheduleTime)}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <User className="w-4 h-4 text-gray-400" />
+                      <span>Created by <span className="font-medium text-gray-900">{meeting.creatorName}</span></span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card Footer */}
+                <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>Meeting #{meeting.meetingId}</span>
+                    <span>Team #{teamIdNumber}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Pagination */}
         {pagination.pageCount > 1 && (
-          <div className='flex justify-between items-center mt-4 text-sm'>
-            <span className='text-gray-600'>
-              Showing page {filters.pageNum} of {pagination.pageCount}
-            </span>
-            <div className='flex gap-2'>
+          <div className="mt-8 flex items-center justify-between">
+            <p className="text-sm text-gray-600">
+              Showing page <span className="font-semibold">{filters.pageNum}</span> of{' '}
+              <span className="font-semibold">{pagination.pageCount}</span>
+            </p>
+
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => handlePageChange(filters.pageNum - 1)}
                 disabled={filters.pageNum <= 1}
-                className='p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-40'
+                className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
-                <ChevronLeft size={18} />
+                <ChevronLeft className="w-5 h-5" />
               </button>
 
-              {[...Array(pagination.pageCount)].map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => handlePageChange(i + 1)}
-                  className={`px-3 py-1 rounded-lg ${
-                    filters.pageNum === i + 1
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 hover:bg-gray-200'
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
+              <div className="flex gap-1">
+                {[...Array(pagination.pageCount)].map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handlePageChange(i + 1)}
+                    className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-all ${
+                      filters.pageNum === i + 1
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md'
+                        : 'border border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
 
               <button
                 onClick={() => handlePageChange(filters.pageNum + 1)}
                 disabled={filters.pageNum >= pagination.pageCount}
-                className='p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-40'
+                className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
-                <ChevronRight size={18} />
+                <ChevronRight className="w-5 h-5" />
               </button>
             </div>
           </div>
         )}
 
-        {/* Modal */}
+        {/* Edit Modal */}
         {editingMeeting && (
           <div
-            className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn'
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn p-4"
             onClick={() => setEditingMeeting(null)}
           >
             <div
-              className='bg-white rounded-2xl shadow-2xl w-[95%] max-w-md animate-slideUp'
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-slideUp"
               onClick={e => e.stopPropagation()}
             >
-              <div className='p-6 border-b flex justify-between items-center'>
-                <h2 className='text-xl font-bold'>✏️ Update Meeting</h2>
-                <button
-                  onClick={() => setEditingMeeting(null)}
-                  className='text-2xl leading-none text-gray-500 hover:text-gray-800'
-                >
-                  ×
-                </button>
+              {/* Modal Header */}
+              <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 border-b border-blue-500">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white/20 rounded-xl">
+                      <Edit className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-white">Edit Meeting</h2>
+                      <p className="text-blue-100 text-sm mt-1">Update meeting details</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setEditingMeeting(null)}
+                    className="p-2 hover:bg-white/20 rounded-xl transition-colors"
+                  >
+                    <X className="w-6 h-6 text-white" />
+                  </button>
+                </div>
               </div>
 
-              <form onSubmit={handleUpdateSubmit} className='p-6 space-y-4'>
-                <div>
-                  <label className='block text-sm font-medium mb-1'>
-                    Meeting ID
-                  </label>
-                  <input
-                    type='text'
-                    value={editForm.meetingId}
-                    disabled
-                    className='w-full px-3 py-2 border rounded-lg bg-gray-100 text-gray-600'
-                  />
+              {/* Modal Body */}
+              <form onSubmit={handleUpdateSubmit} className="p-8">
+                <div className="space-y-6">
+                  {/* Meeting ID */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Meeting ID
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.meetingId}
+                      disabled
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-600 cursor-not-allowed"
+                    />
+                  </div>
+
+                  {/* Title */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Title <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.Title}
+                      onChange={e =>
+                        setEditForm({ ...editForm, Title: e.target.value })
+                      }
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      placeholder="Enter meeting title"
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      value={editForm.Description}
+                      onChange={e =>
+                        setEditForm({ ...editForm, Description: e.target.value })
+                      }
+                      rows="4"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all"
+                      placeholder="Add meeting description..."
+                    />
+                  </div>
+
+                  {/* Schedule Time */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Schedule Time
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={editForm.ScheduleTime}
+                      onChange={e =>
+                        setEditForm({ ...editForm, ScheduleTime: e.target.value })
+                      }
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    />
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Status
+                    </label>
+                    <select
+                      value={editForm.Status}
+                      onChange={e =>
+                        setEditForm({ ...editForm, Status: e.target.value })
+                      }
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    >
+                      <option value="0">Cancelled</option>
+                      <option value="1">Completed</option>
+                      <option value="2">Upcoming</option>
+                    </select>
+                  </div>
                 </div>
 
-                <div>
-                  <label className='block text-sm font-medium mb-1'>
-                    Title *
-                  </label>
-                  <input
-                    type='text'
-                    value={editForm.Title}
-                    onChange={e =>
-                      setEditForm({ ...editForm, Title: e.target.value })
-                    }
-                    className='w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500'
-                  />
-                </div>
-
-                <div>
-                  <label className='block text-sm font-medium mb-1'>
-                    Description
-                  </label>
-                  <textarea
-                    value={editForm.Description}
-                    onChange={e =>
-                      setEditForm({ ...editForm, Description: e.target.value })
-                    }
-                    rows='3'
-                    className='w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 resize-none'
-                  />
-                </div>
-
-                <div>
-                  <label className='block text-sm font-medium mb-1'>
-                    Schedule Time
-                  </label>
-                  <input
-                    type='datetime-local'
-                    value={editForm.ScheduleTime}
-                    onChange={e =>
-                      setEditForm({ ...editForm, ScheduleTime: e.target.value })
-                    }
-                    className='w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500'
-                  />
-                </div>
-
-                <div>
-                  <label className='block text-sm font-medium mb-1'>
-                    Status
-                  </label>
-                  <input
-                    type='number'
-                    value={editForm.Status}
-                    onChange={e =>
-                      setEditForm({ ...editForm, Status: e.target.value })
-                    }
-                    className='w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500'
-                  />
-                </div>
-
-                <div className='flex justify-end gap-3 pt-4 border-t'>
+                {/* Modal Footer */}
+                <div className="flex gap-3 mt-8 pt-6 border-t border-gray-200">
                   <button
-                    type='button'
+                    type="button"
                     onClick={() => setEditingMeeting(null)}
-                    className='px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200'
+                    className="flex-1 px-6 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 font-medium transition-all"
                   >
                     Cancel
                   </button>
                   <button
-                    type='submit'
-                    className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700'
+                    type="submit"
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 font-semibold transition-all shadow-md hover:shadow-lg"
                   >
                     Save Changes
                   </button>
@@ -441,7 +617,38 @@ const MeetingManagement = () => {
             </div>
           </div>
         )}
-      </section>
+      </div>
+
+      {/* Custom Styles */}
+      <style>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out;
+        }
+        
+        .animate-slideUp {
+          animation: slideUp 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };
