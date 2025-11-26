@@ -9,7 +9,6 @@ import ProjectResourcesMenu from "./ProjectResourcesMenu";
 
 const ProjectBoardHeader = ({ archivedItems, onRestoreArchived, onDeleteArchived, workspaceName }) => {
   const navigate = useNavigate();
-  const { projectName } = useParams();
   const [selectedMember, setSelectedMember] = useState(null);
   const [popoverAnchor, setPopoverAnchor] = useState(null);
   const { clearTeam, team } = useTeam();
@@ -22,7 +21,7 @@ const ProjectBoardHeader = ({ archivedItems, onRestoreArchived, onDeleteArchived
           alt="Project Avatar"
           className="w-10 h-10 rounded-full object-cover border"
         />
-        <h1 className="text-2xl font-bold">{workspaceName || projectName}</h1>
+        <h1 className="text-2xl font-bold">{team?.projectInfo?.projectName || "Workspace"}</h1>
         <ProjectBoardViewMenu />
       </div>
 
