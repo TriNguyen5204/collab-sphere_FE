@@ -765,30 +765,35 @@ const ProjectDetail = () => {
               >
                 ← Back
               </button>
-              {isPendingProject && (
-                <div className="w-full rounded-3xl border border-slate-200/80 bg-white/80 p-4 shadow-sm">
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Pending draft controls</p>
-                  <p className="mt-2 text-sm text-slate-600">Update everything before approval.</p>
-                  <div className="mt-4 space-y-3">
-                    <button
-                      type="button"
-                      onClick={openEditModal}
-                      className="w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
-                    >
-                      Quick edit overview
-                    </button>
-                    <button
-                      type="button"
-                      onClick={openDeleteModal}
-                      className="w-full rounded-2xl border border-rose-200/80 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
-                    >
-                      Delete pending project
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
+
+          {isPendingProject && (
+            <div className="mt-8 border-t border-slate-200/60 pt-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Pending draft controls</p>
+                  <p className="mt-1 text-sm text-slate-600">Update everything before approval.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={openEditModal}
+                    className="rounded-2xl border border-slate-200/80 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                  >
+                    Quick edit overview
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openDeleteModal}
+                    className="rounded-2xl border border-rose-200/80 bg-rose-50 px-5 py-2.5 text-sm font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
+                  >
+                    Delete pending project
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="grid gap-4 md:grid-cols-2">

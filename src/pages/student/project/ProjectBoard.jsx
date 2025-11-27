@@ -23,8 +23,13 @@ const ProjectBoard = () => {
   const [archivedItems, setArchivedItems] = useState({ cards: [], lists: [] });
 
   const boardRef = useRef(null);
-
   const handleUpdateArchived = items => setArchivedItems(items);
+  const { projectContext } = useProjectContext();
+
+  // ✅ Sử dụng useMemo để lấy teamId
+  const teamId = useMemo(() => {
+    return projectContext?.teamId || '';
+  }, [projectContext]);
   useEffect(() => {
     const fetchMembers = async () => {
       if (!teamId) return;

@@ -1,19 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { LogIn, Video, Plus, Users, Clock } from 'lucide-react';
 import { createMeeting } from '../services/meetingApi';
 import { toast } from 'sonner';
 import ClipLoader from 'react-spinners/ClipLoader';
+import { useProjectContext } from '../hooks/useProjectContext';
 
 function JoinPage() {
   const myName = useSelector(state => state.user.fullName);
-  const {teamId} = useParams();
   const [groupId, setGroupId] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const { projectContext } = useProjectContext();
+
+  const teamId = useMemo(() => {
+    return projectContext?.teamId || '';
+  }, [projectContext]);
 
   // 🔧 Hàm điều hướng
   const cleanupAndNavigate = (path, navState) => {
