@@ -192,7 +192,7 @@ const ProfileInformation = ({
             </span>
           ) : (
             <>
-              <p className="mt-1 text-sm text-gray-500">Major: {profileData.major || "—"}</p>
+              <p className="mt-1 text-sm text-gray-500">1Major: {profileData.major || "—"}</p>
               <p className="mt-1 text-sm text-gray-500">School: {profileData.school || "—"}</p>
             </>
           )}
