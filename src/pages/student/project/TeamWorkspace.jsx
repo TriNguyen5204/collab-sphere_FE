@@ -13,18 +13,20 @@ import AICodeReviewTab from './AICodeReviewTab';
 import { toast } from 'sonner';
 
 const TeamWorkspace = () => {
-  // const { projectId, teamId, projectName } = useParams();
-  const [projectContext] = useState(() => {
-    const stored = localStorage.getItem('currentProjectContext');
-    return stored ? JSON.parse(stored) : {};
-  });
-  const { projectId, teamId, projectName } = projectContext;
+  // const [projectContext] = useState(() => {
+  //   const stored = localStorage.getItem('currentProjectContext');
+  //   console.log('Loaded project context from localStorage:', stored);
+  //   return stored ? JSON.parse(stored) : {};
+  // });
+  // const { teamId, projectName } = projectContext;
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('overview');
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const { setTeam, team } = useTeam();
-
+  const projectId = team?.projectInfo?.projectId ?? null;
+  const teamId = team?.teamId ?? null;
+  const projectName = team?.projectInfo?.projectName ?? null;
   // Handle query parameters for tab switching and success toast
   useEffect(() => {
     const handleGitHubCallback = async () => {
@@ -113,31 +115,28 @@ const TeamWorkspace = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  // Call api to get team details
+  // // Call api to get team details
   const [teamLoading, setTeamLoading] = useState(false);
-  const [teamError, setTeamError] = useState(null);
 
-  const fetchTeamDetails = async (teamId) => {
-    if (!teamId) return;
-    try {
-      setTeamLoading(true);
-      setTeamError(null);
-      const response = await getDetailOfTeamByTeamId(teamId);
-      setTeam(response);
-      console.log('Team Details:', response);
-    } catch (e) {
-      console.error('Error fetching team details:', e);
-      setTeamError(e?.message || 'Failed to load team');
-    } finally {
-      setTeamLoading(false);
-    }
-  };
+  // const fetchTeamDetails = async (teamId) => {
+  //   if (!teamId) return;
+  //   try {
+  //     setTeamLoading(true);
+  //     const response = await getDetailOfTeamByTeamId(teamId);
+  //     setTeam(response);
+  //     console.log('Team Details:', response);
+  //   } catch (e) {
+  //     console.error('Error fetching team details:', e);
+  //   } finally {
+  //     setTeamLoading(false);
+  //   }
+  // };
 
-  useEffect(() => {
-    if (teamId) {
-      fetchTeamDetails(teamId);
-    }
-  }, [teamId]);
+  // useEffect(() => {
+  //   if (teamId) {
+  //     fetchTeamDetails(teamId);
+  //   }
+  // }, [teamId]);
 
   // Call api to get project details
   const [projectDetails, setProjectDetails] = useState(null);

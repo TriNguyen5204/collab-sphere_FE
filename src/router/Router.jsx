@@ -104,11 +104,11 @@ const studentRoutes = [
   { path: '/student/projects', element: protectRoute(['STUDENT'], <StudentProjectPage />) },
   { path: '/student/classes', element: protectRoute(['STUDENT'], <StudentClassPage />) },
   { path: '/student/profile', element: protectRoute(['STUDENT'], <StudentProfile />) },
-  { path: '/student/project/:projectId/:projectName/:teamId', element: protectRoute(['STUDENT'], <ProjectBoard />) },
-  { path: '/student/project/:projectId/:projectName/:teamId/milestones&checkpoints', element: protectRoute(['STUDENT'], <MilestoneCheckpointPage />) },
+  { path: '/student/project/task-board', element: protectRoute(['STUDENT'], <ProjectBoard />) },
+  { path: '/student/project/milestones&checkpoints', element: protectRoute(['STUDENT'], <MilestoneCheckpointPage />) },
   { path: '/student/project/team-workspace', element: protectRoute(['STUDENT'], <TeamWorkspace />) },
-  { path: '/student/project/:projectId/:projectName/:teamId/pr-analysis/:analysisId', element: protectRoute(['STUDENT'], <ProfessionalAnalysisView />) },
-  { path: '/student/project/:projectId/:projectName/:teamId/meeting-room', element: <Layout/> },
+  { path: '/student/project/pr-analysis/:analysisId', element: protectRoute(['STUDENT'], <ProfessionalAnalysisView />) },
+  { path: '/student/project/meeting-room', element: <Layout/> },
   { path: '/student/project/join-room/:teamId', element: <RoomJoinPage/>},
   { path: '/projects/github-callback', element: protectRoute(['STUDENT'], <GitHubAppCallback />) },
   { path: '/github-callback', element: protectRoute(['STUDENT'], <GitHubAppCallback />) },
@@ -116,7 +116,7 @@ const studentRoutes = [
   { path: '/student/:className/members', element: protectRoute(['STUDENT'], <StudentClassMembersPage />) },
   { path: '/student/:className/projects', element: protectRoute(['STUDENT'], <StudentClassProjectsPage />) },
   { path: '/student/:className/syllabus', element: protectRoute(['STUDENT'], <StudentClassSyllabusPage />) },
-  { path: '/student/project/:projectId/:projectName/:teamId/peer-evaluation', element: protectRoute(['STUDENT'], <PeerEvaluationPage />) },
+  { path: '/student/project/peer-evaluation', element: protectRoute(['STUDENT'], <PeerEvaluationPage />) },
 ];
 
 const authenticatedRoles = ['STUDENT', 'LECTURER', 'STAFF', 'HEAD_DEPARTMENT', 'ADMIN'];

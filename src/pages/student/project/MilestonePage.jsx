@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
 import ProjectBoardHeader from '../../../components/layout/ProjectBoardHeader';
 import MilestoneTimeline from '../../../components/student/milestone/MilestoneTimeline';
 import MilestoneHeader from '../../../components/student/milestone/MilestoneHeader';
@@ -24,9 +23,9 @@ import {
 } from '../../../services/studentApi';
 import { normalizeMilestoneStatus } from '../../../utils/milestoneHelpers';
 import { toast } from 'sonner';
+import useTeam from '../../../context/useTeam';
 
 const MilestonePage = () => {
-  const { teamId } = useParams();
   const [milestones, setMilestones] = useState([]);
   const [selectedMilestone, setSelectedMilestone] = useState(null);
   const [isLoadingList, setIsLoadingList] = useState(false);
@@ -34,6 +33,8 @@ const MilestonePage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newCheckpoint, setNewCheckpoint] = useState({ title: '', description: '', startDate: '', dueDate: '', complexity: 'LOW' });
   const [activeTab, setActiveTab] = useState('all');
+  const { team } = useTeam();
+  const teamId = team?.teamId ?? null;
 
   const normalizeCheckpointStatus = (statusValue) => {
     if (statusValue === null || statusValue === undefined) return 'PROCESSING';

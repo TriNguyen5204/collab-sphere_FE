@@ -9,8 +9,8 @@ import useTeam from '../../../context/useTeam';
 import { useSelector } from 'react-redux';
 
 const PeerEvaluationPage = () => {
-  const { projectId, projectName, teamId } = useParams();
   const { team } = useTeam();
+  const teamId = team?.teamId ?? null;
   const { userId } = useSelector((s) => s.user);
   const [activeTab, setActiveTab] = useState('evaluate');
   const [teamMembers] = useState(() => {

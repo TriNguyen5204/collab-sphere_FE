@@ -5,12 +5,13 @@ import StudentLayout from "../../components/layout/StudentLayout";
 import ProjectFilters from "../../components/student/ProjectFilters";
 import ProjectSection from "../../components/student/ProjectSection";
 import { History } from "lucide-react";
-import { getListOfTeamsByStudentId } from "../../services/studentApi";
+import { getListOfTeamsByStudentId, getDetailOfTeamByTeamId } from "../../services/studentApi";
+import useTeam from "../../context/useTeam";
 
 const StudentProjectPage = () => {
   const navigate = useNavigate();
   const studentId = useSelector((state) => state.user.userId);
-
+  const { setTeam } = useTeam();
   const [loading, setLoading] = useState(true);
 
   // Data
@@ -42,16 +43,17 @@ const StudentProjectPage = () => {
     fetchTeams();
   }, [studentId]);
 
-  const handleCardClick = (team) => {
-    const teamId = team?.teamId;
-    const projectId = team?.projectId;
-    const projectName = team?.projectName || 'project';
-    if (!teamId || !projectId) return;
-    localStorage.setItem('currentProjectContext', JSON.stringify({
-      projectId,
-      teamId,
-      projectName
-    }));
+  const handleCardClick = async (team) => {
+    if (team?.teamId) {
+      try {
+        const response = await getDetailOfTeamByTeamId(team.teamId);
+        setTeam(response);
+      } catch (e) {
+        console.error("Error fetching team details:", e);
+      }
+    } else {
+      setTeam(null);
+    }
     navigate('/student/project/team-workspace');
   };
 

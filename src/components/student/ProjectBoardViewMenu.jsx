@@ -14,11 +14,11 @@ const ProjectBoardViewMenu = () => {
 
   const menuItems = [
     { name: 'Team Workspace', icon: UsersRound, path: `/student/project/team-workspace` },
-    { name: 'Task Board', icon: Kanban, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}` },
-    { name: 'Milestones & Checkpoints', icon: Flag, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/milestones&checkpoints` },
-    { name: 'Peer Evaluation', icon: UsersRound, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/peer-evaluation` },
-    { name: 'Communication', icon: MessageSquare, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/communication` },
-    { name: 'Meeting room', icon: VideoIcon, path: `/student/project/${projectId}/${encodedProjectName}/${effectiveTeamId}/meeting-room`}
+    { name: 'Task Board', icon: Kanban, path: `/student/project/task-board` },
+    { name: 'Milestones & Checkpoints', icon: Flag, path: `/student/project/milestones&checkpoints` },
+    { name: 'Peer Evaluation', icon: UsersRound, path: `/student/project/peer-evaluation` },
+    { name: 'Communication', icon: MessageSquare, path: `/student/project/communication` },
+    { name: 'Meeting room', icon: VideoIcon, path: `/student/project/meeting-room`}
   ];
 
   const normalizePath = (p) => (p || '').replace(/\/+$/, '');

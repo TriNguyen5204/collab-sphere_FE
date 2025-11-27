@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
 import ProjectBoardHeader from '../../../components/layout/ProjectBoardHeader';
 import TrelloBoard from '../../../components/student/board/TrelloBoard';
 import NormalizePositionsButton from '../../../components/student/board/NormalizePositionsButton';
@@ -8,10 +7,12 @@ import { getTeamDetail } from '../../../services/teamApi';
 import { SignalRProvider } from '../../../context/kanban/SignalRContext';
 import { useSelector } from 'react-redux';
 import SignalRErrorBoundary from '../../errors/ErrorBoundary';
+import useTeam from '../../../context/useTeam';
 
 const ProjectBoard = () => {
   const [selectedRole, setSelectedRole] = useState('all');
-  const teamId = useParams().teamId;
+  const { team } = useTeam();
+  const teamId = team?.teamId ?? null;
   const hubUrl = 'https://collabsphere.azurewebsites.net/KanbanServiceHub';
   const accessToken = useSelector(state => state.user.accessToken);
 
