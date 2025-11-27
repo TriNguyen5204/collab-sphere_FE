@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import DashboardLayout from '../../components/DashboardLayout';
@@ -10,7 +10,10 @@ import {
   CheckCircleIcon,
   InformationCircleIcon,
   PlusIcon,
-  SparklesIcon
+  SparklesIcon,
+  ChevronDownIcon,
+  PencilSquareIcon,
+  CpuChipIcon
 } from '@heroicons/react/24/outline';
 import { getLecturerProjects } from '../../services/projectApi';
 import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
@@ -440,9 +443,18 @@ const ProjectLibrary = () => {
       .slice(0, 4);
   }, [projectInsights]);
 
-  const handleCreateProject = () => {
-    navigate('/lecturer/create-project');
-  };
+  const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
+  const createMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (createMenuRef.current && !createMenuRef.current.contains(event.target)) {
+        setIsCreateMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleViewProject = (projectId) => {
     navigate(`/lecturer/projects/${projectId}`);
@@ -452,7 +464,7 @@ const ProjectLibrary = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <section className="relative overflow-hidden rounded-[32px] border border-indigo-100 bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-8 shadow-[0_25px_80px_rgba(15,23,42,0.08)]">
+        <section className="relative rounded-[32px] border border-indigo-100 bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-8 shadow-[0_25px_80px_rgba(15,23,42,0.08)]">
           <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-3xl space-y-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-slate-500">Lecturer project space</p>
@@ -471,14 +483,47 @@ const ProjectLibrary = () => {
                 </span>
               </div>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-col gap-3 sm:flex-row relative" ref={createMenuRef}>
               <button
-                onClick={handleCreateProject}
+                onClick={() => setIsCreateMenuOpen(!isCreateMenuOpen)}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white shadow-[0_20px_45px_rgba(79,70,229,0.35)] transition hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200"
               >
                 <PlusIcon className="h-4 w-4" />
                 New project
+                <ChevronDownIcon className={`h-4 w-4 transition-transform duration-200 ${isCreateMenuOpen ? 'rotate-180' : ''}`} />
               </button>
+
+              {isCreateMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-64 origin-top-right rounded-2xl bg-white p-2 shadow-xl ring-1 ring-black/5 focus:outline-none z-50 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => navigate('/lecturer/create-project')}
+                      className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-sky-600 transition-colors group"
+                    >
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500 group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
+                        <PencilSquareIcon className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="font-semibold">Create Manually</div>
+                        <div className="text-xs text-slate-500 font-normal">Build from scratch</div>
+                      </div>
+                    </button>
+                    
+                    <button
+                      onClick={() => navigate('/lecturer/projects/create-with-ai')}
+                      className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors group"
+                    >
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-500 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors">
+                        <CpuChipIcon className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="font-semibold">Create with AI</div>
+                        <div className="text-xs text-slate-500 font-normal">Generate from PDF</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </section>
