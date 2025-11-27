@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { getEvaluationMemberByTeamId } from '../../../services/studentApi';
 import { Inbox, User, AlertTriangle } from 'lucide-react';
+import { useAvatar } from '../../../hooks/useAvatar';
 import StarRating from './StarRating';
 import { toast } from 'sonner';
 
@@ -43,6 +44,25 @@ const ReceivedEvaluations = ({ teamId }) => {
     }
   }, [teamId]);
 
+  const MemberAvatar = ({ name, src, alt, className }) => {
+    const { initials, colorClass, setImageError, shouldShowImage } = useAvatar(name, src);
+    if (shouldShowImage) {
+      return (
+        <img
+          src={src}
+          alt={alt}
+          onError={() => setImageError(true)}
+          className={className}
+        />
+      );
+    }
+    return (
+      <div className={`${className} flex items-center justify-center ${colorClass}`} aria-hidden>
+        <span className="select-none">{initials}</span>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow p-8 text-center">
@@ -79,10 +99,11 @@ const ReceivedEvaluations = ({ teamId }) => {
       {grouped.map((ev, idx) => (
         <div key={idx} className="bg-white rounded-lg shadow-md p-6 my-4 border border-gray-200">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <img
+              <div className="flex items-center gap-3">
+              <MemberAvatar
+                name={ev.raterName}
                 src={ev.raterAvatar}
-                alt="Profile"
+                alt={ev.raterName}
                 className="w-10 h-10 rounded-full object-cover border-black"
               />
               <div>

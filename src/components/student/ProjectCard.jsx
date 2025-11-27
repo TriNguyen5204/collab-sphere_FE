@@ -1,5 +1,6 @@
 import React from 'react';
 import { Users, User, School } from 'lucide-react';
+import { useAvatar } from '../../hooks/useAvatar';
 
 const clamp = (n) => Math.max(0, Math.min(100, Number.isFinite(n) ? n : 0));
 
@@ -10,6 +11,7 @@ const ProjectCard = ({ project, onClick }) => {
   const lecturerName = project?.lecturerName || "Unknown Lecturer";
   const teamImage = project?.teamImage;
   const progress = clamp(project?.progress);
+  const { initials, colorClass, imageError, setImageError, shouldShowImage } = useAvatar(teamName, teamImage);
 
 
   return (
@@ -18,9 +20,23 @@ const ProjectCard = ({ project, onClick }) => {
       onClick={onClick}
     >
       <div
-        className="flex justify-end items-start rounded-t-lg w-full h-32 bg-blue-300 bg-cover bg-center"
-        style={teamImage ? { backgroundImage: `url(${teamImage})` } : undefined}
+        className={`relative flex justify-end items-start rounded-t-lg w-full h-32 bg-cover bg-center ${shouldShowImage ? '' : colorClass}`}
+        style={shouldShowImage ? { backgroundImage: `url(${teamImage})` } : undefined}
       >
+        {shouldShowImage && (
+          <img
+            src={teamImage}
+            alt=""
+            onError={() => setImageError(true)}
+            onLoad={() => setImageError(false)}
+            className="hidden"
+          />
+        )}
+        {!shouldShowImage && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="text-3xl font-bold">{initials}</span>
+          </div>
+        )}
         <div className="flex flex-col items-end bg-slate-100 rounded-full bg-opacity-70 m-1">
           <span className="text-sm font-bold p-1">{project.semesterName}</span>
         </div>

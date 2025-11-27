@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState } from "react";
 import useTeam from "../../context/useTeam";
+import { useAvatar } from '../../hooks/useAvatar';
 import ProjectMemberPopover from "./ProjectMemberPopover";
 import { useNavigate } from "react-router-dom";
 
@@ -54,6 +55,26 @@ const ProjectMemberAvatars = ({ onSelect }) => {
     [closePopover, navigate]
   );
 
+  const MemberAvatar = ({ name, src, alt, className }) => {
+    const { initials, colorClass, setImageError, shouldShowImage } = useAvatar(name, src);
+    if (shouldShowImage) {
+      return (
+        <img
+          src={src}
+          alt={alt}
+          onError={() => setImageError(true)}
+          className={className}
+        />
+      );
+    }
+
+    return (
+      <div className={`${className} flex items-center justify-center ${colorClass}`} aria-hidden>
+        <span className="select-none">{initials}</span>
+      </div>
+    );
+  };
+
   return (
     <div className="flex -space-x-2 relative">
       {visibleMembers.map((m) => {
@@ -73,7 +94,8 @@ const ProjectMemberAvatars = ({ onSelect }) => {
             className="relative group"
             title={displayMember.name}
           >
-            <img
+            <MemberAvatar
+              name={displayMember.name}
               src={displayMember.avatar}
               alt={displayMember.name}
               className="w-8 h-8 rounded-full bg-white object-cover border group-hover:brightness-75 hover:ring-1 hover:ring-gray-800 transition"

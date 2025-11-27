@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Edit2, Loader2 } from "lucide-react";
-import { generateAvatarFromName } from "../../utils/avatar";
+import { useAvatar } from "../../hooks/useAvatar";
 import { toast } from "sonner";
 const ProfileInformation = ({
   user,
@@ -86,10 +86,7 @@ const ProfileInformation = ({
     }
   };
 
-  const fallbackAvatar = useMemo(
-    () => generateAvatarFromName(profileData.fullname),
-    [profileData.fullname]
-  );
+  const { initials, colorClass, imageError, setImageError, shouldShowImage } = useAvatar(profileData.fullname, profileData.avatar);
 
   const triggerAvatarUpload = () => {
     if (isUploadingAvatar || !canEdit) return;
@@ -149,16 +146,18 @@ const ProfileInformation = ({
 
       <div className="flex items-center gap-6">
         <div className="relative group">
-          <img
-            src={profileData.avatar || fallbackAvatar}
-            alt="Profile"
-            onError={() =>
-              setProfileData((prev) =>
-                prev.avatar === fallbackAvatar ? prev : { ...prev, avatar: fallbackAvatar }
-              )
-            }
-            className="h-32 w-32 rounded-full object-cover border border-gray-200"
-          />
+          {shouldShowImage ? (
+            <img
+              src={profileData.avatar}
+              alt="Profile"
+              onError={() => setImageError(true)}
+              className="h-32 w-32 rounded-full object-cover border border-gray-200"
+            />
+          ) : (
+            <div className={`h-32 w-32 rounded-full flex items-center justify-center text-2xl font-semibold ${colorClass}`}>
+              {initials}
+            </div>
+          )}
           {canEdit && (
             <>
               <button

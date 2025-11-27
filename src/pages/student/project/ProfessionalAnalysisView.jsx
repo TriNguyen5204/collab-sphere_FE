@@ -74,7 +74,6 @@ const ProfessionalAnalysisView = () => {
         <div className="mx-auto max-w-2xl">
           <button
             onClick={() => {
-              localStorage.setItem('currentProjectContext', JSON.stringify({ projectId, teamId, projectName }));
               navigate(`/student/project/team-workspace?tab=ai-review`);
             }}
             className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-gray-600"
@@ -95,7 +94,6 @@ const ProfessionalAnalysisView = () => {
       <div className="mx-auto max-w-7xl">
         <button
           onClick={() => {
-            localStorage.setItem('currentProjectContext', JSON.stringify({ projectId, teamId, projectName }));
             navigate(`/student/project/team-workspace?tab=ai-review`);
           }}
           className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"

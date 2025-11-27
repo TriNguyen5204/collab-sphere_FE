@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader, AlertTriangle } from 'lucide-react';
 import { handleCallback } from '../../../services/githubApi';
+import { useQueryClient } from '@tanstack/react-query';
+import useTeam from '../../../context/useTeam';
+import { getDetailOfTeamByTeamId } from '../../../services/studentApi';
 
 const GitHubAppCallback = () => {
   const navigate = useNavigate();
@@ -12,6 +15,8 @@ const GitHubAppCallback = () => {
   const [errorDetails, setErrorDetails] = useState(null);
   const [installContext, setInstallContext] = useState(null);
   const hasProcessedRef = useRef(false);
+  const queryClient = useQueryClient();
+  const { setTeam } = useTeam();
 
   useEffect(() => {
     const processInstallation = async () => {
@@ -21,6 +26,17 @@ const GitHubAppCallback = () => {
       hasProcessedRef.current = true;
 
       try {
+        let parsedContext = null;
+        const rawContext = localStorage.getItem('github_installation_context');
+        if (rawContext) {
+          try {
+            parsedContext = JSON.parse(rawContext);
+            setInstallContext(parsedContext);
+          } catch (error) {
+            console.warn('Failed to parse github installation context:', error);
+          }
+        }
+
         const installationId = searchParams.get('installation_id');
         const state = searchParams.get('state');
         const setupAction = searchParams.get('setup_action');
@@ -56,22 +72,10 @@ const GitHubAppCallback = () => {
           setStatus('success');
           setMessage('Successfully connected to GitHub!');
           
-          // Retrieve redirect path from localStorage if available
-          const rawContext = localStorage.getItem('github_installation_context');
-          let redirectPath = '/student/projects'; // Default fallback
-          
-          if (rawContext) {
-            try {
-              const context = JSON.parse(rawContext);
-              if (context.redirectPath) {
-                redirectPath = context.redirectPath;
-              }
-              // Clean up localStorage
-              localStorage.removeItem('github_installation_context');
-              localStorage.removeItem('github_installation_project_id');
-            } catch (e) {
-              console.warn('Failed to parse context', e);
-            }
+          let redirectPath = parsedContext?.redirectPath ?? '/student/projects';
+          if (parsedContext) {
+            localStorage.removeItem('github_installation_context');
+            localStorage.removeItem('github_installation_project_id');
           }
 
           setTimeout(() => {
@@ -91,6 +95,30 @@ const GitHubAppCallback = () => {
 
     processInstallation();
   }, [navigate, searchParams]);
+
+  const handleReturnToProject = async () => {
+    if (installContext?.redirectPath) {
+      navigate(installContext.redirectPath);
+      return;
+    }
+
+    const normalizedTeamId = Number(installContext?.teamId);
+    if (Number.isFinite(normalizedTeamId)) {
+      try {
+        await queryClient.prefetchQuery({
+          queryKey: ['team-detail', normalizedTeamId],
+          queryFn: () => getDetailOfTeamByTeamId(normalizedTeamId),
+        });
+      } catch (error) {
+        console.error('Failed to prefetch team details:', error);
+      }
+      setTeam(normalizedTeamId);
+      navigate('/student/project/team-workspace');
+      return;
+    }
+
+    navigate('/student/projects');
+  };
 
   /**
    * Render loading state
@@ -172,24 +200,7 @@ const GitHubAppCallback = () => {
               </div>
             )}
             <button
-              onClick={() => {
-                if (installContext?.redirectPath) {
-                  navigate(installContext.redirectPath);
-                  return;
-                }
-
-                if (installContext?.projectId && installContext?.projectName && installContext?.teamId) {
-                  localStorage.setItem('currentProjectContext', JSON.stringify({
-                    projectId: installContext.projectId,
-                    teamId: installContext.teamId,
-                    projectName: installContext.projectName
-                  }));
-                  navigate('/student/project/team-workspace');
-                  return;
-                }
-
-                navigate('/student/projects');
-              }}
+              onClick={handleReturnToProject}
               className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
             >
               Return to project page

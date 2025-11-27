@@ -66,18 +66,15 @@ const ProjectBoardViewMenu = () => {
                 <Link
                   to={path}
                   onClick={() => {
-                    if (name === 'Team Workspace') {
-                      localStorage.setItem('currentProjectContext', JSON.stringify({ projectId, teamId: effectiveTeamId, projectName }));
-                    }
                     setOpen(false);
                   }}
-                  className={`flex items-center px-4 py-2.5 hover:bg-gray-700 rounded transition ${
-                    isActive ? 'bg-gray-700 text-white font-semibold' : ''
+                  className={`flex items-center px-4 py-2.5 hover:bg-orangeFpt-600 rounded transition ${
+                    isActive ? 'bg-orangeFpt-500 text-white font-semibold' : ''
                   }`}
                 >
                   <Icon className="w-4 h-4 mr-3" />
                   <span className="flex-1">{name}</span>
-                  {isActive && <div className="w-2 h-2 bg-orangeFpt-500 rounded-full"></div>}
+                  {isActive && <div className="w-2 h-2 bg-green-500 rounded-full"></div>}
                 </Link>
               </li>
             );

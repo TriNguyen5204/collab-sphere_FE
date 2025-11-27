@@ -188,7 +188,7 @@ const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
 
   const handleViewAnalysis = (analysisId) => {
     if (!analysisId) return;
-    navigate(`/student/project/${projectId}/${projectName}/${teamId}/pr-analysis/${analysisId}`);
+    navigate(`/student/project/pr-analysis/${analysisId}`);
   };
 
   if (loading) {

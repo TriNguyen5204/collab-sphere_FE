@@ -16,13 +16,12 @@ import AppSidebar from './layout/AppSidebar';
 import logo from '../assets/logov1.png';
 import { logout } from '../store/slices/userSlice';
 import useClickOutside from '../hooks/useClickOutside';
-import { generateAvatarFromName } from '../utils/avatar';
+import { useAvatar } from '../hooks/useAvatar';
 
 
 const LecturerHeader = ({
   fullName,
   avatar,
-  fallbackAvatar,
   isAuthenticated,
   onProfile,
   onLogout,
@@ -36,7 +35,7 @@ const LecturerHeader = ({
   const searchRef = useRef(null);
   const profileRef = useRef(null);
   const navigate = useNavigate();
-
+  const { initials, colorClass, imageError, setImageError, shouldShowImage } = useAvatar(fullName, avatar);
   useClickOutside(searchRef, () => setOpenSearch(false));
   useClickOutside(profileRef, () => setOpenProfile(false));
 
@@ -114,12 +113,18 @@ const LecturerHeader = ({
                   onClick={() => setOpenProfile(prev => !prev)}
                   className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 >
-                  <img
-                    src={avatar || fallbackAvatar}
-                    alt="Profile"
-                    onError={(e) => { e.target.src = fallbackAvatar; }}
-                    className="w-7 h-7 rounded-full object-cover border border-slate-200"
-                  />
+                  {shouldShowImage ? (
+                    <img
+                      src={avatar}
+                      alt="Profile"
+                      onError={() => setImageError(true)}
+                      className="w-7 h-7 rounded-full object-cover border border-slate-200"
+                    />
+                  ) : (
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold ${colorClass}`}>
+                      {initials}
+                    </div>
+                  )}
                   <span className="hidden sm:inline max-w-[160px] truncate">{fullName || 'Lecturer'}</span>
                   <ChevronDown className="w-4 h-4 text-slate-400" />
                 </button>
@@ -303,7 +308,7 @@ const DashboardLayout = ({ children }) => {
     },
   ]), [computedNavigationItems]);
 
-  const fallbackAvatar = useMemo(() => generateAvatarFromName(fullName), [fullName]);
+  
 
   const handleLogin = useCallback(() => navigate('/login'), [navigate]);
   const handleSignup = useCallback(() => navigate('/register'), [navigate]);
@@ -321,7 +326,6 @@ const DashboardLayout = ({ children }) => {
       <LecturerHeader
         fullName={fullName}
         avatar={avatar}
-        fallbackAvatar={fallbackAvatar}
         isAuthenticated={isAuthenticated}
         onProfile={handleProfile}
         onLogout={handleLogout}

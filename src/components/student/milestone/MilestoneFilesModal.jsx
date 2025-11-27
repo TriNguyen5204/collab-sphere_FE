@@ -123,27 +123,9 @@ const MilestoneFilesModal = ({ isOpen, files = [], milestoneId = null, onClose =
                           )}
                         </p>
                         <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                          <p>Uploaded by</p>
-                          {(file?.owner || formattedCreatedAt) && (
-                            <span className="flex items-center gap-2 min-w-0">
                               <span className="flex items-center gap-2">
-                                {file?.ownerAvatar ? (
-                                  <img
-                                    src={file.ownerAvatar}
-                                    alt={`${file.owner || 'Lecturer'} avatar`}
-                                    className="h-5 w-5 flex-shrink-0 rounded-full object-cover"
-                                  />
-                                ) : (
-                                  <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-500">
-                                    <User size={16} />
-                                  </span>
-                                )}
-                                <span className='font-medium text-gray-700'>
-                                  {file?.owner || 'Lecturer'} • <span className='text-gray-500'>{formattedCreatedAt}</span>
-                                </span>
+                                  Uploaded by {file?.owner || 'Lecturer'} • {formattedCreatedAt}
                               </span>
-                            </span>
-                          )}
                         </div>
                       </div>
                     </button>

@@ -1,5 +1,4 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import StudentLayout from "../../components/layout/StudentLayout";
 import { Calendar, TrendingUp, Users, CheckCircle2, Clock, AlertCircle, Target } from "lucide-react";
 
@@ -57,18 +56,6 @@ const getDaysUntilDeadline = (deadline) => {
 };
 
 const StudentHomePage = () => {
-  const navigate = useNavigate();
-
-  const handleCardClick = (project) => {
-    localStorage.setItem('currentProjectContext', JSON.stringify({
-      projectId: project.ProjectId,
-      teamId: project.TeamId || 1, // Default to 1 if missing in sample data
-      projectName: project.ProjectName
-    }));
-    navigate('/student/project/team-workspace');
-  };
-
-
   // Calculate overall progress
   const overallProgress = Math.round(
     sampleProjects.reduce((acc, p) => acc + p.Progress, 0) / sampleProjects.length

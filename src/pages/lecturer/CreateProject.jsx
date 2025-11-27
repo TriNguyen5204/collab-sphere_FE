@@ -1,75 +1,41 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { 
+  UploadCloud, 
+  FileText, 
+  X, 
+  Plus, 
+  Trash2, 
+  Calendar, 
+  Flag, 
+  CheckCircle2, 
+  Circle, 
+  AlertCircle,
+  ArrowLeft,
+  LayoutDashboard,
+  Target
+} from "lucide-react";
 
-import styles from "./CreateProject.module.css";
 import { createProject } from "../../services/projectApi";
 import { getAllSubject } from "../../services/userService";
 import LecturerBreadcrumbs from "../../features/lecturer/components/LecturerBreadcrumbs";
+// Reuse the dashboard layout to keep sidebar/nav consistent
+import DashboardLayout from "../../components/DashboardLayout";
 
 const PRIORITY_OPTIONS = [
-  { label: "High impact", value: "HIGH" },
-  { label: "Medium focus", value: "MEDIUM" },
-  { label: "Foundational", value: "LOW" },
+  { label: "High impact", value: "HIGH", color: "text-red-600 bg-red-50 border-red-200" },
+  { label: "Medium focus", value: "MEDIUM", color: "text-orangeFpt-600 bg-orangeFpt-50 border-orangeFpt-200" },
+  { label: "Foundational", value: "LOW", color: "text-slate-600 bg-slate-50 border-slate-200" },
 ];
 
-const UploadCloudIcon = ({ className = "" }) => (
-  <svg
-    className={className}
-    viewBox="0 0 48 48"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-  >
-    <path
-      d="M24 8c-4.9 0-9.14 3.14-10.56 7.69A8.73 8.73 0 0 0 16.5 33.5h15.12a7.88 7.88 0 0 0 1.27-15.67C31.76 12.59 28.22 8 24 8Z"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M24 27.5V18"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M19.5 22.5 24 18l4.5 4.5"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M13.5 33.5H34"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
 const parseDateInput = (value) => {
-  if (!value) {
-    return null;
-  }
-
+  if (!value) return null;
   const parts = value.split("-").map(Number);
-  if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) {
-    return null;
-  }
-
+  if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) return null;
   const [year, month, day] = parts;
   const parsed = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-
-  if (Number.isNaN(parsed.getTime())) {
-    return null;
-  }
-
-  return parsed;
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
 const generateId = () => Math.random().toString(36).slice(2, 10);
@@ -90,18 +56,9 @@ const createEmptyObjective = () => ({
 });
 
 const normaliseSubjectList = (payload) => {
-  if (!payload) {
-    return [];
-  }
-
-  if (Array.isArray(payload)) {
-    return payload;
-  }
-
-  if (Array.isArray(payload?.data)) {
-    return payload.data;
-  }
-
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
   return [];
 };
 
@@ -127,6 +84,7 @@ const CreateProject = () => {
   const [formErrors, setFormErrors] = useState({});
   const [submissionError, setSubmissionError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const breadcrumbItems = useMemo(() => {
     if (classId) {
       return [
@@ -143,432 +101,145 @@ const CreateProject = () => {
 
   useEffect(() => {
     let isMounted = true;
-
     const fetchSubjects = async () => {
       setIsLoadingSubjects(true);
       setSubjectError("");
-
       try {
         const result = await getAllSubject();
-        if (!isMounted) {
-          return;
-        }
-
-        const list = normaliseSubjectList(result);
-        setSubjects(list);
+        if (!isMounted) return;
+        setSubjects(normaliseSubjectList(result));
       } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        console.error("Failed to load subjects for project creation.", error);
+        if (!isMounted) return;
         setSubjects([]);
-        setSubjectError("Unable to load subjects right now. Please try again.");
+        setSubjectError("Unable to load subjects right now.");
       } finally {
-        if (isMounted) {
-          setIsLoadingSubjects(false);
-        }
+        if (isMounted) setIsLoadingSubjects(false);
       }
     };
-
     fetchSubjects();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
-  const dateFormatter = useMemo(
-    () =>
-      new Intl.DateTimeFormat(undefined, {
-        month: "short",
-        day: "numeric",
-      }),
-    []
-  );
+  const dateFormatter = useMemo(() => new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }), []);
 
-  // Used to compute the readiness score and checklist displayed in the sidebar.
+  // Readiness Logic
   const readinessChecklist = useMemo(() => {
     const projectNameReady = Boolean(formState.projectName.trim());
     const subjectReady = Boolean(formState.subjectId);
     const descriptionReady = Boolean(formState.description.trim());
-
-    const hasDescribedObjective = formState.objectives.some((objective) =>
-      Boolean(objective.description.trim())
-    );
-
-    const milestonesValid = formState.objectives.every((objective) =>
-      objective.milestones.length > 0 &&
-      objective.milestones.every((milestone) => {
-        if (!milestone.title.trim() || !milestone.startDate || !milestone.endDate) {
-          return false;
-        }
-
-        return milestone.startDate <= milestone.endDate;
-      })
+    const hasDescribedObjective = formState.objectives.some((obj) => Boolean(obj.description.trim()));
+    const milestonesValid = formState.objectives.every((obj) =>
+      obj.milestones.length > 0 &&
+      obj.milestones.every((m) => m.title.trim() && m.startDate && m.endDate && m.startDate <= m.endDate)
     );
 
     return [
       { id: "projectName", label: "Project name added", complete: projectNameReady },
       { id: "subject", label: "Subject selected", complete: subjectReady },
       { id: "description", label: "Description drafted", complete: descriptionReady },
-      {
-        id: "objectives",
-        label: "Learning objectives captured",
-        complete: hasDescribedObjective,
-      },
-      {
-        id: "milestones",
-        label: "Milestones scheduled with dates",
-        complete: milestonesValid,
-      },
+      { id: "objectives", label: "Objectives defined", complete: hasDescribedObjective },
+      { id: "milestones", label: "Milestones scheduled", complete: milestonesValid },
     ];
   }, [formState]);
 
   const readinessProgress = useMemo(() => {
     const total = readinessChecklist.length;
-    if (!total) {
-      return 0;
-    }
-
+    if (!total) return 0;
     const completed = readinessChecklist.filter((item) => item.complete).length;
     return Math.round((completed / total) * 100);
   }, [readinessChecklist]);
 
-  const readinessCounts = useMemo(() => {
-    const total = readinessChecklist.length;
-    const completed = readinessChecklist.filter((item) => item.complete).length;
-    return { total, completed };
-  }, [readinessChecklist]);
+  const totalMilestones = useMemo(() => 
+    formState.objectives.reduce((count, obj) => count + obj.milestones.length, 0), 
+  [formState.objectives]);
 
-  const milestoneRange = useMemo(() => {
-    const collected = formState.objectives
-      .flatMap((objective) =>
-        objective.milestones.map((milestone) => {
-          const start = parseDateInput(milestone.startDate);
-          const end = parseDateInput(milestone.endDate);
+  const selectedSubject = useMemo(() => 
+    subjects.find((s) => String(s.subjectId) === String(formState.subjectId)) ?? null, 
+  [subjects, formState.subjectId]);
 
-          if (!start || !end) {
-            return null;
-          }
+  const hasMinimumData = readinessProgress === 100;
 
-          return { start, end };
-        })
-      )
-      .filter(Boolean);
+  // Handlers
+  const handleBaseFieldChange = (field, value) => setFormState(prev => ({ ...prev, [field]: value }));
 
-    if (!collected.length) {
-      return null;
-    }
+  const handleObjectiveChange = (objId, key, value) => {
+    setFormState(prev => ({
+      ...prev,
+      objectives: prev.objectives.map(obj => obj.id === objId ? { ...obj, [key]: value } : obj)
+    }));
+  };
 
-    const initial = collected[0];
-    return collected.reduce(
-      (range, current) => ({
-        start: current.start < range.start ? current.start : range.start,
-        end: current.end > range.end ? current.end : range.end,
-      }),
-      { start: initial.start, end: initial.end }
-    );
-  }, [formState.objectives]);
-
-  const milestoneRangeLabel = useMemo(() => {
-    if (!milestoneRange) {
-      return "";
-    }
-
-    const startYear = milestoneRange.start.getUTCFullYear();
-    const endYear = milestoneRange.end.getUTCFullYear();
-    const startLabel = dateFormatter.format(milestoneRange.start);
-    const endLabel = dateFormatter.format(milestoneRange.end);
-
-    if (milestoneRange.start.getTime() === milestoneRange.end.getTime()) {
-      return `${startLabel} ${startYear}`;
-    }
-
-    if (startYear === endYear) {
-      return `${startLabel} – ${endLabel} ${startYear}`;
-    }
-
-    return `${startLabel} ${startYear} – ${endLabel} ${endYear}`;
-  }, [milestoneRange, dateFormatter]);
-
-  // Surface contextual suggestions in the sidebar as the form is filled out.
-  const dynamicInsights = useMemo(() => {
-    const insights = [];
-
-    if (!formState.projectName.trim()) {
-      insights.push("Give your project a concise, action-oriented title to boost engagement.");
-    }
-
-    if (formState.description.trim().length && formState.description.trim().length < 120) {
-      insights.push("Expand the description to include deliverables and assessment focus (aim for 2–3 sentences).");
-    }
-
-    if (!formState.description.trim()) {
-      insights.push("Describe how this project supports the subject outcomes to help reviewers.");
-    }
-
-    const hasSupportingDocument = Boolean(uploadedFile);
-    if (!hasSupportingDocument) {
-      insights.push("Attach a supporting brief so AI assistance and reviewers have immediate context.");
-    }
-
-    const objectivesIncomplete = formState.objectives.some(
-      (objective) => !objective.description.trim() || !objective.milestones.length
-    );
-    if (objectivesIncomplete) {
-      insights.push("Ensure each objective includes a clear description and at least one milestone.");
-    }
-
-    const milestonesMissingDates = formState.objectives.some((objective) =>
-      objective.milestones.some(
-        (milestone) => !milestone.startDate || !milestone.endDate || milestone.startDate > milestone.endDate
-      )
-    );
-    if (milestonesMissingDates) {
-      insights.push("Set start and end dates to give students a tangible rhythm for delivery.");
-    }
-
-    if (milestoneRange && readinessProgress === 100) {
-      insights.length = 0;
-    }
-
-    if (!insights.length) {
-      return insights;
-    }
-
-    return insights.slice(0, 4);
-  }, [formState, milestoneRange, readinessProgress, uploadedFile]);
-
-  const totalMilestones = useMemo(
-    () =>
-      formState.objectives.reduce(
-        (count, objective) => count + objective.milestones.length,
-        0
-      ),
-    [formState.objectives]
-  );
-
-  const selectedSubject = useMemo(
-    () =>
-      subjects.find(
-        (subject) => String(subject.subjectId) === String(formState.subjectId)
-      ) ?? null,
-    [subjects, formState.subjectId]
-  );
-
-  const hasMinimumData = useMemo(() => {
-    if (!formState.projectName.trim() || !formState.description.trim() || !formState.subjectId) {
-      return false;
-    }
-
-    return formState.objectives.every((objective) => {
-      if (!objective.description.trim() || !objective.milestones.length) {
-        return false;
-      }
-
-      return objective.milestones.every((milestone) => {
-        if (!milestone.title.trim() || !milestone.startDate || !milestone.endDate) {
-          return false;
+  const handleMilestoneChange = (objId, mId, key, value) => {
+    setFormState(prev => ({
+      ...prev,
+      objectives: prev.objectives.map(obj => 
+        obj.id !== objId ? obj : {
+          ...obj,
+          milestones: obj.milestones.map(m => m.id === mId ? { ...m, [key]: value } : m)
         }
-
-        return milestone.startDate <= milestone.endDate;
-      });
-    });
-  }, [formState]);
-
-  const handleBaseFieldChange = (field, value) => {
-    setFormState((prev) => ({
-      ...prev,
-      [field]: value,
+      )
     }));
   };
 
-  const handleObjectiveChange = (objectiveId, key, value) => {
-    setFormState((prev) => ({
+  const handleAddObjective = () => setFormState(prev => ({ ...prev, objectives: [...prev.objectives, createEmptyObjective()] }));
+  const handleRemoveObjective = (id) => setFormState(prev => ({ ...prev, objectives: prev.objectives.filter(o => o.id !== id) }));
+  
+  const handleAddMilestone = (objId) => {
+    setFormState(prev => ({
       ...prev,
-      objectives: prev.objectives.map((objective) =>
-        objective.id === objectiveId ? { ...objective, [key]: value } : objective
-      ),
+      objectives: prev.objectives.map(obj => 
+        obj.id === objId ? { ...obj, milestones: [...obj.milestones, createEmptyMilestone()] } : obj
+      )
     }));
   };
 
-  const handleMilestoneChange = (objectiveId, milestoneId, key, value) => {
-    setFormState((prev) => ({
+  const handleRemoveMilestone = (objId, mId) => {
+    setFormState(prev => ({
       ...prev,
-      objectives: prev.objectives.map((objective) => {
-        if (objective.id !== objectiveId) {
-          return objective;
-        }
-
-        return {
-          ...objective,
-          milestones: objective.milestones.map((milestone) =>
-            milestone.id === milestoneId ? { ...milestone, [key]: value } : milestone
-          ),
-        };
-      }),
+      objectives: prev.objectives.map(obj => 
+        obj.id === objId ? { ...obj, milestones: obj.milestones.filter(m => m.id !== mId) } : obj
+      )
     }));
   };
 
-  const handleAddObjective = () => {
-    setFormState((prev) => ({
-      ...prev,
-      objectives: [...prev.objectives, createEmptyObjective()],
-    }));
-  };
-
-  const handleRemoveObjective = (objectiveId) => {
-    setFormState((prev) => ({
-      ...prev,
-      objectives: prev.objectives.filter((objective) => objective.id !== objectiveId),
-    }));
-  };
-
-  const handleAddMilestone = (objectiveId) => {
-    setFormState((prev) => ({
-      ...prev,
-      objectives: prev.objectives.map((objective) =>
-        objective.id === objectiveId
-          ? { ...objective, milestones: [...objective.milestones, createEmptyMilestone()] }
-          : objective
-      ),
-    }));
-  };
-
-  const handleRemoveMilestone = (objectiveId, milestoneId) => {
-    setFormState((prev) => ({
-      ...prev,
-      objectives: prev.objectives.map((objective) =>
-        objective.id === objectiveId
-          ? {
-              ...objective,
-              milestones: objective.milestones.filter(
-                (milestone) => milestone.id !== milestoneId
-              ),
-            }
-          : objective
-      ),
-    }));
-  };
-
+  // File Upload Handlers
   const handleFileUpload = (file) => {
-    if (!file) {
-      return;
-    }
-
-    const allowed =
-      file.type === "application/pdf" ||
-      file.type.includes("document") ||
-      file.type === "text/plain";
-
-    if (!allowed) {
-      alert("Please upload a PDF, Word document, or text file.");
-      return;
-    }
-
+    if (!file) return;
+    const allowed = file.type === "application/pdf" || file.type.includes("document") || file.type === "text/plain";
+    if (!allowed) { alert("Please upload a PDF, Word document, or text file."); return; }
     setUploadedFile(file);
-  };
-
-  const handleFileInputChange = (event) => {
-    const file = event.target.files?.[0];
-    handleFileUpload(file);
-  };
-
-  const handleDragEnter = (event) => {
-    event.preventDefault();
-    setIsDragOver(true);
-  };
-
-  const handleDragLeave = (event) => {
-    event.preventDefault();
-    setIsDragOver(false);
-  };
-
-  const handleDragOver = (event) => {
-    event.preventDefault();
-  };
-
-  const handleDrop = (event) => {
-    event.preventDefault();
-    setIsDragOver(false);
-    const files = Array.from(event.dataTransfer.files ?? []);
-    handleFileUpload(files[0]);
   };
 
   const validateForm = () => {
     const errors = {};
+    if (!formState.projectName.trim()) errors.projectName = "Project name is required.";
+    if (!formState.description.trim()) errors.description = "Project description is required.";
+    if (!formState.subjectId) errors.subjectId = "Subject is required.";
 
-    if (!formState.projectName.trim()) {
-      errors.projectName = "Project name is required.";
-    }
-
-    if (!formState.description.trim()) {
-      errors.description = "Please provide a project description.";
-    }
-
-    if (!formState.subjectId) {
-      errors.subjectId = "Select a subject for this project.";
-    } else if (Number.isNaN(Number(formState.subjectId))) {
-      errors.subjectId = "Subject selection is invalid.";
-    }
-
-    const objectiveErrors = formState.objectives.reduce((accumulator, objective) => {
+    const objErrors = {};
+    formState.objectives.forEach(obj => {
       const current = {};
+      if (!obj.description.trim()) current.description = "Required";
+      const mErrors = {};
+      obj.milestones.forEach(m => {
+        const mIssue = {};
+        if (!m.title.trim()) mIssue.title = "Required";
+        if (!m.startDate) mIssue.startDate = "Required";
+        if (!m.endDate) mIssue.endDate = "Required";
+        if (m.startDate && m.endDate && m.startDate > m.endDate) mIssue.endDate = "Invalid range";
+        if (Object.keys(mIssue).length) mErrors[m.id] = mIssue;
+      });
+      if (Object.keys(mErrors).length) current.milestones = mErrors;
+      if (Object.keys(current).length) objErrors[obj.id] = current;
+    });
 
-      if (!objective.description.trim()) {
-        current.description = "Objective description is required.";
-      }
-
-      if (!objective.milestones.length) {
-        current.milestones = { general: "Add at least one milestone for this objective." };
-      } else {
-        const milestoneErrors = objective.milestones.reduce((milestoneAccumulator, milestone) => {
-          const milestoneIssue = {};
-
-          if (!milestone.title.trim()) {
-            milestoneIssue.title = "Milestone title is required.";
-          }
-          if (!milestone.startDate) {
-            milestoneIssue.startDate = "Provide a start date.";
-          }
-          if (!milestone.endDate) {
-            milestoneIssue.endDate = "Provide an end date.";
-          }
-          if (milestone.startDate && milestone.endDate && milestone.startDate > milestone.endDate) {
-            milestoneIssue.endDate = "End date must be on or after the start date.";
-          }
-
-          if (Object.keys(milestoneIssue).length > 0) {
-            milestoneAccumulator[milestone.id] = milestoneIssue;
-          }
-
-          return milestoneAccumulator;
-        }, {});
-
-        if (Object.keys(milestoneErrors).length > 0) {
-          current.milestones = milestoneErrors;
-        }
-      }
-
-      if (Object.keys(current).length > 0) {
-        accumulator[objective.id] = current;
-      }
-
-      return accumulator;
-    }, {});
-
-    if (Object.keys(objectiveErrors).length > 0) {
-      errors.objectives = objectiveErrors;
-    }
-
+    if (Object.keys(objErrors).length) errors.objectives = objErrors;
     return errors;
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setSubmissionError("");
-
     const errors = validateForm();
     setFormErrors(errors);
 
@@ -578,15 +249,7 @@ const CreateProject = () => {
     }
 
     if (!lecturerId) {
-      setSubmissionError("Your lecturer session has expired. Please sign in again.");
-      return;
-    }
-
-    const lecturerIdentifier = Number.isNaN(Number(lecturerId)) ? lecturerId : Number(lecturerId);
-    const subjectIdentifier = Number(formState.subjectId);
-
-    if (Number.isNaN(subjectIdentifier)) {
-      setSubmissionError("Subject selection is invalid.");
+      setSubmissionError("Session expired. Please sign in again.");
       return;
     }
 
@@ -594,586 +257,408 @@ const CreateProject = () => {
       project: {
         projectName: formState.projectName.trim(),
         description: formState.description.trim(),
-        lecturerId: lecturerIdentifier,
-        subjectId: subjectIdentifier,
-        objectives: formState.objectives.map((objective) => ({
-          description: objective.description.trim(),
-          priority: objective.priority,
-          objectiveMilestones: objective.milestones.map((milestone) => ({
-            title: milestone.title.trim(),
-            description: milestone.description.trim(),
-            startDate: milestone.startDate,
-            endDate: milestone.endDate,
+        lecturerId: Number(lecturerId),
+        subjectId: Number(formState.subjectId),
+        objectives: formState.objectives.map((obj) => ({
+          description: obj.description.trim(),
+          priority: obj.priority,
+          objectiveMilestones: obj.milestones.map((m) => ({
+            title: m.title.trim(),
+            description: m.description.trim(),
+            startDate: m.startDate,
+            endDate: m.endDate,
           })),
         })),
       }
     };
 
     setIsSubmitting(true);
-
     try {
       await createProject(payload);
-      alert("Project created successfully.");
-      const nextRoute = classId
-        ? `/lecturer/classes/${classId}/projects`
-        : "/lecturer/projects";
-      navigate(nextRoute);
+      // Optional: Add success toast here
+      navigate(classId ? `/lecturer/classes/${classId}/projects` : "/lecturer/projects");
     } catch (error) {
-      console.error("Failed to create project.", error);
-      const message =
-        error?.response?.data?.message ?? "Unable to create the project. Please try again.";
-      setSubmissionError(message);
+      console.error(error);
+      setSubmissionError(error?.response?.data?.message ?? "Unable to create project.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroInner}>
-          <LecturerBreadcrumbs items={breadcrumbItems} className={styles.breadcrumbSlot} />
-
-          <div className={styles.heroContent}>
-            <div className={styles.heroText}>
-              <p className={styles.eyebrow}>Lecturer workspace</p>
-              <h1 className={styles.heroTitle}>Create a project manually</h1>
-              <p className={styles.heroSubtitle}>
-                Submit a project directly to the approval workflow. Uploading a supporting document is optional for now and
-                will power AI assistance in a later update.
-              </p>
-            </div>
-            <div className={styles.heroStats}>
-              <div className={styles.heroStatCard}>
-                <span className={styles.heroStatLabel}>Objectives configured</span>
-                <strong className={styles.heroStatValue}>{formState.objectives.length}</strong>
-                <span className={styles.heroStatNote}>Each objective should capture a core learning goal.</span>
+    <DashboardLayout>
+      <div className="min-h-screen space-y-8 bg-slate-50/50 p-6 lg:p-8">
+        
+        {/* --- HEADER --- */}
+        <div className="mx-auto max-w-5xl">
+          <LecturerBreadcrumbs items={breadcrumbItems} />
+          
+          <div className="mt-6 relative overflow-hidden rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50">
+            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-orangeFpt-100/50 blur-3xl"></div>
+            
+            <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="space-y-4 max-w-2xl">
+                <div>
+                   <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Lecturer Workspace</span>
+                   <h1 className="text-3xl font-bold text-slate-900 mt-1">Create New Project</h1>
+                </div>
+                <p className="text-lg text-slate-500">
+                  Design a structured project with clear objectives and milestones to guide student teams through their coursework.
+                </p>
               </div>
-              <div className={styles.heroStatCard}>
-                <span className={styles.heroStatLabel}>Milestones planned</span>
-                <strong className={styles.heroStatValue}>{totalMilestones}</strong>
-                <span className={styles.heroStatNote}>Milestones become checkpoints for teams.</span>
+              
+              <div className="flex gap-4">
+                 <div className="flex flex-col items-end rounded-2xl bg-slate-50 border border-slate-100 p-4 min-w-[140px]">
+                    <span className="text-xs font-bold uppercase text-slate-400">Objectives</span>
+                    <span className="text-3xl font-bold text-orangeFpt-600">{formState.objectives.length}</span>
+                 </div>
+                 <div className="flex flex-col items-end rounded-2xl bg-slate-50 border border-slate-100 p-4 min-w-[140px]">
+                    <span className="text-xs font-bold uppercase text-slate-400">Milestones</span>
+                    <span className="text-3xl font-bold text-blue-600">{totalMilestones}</span>
+                 </div>
               </div>
             </div>
           </div>
         </div>
-      </header>
 
-      <form className={styles.pageBody} onSubmit={handleSubmit} noValidate>
-        <div className={styles.primaryColumn}>
-          <section className={styles.card}>
-            <div className={styles.cardHeader}>
-              <div>
-                <h2 className={styles.cardTitle}>1. Optional project brief</h2>
-                <p className={styles.cardSubtitle}>
-                  Attach a syllabus or requirements document if you have one. We will keep it ready for the upcoming AI
-                  flow.
-                </p>
+        {/* --- MAIN FORM CONTENT --- */}
+        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 lg:grid-cols-3">
+          
+          {/* LEFT COLUMN (Form) */}
+          <div className="space-y-8 lg:col-span-2">
+            
+            {/* 1. Project Basics */}
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
+                <h2 className="text-lg font-bold text-slate-800">1. Project Details</h2>
               </div>
-              {uploadedFile && (
-                <button type="button" className={styles.cardAction} onClick={() => setUploadedFile(null)}>
-                  Remove file
-                </button>
-              )}
-            </div>
-
-            <div
-              className={`${styles.uploadDropzone} ${isDragOver ? styles.isDragOver : ""}`}
-              onDragEnter={handleDragEnter}
-              onDragLeave={handleDragLeave}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-            >
-              {uploadedFile ? (
-                <div className={styles.fileSummary}>
-                  <div className={styles.fileBadge}>Attached</div>
-                  <div className={styles.fileMeta}>
-                    <span className={styles.fileName}>{uploadedFile.name}</span>
-                    <span className={styles.fileSize}>{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</span>
-                  </div>
+              
+              <div className="space-y-6">
+                {/* Project Name */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700">Project Name <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-4 focus:ring-orangeFpt-500/10"
+                    placeholder="e.g. E-Commerce Microservices Architecture"
+                    value={formState.projectName}
+                    onChange={(e) => handleBaseFieldChange("projectName", e.target.value)}
+                  />
+                  {formErrors.projectName && <p className="text-xs text-red-500">{formErrors.projectName}</p>}
                 </div>
-              ) : (
-                <div className={styles.uploadVisual}>
-                  <UploadCloudIcon className={styles.uploadIcon} />
-                  <div className={styles.uploadText}>Drag & drop or browse to upload documentation</div>
-                  <div className={styles.uploadHint}>Supported formats: PDF, DOCX, TXT</div>
+
+                {/* Subject Select */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700">Subject <span className="text-red-500">*</span></label>
+                  {isLoadingSubjects ? (
+                    <div className="h-11 w-full animate-pulse rounded-xl bg-slate-100"></div>
+                  ) : (
+                    <select
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-4 focus:ring-orangeFpt-500/10"
+                      value={formState.subjectId}
+                      onChange={(e) => handleBaseFieldChange("subjectId", e.target.value)}
+                    >
+                      <option value="">Select a subject...</option>
+                      {subjects.map((s) => (
+                        <option key={s.subjectId} value={s.subjectId}>{s.subjectName} ({s.subjectCode})</option>
+                      ))}
+                    </select>
+                  )}
+                  {formErrors.subjectId && <p className="text-xs text-red-500">{formErrors.subjectId}</p>}
                 </div>
-              )}
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx,.txt"
-                className={styles.fileInput}
-                onChange={handleFileInputChange}
-              />
-            </div>
 
-            <p className={styles.uploadNotice}>Files will be linked to AI-assisted generation when it launches.</p>
-          </section>
-
-          <section className={styles.card}>
-            <div className={styles.cardHeader}>
-              <div>
-                <h2 className={styles.cardTitle}>2. Project details</h2>
-                <p className={styles.cardSubtitle}>These fields publish directly to the lecturer project workspace.</p>
-              </div>
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label className={styles.label} htmlFor="project-name">
-                Project name
-              </label>
-              <input
-                id="project-name"
-                type="text"
-                className={styles.input}
-                placeholder="e.g. Collaborative AI research project"
-                value={formState.projectName}
-                onChange={(event) => handleBaseFieldChange("projectName", event.target.value)}
-              />
-              {formErrors.projectName && (
-                <p className={styles.fieldError}>{formErrors.projectName}</p>
-              )}
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label className={styles.label} htmlFor="subject-select">
-                Subject
-              </label>
-              {isLoadingSubjects ? (
-                <div className={styles.loadingMessage}>Loading subjects</div>
-              ) : (
-                <select
-                  id="subject-select"
-                  className={styles.select}
-                  value={formState.subjectId}
-                  onChange={(event) => handleBaseFieldChange("subjectId", event.target.value)}
-                >
-                  <option value="">Select subject</option>
-                  {subjects.map((subject) => (
-                    <option key={subject.subjectId} value={subject.subjectId}>
-                      {subject.subjectName}
-                    </option>
-                  ))}
-                </select>
-              )}
-              {subjectError && <p className={styles.fieldError}>{subjectError}</p>}
-              {formErrors.subjectId && (
-                <p className={styles.fieldError}>{formErrors.subjectId}</p>
-              )}
-              {selectedSubject && !subjectError && (
-                <div className={styles.subjectSummary}>
-                  <div className={styles.subjectSummaryPrimary}>
-                    <p className={styles.subjectSummaryName}>{selectedSubject.subjectName}</p>
-                    <span className={styles.subjectSummaryCode}>
-                      {selectedSubject.subjectCode ? `Code ${selectedSubject.subjectCode}` : 'Code unavailable'} · ID {selectedSubject.subjectId}
-                    </span>
-                  </div>
-                  <div className={styles.subjectSummaryMeta}>
-                    <span className={styles.subjectChip}>Subject ID {selectedSubject.subjectId}</span>
-                    {selectedSubject.subjectCode && (
-                      <span className={styles.subjectChip}>Code {selectedSubject.subjectCode}</span>
-                    )}
-                  </div>
+                {/* Description */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700">Description <span className="text-red-500">*</span></label>
+                  <textarea
+                    rows={5}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-4 focus:ring-orangeFpt-500/10"
+                    placeholder="Describe the project goals, scope, and expected outcomes..."
+                    value={formState.description}
+                    onChange={(e) => handleBaseFieldChange("description", e.target.value)}
+                  />
+                  {formErrors.description && <p className="text-xs text-red-500">{formErrors.description}</p>}
                 </div>
-              )}
-            </div>
 
-            <div className={styles.fieldGroup}>
-              <label className={styles.label} htmlFor="project-description">
-                Description
-              </label>
-              <textarea
-                id="project-description"
-                className={styles.textarea}
-                placeholder="Outline the project goals, deliverables, and expectations for students."
-                rows={6}
-                value={formState.description}
-                onChange={(event) => handleBaseFieldChange("description", event.target.value)}
-              />
-              {formErrors.description && (
-                <p className={styles.fieldError}>{formErrors.description}</p>
-              )}
-            </div>
-          </section>
-
-          <section className={styles.card}>
-            <div className={styles.cardHeader}>
-              <div>
-                <h2 className={styles.cardTitle}>3. Objectives and milestones</h2>
-                <p className={styles.cardSubtitle}>
-                  Define learning objectives and the milestones you expect teams to complete. These feed into class-level
-                  planning.
-                </p>
-              </div>
-            </div>
-
-            <div className={styles.objectiveStack}>
-              {formState.objectives.map((objective, index) => {
-                const objectiveError = formErrors.objectives?.[objective.id] ?? {};
-                const milestoneErrors = objectiveError.milestones ?? {};
-                const milestoneBounds = objective.milestones.reduce(
-                  (range, milestone) => {
-                    const start = parseDateInput(milestone.startDate);
-                    const end = parseDateInput(milestone.endDate);
-
-                    if (!start || !end) {
-                      return range;
-                    }
-
-                    return {
-                      start: !range.start || start < range.start ? start : range.start,
-                      end: !range.end || end > range.end ? end : range.end,
-                    };
-                  },
-                  { start: null, end: null }
-                );
-
-                let milestoneWindowLabel = 'Add milestone dates';
-                if (milestoneBounds.start && milestoneBounds.end) {
-                  if (milestoneBounds.start.getTime() === milestoneBounds.end.getTime()) {
-                    milestoneWindowLabel = dateFormatter.format(milestoneBounds.start);
-                  } else {
-                    milestoneWindowLabel = `${dateFormatter.format(milestoneBounds.start)} – ${dateFormatter.format(milestoneBounds.end)}`;
-                  }
-                }
-
-                return (
-                  <div key={objective.id} className={styles.objectiveSection}>
-                    <div className={styles.objectiveHeader}>
-                      <div>
-                        <p className={styles.objectiveMeta}>Objective {index + 1}</p>
-                        <h3 className={styles.objectiveTitle}>Learning objective</h3>
-                      </div>
-                      <button
-                        type="button"
-                        className={styles.secondaryAction}
-                        onClick={() => handleRemoveObjective(objective.id)}
-                        disabled={formState.objectives.length === 1}
-                      >
-                        Remove objective
-                      </button>
-                    </div>
-
-                    <div className={styles.fieldGroup}>
-                      <label className={styles.label} htmlFor={`objective-description-${objective.id}`}>
-                        Objective description
-                      </label>
-                      <textarea
-                        id={`objective-description-${objective.id}`}
-                        className={styles.textarea}
-                        placeholder="Describe the outcome students should achieve."
-                        rows={4}
-                        value={objective.description}
-                        onChange={(event) =>
-                          handleObjectiveChange(objective.id, 'description', event.target.value)
-                        }
-                      />
-                      {objectiveError.description && (
-                        <p className={styles.fieldError}>{objectiveError.description}</p>
-                      )}
-                    </div>
-
-                    <div className={styles.fieldGroup}>
-                      <label className={styles.label} htmlFor={`objective-priority-${objective.id}`}>
-                        Priority
-                      </label>
-                      <select
-                        id={`objective-priority-${objective.id}`}
-                        className={styles.select}
-                        value={objective.priority}
-                        onChange={(event) =>
-                          handleObjectiveChange(objective.id, 'priority', event.target.value)
-                        }
-                      >
-                        {PRIORITY_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className={styles.objectiveMetrics}>
-                      <div className={styles.metricCard}>
-                        <span className={styles.metricLabel}>Milestones configured</span>
-                        <span className={styles.metricValue}>{objective.milestones.length}</span>
-                      </div>
-                      <div className={styles.metricCard}>
-                        <span className={styles.metricLabel}>Timeline coverage</span>
-                        <span className={styles.metricValue}>{milestoneWindowLabel}</span>
-                      </div>
-                    </div>
-
-                    <div className={styles.milestoneTimeline}>
-                      {objective.milestones.map((milestone, milestoneIndex) => {
-                        const milestoneError = milestoneErrors[milestone.id] ?? {};
-
-                        return (
-                          <div key={milestone.id} className={styles.milestoneTimelineItem}>
-                            <div className={styles.milestoneNode}>{milestoneIndex + 1}</div>
-                            <div className={styles.milestoneCard}>
-                              <div className={styles.milestoneHeader}>
-                                <h4 className={styles.milestoneTitle}>Milestone {milestoneIndex + 1}</h4>
-                                <button
-                                  type="button"
-                                  className={styles.secondaryAction}
-                                  onClick={() => handleRemoveMilestone(objective.id, milestone.id)}
-                                  disabled={objective.milestones.length === 1}
-                                >
-                                  Remove milestone
-                                </button>
-                              </div>
-
-                              <div className={styles.fieldGroup}>
-                                <label className={styles.label} htmlFor={`milestone-title-${milestone.id}`}>
-                                  Milestone title
-                                </label>
-                                <input
-                                  id={`milestone-title-${milestone.id}`}
-                                  type="text"
-                                  className={styles.input}
-                                  placeholder="e.g. Draft requirements review"
-                                  value={milestone.title}
-                                  onChange={(event) =>
-                                    handleMilestoneChange(
-                                      objective.id,
-                                      milestone.id,
-                                      'title',
-                                      event.target.value
-                                    )
-                                  }
-                                />
-                                {milestoneError.title && (
-                                  <p className={styles.fieldError}>{milestoneError.title}</p>
-                                )}
-                              </div>
-
-                              <div className={styles.fieldGroup}>
-                                <label
-                                  className={styles.label}
-                                  htmlFor={`milestone-description-${milestone.id}`}
-                                >
-                                  Details (optional)
-                                </label>
-                                <textarea
-                                  id={`milestone-description-${milestone.id}`}
-                                  className={styles.textarea}
-                                  placeholder="Add context or deliverables for this milestone."
-                                  rows={3}
-                                  value={milestone.description}
-                                  onChange={(event) =>
-                                    handleMilestoneChange(
-                                      objective.id,
-                                      milestone.id,
-                                      'description',
-                                      event.target.value
-                                    )
-                                  }
-                                />
-                              </div>
-
-                              <div className={styles.milestoneDates}>
-                                <div className={styles.fieldGroup}>
-                                  <label className={styles.label} htmlFor={`milestone-start-${milestone.id}`}>
-                                    Start date
-                                  </label>
-                                  <input
-                                    id={`milestone-start-${milestone.id}`}
-                                    type="date"
-                                    className={styles.input}
-                                    value={milestone.startDate}
-                                    onChange={(event) =>
-                                      handleMilestoneChange(
-                                        objective.id,
-                                        milestone.id,
-                                        'startDate',
-                                        event.target.value
-                                      )
-                                    }
-                                  />
-                                  {milestoneError.startDate && (
-                                    <p className={styles.fieldError}>{milestoneError.startDate}</p>
-                                  )}
-                                </div>
-
-                                <div className={styles.fieldGroup}>
-                                  <label className={styles.label} htmlFor={`milestone-end-${milestone.id}`}>
-                                    End date
-                                  </label>
-                                  <input
-                                    id={`milestone-end-${milestone.id}`}
-                                    type="date"
-                                    className={styles.input}
-                                    value={milestone.endDate}
-                                    onChange={(event) =>
-                                      handleMilestoneChange(
-                                        objective.id,
-                                        milestone.id,
-                                        'endDate',
-                                        event.target.value
-                                      )
-                                    }
-                                  />
-                                  {milestoneError.endDate && (
-                                    <p className={styles.fieldError}>{milestoneError.endDate}</p>
-                                  )}
-                                </div>
-                              </div>
+                {/* File Upload (Optional) */}
+                <div className="space-y-2">
+                   <label className="text-sm font-semibold text-slate-700">Supporting Documents (Optional)</label>
+                   <div 
+                      className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 transition-colors ${
+                        isDragOver ? 'border-orangeFpt-500 bg-orangeFpt-50' : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50'
+                      }`}
+                      onDragEnter={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                      onDragLeave={(e) => { e.preventDefault(); setIsDragOver(false); }}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsDragOver(false);
+                        handleFileUpload(Array.from(e.dataTransfer.files)[0]);
+                      }}
+                   >
+                      {uploadedFile ? (
+                         <div className="flex items-center gap-4 w-full bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orangeFpt-100 text-orangeFpt-600">
+                               <FileText size={20} />
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {objectiveError.milestones?.general && (
-                      <p className={styles.fieldError}>{objectiveError.milestones.general}</p>
-                    )}
-
-                    <div className={styles.objectiveActions}>
-                      <button
-                        type="button"
-                        className={styles.secondaryAction}
-                        onClick={() => handleAddMilestone(objective.id)}
-                      >
-                        Add milestone
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className={styles.objectiveActions}>
-              <button type="button" className={styles.secondaryAction} onClick={handleAddObjective}>
-                Add another objective
-              </button>
-            </div>
-          </section>
-
-          <section className={styles.card}>
-            <div className={styles.cardHeader}>
-              <div>
-                <h2 className={styles.cardTitle}>4. Review and submit</h2>
-              </div>
-            </div>
-
-            {submissionError && <div className={styles.formError}>{submissionError}</div>}
-
-            <div className={styles.cardNote}>
-              You can edit the project from the lecturer project library after submission if anything changes.
-            </div>
-
-            <div className={styles.reviewSummary}>
-              <div className={styles.reviewSummaryItem}>
-                <span className={styles.reviewSummaryLabel}>Subject</span>
-                <span className={styles.reviewSummaryValue}>
-                  {selectedSubject ? selectedSubject.subjectName : "Not selected"}
-                </span>
-              </div>
-              <div className={styles.reviewSummaryItem}>
-                <span className={styles.reviewSummaryLabel}>Objectives</span>
-                <span className={styles.reviewSummaryValue}>{formState.objectives.length}</span>
-              </div>
-              <div className={styles.reviewSummaryItem}>
-                <span className={styles.reviewSummaryLabel}>Milestones</span>
-                <span className={styles.reviewSummaryValue}>{totalMilestones}</span>
-              </div>
-              <div className={styles.reviewSummaryItem}>
-                <span className={styles.reviewSummaryLabel}>Readiness</span>
-                <span className={styles.reviewSummaryValue}>{readinessProgress}%</span>
-              </div>
-            </div>
-
-            {readinessProgress < 100 && (
-              <div className={styles.reviewCallout}>
-                <h4 className={styles.reviewCalloutTitle}>Almost there</h4>
-                <p className={styles.reviewCalloutText}>
-                  Complete the remaining {readinessCounts.total - readinessCounts.completed} checklist item
-                  {readinessCounts.total - readinessCounts.completed !== 1 ? "s" : ""} to reach 100% before
-                  submission.
-                </p>
-              </div>
-            )}
-
-            <div className={styles.submitRow}>
-              <button type="submit" className={styles.primaryAction} disabled={isSubmitting || !hasMinimumData}>
-                {isSubmitting ? "Creating project" : "Create project"}
-              </button>
-              <Link
-                to={classId ? `/lecturer/classes/${classId}` : "/lecturer/projects"}
-                className={styles.secondaryLink}
-              >
-                Cancel
-              </Link>
-            </div>
-          </section>
-        </div>
-
-        <aside className={styles.secondaryColumn}>
-          <section className={styles.panelCard}>
-            <h3 className={styles.panelTitle}>Project snapshot</h3>
-            <div className={styles.snapshotGrid}>
-              <div className={styles.snapshotItem}>
-                <span className={styles.snapshotLabel}>Subject</span>
-                <span className={styles.snapshotValue}>
-                  {selectedSubject ? selectedSubject.subjectName : "No subject selected"}
-                </span>
-              </div>
-              <div className={styles.snapshotItem}>
-                <span className={styles.snapshotLabel}>Objectives</span>
-                <span className={styles.snapshotValue}>{formState.objectives.length}</span>
-              </div>
-              <div className={styles.snapshotItem}>
-                <span className={styles.snapshotLabel}>Milestones</span>
-                <span className={styles.snapshotValue}>{totalMilestones}</span>
-              </div>
-              <div className={styles.snapshotItem}>
-                <span className={styles.snapshotLabel}>Linked file</span>
-                <span className={styles.snapshotValue}>
-                  {uploadedFile ? uploadedFile.name : "No file uploaded"}
-                </span>
-              </div>
-              {classId && (
-                <div className={styles.snapshotItem}>
-                  <span className={styles.snapshotLabel}>Class context</span>
-                  <span className={styles.snapshotValue}>Class ID {classId}</span>
+                            <div className="flex-1 min-w-0">
+                               <p className="truncate text-sm font-medium text-slate-800">{uploadedFile.name}</p>
+                               <p className="text-xs text-slate-500">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                            </div>
+                            <button 
+                               type="button" 
+                               onClick={() => setUploadedFile(null)}
+                               className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg transition-colors"
+                            >
+                               <X size={18} />
+                            </button>
+                         </div>
+                      ) : (
+                         <div className="text-center">
+                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-orangeFpt-100 text-orangeFpt-500 mb-3">
+                               <UploadCloud size={24} />
+                            </div>
+                            <p className="text-sm font-medium text-slate-700">Click to upload or drag and drop</p>
+                            <p className="text-xs text-slate-500 mt-1">PDF, DOCX, TXT (Max 10MB)</p>
+                            <input 
+                               type="file" 
+                               className="absolute inset-0 opacity-0 cursor-pointer" 
+                               onChange={(e) => handleFileUpload(e.target.files?.[0])}
+                               accept=".pdf,.doc,.docx,.txt"
+                            />
+                         </div>
+                      )}
+                   </div>
                 </div>
-              )}
-            </div>
-          </section>
-
-          <section className={styles.panelCard}>
-            <div className={styles.progressHeader}>
-              <h3 className={styles.panelTitle}>Submission readiness</h3>
-              <span className={styles.progressValue}>{readinessProgress}%</span>
-            </div>
-            <span className={styles.progressMeta}>
-              {readinessCounts.completed}/{readinessCounts.total} checks complete
-            </span>
-            <div className={styles.progressBar}>
-              <div className={styles.progressFill} style={{ width: `${readinessProgress}%` }} />
-            </div>
-            <ul className={styles.checklist}>
-              {readinessChecklist.map((item, index) => (
-                <li
-                  key={item.id}
-                  className={`${styles.checkItem} ${item.complete ? styles.checkComplete : styles.checkPending}`}
-                >
-                  <span className={styles.checkIndicator}>{item.complete ? "✓" : index + 1}</span>
-                  <span>{item.label}</span>
-                </li>
-              ))}
-            </ul>
-            {milestoneRange && milestoneRangeLabel && (
-              <div className={styles.durationBadge}>
-                <span>Timeline coverage</span>
-                <strong>{milestoneRangeLabel}</strong>
               </div>
-            )}
-          </section>
-        </aside>
-      </form>
-    </div>
+            </section>
+
+            {/* 2. Objectives & Milestones */}
+            <section className="space-y-6">
+               <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-slate-800">2. Objectives & Milestones</h2>
+                  <button 
+                    type="button" 
+                    onClick={handleAddObjective}
+                    className="flex items-center gap-2 text-sm font-semibold text-orangeFpt-600 hover:text-orangeFpt-700"
+                  >
+                     <Plus size={16} /> Add Objective
+                  </button>
+               </div>
+
+               {formState.objectives.map((objective, index) => {
+                  const objError = formErrors.objectives?.[objective.id] || {};
+                  
+                  return (
+                     <div key={objective.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+                        <div className="mb-4 flex items-start justify-between">
+                           <div className="flex items-center gap-2">
+                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
+                                 {index + 1}
+                              </span>
+                              <h3 className="font-bold text-slate-800">Learning Objective</h3>
+                           </div>
+                           <button 
+                              onClick={() => handleRemoveObjective(objective.id)}
+                              disabled={formState.objectives.length === 1}
+                              className="text-slate-400 hover:text-red-500 disabled:opacity-30 disabled:hover:text-slate-400"
+                           >
+                              <Trash2 size={18} />
+                           </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                           <div className="md:col-span-2 space-y-2">
+                              <label className="text-xs font-bold uppercase text-slate-500">Description</label>
+                              <input 
+                                 type="text"
+                                 className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none"
+                                 placeholder="e.g. Design a scalable database schema"
+                                 value={objective.description}
+                                 onChange={(e) => handleObjectiveChange(objective.id, "description", e.target.value)}
+                              />
+                              {objError.description && <p className="text-xs text-red-500">{objError.description}</p>}
+                           </div>
+                           <div className="space-y-2">
+                              <label className="text-xs font-bold uppercase text-slate-500">Priority</label>
+                              <select 
+                                 className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none"
+                                 value={objective.priority}
+                                 onChange={(e) => handleObjectiveChange(objective.id, "priority", e.target.value)}
+                              >
+                                 {PRIORITY_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                              </select>
+                           </div>
+                        </div>
+
+                        {/* Milestones Area */}
+                        <div className="mt-6 space-y-3 rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
+                           <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">Milestones Timeline</span>
+                              <button 
+                                 type="button" 
+                                 onClick={() => handleAddMilestone(objective.id)}
+                                 className="text-xs font-bold text-blue-600 hover:underline"
+                              >
+                                 + Add Step
+                              </button>
+                           </div>
+                           
+                           {objective.milestones.map((milestone, mIdx) => {
+                              const mErr = objError.milestones?.[milestone.id] || {};
+                              return (
+                                 <div key={milestone.id} className="relative flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-start">
+                                    <div className="hidden sm:flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-500 mt-2">
+                                       {mIdx + 1}
+                                    </div>
+                                    
+                                    <div className="flex-1 space-y-3">
+                                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                          <div>
+                                             <input 
+                                                type="text" 
+                                                className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium placeholder:font-normal focus:border-blue-500 focus:outline-none"
+                                                placeholder="Milestone Title"
+                                                value={milestone.title}
+                                                onChange={(e) => handleMilestoneChange(objective.id, milestone.id, "title", e.target.value)}
+                                             />
+                                             {mErr.title && <p className="text-xs text-red-500 mt-1">{mErr.title}</p>}
+                                          </div>
+                                          <div className="flex gap-2">
+                                             <div className="flex-1">
+                                                <input 
+                                                   type="date"
+                                                   className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+                                                   value={milestone.startDate}
+                                                   onChange={(e) => handleMilestoneChange(objective.id, milestone.id, "startDate", e.target.value)}
+                                                />
+                                                {mErr.startDate && <p className="text-[10px] text-red-500">{mErr.startDate}</p>}
+                                             </div>
+                                             <div className="flex-1">
+                                                <input 
+                                                   type="date"
+                                                   className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+                                                   value={milestone.endDate}
+                                                   onChange={(e) => handleMilestoneChange(objective.id, milestone.id, "endDate", e.target.value)}
+                                                />
+                                                {mErr.endDate && <p className="text-[10px] text-red-500">{mErr.endDate}</p>}
+                                             </div>
+                                          </div>
+                                       </div>
+                                       <textarea 
+                                          rows={2}
+                                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 focus:border-blue-500 focus:outline-none resize-none"
+                                          placeholder="Deliverables or criteria..."
+                                          value={milestone.description}
+                                          onChange={(e) => handleMilestoneChange(objective.id, milestone.id, "description", e.target.value)}
+                                       />
+                                    </div>
+
+                                    <button 
+                                       onClick={() => handleRemoveMilestone(objective.id, milestone.id)}
+                                       className="absolute top-0 right-0 p-1 text-slate-300 hover:text-red-500"
+                                    >
+                                       <X size={14} />
+                                    </button>
+                                 </div>
+                              );
+                           })}
+                           {objError.milestones?.general && <p className="text-xs text-red-500 text-center">{objError.milestones.general}</p>}
+                        </div>
+                     </div>
+                  );
+               })}
+            </section>
+          </div>
+
+          {/* RIGHT COLUMN (Sidebar) */}
+          <div className="lg:col-span-1 space-y-6">
+             {/* Readiness Card */}
+             <div className="sticky top-6 space-y-6">
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                   <h3 className="text-lg font-bold text-slate-800 mb-4">Readiness Check</h3>
+                   
+                   <div className="mb-6">
+                      <div className="flex items-end justify-between mb-2">
+                         <span className="text-sm font-semibold text-slate-600">Completion</span>
+                         <span className="text-lg font-bold text-orangeFpt-600">{readinessProgress}%</span>
+                      </div>
+                      <div className="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                         <div 
+                           className="h-full bg-orangeFpt-500 transition-all duration-500 ease-out rounded-full"
+                           style={{ width: `${readinessProgress}%` }}
+                         />
+                      </div>
+                   </div>
+
+                   <ul className="space-y-3">
+                      {readinessChecklist.map((item) => (
+                         <li key={item.id} className="flex items-center gap-3 text-sm">
+                            {item.complete ? (
+                               <CheckCircle2 className="text-emerald-500 h-5 w-5 shrink-0" />
+                            ) : (
+                               <Circle className="text-slate-300 h-5 w-5 shrink-0" />
+                            )}
+                            <span className={item.complete ? "text-slate-700 font-medium" : "text-slate-400"}>
+                               {item.label}
+                            </span>
+                         </li>
+                      ))}
+                   </ul>
+
+                   <div className="mt-8 pt-6 border-t border-slate-100 space-y-3">
+                      {submissionError && (
+                         <div className="rounded-xl bg-red-50 p-3 text-xs text-red-600 border border-red-100 flex gap-2">
+                            <AlertCircle size={16} className="shrink-0" />
+                            {submissionError}
+                         </div>
+                      )}
+                      
+                      <button
+                         onClick={handleSubmit}
+                         disabled={!hasMinimumData || isSubmitting}
+                         className="w-full rounded-xl bg-orangeFpt-500 py-3 text-sm font-bold text-white shadow-lg shadow-orangeFpt-200 transition-all hover:bg-orangeFpt-600 hover:shadow-orangeFpt-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                         {isSubmitting ? "Creating..." : "Create Project"}
+                      </button>
+                      
+                      <Link 
+                         to={classId ? `/lecturer/classes/${classId}` : "/lecturer/projects"}
+                         className="block w-full text-center text-sm font-semibold text-slate-500 hover:text-slate-700"
+                      >
+                         Cancel
+                      </Link>
+                   </div>
+                </div>
+
+                {/* Quick Snapshot */}
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                   <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Summary</h3>
+                   <div className="space-y-4">
+                      <div className="flex justify-between items-center text-sm">
+                         <span className="text-slate-500">Subject</span>
+                         <span className="font-medium text-slate-800 text-right max-w-[60%] truncate">
+                            {selectedSubject?.subjectCode || "—"}
+                         </span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                         <span className="text-slate-500">Total Milestones</span>
+                         <span className="font-medium text-slate-800">{totalMilestones}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                         <span className="text-slate-500">Document</span>
+                         <span className="font-medium text-slate-800">
+                            {uploadedFile ? "Attached" : "None"}
+                         </span>
+                      </div>
+                   </div>
+                </div>
+             </div>
+          </div>
+
+        </div>
+      </div>
+    </DashboardLayout>
   );
 };
 

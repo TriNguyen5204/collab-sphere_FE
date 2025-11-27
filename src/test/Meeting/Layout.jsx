@@ -1,12 +1,10 @@
-import { useMemo } from 'react';
 import MeetingHomePage from './MeetingHomePage';
 import ProjectBoardHeader from '../../components/layout/ProjectBoardHeader';
-import { useProjectContext } from '../../hooks/useProjectContext';
+import useTeam from '../../context/useTeam';
+
 const HomeLayout = ({ children }) => {
-  const { projectContext } = useProjectContext();
-  const teamId = useMemo(() => {
-    return projectContext?.teamId || '';
-  }, [projectContext]);
+  const { team } = useTeam();
+  const teamId = team?.teamId ?? '';
   return (
     <main className='relative'>
       <ProjectBoardHeader />

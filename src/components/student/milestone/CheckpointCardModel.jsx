@@ -9,6 +9,7 @@ import useToastConfirmation from '../../../hooks/useToastConfirmation.jsx';
 import { patchGenerateNewCheckpointFileLinkByCheckpointIdAndFileId } from '../../../services/studentApi';
 import CheckpointAssignMenu from './CheckpointAssignMenu';
 import CheckpointEditMenu from './CheckpointEditMenu';
+import { useAvatar } from '../../../hooks/useAvatar';
 
 const formatDate = (value) => {
     if (!value) {
@@ -602,6 +603,18 @@ const CheckpointCardModal = ({
             ? 'Deletion locked'
             : 'Delete checkpoint';
 
+    const MemberAvatar = ({ name, src, className, alt }) => {
+        const { initials, colorClass, setImageError, shouldShowImage } = useAvatar(name, src);
+        if (shouldShowImage) {
+            return <img src={src} alt={alt} className={className} onError={() => setImageError(true)} />;
+        }
+        return (
+            <div className={`${className} flex items-center justify-center ${colorClass}`} aria-hidden>
+                <span className="select-none">{initials}</span>
+            </div>
+        );
+    };
+
     const handleMarkCompleteClick = async () => {
         if (markCompleteButtonDisabled || typeof onMarkComplete !== 'function' || checkpointId == null) {
             return;
@@ -810,17 +823,12 @@ const CheckpointCardModal = ({
                                                         key={assignment.checkpointAssignmentId || assignment.classMemberId}
                                                         className="grid grid-cols-[40px,1fr] items-center gap-3 border-b border-gray-200 p-1 mt-1"
                                                     >
-                                                        {assignment.avatarImg ? (
-                                                            <img
-                                                                src={assignment.avatarImg}
-                                                                alt={assignment.fullname || 'Assignee avatar'}
-                                                                className="h-10 w-10 rounded-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-gray-500">
-                                                                <User size={18} />
-                                                            </div>
-                                                        )}
+                                                        <MemberAvatar
+                                                            name={assignment.fullname}
+                                                            src={assignment.avatarImg}
+                                                            alt={assignment.fullname || 'Assignee avatar'}
+                                                            className="h-10 w-10 rounded-full object-cover"
+                                                        />
                                                         <div>
                                                             <p className="font-medium text-gray-900">
                                                                 {assignment.fullname || 'Unnamed member'}
@@ -883,25 +891,9 @@ const CheckpointCardModal = ({
                                                                         </span>
                                                                     </div>
                                                                     <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                                                                        <p>Submitted by</p>
-                                                                        {(submission.studentName || submission.uploadedBy) && (
-                                                                            <span className="flex items-center gap-2">
-                                                                                {submission.avatar ? (
-                                                                                    <img
-                                                                                        src={submission.avatar}
-                                                                                        alt={`${submission.studentName || submission.uploadedBy || 'Student'} avatar`}
-                                                                                        className="h-5 w-5 flex-shrink-0 rounded-full object-cover"
-                                                                                    />
-                                                                                ) : (
-                                                                                    <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-500">
-                                                                                        <User size={16} />
-                                                                                    </div>
-                                                                                )}
-                                                                                <span className="font-medium text-gray-700">
-                                                                                    {submission.studentName || submission.uploadedBy || "Student"} • <span className="text-gray-500"> {submission.submittedAtLabel} </span>
-                                                                                </span>
-                                                                            </span>
-                                                                        )}
+                                                                        <span className="flex items-center gap-2">
+                                                                            Submitted by {submission.studentName || submission.uploadedBy || "Student"} • {submission.submittedAtLabel}
+                                                                        </span>
                                                                     </div>
                                                                 </div>
                                                             </button>

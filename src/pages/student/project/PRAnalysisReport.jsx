@@ -104,7 +104,6 @@ const PRAnalysisReport = () => {
    * Navigation handlers
    */
   const handleBack = () => {
-    localStorage.setItem('currentProjectContext', JSON.stringify({ projectId, teamId, projectName }));
     navigate(`/student/project/team-workspace?tab=ai-review`);
   };
 

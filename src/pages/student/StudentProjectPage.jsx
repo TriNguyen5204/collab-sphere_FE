@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import StudentLayout from "../../components/layout/StudentLayout";
@@ -7,11 +7,13 @@ import ProjectSection from "../../components/student/ProjectSection";
 import { History } from "lucide-react";
 import { getListOfTeamsByStudentId, getDetailOfTeamByTeamId } from "../../services/studentApi";
 import useTeam from "../../context/useTeam";
+import { useQueryClient } from "@tanstack/react-query";
 
 const StudentProjectPage = () => {
   const navigate = useNavigate();
   const studentId = useSelector((state) => state.user.userId);
   const { setTeam } = useTeam();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
 
   // Data
@@ -46,10 +48,14 @@ const StudentProjectPage = () => {
   const handleCardClick = async (team) => {
     if (team?.teamId) {
       try {
-        const response = await getDetailOfTeamByTeamId(team.teamId);
-        setTeam(response);
+        await queryClient.prefetchQuery({
+          queryKey: ['team-detail', Number(team.teamId)],
+          queryFn: () => getDetailOfTeamByTeamId(team.teamId),
+        });
+        setTeam(team.teamId);
       } catch (e) {
         console.error("Error fetching team details:", e);
+        setTeam(null);
       }
     } else {
       setTeam(null);

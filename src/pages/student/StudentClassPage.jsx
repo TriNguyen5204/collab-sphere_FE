@@ -2,11 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { BookOpen, Users, Calendar, FileText } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { getClassesByStudentId, getClassDetailsById, getAssignedTeamByClassId } from '../../services/studentApi';
+import { getClassesByStudentId, getClassDetailsById, getAssignedTeamByClassId, getDetailOfTeamByTeamId } from '../../services/studentApi';
 import { EnrolledClassesSkeleton, ClassDetailsSkeleton } from '../../components/skeletons/StudentSkeletons';
 import { useSelector } from 'react-redux';
 import StudentLayout from '../../components/layout/StudentLayout';
 import ProjectCard from '../../components/student/ProjectCard';
+import { useQueryClient } from '@tanstack/react-query';
+import useTeam from '../../context/useTeam';
 
 const StudentClassPage = () => {
   const [classes, setClasses] = useState([]);
@@ -41,6 +43,8 @@ const StudentClassPage = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
+  const { setTeam } = useTeam();
 
   const handleViewMembers = () => {
     if (!selectedClass) return;
@@ -154,12 +158,21 @@ const StudentClassPage = () => {
     }
   }, [location.state, classes]);
 
-  const handleAssignedTeamClick = (team) => {
+  const handleAssignedTeamClick = async (team) => {
     const teamId = team?.teamId;
     const projectId = team?.projectId;
-    const projectName = team?.projectName || 'project';
     if (!teamId || !projectId) return;
-    localStorage.setItem('currentProjectContext', JSON.stringify({ projectId, teamId, projectName }));
+    const normalizedTeamId = Number(teamId);
+    if (!Number.isFinite(normalizedTeamId)) return;
+    try {
+      await queryClient.prefetchQuery({
+        queryKey: ['team-detail', normalizedTeamId],
+        queryFn: () => getDetailOfTeamByTeamId(normalizedTeamId),
+      });
+    } catch (error) {
+      console.error('Failed to prefetch team details:', error);
+    }
+    setTeam(normalizedTeamId);
     navigate('/student/project/team-workspace');
   };
 

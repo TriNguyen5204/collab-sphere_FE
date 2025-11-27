@@ -860,7 +860,7 @@ const ProjectResourcesMenu = () => {
               </div>
 
               {pendingFiles.length > 0 && (
-                <ul className="space-y-2 rounded-lg border border-gray-600 bg-gray-900 p-3 text-xs text-gray-300">
+                <ul className="space-y-2 rounded-lg border border-gray-200 bg-white p-3 text-xs text-gray-700">
                   {pendingFiles.map((file, idx) => (
                     <li key={`${file.name}-${idx}`} className="flex items-center justify-between gap-2">
                       <span className="truncate max-w-[14rem]" title={file.name}>

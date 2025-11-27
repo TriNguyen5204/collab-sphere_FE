@@ -3,6 +3,7 @@ import { Send, AlertCircle } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import StarRating from './StarRating';
 import { toast } from 'sonner';
+import { useAvatar } from '../../../hooks/useAvatar';
 import { postSubmitPeerEvaluation, getOwnEvaluationByTeamId } from '../../../services/studentApi';
 
 const CRITERIA = [
@@ -182,6 +183,25 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
     }
   }, [teamId]);
 
+  const MemberAvatar = ({ name, src, alt, className }) => {
+    const { initials, colorClass, setImageError, shouldShowImage } = useAvatar(name, src);
+    if (shouldShowImage) {
+      return (
+        <img
+          src={src}
+          alt={alt}
+          onError={() => setImageError(true)}
+          className={className}
+        />
+      );
+    }
+    return (
+      <div className={`${className} flex items-center justify-center ${colorClass}`} aria-hidden>
+        <span className="select-none">{initials}</span>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow p-8 text-center">
@@ -220,9 +240,10 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
                   <tr key={m._memberKey} className="bg-gray-50 rounded-xl">
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-3">
-                        <img
+                        <MemberAvatar
+                          name={m.name}
                           src={m.avatar}
-                          alt="Profile"
+                          alt={m.name}
                           className="w-10 h-10 rounded-full object-cover border-black"
                         />
                         <div>

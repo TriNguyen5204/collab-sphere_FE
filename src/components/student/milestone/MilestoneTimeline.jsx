@@ -33,7 +33,7 @@ const MilestoneTimeline = ({ milestones, selectedMilestone, onSelectMilestone })
               <button
                 onClick={() => onSelectMilestone(milestone)}
                 className={`w-full text-left p-4 rounded-lg border-2 transition ${isActive
-                    ? 'border-orangeFpt-500 bg-blue-50'
+                    ? 'border-orangeFpt-500 bg-orangeFpt-50'
                     : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                   }`}
               >

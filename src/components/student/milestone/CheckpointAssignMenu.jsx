@@ -1,5 +1,6 @@
 import React from 'react';
 import { Users, User } from 'lucide-react';
+import { useAvatar } from '../../../hooks/useAvatar';
 
 const CheckpointAssignMenu = React.forwardRef((
   {
@@ -14,6 +15,20 @@ const CheckpointAssignMenu = React.forwardRef((
   ref
 ) => {
   const disabled = !canAssign || teamMembers.length === 0;
+
+  const MemberAvatar = ({ name, src, className, alt }) => {
+    const { initials, colorClass, setImageError, shouldShowImage } = useAvatar(name, src);
+    if (shouldShowImage) {
+      return (
+        <img src={src} alt={alt} className={className} onError={() => setImageError(true)} />
+      );
+    }
+    return (
+      <div className={`${className} flex items-center justify-center ${colorClass}`} aria-hidden>
+        <span className="select-none">{initials}</span>
+      </div>
+    );
+  };
 
   return (
     <div ref={ref} className="relative">
@@ -52,17 +67,12 @@ const CheckpointAssignMenu = React.forwardRef((
                     className="w-full text-left"
                   >
                     <div className={`flex items-center gap-3 border ${borderClass} px-3 py-2 transition hover:border-orangeFpt-500`}>
-                      {member.avatar ? (
-                        <img
-                          src={member.avatar}
-                          alt={member.name}
-                          className="h-9 w-9 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-gray-500">
-                          <User size={18} />
-                        </div>
-                      )}
+                      <MemberAvatar
+                        name={member.name}
+                        src={member.avatar}
+                        alt={member.name}
+                        className="h-9 w-9 rounded-full object-cover"
+                      />
                       <div className="min-w-0 flex-1">
                         <p className={`truncate text-sm font-medium ${nameClass}`}>{member.name}</p>
                         <p className="text-xs uppercase text-gray-500">{roleLabel}</p>

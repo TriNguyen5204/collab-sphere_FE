@@ -11,19 +11,13 @@ import { handleCallback } from '../../../services/githubApi';
 import useTeam from '../../../context/useTeam';
 import AICodeReviewTab from './AICodeReviewTab';
 import { toast } from 'sonner';
+import { useAvatar } from '../../../hooks/useAvatar';
 
 const TeamWorkspace = () => {
-  // const [projectContext] = useState(() => {
-  //   const stored = localStorage.getItem('currentProjectContext');
-  //   console.log('Loaded project context from localStorage:', stored);
-  //   return stored ? JSON.parse(stored) : {};
-  // });
-  // const { teamId, projectName } = projectContext;
-
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('overview');
   const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const { setTeam, team } = useTeam();
+  const { team } = useTeam();
   const projectId = team?.projectInfo?.projectId ?? null;
   const teamId = team?.teamId ?? null;
   const projectName = team?.projectInfo?.projectName ?? null;
@@ -148,6 +142,7 @@ const TeamWorkspace = () => {
     try {
       setProjectLoading(true);
       setProjectError(null);
+      console.log(team);
       const response = await getDetailOfProjectByProjectId(projectId);
       setProjectDetails(response);
       console.log('Project Details:', response);
@@ -172,6 +167,26 @@ const TeamWorkspace = () => {
       case 0:
         return 'Member';
     }
+  };
+
+  const MemberAvatar = ({ name, src, alt, className }) => {
+    const { initials, colorClass, setImageError, shouldShowImage } = useAvatar(name, src);
+    if (shouldShowImage) {
+      return (
+        <img
+          src={src}
+          alt={alt}
+          onError={() => setImageError(true)}
+          className={className}
+        />
+      );
+    }
+
+    return (
+      <div className={`${className} flex items-center justify-center ${colorClass}`} aria-hidden>
+        <span className="select-none text-sm font-semibold">{initials}</span>
+      </div>
+    );
   };
 
   return (
@@ -318,7 +333,8 @@ const TeamWorkspace = () => {
                     {(team?.memberInfo?.members ?? []).map((member) => (
                       <div key={member.studentId} className="flex items-center gap-3 p-2.5 border rounded-lg hover:bg-gray-50 transition">
                         <div className="relative">
-                          <img
+                          <MemberAvatar
+                            name={member.studentName}
                             src={member.avatar}
                             alt={member.studentName}
                             className="w-8 h-8 rounded-full bg-white object-cover border"

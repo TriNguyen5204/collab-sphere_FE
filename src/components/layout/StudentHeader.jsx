@@ -2,18 +2,19 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Search, BookOpen, FolderKanban, User, LogOut, ChevronDown } from 'lucide-react';
-import { getClassesByStudentId, getListOfTeamsByStudentId } from '../../services/studentApi';
+import { getClassesByStudentId, getListOfTeamsByStudentId, getDetailOfTeamByTeamId } from '../../services/studentApi';
 import { logout } from '../../store/slices/userSlice';
 import useClickOutside from '../../hooks/useClickOutside';
 import logo from '../../assets/logov1.png';
-import { generateAvatarFromName } from '../../utils/avatar';
+import { useAvatar } from '../../hooks/useAvatar';
+import { useQueryClient } from '@tanstack/react-query';
+import useTeam from '../../context/useTeam';
 
 const StudentHeader = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const studentId = useSelector((state) => state.user.userId);
   const userId = useSelector((state) => state.user.userId);
-  const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
   const [classes, setClasses] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -21,6 +22,8 @@ const StudentHeader = () => {
   const [openProfile, setOpenProfile] = useState(false);
   const avatar = useSelector((state) => state.user.avatar);
   const fullname = useSelector((state) => state.user.fullName);
+  const queryClient = useQueryClient();
+  const { setTeam } = useTeam();
 
   const searchRef = useRef(null);
   useClickOutside(searchRef, () => setOpenSearch(false));
@@ -28,18 +31,30 @@ const StudentHeader = () => {
   const profileRef = useRef(null);
   useClickOutside(profileRef, () => setOpenProfile(false));
 
-  const fallbackAvatar = useMemo(() => generateAvatarFromName(fullname), [fullname]);
+  const { initials, colorClass, imageError, setImageError, shouldShowImage } = useAvatar(fullname, avatar);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       if (!studentId) return;
       try {
+        const [classResp, teamResp] = await Promise.all([
+          getClassesByStudentId(studentId),
+          getListOfTeamsByStudentId(studentId),
+        ]);
         if (cancelled) return;
-        setClasses(Array.isArray(cls) ? cls : []);
-        const list = teamResp?.paginatedTeams?.list ?? [];
+        const normalizedClasses = Array.isArray(classResp)
+          ? classResp
+          : Array.isArray(classResp?.list)
+            ? classResp.list
+            : Array.isArray(classResp?.data)
+              ? classResp.data
+              : [];
+        setClasses(normalizedClasses);
+        const list = teamResp?.paginatedTeams?.list ?? teamResp?.list ?? [];
         setProjects(Array.isArray(list) ? list : []);
       } catch (e) {
+        if (cancelled) return;
         setClasses([]);
         setProjects([]);
       }
@@ -64,7 +79,7 @@ const StudentHeader = () => {
     return [...classMatches, ...projectMatches].slice(0, 8);
   }, [query, classes, projects]);
 
-  const onSelectSuggestion = (item) => {
+  const onSelectSuggestion = async (item) => {
     setOpenSearch(false);
     setQuery('');
     if (item.type === 'class') {
@@ -74,7 +89,18 @@ const StudentHeader = () => {
       const pid = item.raw?.projectId || item.id;
       const tid = item.raw?.teamId || item.teamId;
       if (pid && tid) {
-        localStorage.setItem('currentProjectContext', JSON.stringify({ projectId: pid, teamId: tid, projectName: name }));
+        const normalizedTeamId = Number(tid);
+        if (Number.isFinite(normalizedTeamId)) {
+          try {
+            await queryClient.prefetchQuery({
+              queryKey: ['team-detail', normalizedTeamId],
+              queryFn: () => getDetailOfTeamByTeamId(normalizedTeamId),
+            });
+          } catch (error) {
+            console.error('Failed to prefetch team details:', error);
+          }
+          setTeam(normalizedTeamId);
+        }
         navigate('/student/project/team-workspace');
       } else if (pid) {
         navigate('/student/projects');
@@ -154,14 +180,18 @@ const StudentHeader = () => {
               onClick={() => setOpenProfile((v) => !v)}
               className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
-              <img
-                src={avatar || fallbackAvatar}
-                alt="Profile"
-                onError={(e) => {
-                  e.target.src = fallbackAvatar;
-                }}
-                className="w-7 h-7 rounded-full object-cover border-black"
-              />            
+              {shouldShowImage ? (
+                <img
+                  src={avatar}
+                  alt="Profile"
+                  onError={() => setImageError(true)}
+                  className="w-7 h-7 rounded-full object-cover"
+                />
+              ) : (
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold ${colorClass}`}>
+                  {initials}
+                </div>
+              )}
                 <span className="hidden sm:inline max-w-[120px] truncate">{fullname ?? 'Student'}</span>
               <ChevronDown className="w-4 h-4 text-slate-400" />
             </button>

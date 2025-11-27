@@ -811,9 +811,9 @@ const MilestonePage = () => {
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ backgroundColor: "#D5DADF" }}>
       <ProjectBoardHeader />
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-6 p-6 overflow-hidden">
+      <div className="flex-1 grid grid-cols-7 gap-6 p-6 overflow-hidden">
         {/* Left Sidebar - Milestone Timeline */}
-        <aside className="col-span-1 h-full overflow-y-auto custom-scrollbar">
+        <aside className="col-span-2 h-full overflow-y-auto custom-scrollbar">
           {isLoadingList && milestones.length === 0 ? (
             <div className="bg-white rounded-lg shadow-md p-6 flex items-center justify-center min-h-[220px]">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
@@ -827,7 +827,7 @@ const MilestonePage = () => {
           )}
         </aside>
         {/* Main Content - Milestone Details */}
-        <main className="col-span-3 h-full overflow-y-auto pb-5 custom-scrollbar space-y-6">
+        <main className="col-span-5 h-full overflow-y-auto pb-5 custom-scrollbar space-y-6">
           {selectedMilestone ? (
             isLoadingDetail ? (
               <div className="bg-white rounded-lg shadow-md p-10 flex items-center justify-center">

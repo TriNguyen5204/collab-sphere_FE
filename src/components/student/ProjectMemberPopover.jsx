@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useAvatar } from '../../hooks/useAvatar';
 import { X } from "lucide-react";
 import { useSelector } from "react-redux";
 
@@ -90,11 +91,21 @@ const ProjectMemberPopover = ({ member, anchorEl, onClose, onViewProfile }) => {
 
             {/* Avatar */}
             <div className="absolute top-8 left-4">
-                <img
-                    src={member.avatar}
-                    alt={member.name}
-                    className="w-20 h-20 rounded-full border border-white object-cover bg-white"
-                />
+                {(() => {
+                    const { initials, colorClass, setImageError, shouldShowImage } = useAvatar(member.name, member.avatar);
+                    return shouldShowImage ? (
+                        <img
+                            src={member.avatar}
+                            alt={member.name}
+                            onError={() => setImageError(true)}
+                            className="w-20 h-20 rounded-full border border-white object-cover bg-white"
+                        />
+                    ) : (
+                        <div className={`w-20 h-20 rounded-full flex items-center justify-center text-xl font-semibold ${colorClass} border border-white`}>
+                            {initials}
+                        </div>
+                    );
+                })()}
             </div>
 
             {/* Bottom Gray Section */}

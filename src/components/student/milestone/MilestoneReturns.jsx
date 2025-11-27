@@ -176,7 +176,7 @@ const MilestoneReturns = ({
                   </div>
                   <div className="min-w-0 space-y-1">
                     <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-semibold text-orangeFpt-500 max-w-[26rem]">
+                      <p className="truncate text-sm font-semibold text-orangeFpt-500 max-w-[20rem]">
                         {item.name}
                       </p>
                       <ChevronRight className="h-3 w-3 text-gray-400" />
@@ -185,25 +185,9 @@ const MilestoneReturns = ({
                       </span>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-3 text-xs text-gray-500">
-                      {item.submittedAtLabel && (
-                        <span className="flex items-center gap-2">
-                          Submitted by
-                          {item.avatar ? (
-                            <img
-                              src={item.avatar}
-                              alt={`${item.studentName || 'Student'} avatar`}
-                              className="h-5 w-5 flex-shrink-0 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-500">
-                              <User size={20} />
-                            </div>
-                          )}
-                          <span className="font-medium text-gray-700">
-                            {item.studentName || 'Student'} • <span className='text-gray-500'>{item.submittedAtLabel}</span>
-                          </span>
-                        </span>
-                      )}
+                      <span className="flex items-center gap-2">
+                        Submitted by {item.studentName || 'Student'} • {item.submittedAtLabel}
+                      </span>
                     </div>
                   </div>
                 </button>
