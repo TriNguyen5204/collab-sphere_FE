@@ -591,20 +591,22 @@ const CreateProject = () => {
     }
 
     const payload = {
-      projectName: formState.projectName.trim(),
-      description: formState.description.trim(),
-      lecturerId: lecturerIdentifier,
-      subjectId: subjectIdentifier,
-      objectives: formState.objectives.map((objective) => ({
-        description: objective.description.trim(),
-        priority: objective.priority,
-        objectiveMilestones: objective.milestones.map((milestone) => ({
-          title: milestone.title.trim(),
-          description: milestone.description.trim(),
-          startDate: milestone.startDate,
-          endDate: milestone.endDate,
+      project: {
+        projectName: formState.projectName.trim(),
+        description: formState.description.trim(),
+        lecturerId: lecturerIdentifier,
+        subjectId: subjectIdentifier,
+        objectives: formState.objectives.map((objective) => ({
+          description: objective.description.trim(),
+          priority: objective.priority,
+          objectiveMilestones: objective.milestones.map((milestone) => ({
+            title: milestone.title.trim(),
+            description: milestone.description.trim(),
+            startDate: milestone.startDate,
+            endDate: milestone.endDate,
+          })),
         })),
-      })),
+      }
     };
 
     setIsSubmitting(true);

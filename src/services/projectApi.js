@@ -11,11 +11,12 @@ export const getLecturerProjects = async (lecturerId, params = {}) => {
 };
 
 export const createProject = async (projectPayload = {}) => {
-	if (!projectPayload.lecturerId) {
+	const lecturerId = projectPayload.lecturerId || projectPayload.project?.lecturerId;
+	if (!lecturerId) {
 		throw new Error('lecturerId is required to create a project.');
 	}
 
-	const response = await apiClient.post('/project', { project: projectPayload });
+	const response = await apiClient.post('/project', projectPayload);
 	return response.data;
 };
 
