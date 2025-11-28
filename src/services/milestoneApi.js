@@ -91,3 +91,45 @@ export const deleteMilestone = async (milestoneId) => {
     throw new Error(normalizeError(error));
   }
 };
+
+export const postMilestoneFile = async (teamMilestoneId, fileData) => {
+  if (!teamMilestoneId) {
+    throw new Error('milestoneId is required to upload a milestone file.');
+  }
+  try {
+    console.log("Uploading file to milestone ID:", teamMilestoneId, fileData);
+    const response = await apiClient.post(`/milestone/${teamMilestoneId}/files`, fileData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error uploading file for milestone ID ${teamMilestoneId}:`, error);
+    throw new Error(normalizeError(error));
+  }
+};
+
+export const deleteMilestoneFile = async (teamMilestoneId, fileId) => {
+  if (!teamMilestoneId || !fileId) {
+    throw new Error('Both milestoneId and fileId are required to delete a milestone file.');
+  }
+  try {
+    const response = await apiClient.delete(`/milestone/${teamMilestoneId}/files/${fileId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error deleting file ID ${fileId} for milestone ID ${teamMilestoneId}:`, error);
+    throw new Error(normalizeError(error));
+  }
+};
+
+export const patchGenerateNewMilestoneFile = async (teamMilestoneId, fileId) => {
+  try {
+    const response = await apiClient.patch(`/milestone/${teamMilestoneId}/files/${fileId}/new-url`);
+    console.log('Regenerated milestone file link data:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`Error regenerating file link for milestone ID ${teamMilestoneId} and file ID ${fileId}:`, error);
+    throw error;
+  }
+};

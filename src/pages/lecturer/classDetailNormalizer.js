@@ -162,6 +162,7 @@ export const normaliseClassDetailPayload = (payload, fallbackClassId) => {
   const rawResources = Array.isArray(base.classFiles) ? base.classFiles : [];
   const rawAssignments = normaliseProjectAssignments(base.projectAssignments);
 
+  // 1. PROCESS TEAMS
   const teams = rawTeams.map((team, index) => {
     const rawId = toNumber(team.teamId ?? team.id ?? team.TeamId);
     const color = TEAM_COLOR_SWATCHES[index % TEAM_COLOR_SWATCHES.length];
@@ -199,6 +200,10 @@ export const normaliseClassDetailPayload = (payload, fallbackClassId) => {
       id: rawId ?? `team-${index}`,
       rawId,
       name: team.teamName ?? team.name ?? `Team ${index + 1}`,
+      // Capture teamImage for the UI
+      teamImage: team.teamImage ?? team.image ?? team.avatar ?? null, 
+      description: team.description ?? '',
+      status: team.status ?? 'ACTIVE',
       color,
       projectId,
       projectAssignmentId,
@@ -219,6 +224,7 @@ export const normaliseClassDetailPayload = (payload, fallbackClassId) => {
     }
   });
 
+  // 2. PROCESS STUDENTS
   const students = rawMembers
     .map((member) => {
       const studentId = toNumber(
@@ -247,6 +253,7 @@ export const normaliseClassDetailPayload = (payload, fallbackClassId) => {
       const role =
         member.isLeader === true ||
         (typeof member.role === 'string' && member.role.toLowerCase().includes('leader')) ||
+        (member.teamRole === 'LEADER') ||
         (owningTeam?.leaderId !== null && owningTeam?.leaderId === studentId)
           ? 'leader'
           : 'member';
@@ -260,12 +267,15 @@ export const normaliseClassDetailPayload = (payload, fallbackClassId) => {
 
       const tasksCompleted = toNumber(member.tasksCompleted);
       const totalTasks = toNumber(member.totalTasks);
+      
+      const fullName = member.fullname ?? member.studentName ?? member.name ?? 'Student';
 
       return {
         id: studentId,
         studentId,
+        code: member.studentCode ?? '',
         classId: toNumber(member.classId ?? classIdentifier),
-        name: member.fullname ?? member.studentName ?? member.name ?? 'Student',
+        name: fullName,
         email: member.email ?? member.studentEmail ?? '',
         team: member.teamName ?? member.team?.teamName ?? owningTeam?.name ?? null,
         teamId: memberTeamId,
@@ -275,12 +285,16 @@ export const normaliseClassDetailPayload = (payload, fallbackClassId) => {
         lastSubmission: member.lastSubmission ?? member.lastSubmissionAt ?? member.lastSubmissionDate ?? null,
         tasksCompleted: tasksCompleted ?? null,
         totalTasks: totalTasks ?? null,
-        avatar: getInitials(member.fullname ?? member.studentName ?? member.name),
+        // Fallback initials
+        avatar: getInitials(fullName), 
+        // Capture specific image URL for UI
+        avatarImg: member.avatarImg ?? member.avatar ?? member.imageUrl ?? null,
         role,
       };
     })
     .filter(Boolean);
 
+  // 3. MERGE MEMBERS INTO TEAMS
   const teamsWithMembers = teams.map((team) => {
     const membersForTeam = students.filter(
       (student) =>
@@ -302,7 +316,8 @@ export const normaliseClassDetailPayload = (payload, fallbackClassId) => {
     const decoratedMembers = membersForTeam.map((member) => ({
       id: member.studentId,
       name: member.name,
-      avatar: member.avatar,
+      avatar: member.avatar,       // Initials
+      avatarImg: member.avatarImg, // Image URL (Crucial for Team Card UI)
       role: member.role,
       progress: Number.isFinite(member.progress) ? member.progress : null,
       teamColor: team.color,

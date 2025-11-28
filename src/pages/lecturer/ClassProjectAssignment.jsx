@@ -5,11 +5,8 @@ import {
   ArrowLeftIcon,
   CheckCircleIcon,
   ClipboardDocumentListIcon,
-  GlobeAltIcon,
   MagnifyingGlassIcon,
   SparklesIcon,
-  Squares2X2Icon,
-  UserGroupIcon,
   AcademicCapIcon,
   BookOpenIcon,
   CalendarIcon,
@@ -18,24 +15,20 @@ import {
   FolderIcon,
   InboxIcon,
 } from '@heroicons/react/24/outline';
+import { CheckCircleIcon as CheckCircleSolidIcon } from '@heroicons/react/24/solid';
 import DashboardLayout from '../../components/DashboardLayout';
-import styles from './ClassProjectAssignment.module.css';
 import { getLecturerProjects } from '../../services/projectApi';
 import { getClassDetail } from '../../services/userService';
 import { assignProjectsToClass } from '../../services/classApi';
 import { toast } from 'sonner';
 import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
 
+// --- Helpers ---
+
 const formatStatusLabel = (value) => {
-  if (!value) {
-    return null;
-  }
-
+  if (!value) return null;
   const trimmed = value.toString().trim();
-  if (!trimmed) {
-    return null;
-  }
-
+  if (!trimmed) return null;
   return trimmed
     .replace(/[_\s]+/g, ' ')
     .toLowerCase()
@@ -44,47 +37,18 @@ const formatStatusLabel = (value) => {
 
 const resolveStatusTone = (value) => {
   const token = value?.toString().trim().toUpperCase();
-
-  if (!token) {
-    return null;
-  }
-
-  if (['APPROVED', 'ACTIVE', 'IN_PROGRESS', 'COMPLETED', 'DONE'].includes(token)) {
-    return 'success';
-  }
-
-  if (['PENDING', 'IN_REVIEW', 'AWAITING', 'PLANNING', 'DRAFT'].includes(token)) {
-    return 'warning';
-  }
-
-  if (['DENIED', 'REJECTED', 'CANCELLED'].includes(token)) {
-    return 'danger';
-  }
-
-  if (['ARCHIVED', 'CLOSED', 'ON_HOLD'].includes(token)) {
-    return 'neutral';
-  }
-
-  return 'info';
+  if (!token) return null;
+  if (['APPROVED', 'ACTIVE', 'IN_PROGRESS', 'COMPLETED', 'DONE'].includes(token)) return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+  if (['PENDING', 'IN_REVIEW', 'AWAITING', 'PLANNING', 'DRAFT'].includes(token)) return 'bg-amber-100 text-amber-700 border-amber-200';
+  if (['DENIED', 'REJECTED', 'CANCELLED'].includes(token)) return 'bg-rose-100 text-rose-700 border-rose-200';
+  return 'bg-slate-100 text-slate-600 border-slate-200';
 };
 
 const extractArray = (payload) => {
-  if (Array.isArray(payload)) {
-    return payload;
-  }
-
-  if (Array.isArray(payload?.list)) {
-    return payload.list;
-  }
-
-  if (Array.isArray(payload?.data)) {
-    return payload.data;
-  }
-
-  if (Array.isArray(payload?.items)) {
-    return payload.items;
-  }
-
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.list)) return payload.list;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.items)) return payload.items;
   return [];
 };
 
@@ -101,31 +65,21 @@ const normaliseClassDetail = (payload) => {
   const lockedProjectIds = new Set();
 
   assignments.forEach((assignment) => {
-    if (!assignment) {
-      return;
-    }
-
+    if (!assignment) return;
     const idCandidates = [
       assignment.projectId,
       assignment.projectID,
       assignment.project?.projectId,
       assignment.project?.id,
-      assignment.project?.projectID,
     ];
-
-    const resolvedId = idCandidates.find((candidate) => candidate !== undefined && candidate !== null);
-    if (resolvedId === undefined || resolvedId === null) {
-      return;
-    }
-
+    const resolvedId = idCandidates.find((c) => c !== undefined && c !== null);
+    if (resolvedId === undefined) return;
+    
     const numericId = Number(resolvedId);
-    if (!Number.isFinite(numericId)) {
-      return;
-    }
+    if (!Number.isFinite(numericId)) return;
 
     assignedProjectIds.add(numericId);
 
-    // Treat assignments linked to active teams as locked so lecturers cannot unassign them here.
     const locked =
       assignment.isAssignedToTeam === true ||
       assignment.isLocked === true ||
@@ -133,9 +87,7 @@ const normaliseClassDetail = (payload) => {
       (typeof assignment.assignedTeamsCount === 'number' && assignment.assignedTeamsCount > 0) ||
       (Array.isArray(assignment.assignedTeams) && assignment.assignedTeams.length > 0);
 
-    if (locked) {
-      lockedProjectIds.add(numericId);
-    }
+    if (locked) lockedProjectIds.add(numericId);
   });
 
   return {
@@ -143,39 +95,18 @@ const normaliseClassDetail = (payload) => {
     classCode: summary?.classCode ?? summary?.code ?? '',
     subjectName: summary?.subjectName ?? summary?.subjectTitle ?? summary?.subject?.subjectName ?? '',
     term: summary?.term ?? summary?.semester ?? summary?.period ?? '',
-    totalTeams: summary?.teamCount ?? summary?.totalTeams ?? 0,
-    totalStudents: summary?.studentCount ?? summary?.totalStudents ?? 0,
-    projectAssignments: assignments,
     assignedProjectIds,
     lockedProjectIds,
   };
 };
 
 const mapProjectRecord = (record) => {
-  if (!record) {
-    return null;
-  }
-
-  const idCandidates = [
-    record.projectId,
-    record.id,
-    record.projectID,
-    record.ProjectId,
-    record.project?.projectId,
-  ];
-
-  const resolvedId = idCandidates.find((candidate) => candidate !== undefined && candidate !== null);
-  if (resolvedId === undefined || resolvedId === null) {
-    return null;
-  }
-
+  if (!record) return null;
+  const idCandidates = [record.projectId, record.id, record.projectID, record.project?.projectId];
+  const resolvedId = idCandidates.find((c) => c !== undefined && c !== null);
+  if (resolvedId === undefined) return null;
   const numericId = Number(resolvedId);
-  if (!Number.isFinite(numericId)) {
-    return null;
-  }
-
-  const status = record.statusString ?? record.projectStatus ?? record.approvalStatus ?? '';
-  const priority = record.priority ?? record.projectPriority ?? record.importance ?? '';
+  if (!Number.isFinite(numericId)) return null;
 
   return {
     id: numericId,
@@ -183,49 +114,18 @@ const mapProjectRecord = (record) => {
     subjectName: record.subjectName ?? record.subjectTitle ?? record.subject?.subjectName ?? '',
     subjectCode: record.subjectCode ?? record.subject?.subjectCode ?? '',
     description: record.description ?? record.summary ?? '',
-    status: typeof status === 'string' ? status.toUpperCase() : '',
-    priority: typeof priority === 'string' ? priority.toLowerCase() : '',
-    difficulty: record.difficulty ?? record.level ?? '',
-    updatedAt: record.updatedAt ?? record.lastUpdated ?? record.modifiedDate ?? null,
-    estimatedDuration: record.estimatedDuration ?? record.duration ?? '',
-    tags: Array.isArray(record.tags) ? record.tags : [],
+    status: (record.statusString ?? record.projectStatus ?? '').toUpperCase(),
+    updatedAt: record.updatedAt ?? record.lastUpdated ?? null,
     teamCount: record.teamCount ?? record.assignedTeamsCount ?? 0,
     objectives: Array.isArray(record.objectives) ? record.objectives : [],
   };
 };
 
-const normaliseLecturerProjects = (payload) => {
-  const rawProjects = extractArray(payload);
-  const projects = rawProjects
-    .map(mapProjectRecord)
-    .filter((project) => {
-      if (project === null) {
-        return false;
-      }
-
-      // Only show approved projects
-      const statusUpper = project.status.toUpperCase();
-      return statusUpper === 'APPROVED';
-    });
-
-  return projects;
-};
-
 const formatDate = (input) => {
-  if (!input) {
-    return 'Not updated yet';
-  }
-
+  if (!input) return 'Not updated yet';
   const date = new Date(input);
-  if (Number.isNaN(date.getTime())) {
-    return 'Not updated yet';
-  }
-
-  return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  if (Number.isNaN(date.getTime())) return 'Not updated yet';
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 const ClassProjectAssignment = () => {
@@ -237,8 +137,8 @@ const ClassProjectAssignment = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [classDetail, setClassDetail] = useState(() => normaliseClassDetail(null));
   const [projects, setProjects] = useState([]);
-  const [assignedProjectIds, setAssignedProjectIds] = useState(new Set()); // Track already assigned
-  const [selectedProjectIds, setSelectedProjectIds] = useState(new Set()); // Track newly selected
+  const [assignedProjectIds, setAssignedProjectIds] = useState(new Set());
+  const [selectedProjectIds, setSelectedProjectIds] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState('');
 
   const loadData = useCallback(async () => {
@@ -246,9 +146,7 @@ const ClassProjectAssignment = () => {
       setIsInitialising(false);
       return;
     }
-
     setIsInitialising(true);
-
     try {
       const [classResponse, projectsResponse] = await Promise.all([
         getClassDetail(classId),
@@ -256,405 +154,296 @@ const ClassProjectAssignment = () => {
       ]);
 
       const detail = normaliseClassDetail(classResponse);
-      const projectList = normaliseLecturerProjects(projectsResponse);
+      // Only show APPROVED projects in this list
+      const projectList = extractArray(projectsResponse)
+        .map(mapProjectRecord)
+        .filter(p => p && p.status === 'APPROVED');
 
       setClassDetail(detail);
       setProjects(projectList);
-      
-      // Store which projects are already assigned to this class
       setAssignedProjectIds(new Set(detail.assignedProjectIds));
-      // Start with only newly selected projects (none initially)
       setSelectedProjectIds(new Set());
     } catch (error) {
-      console.error('Failed to load class project assignment data.', error);
-      toast.error('Unable to load project assignments for this class.');
+      console.error('Failed to load data', error);
+      toast.error('Unable to load assignments.');
     } finally {
       setIsInitialising(false);
     }
   }, [classId, lecturerId]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  // Separate projects into assigned and available
   const { assignedProjects, availableProjects } = useMemo(() => {
     const assigned = [];
     const available = [];
-
-    projects.forEach((project) => {
-      // Projects that are already assigned to the class go to "assigned" section
-      if (assignedProjectIds.has(project.id)) {
-        assigned.push(project);
-      } else {
-        available.push(project);
-      }
+    projects.forEach((p) => {
+      if (assignedProjectIds.has(p.id)) assigned.push(p);
+      else available.push(p);
     });
-
     return { assignedProjects: assigned, availableProjects: available };
   }, [projects, assignedProjectIds]);
 
-  // Filter available projects by search term
   const filteredAvailableProjects = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-
-    if (!term) {
-      return availableProjects;
-    }
-
-    return availableProjects.filter((project) => {
-      const haystack = [
-        project.name,
-        project.subjectName,
-        project.description,
-        project.status,
-        project.priority,
-        project.difficulty,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-      return haystack.includes(term);
-    });
+    if (!term) return availableProjects;
+    return availableProjects.filter((p) => 
+      [p.name, p.subjectName, p.description].join(' ').toLowerCase().includes(term)
+    );
   }, [availableProjects, searchTerm]);
 
-  const projectSummary = useMemo(() => {
-    return {
-      alreadyAssigned: assignedProjects.length,
-      newlySelected: selectedProjectIds.size,
-      availableToAssign: availableProjects.length,
-    };
-  }, [assignedProjects.length, availableProjects.length, selectedProjectIds.size]);
+  const projectSummary = useMemo(() => ({
+    alreadyAssigned: assignedProjects.length,
+    newlySelected: selectedProjectIds.size,
+    availableToAssign: availableProjects.length,
+  }), [assignedProjects.length, availableProjects.length, selectedProjectIds.size]);
 
-  const breadcrumbItems = useMemo(
-    () => [
-      { label: 'Classes', href: '/lecturer/classes' },
-      {
-        label: classDetail.className || `Class ${classId}`,
-        href: classId ? `/lecturer/classes/${classId}` : undefined,
-      },
-      { label: 'Project assignments' },
-    ],
-    [classDetail.className, classId]
-  );
+  const breadcrumbItems = useMemo(() => [
+    { label: 'Classes', href: '/lecturer/classes' },
+    { label: classDetail.className || `Class ${classId}`, href: `/lecturer/classes/${classId}` },
+    { label: 'Project assignments' },
+  ], [classDetail.className, classId]);
 
   const handleToggleProject = (projectId) => {
     setSelectedProjectIds((current) => {
-      const numericId = Number(projectId);
-      if (!Number.isFinite(numericId)) {
-        return current;
-      }
-
       const next = new Set(current);
-      if (next.has(numericId)) {
-        next.delete(numericId);
-      } else {
-        next.add(numericId);
-      }
+      if (next.has(projectId)) next.delete(projectId);
+      else next.add(projectId);
       return next;
     });
   };
 
-  const handleCardKeyDown = (event, projectId) => {
-    if (event.key === ' ' || event.key === 'Enter') {
-      event.preventDefault();
-      handleToggleProject(projectId);
-    }
-  };
-
   const handleSaveAssignments = async () => {
-    if (!classId) {
-      toast.error('Invalid class context.');
-      return;
-    }
-
-    // Combine already assigned projects with newly selected ones
-    const allAssignedIds = new Set([...assignedProjectIds, ...selectedProjectIds]);
-    const payload = Array.from(allAssignedIds);
-
+    if (!classId) return;
+    const allAssignedIds = Array.from(new Set([...assignedProjectIds, ...selectedProjectIds]));
     setIsSaving(true);
     try {
-      const response = await assignProjectsToClass(classId, payload);
-      const message = response?.message ?? response ?? 'Class projects updated successfully.';
-      toast.success(message);
+      await assignProjectsToClass(classId, allAssignedIds);
+      toast.success('Class projects updated successfully.');
       await loadData();
     } catch (error) {
-      console.error('Failed to assign projects to class.', error);
-      const errorMessage = error?.response?.data?.message ?? 'Failed to update project assignments.';
-      toast.error(errorMessage);
+      toast.error('Failed to update assignments.');
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Render a project card for ASSIGNED projects (read-only, no checkbox)
-  const renderAssignedProjectCard = (project) => {
-    const statusLabel = formatStatusLabel(project.status);
-    const statusTone = resolveStatusTone(project.status);
-    const objectiveCount = project.objectives?.length ?? 0;
-
-    return (
-      <article key={project.id} className={`${styles.card} ${styles.assignedCard}`}>
-        <header className={styles.cardHeader}>
-          <div className={styles.cardTitleBlock}>
-            <span className={`${styles.cardPill} ${styles.cardPillAssigned}`}>
-              <CheckCircleIcon className={styles.cardPillIcon} />
-              Assigned
-            </span>
-            <h3 className={styles.cardTitle}>{project.name}</h3>
-            {project.subjectCode && <span className={styles.cardTag}>{project.subjectCode}</span>}
-          </div>
-          {statusLabel && statusTone && (
-            <span className={`${styles.statusBadge} ${styles[`status-${statusTone}`]}`}>{statusLabel}</span>
-          )}
-        </header>
-
-        <p className={styles.cardSummary}>{project.description || 'Description will be available soon.'}</p>
-
-        {objectiveCount > 0 && (
-          <div className={styles.cardObjectives}>
-            <AcademicCapIcon className={styles.objectivesIcon} />
-            <span>{objectiveCount} {objectiveCount === 1 ? 'objective' : 'objectives'}</span>
-          </div>
-        )}
-
-        <footer className={styles.cardFooter}>
-          <div className={styles.cardMeta}>
-            {project.subjectName && (
-              <span className={styles.cardMetaItem}>
-                <BookOpenIcon />
-                {project.subjectName}
-              </span>
-            )}
-            <span className={styles.cardMetaItem}>
-              <CalendarIcon />
-              {formatDate(project.updatedAt)}
-            </span>
-          </div>
-        </footer>
-      </article>
-    );
-  };
-
-  // Render a project card for AVAILABLE projects (with checkbox)
-  const renderAvailableProjectCard = (project) => {
-    const isSelected = selectedProjectIds.has(project.id);
-    const statusLabel = formatStatusLabel(project.status);
-    const statusTone = resolveStatusTone(project.status);
-    const objectiveCount = project.objectives?.length ?? 0;
-
-    return (
-      <article
-        key={project.id}
-        className={`${styles.card} ${styles.availableCard} ${isSelected ? styles.cardSelected : ''}`}
-        onClick={() => handleToggleProject(project.id)}
-        onKeyDown={(event) => handleCardKeyDown(event, project.id)}
-        role="button"
-        tabIndex={0}
-        aria-pressed={isSelected}
-        aria-label={`${isSelected ? 'Deselect' : 'Select'} ${project.name}`}
-      >
-        <div className={styles.selectionIndicator} aria-hidden="true">
-          <CheckCircleIcon className={styles.selectionIcon} />
-        </div>
-
-        <header className={styles.cardHeader}>
-          <div className={styles.cardTitleBlock}>
-            <h3 className={styles.cardTitle}>{project.name}</h3>
-            {project.subjectCode && <span className={styles.cardTag}>{project.subjectCode}</span>}
-          </div>
-          {statusLabel && statusTone && (
-            <span className={`${styles.statusBadge} ${styles[`status-${statusTone}`]}`}>{statusLabel}</span>
-          )}
-        </header>
-
-        <p className={styles.cardSummary}>{project.description || 'Description will be available soon.'}</p>
-
-        {objectiveCount > 0 && (
-          <div className={styles.cardObjectives}>
-            <AcademicCapIcon className={styles.objectivesIcon} />
-            <span>{objectiveCount} {objectiveCount === 1 ? 'objective' : 'objectives'}</span>
-          </div>
-        )}
-
-        <footer className={styles.cardFooter}>
-          <div className={styles.cardMeta}>
-            {project.subjectName && (
-              <span className={styles.cardMetaItem}>
-                <BookOpenIcon />
-                {project.subjectName}
-              </span>
-            )}
-            <span className={styles.cardMetaItem}>
-              <CalendarIcon />
-              {formatDate(project.updatedAt)}
-            </span>
-          </div>
-        </footer>
-      </article>
-    );
-  };
-
   const renderSkeletonCard = (key) => (
-    <div key={key} className={styles.skeletonCard}>
-      <div className={styles.skeletonTitle} />
-      <div className={styles.skeletonBody} />
-      <div className={styles.skeletonBody} />
-      <div className={styles.skeletonMeta}>
-        <span />
-        <span />
+    <div key={key} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 animate-pulse">
+      <div className="h-6 w-2/3 rounded-lg bg-slate-100" />
+      <div className="h-4 w-full rounded-lg bg-slate-50" />
+      <div className="mt-2 flex gap-2">
+        <div className="h-5 w-20 rounded bg-slate-100" />
+        <div className="h-5 w-20 rounded bg-slate-100" />
       </div>
     </div>
   );
 
   return (
     <DashboardLayout>
-      <div className={styles.page}>
-        <LecturerBreadcrumbs items={breadcrumbItems} className={styles.breadcrumbSlot} />
-        <div className={styles.heroShell}>
-          <div className={styles.heroContent}>
-            <div className={styles.heroTopRow}>
-              <Link to={`/lecturer/classes/${classId}`} className={styles.backLink}>
-                <ArrowLeftIcon className={styles.backIcon} />
-                <span>Back to class overview</span>
-              </Link>
-              <button
-                type="button"
-                className={styles.heroSecondary}
-                onClick={() => navigate(`/lecturer/projects`)}
-              >
-                <FolderIcon className={styles.heroSecondaryIcon} />
-                Manage projects
-              </button>
-            </div>
-
-            <div className={styles.heroBody}>
-              <div className={styles.heroCopy}>
-                <div className={styles.heroBadge}>
-                  <SparklesIcon className={styles.heroBadgeIcon} />
-                  Assignment workspace
+      <div className="min-h-screen space-y-8 bg-slate-50/50 p-6 lg:p-8">
+        
+        {/* --- HEADER --- */}
+        <div className="mx-auto max-w-6xl">
+          <LecturerBreadcrumbs items={breadcrumbItems} />
+          
+          <div className="mt-6 relative overflow-hidden rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50">
+            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-orangeFpt-100/50 blur-3xl"></div>
+            
+            <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="space-y-4 max-w-2xl">
+                <div className="flex flex-col gap-2">
+                   <Link to={`/lecturer/classes/${classId}`} className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-orangeFpt-600 transition-colors w-fit">
+                      <ArrowLeftIcon className="h-4 w-4" />
+                      Back to Class
+                   </Link>
+                   <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-lg bg-orangeFpt-50 text-orangeFpt-700 text-xs font-bold border border-orangeFpt-200 uppercase tracking-wider">
+                         Assignment
+                      </span>
+                      <h1 className="text-3xl font-bold text-slate-900">Assign Projects</h1>
+                   </div>
                 </div>
-                <h1 className={styles.heroTitle}>Assign projects</h1>
-                <p className={styles.heroSubtitle}>
-                  Choose which approved projects should appear in{' '}
-                  <strong>{classDetail.classCode || `Class ${classId}`}</strong>
-                  {classDetail.subjectName && ` · ${classDetail.subjectName}`}.
+                <p className="text-lg text-slate-500 leading-relaxed">
+                  Choose approved projects for <strong>{classDetail.className}</strong>. Students will be able to form teams around these assignments.
                 </p>
               </div>
 
-              <div className={styles.heroStats}>
-                <div className={styles.heroStat}>
-                  <span className={styles.heroStatLabel}>Already assigned</span>
-                  <span className={styles.heroStatValue}>{projectSummary.alreadyAssigned}</span>
-                </div>
-                <div className={styles.heroStat}>
-                  <span className={styles.heroStatLabel}>Ready to publish</span>
-                  <span className={styles.heroStatValue}>{projectSummary.newlySelected}</span>
-                </div>
-                <div className={styles.heroStat}>
-                  <span className={styles.heroStatLabel}>Available pool</span>
-                  <span className={styles.heroStatValue}>{projectSummary.availableToAssign}</span>
-                </div>
+              {/* Stats Panel */}
+              <div className="flex gap-3">
+                 <div className="flex flex-col items-center justify-center rounded-2xl bg-emerald-50 border border-emerald-100 p-4 min-w-[100px]">
+                    <span className="text-2xl font-bold text-emerald-700">{projectSummary.alreadyAssigned}</span>
+                    <span className="text-[10px] uppercase font-bold text-emerald-600 tracking-wider">Active</span>
+                 </div>
+                 <div className="flex flex-col items-center justify-center rounded-2xl bg-orangeFpt-50 border border-orangeFpt-100 p-4 min-w-[100px]">
+                    <span className="text-2xl font-bold text-orangeFpt-600">{projectSummary.newlySelected}</span>
+                    <span className="text-[10px] uppercase font-bold text-orangeFpt-600 tracking-wider">Selected</span>
+                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className={styles.contentArea}>
-          <main className={styles.content}>
-            <div className={styles.toolbar}>
-              <div className={styles.searchField}>
-                <MagnifyingGlassIcon className={styles.searchIcon} />
-                <input
-                  type="search"
-                  className={styles.searchInput}
-                  placeholder="Search approved projects by title, subject, or keyword..."
+        {/* --- MAIN CONTENT --- */}
+        <div className="mx-auto max-w-6xl space-y-8">
+          
+          {/* TOOLBAR */}
+          <div className="sticky top-4 z-30 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white/90 backdrop-blur-md p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between transition-all">
+             <div className="relative flex-1 max-w-md">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="Search available projects..." 
+                  className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-2.5 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-2 focus:ring-orangeFpt-500/10"
                   value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  aria-label="Search projects"
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
-              </div>
-
-              <div className={styles.toolbarActions}>
-                <button
-                  type="button"
-                  className={styles.actionSecondary}
-                  onClick={() => navigate(`/lecturer/projects`)}
+             </div>
+             <div className="flex items-center gap-3">
+                <button 
+                   onClick={() => navigate('/lecturer/projects')}
+                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
                 >
-                  <FolderIcon className={styles.actionIcon} />
-                  Manage projects
+                   <FolderIcon className="h-5 w-5" />
+                   Library
                 </button>
-                <button
-                  type="button"
-                  className={styles.actionPrimary}
-                  onClick={handleSaveAssignments}
-                  disabled={isSaving || isInitialising || projectSummary.newlySelected === 0}
+                <button 
+                   onClick={handleSaveAssignments}
+                   disabled={isSaving || isInitialising || projectSummary.newlySelected === 0}
+                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-orangeFpt-500 text-sm font-semibold text-white shadow-lg shadow-orangeFpt-200 hover:bg-orangeFpt-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all"
                 >
-                  {isSaving ? (
-                    <>
-                      <ArrowPathIcon className={`${styles.actionIcon} ${styles.loading}`} />
-                      Publishing...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircleIcon className={styles.actionIcon} />
-                      Publish {projectSummary.newlySelected > 0 ? `(${projectSummary.newlySelected})` : ''}
-                    </>
-                  )}
+                   {isSaving ? (
+                      <ArrowPathIcon className="h-5 w-5 animate-spin" />
+                   ) : (
+                      <CheckCircleIcon className="h-5 w-5" />
+                   )}
+                   {isSaving ? 'Publishing...' : `Publish (${projectSummary.newlySelected})`}
                 </button>
-              </div>
-            </div>
+             </div>
+          </div>
 
-            {assignedProjects.length > 0 && (
-              <section className={styles.section}>
-                <header className={styles.sectionHeader}>
-                  <div className={styles.sectionTitleBlock}>
-                    <LockClosedIcon className={styles.sectionIcon} />
-                    <div>
-                      <h2 className={styles.sectionTitle}>Already live in class</h2>
-                      <p className={styles.sectionCaption}>These projects are active for students. Update teams from the class workspace.</p>
-                    </div>
-                  </div>
-                  <span className={styles.sectionBadge}>{assignedProjects.length}</span>
-                </header>
-                <div className={styles.cardsGrid}>
-                  {assignedProjects.map(renderAssignedProjectCard)}
+          {/* SECTION 1: ASSIGNED PROJECTS */}
+          {assignedProjects.length > 0 && (
+             <section className="space-y-4">
+                <div className="flex items-center gap-3 px-1">
+                   <div className="p-2 rounded-lg bg-emerald-100 text-emerald-600">
+                      <LockClosedIcon className="h-5 w-5" />
+                   </div>
+                   <div>
+                      <h2 className="text-lg font-bold text-slate-800">Assigned to Class</h2>
+                      <p className="text-sm text-slate-500">These projects are currently active.</p>
+                   </div>
                 </div>
-              </section>
-            )}
-
-            <section className={styles.section}>
-              <header className={styles.sectionHeader}>
-                <div className={styles.sectionTitleBlock}>
-                  <ClipboardDocumentListIcon className={styles.sectionIcon} />
-                  <div>
-                    <h2 className={styles.sectionTitle}>Available to assign</h2>
-                    <p className={styles.sectionCaption}>Handpick additional work from your approved project library.</p>
-                  </div>
+                
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                   {assignedProjects.map(project => (
+                      <div key={project.id} className="group relative flex flex-col justify-between rounded-2xl border border-emerald-200 bg-emerald-50/30 p-5 transition-all">
+                         <div>
+                            <div className="mb-3 flex justify-between items-start gap-2">
+                               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
+                                  <CheckCircleSolidIcon className="h-3.5 w-3.5" /> Assigned
+                               </span>
+                               {project.subjectCode && (
+                                  <span className="text-xs font-semibold text-slate-400">{project.subjectCode}</span>
+                               )}
+                            </div>
+                            <h3 className="font-bold text-slate-900 line-clamp-1 mb-2" title={project.name}>{project.name}</h3>
+                            <p className="text-sm text-slate-600 line-clamp-2">{project.description}</p>
+                         </div>
+                         <div className="mt-4 pt-4 border-t border-emerald-100 flex justify-between items-center text-xs text-slate-500">
+                            <span className="flex items-center gap-1">
+                               <BookOpenIcon className="h-3.5 w-3.5" /> {project.subjectName}
+                            </span>
+                            {project.objectives?.length > 0 && (
+                               <span className="flex items-center gap-1 font-medium text-emerald-600">
+                                  <AcademicCapIcon className="h-3.5 w-3.5" /> {project.objectives.length} Objs
+                               </span>
+                            )}
+                         </div>
+                      </div>
+                   ))}
                 </div>
-                <span className={styles.sectionBadge}>{availableProjects.length}</span>
-              </header>
+             </section>
+          )}
 
-              <div className={styles.cardsGrid}>
-                {isInitialising
-                  ? Array.from({ length: 6 }).map((_, index) => renderSkeletonCard(index))
-                  : filteredAvailableProjects.length > 0
-                  ? filteredAvailableProjects.map(renderAvailableProjectCard)
-                  : (
-                    <div className={styles.emptyState}>
-                      <InboxIcon className={styles.emptyIcon} />
-                      <h3>No matching projects</h3>
-                      <p>
-                        {searchTerm
-                          ? 'Refine your search or clear the filter to browse everything approved.'
-                          : 'Everything in your approved catalogue is already assigned to this class.'}
+          {/* SECTION 2: AVAILABLE PROJECTS */}
+          <section className="space-y-4">
+             <div className="flex items-center gap-3 px-1">
+                <div className="p-2 rounded-lg bg-orangeFpt-100 text-orangeFpt-600">
+                   <ClipboardDocumentListIcon className="h-5 w-5" />
+                </div>
+                <div>
+                   <h2 className="text-lg font-bold text-slate-800">Available Library</h2>
+                   <p className="text-sm text-slate-500">Select approved projects to add to this class.</p>
+                </div>
+             </div>
+
+             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {isInitialising ? (
+                   Array.from({ length: 3 }).map((_, i) => renderSkeletonCard(i))
+                ) : filteredAvailableProjects.length > 0 ? (
+                   filteredAvailableProjects.map(project => {
+                      const isSelected = selectedProjectIds.has(project.id);
+                      return (
+                         <div 
+                            key={project.id}
+                            onClick={() => handleToggleProject(project.id)}
+                            className={`group relative cursor-pointer flex flex-col justify-between rounded-2xl border p-5 transition-all duration-200 hover:shadow-md ${
+                               isSelected 
+                                  ? 'border-orangeFpt-500 bg-orangeFpt-50/40 ring-1 ring-orangeFpt-500' 
+                                  : 'border-slate-200 bg-white hover:border-orangeFpt-300'
+                            }`}
+                         >
+                            <div className="absolute top-4 right-4">
+                               <div className={`h-6 w-6 rounded-full border flex items-center justify-center transition-all ${
+                                  isSelected 
+                                     ? 'bg-orangeFpt-500 border-orangeFpt-500 text-white' 
+                                     : 'bg-white border-slate-300 text-transparent group-hover:border-orangeFpt-300'
+                               }`}>
+                                  <CheckCircleSolidIcon className="h-4 w-4" />
+                               </div>
+                            </div>
+
+                            <div>
+                               <div className="mb-3">
+                                  {project.subjectCode ? (
+                                     <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-bold uppercase tracking-wider text-slate-500">
+                                        {project.subjectCode}
+                                     </span>
+                                  ) : (
+                                     <span className="text-xs font-bold text-slate-400">NO CODE</span>
+                                  )}
+                               </div>
+                               <h3 className={`font-bold line-clamp-1 mb-2 pr-8 ${isSelected ? 'text-orangeFpt-900' : 'text-slate-900'}`} title={project.name}>
+                                  {project.name}
+                               </h3>
+                               <p className="text-sm text-slate-600 line-clamp-2">{project.description}</p>
+                            </div>
+
+                            <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500">
+                               <span className="flex items-center gap-1">
+                                  <CalendarIcon className="h-3.5 w-3.5" /> {formatDate(project.updatedAt)}
+                               </span>
+                               {project.objectives?.length > 0 && (
+                                  <span className="flex items-center gap-1 font-medium bg-slate-100 px-2 py-0.5 rounded-full">
+                                     <SparklesIcon className="h-3 w-3 text-orangeFpt-500" /> {project.objectives.length}
+                                  </span>
+                               )}
+                            </div>
+                         </div>
+                      );
+                   })
+                ) : (
+                   <div className="col-span-full flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50/50 py-16 text-center">
+                      <InboxIcon className="h-12 w-12 text-slate-300 mb-4" />
+                      <h3 className="text-lg font-semibold text-slate-900">No projects found</h3>
+                      <p className="text-sm text-slate-500">
+                         {searchTerm ? 'Try adjusting your search terms.' : 'All approved projects are already assigned.'}
                       </p>
-                    </div>
-                  )}
-              </div>
-            </section>
-          </main>
+                   </div>
+                )}
+             </div>
+          </section>
+
         </div>
       </div>
     </DashboardLayout>

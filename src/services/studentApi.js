@@ -1,6 +1,6 @@
 import apiClient from './apiClient';
 import { getTeamDetail } from './teamApi';
-import { getMilestonesByTeam, getMilestoneDetail } from './milestoneApi';
+import { getMilestonesByTeam, getMilestoneDetail, patchGenerateNewMilestoneFile } from './milestoneApi';
 
 // Student-specific API 
 
@@ -402,16 +402,7 @@ export const patchMarkDoneMilestoneByMilestoneId = async (teamMilestoneId, isDon
   }
 };
 
-export const patchGenerateNewMilestoneFileLinkByMilestoneIdAndFileId = async (milestoneId, fileId) => {
-  try {
-    const response = await apiClient.patch(`/milestone/${milestoneId}/files/${fileId}/new-url`);
-    console.log('Regenerated milestone file link data:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error(`Error regenerating file link for milestone ID ${milestoneId} and file ID ${fileId}:`, error);
-    throw error;
-  }
-};
+export const patchGenerateNewMilestoneFileLinkByMilestoneIdAndFileId = async (milestoneId, fileId) => patchGenerateNewMilestoneFile(milestoneId, fileId);
 
 export const postUploadMilestoneFilebyMilestoneId = async (milestoneId, formData) => {
   try {

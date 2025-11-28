@@ -81,8 +81,10 @@ const ClassProjectOverview = () => {
       setError('');
       try {
         const response = await getClassDetail(classId);
+        console.log("class detail response:", response);
         if (ignore) return;
         const normalised = normaliseClassDetailPayload(response, numericClassId);
+        console.log("normalised class detail:", normalised);
         setDetail(normalised);
       } catch (err) {
         if (!ignore) setError('Unable to load class projects right now.');

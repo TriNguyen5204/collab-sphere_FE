@@ -1,6 +1,7 @@
 /* @refresh reload */
 import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSelector } from 'react-redux';
 import { getDetailOfTeamByTeamId } from '../services/studentApi';
 
 const STORAGE_KEY = 'teamDetail';
@@ -99,46 +100,79 @@ const writeStoredTeamId = (teamId) => {
 
 export function TeamProvider({ children, initialTeam = null }) {
 	const queryClient = useQueryClient();
-	const initialId = normalizeTeamId(initialTeam?.teamId) ?? readStoredTeamId();
+	const user = useSelector((state) => state.user);
+	const isAuthenticated = Boolean(user?.accessToken && user?.userId);
+	const initialId =
+		normalizeTeamId(initialTeam?.teamId) ?? (isAuthenticated ? readStoredTeamId() : null);
 	const [activeTeamId, setActiveTeamId] = useState(initialId);
 
 	useEffect(() => {
-		if (initialTeam?.teamId) {
-			const normalized = normalizeTeamId(initialTeam.teamId);
-			if (normalized != null) {
-				queryClient.setQueryData(teamQueryKey(normalized), initialTeam);
-				setActiveTeamId((prev) => prev ?? normalized);
-			}
+		if (!isAuthenticated || !initialTeam?.teamId) return;
+		const normalized = normalizeTeamId(initialTeam.teamId);
+		if (normalized != null) {
+			queryClient.setQueryData(teamQueryKey(normalized), initialTeam);
+			setActiveTeamId((prev) => prev ?? normalized);
 		}
-	}, [initialTeam, queryClient]);
+	}, [initialTeam, isAuthenticated, queryClient]);
 
 	useEffect(() => {
+		if (!isAuthenticated) {
+			writeStoredTeamId(null);
+			return;
+		}
 		writeStoredTeamId(activeTeamId);
-	}, [activeTeamId]);
+	}, [activeTeamId, isAuthenticated]);
 
 	useEffect(() => {
+		if (!isAuthenticated) {
+			return undefined;
+		}
 		const handleStorage = (event) => {
 			if (event.key !== STORAGE_KEY) return;
 			setActiveTeamId(readStoredTeamId());
 		};
 		window.addEventListener('storage', handleStorage);
 		return () => window.removeEventListener('storage', handleStorage);
-	}, []);
+	}, [isAuthenticated]);
 
-	const normalizedTeamId = normalizeTeamId(activeTeamId);
+	useEffect(() => {
+		if (!isAuthenticated) {
+			setActiveTeamId((prev) => {
+				const normalizedPrev = normalizeTeamId(prev);
+				if (normalizedPrev != null) {
+					queryClient.removeQueries({ queryKey: teamQueryKey(normalizedPrev) });
+				}
+				return null;
+			});
+			return;
+		}
+
+		setActiveTeamId((prev) => {
+			if (prev != null) {
+				return prev;
+			}
+			const normalizedInitial = normalizeTeamId(initialTeam?.teamId);
+			if (normalizedInitial != null) {
+				return normalizedInitial;
+			}
+			return readStoredTeamId();
+		});
+	}, [initialTeam, isAuthenticated, queryClient]);
+
+	const normalizedTeamId = isAuthenticated ? normalizeTeamId(activeTeamId) : null;
 	const queryKey = normalizedTeamId ? teamQueryKey(normalizedTeamId) : ['team-detail', 'idle'];
 
 	const teamQuery = useQuery({
 		queryKey,
 		queryFn: () => {
-			if (!normalizedTeamId) {
+			if (!normalizedTeamId || !isAuthenticated) {
 				return Promise.reject(new Error('No team selected'));
 			}
 			return getDetailOfTeamByTeamId(normalizedTeamId);
 		},
-		enabled: Boolean(normalizedTeamId),
+		enabled: Boolean(isAuthenticated && normalizedTeamId),
 		initialData: () => {
-			if (!normalizedTeamId) return undefined;
+			if (!isAuthenticated || !normalizedTeamId) return undefined;
 			const cached = queryClient.getQueryData(teamQueryKey(normalizedTeamId));
 			if (cached) return cached;
 			if (initialTeam?.teamId && normalizeTeamId(initialTeam.teamId) === normalizedTeamId) {
@@ -160,6 +194,10 @@ export function TeamProvider({ children, initialTeam = null }) {
 
 	const setTeam = useCallback(
 		(next) => {
+			if (!isAuthenticated) {
+				console.warn('Attempted to set team while unauthenticated.');
+				return;
+			}
 			if (next == null) {
 				clearTeam();
 				return;
@@ -188,11 +226,14 @@ export function TeamProvider({ children, initialTeam = null }) {
 
 			console.warn('Unsupported value passed to setTeam:', next);
 		},
-		[clearTeam, queryClient]
+		[clearTeam, isAuthenticated, queryClient]
 	);
 
 	const updateTeam = useCallback(
 		async (partial, options = {}) => {
+			if (!isAuthenticated) {
+				return teamQuery.data ?? null;
+			}
 			const { refresh = true, teamId: overrideTeamId } = options;
 			const targetId =
 				normalizeTeamId(overrideTeamId) ??
@@ -223,15 +264,15 @@ export function TeamProvider({ children, initialTeam = null }) {
 				return queryClient.getQueryData(teamQueryKey(targetId));
 			}
 		},
-		[normalizedTeamId, queryClient, teamQuery.data]
+		[isAuthenticated, normalizedTeamId, queryClient, teamQuery.data]
 	);
 
 	const refetchTeam = useCallback(() => {
-		if (!normalizedTeamId) {
+		if (!isAuthenticated || !normalizedTeamId) {
 			return Promise.resolve(null);
 		}
 		return queryClient.invalidateQueries({ queryKey: teamQueryKey(normalizedTeamId) });
-	}, [normalizedTeamId, queryClient]);
+	}, [isAuthenticated, normalizedTeamId, queryClient]);
 
 	const value = useMemo(
 		() => ({
