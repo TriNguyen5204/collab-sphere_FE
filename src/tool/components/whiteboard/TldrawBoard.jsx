@@ -1,8 +1,8 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Tldraw, Editor } from "tldraw";
 import { useWhiteboardSync } from "../../hooks/whiteboard/useWhiteboardSync";
 import CustomPageMenu from "../whiteboard/CustomPageMenu";
+import { getPagesByWhiteboardId, getShapesByPageId, parseShapeJson } from '../../../services/whiteboardService';
 import 'tldraw/tldraw.css'
 
 export default function TldrawBoard({
@@ -22,17 +22,18 @@ export default function TldrawBoard({
 
     const initializePages = async () => {
       try {
-        const res = await fetch(
-          `http://localhost:5103/api/whiteboards/${whiteboardId}/pages`
-        );
-        if (!res.ok) throw new Error("Failed to fetch pages");
-        const pages = await res.json();
-        console.log("Pages loaded from DB:", pages);
+        console.log("🔍 Fetching pages for whiteboard:", whiteboardId);
+        
+        const responseData = await getPagesByWhiteboardId(whiteboardId);
+        console.log("📦 Full API Response:", responseData);
+        
+        const pages = responseData.pages || [];
+        console.log("✅ Pages loaded from DB:", pages);
 
         if (!pages.length) {
-          console.warn("No pages found, using default.");
+          console.warn("⚠️ No pages found, using default.");
           hasInitialized.current = true;
-          setCurrentPageId(editor.getCurrentPageId());
+          // setCurrentPageId(editor.getCurrentPageId());
           return;
         }
 
@@ -51,17 +52,24 @@ export default function TldrawBoard({
             .map((r) => r.id);
           if (fakeShapes.length) editor.store.remove(fakeShapes);
           editor.store.remove([defaultTldrawPageId]);
-          console.log("Removed default Tldraw page: 'page:page'");
+          console.log("🗑️ Removed default Tldraw page: 'page:page'");
         }
 
         const firstPageId = pageRecords[0].id;
+
         editor.setCurrentPage(firstPageId);
         setCurrentPageId(firstPageId);
         await loadShapesForPage(firstPageId);
 
         hasInitialized.current = true;
       } catch (e) {
-        console.error("init pages error:", e);
+        console.error("💥 init pages error:", e);
+        console.error("💥 Error message:", e.message);
+        
+        // Fallback: use default page if API fails
+        console.warn("⚠️ Falling back to default page due to error");
+        hasInitialized.current = true;
+        setCurrentPageId(editor.getCurrentPageId());
       }
     };
 
@@ -71,27 +79,23 @@ export default function TldrawBoard({
   const loadShapesForPage = async (pageId) => {
     if (!editor || isLoadingPage.current || !pageId) return;
     isLoadingPage.current = true;
-    console.log(`Loading shapes for page: ${pageId}`);
+    console.log(`🔄 Loading shapes for page: ${pageId}`);
 
     try {
       const numericId = pageId.split(":")[1];
       if (!numericId) throw new Error("Invalid page ID format");
 
-      const res = await fetch(
-        `http://localhost:5103/api/pages/${numericId}/shapes`
-      );
-      if (!res.ok) throw new Error("fetch shapes failed");
-      const shapesFromApi = await res.json();
+      // Use service instead of direct fetch
+      const shapesFromApi = await getShapesByPageId(numericId);
+      console.log("📦 Shapes API Response:", shapesFromApi);
 
       const oldShapeIds = Array.from(editor.store.allRecords())
         .filter((r) => r.typeName === "shape")
         .map((r) => r.id);
       if (oldShapeIds.length) editor.store.remove(oldShapeIds);
 
-      const formattedShapes = shapesFromApi.map((s) => {
-        const shapeRecord = JSON.parse(s.jsonDate);
-        return shapeRecord;
-      });
+      // Use helper function to parse shapes
+      const formattedShapes = shapesFromApi.shapes.map((s) => parseShapeJson(s));
 
       if (formattedShapes.length) {
         editor.store.put(formattedShapes);
@@ -100,7 +104,7 @@ export default function TldrawBoard({
         console.log(`ℹ️ No shapes found for ${pageId}`);
       }
     } catch (e) {
-      console.error("load shapes error:", e);
+      console.error("💥 load shapes error:", e);
     } finally {
       isLoadingPage.current = false;
     }
@@ -122,7 +126,7 @@ export default function TldrawBoard({
         const newId = editor.getCurrentPageId();
         if (!newId || newId === currentPageId) return;
 
-        console.log("📄 User switched to page:", newId);
+        console.log("🔄 User switched to page:", newId);
         setCurrentPageId(newId);
         await loadShapesForPage(newId);
       },
@@ -141,11 +145,11 @@ export default function TldrawBoard({
   );
 
   return (
-    <div style={{ position: "fixed", inset: 0 }}>
+    <div style={{ position: "fixed", inset: 0, touchAction: "none" }}>
       <Tldraw
         onMount={(e) => {
           setEditor(e);
-          console.log("tldraw ready");
+          console.log("✅ tldraw ready");
         }}
         components={{
           // Replace the PageMenu completely with our custom menu

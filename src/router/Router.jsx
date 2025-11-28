@@ -98,7 +98,7 @@ const publicRoutes = [
   { path: '/meeting/history/:teamId', element: <MeetingManagement/> },
   { path: '/meeting/schedule/:teamId', element: <MeetingSchedulerFull/> },
   { path: '/test/kanban', element: <TestKanbanBoard /> },
-  { path: '/test/whiteboard', element: <Whiteboard/>},
+  { path: '/student/project/whiteboard', element: <Whiteboard/>},
 ];
 
 const studentRoutes = [
