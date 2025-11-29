@@ -8,7 +8,6 @@ import type {
     TLPage,
     IndexKey,
 } from 'tldraw'
-import { updatePageTitle } from '../../../services/whiteboardService';
 
 // Helper type guard
 function isPage(record: TLRecord): record is TLPage {
@@ -17,7 +16,7 @@ function isPage(record: TLRecord): record is TLPage {
 
 export function useWhiteboardSync(
     whiteboardId: number,
-    pageId: number | null, // <-- Can be null
+    pageId: number | null,
     drawerId: string,
     drawerName: string,
     editor: Editor | null
@@ -31,28 +30,22 @@ export function useWhiteboardSync(
             return
         }
 
-        // Trong useWhiteboardSync.ts
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `wss://collabsphere.azurewebsites.net/ws?whiteboardId=${whiteboardId}&pageId=${pageId}&drawerId=${drawerId}&userName=${encodeURIComponent(drawerName)}`;
 
         const socket = new WebSocket(wsUrl);
-        socket.onopen = () => console.log('✅ Connected!');
-        socket.onerror = (err) => console.error('❌ Error:', err);
-        socket.onclose = (e) => console.log('📴 Closed:', e.code, e.reason);
-        if (socket) {
-            console.log("Signal connected", socket)
-        }
         socketRef.current = socket
 
-        // --- Move ALL logic inside the 'onopen' handler ---
+        socket.onerror = (err) => console.error('❌ WebSocket Error:', err);
+        socket.onclose = (e) => console.log('🔴 WebSocket Closed:', e.code, e.reason);
+
         socket.onopen = () => {
-            console.log(`✅ Connected to page: ${pageId} as ${drawerId} and name ${drawerName}`)
+            console.log(`✅ Connected to page: ${pageId} as ${drawerId} (${drawerName})`);
 
             editor.updateInstanceState({
                 cursor: { type: 'none', rotation: 0 },
             })
 
-            //NEW
+            // Clear old shapes when connecting
             const oldShapeIds = Array.from(editor.store.allRecords())
                 .filter((r) => r.typeName === "shape")
                 .map((r) => r.id);
@@ -60,15 +53,16 @@ export function useWhiteboardSync(
                 editor.store.remove(oldShapeIds);
             }
 
-            // --- Add message listener ---
+            // ========== MESSAGE LISTENER ==========
             socket.onmessage = (event) => {
                 try {
                     const msg = JSON.parse(event.data)
 
-                    // --- 1. ADD THIS TO HANDLE NEW PAGES ---
+                    // ✅ 1. HANDLE NEW PAGE
                     if (msg.type === 'new_page') {
-                        console.log('Real-time: New page created!', msg.page);
+                        console.log('📡 WebSocket: Received new_page', msg.page);
                         const tldrawPageId = `page:${msg.page.pageId}` as TLPageId;
+                        
                         if (!editor.store.get(tldrawPageId)) {
                             editor.store.put([{
                                 id: tldrawPageId,
@@ -77,13 +71,14 @@ export function useWhiteboardSync(
                                 index: `a${msg.page.pageId}` as IndexKey,
                                 meta: {},
                             }]);
+                            console.log(`✅ Added new page from WebSocket: ${msg.page.pageTitle}`);
                         }
                         return;
                     }
 
-                    // --- 2. ADD THIS TO HANDLE PAGE RENAMES ---
+                    // ✅ 2. HANDLE PAGE RENAME
                     if (msg.type === 'update_page') {
-                        console.log('Real-time: Page renamed!', msg.page);
+                        console.log('📡 WebSocket: Received update_page', msg.page);
                         const tldrawPageId = `page:${msg.page.pageId}` as TLRecord['id'];
                         const existingPage = editor.store.get(tldrawPageId);
 
@@ -92,43 +87,38 @@ export function useWhiteboardSync(
                                 ...existingPage,
                                 name: msg.page.pageTitle,
                             }]);
+                            console.log(`✅ Updated page title from WebSocket: ${msg.page.pageTitle}`);
                         }
                         return;
                     }
 
-                    // DELETE PAGE
-                    // inside socket.onmessage handler (in useWhiteboardSync)
+                    // ✅ 3. HANDLE PAGE DELETE
                     if (msg.type === 'delete_page' && msg.page) {
+                        console.log('📡 WebSocket: Received delete_page', msg.page);
                         const tldrawPageId = `page:${msg.page.pageId}` as TLRecord['id'];
 
-                        // Remove page record
                         const existing = editor.store.get(tldrawPageId);
                         if (existing) {
                             editor.store.remove([tldrawPageId]);
-                            console.log(`Real-time: Page deleted: ${tldrawPageId}`);
+                            console.log(`✅ Removed page from WebSocket: ${tldrawPageId}`);
                         }
 
-                        // If I'm currently viewing that page -> notify user to reload
+                        // If I'm viewing the deleted page, notify and reload
                         const myCurrent = editor.getCurrentPageId();
                         if (myCurrent === tldrawPageId) {
-                            // Simple browser dialog – you can replace with nicer toast/modal
                             const ok = window.confirm(
-                                "The page you are viewing was deleted by someone else. Click OK to reload the page in your browser."
+                                "The page you are viewing was deleted by someone else. Click OK to reload."
                             );
                             if (ok) {
                                 window.location.reload();
                             }
-                        } else {
-                            // Optional: show a small toast to other users
-                            // e.g., toast(`${msg.page.pageTitle ?? tldrawPageId} has been deleted.`)
                         }
                         return;
                     }
 
-                    // ------------------------------------
-
                     const msgUserId = msg.userId?.toString();
 
+                    // ✅ 4. HANDLE SYNC (shapes/bindings)
                     if (msg.type === 'sync' && msg.payload) {
                         if (msgUserId && msgUserId !== drawerId) {
                             editor.store.mergeRemoteChanges(() => {
@@ -146,7 +136,7 @@ export function useWhiteboardSync(
                         }
                     }
 
-                    // --- THIS IS THE FIX for 'followingUserId' ---
+                    // ✅ 5. HANDLE PRESENCE (cursor)
                     if (msg.type === 'presence' && msgUserId && msgUserId !== drawerId) {
                         const presenceId = `instance_presence:${msgUserId}` as TLInstancePresenceID
                         const presence: TLInstancePresence = {
@@ -159,7 +149,6 @@ export function useWhiteboardSync(
                             cursor: { x: msg.x, y: msg.y, type: 'pointer', rotation: 0 },
                             color: msg.color ?? '#1E90FF',
                             currentPageId: editor.getCurrentPageId(),
-                            // --- Add all missing properties ---
                             followingUserId: null,
                             selectedShapeIds: [],
                             brush: null,
@@ -170,10 +159,10 @@ export function useWhiteboardSync(
                         }
                         editor.store.put([presence]);
                     }
-                    // ----------------------------------------
 
+                    // ✅ 6. HANDLE USER LEAVE
                     if (msg.type === 'leave' && msgUserId && msgUserId !== drawerId) {
-                        console.log(`${msg.userName} (ID: ${msgUserId}) left the room.`);
+                        console.log(`👋 ${msg.userName} (ID: ${msgUserId}) left the room.`);
                         const presenceId = `instance_presence:${msgUserId}` as TLInstancePresenceID
                         editor.store.remove([presenceId])
                     }
@@ -182,7 +171,9 @@ export function useWhiteboardSync(
                 }
             }
 
-            // --- Add Tldraw store listener ---
+            // ========== TLDRAW STORE LISTENER ==========
+            // ⚠️ IMPORTANT: DO NOT broadcast page rename here!
+            // Page rename is now handled entirely in CustomPageMenu
             const cleanupStoreListener = editor.store.listen(
                 (update) => {
                     if (update.source !== 'user' || socket.readyState !== WebSocket.OPEN)
@@ -196,19 +187,10 @@ export function useWhiteboardSync(
                     };
                     let hasChanges = false;
 
-                    // Handle page renames using whiteboardService
-                    for (const [id, [from, to]] of Object.entries(changes.updated)) {
-                        if (isPage(from) && isPage(to) && from.name !== to.name) {
-                            console.log(`User renamed page: ${to.name}`);
-                            const numericPageId = to.id.split(':')[1];
+                    // ⚠️ REMOVED: Page rename broadcast (now in CustomPageMenu)
+                    // We only handle shapes and bindings here
 
-                            // Use whiteboardService instead of direct fetch
-                            updatePageTitle(numericPageId, to.name).catch((err) => {
-                                console.error('Error updating page title:', err);
-                            });
-                        }
-                    }
-
+                    // Collect shape/binding changes
                     for (const [id, record] of Object.entries(changes.added)) {
                         if (record.typeName === 'shape' || record.typeName === 'binding') {
                             payload.added[id as TLRecord['id']] = record;
@@ -228,6 +210,7 @@ export function useWhiteboardSync(
                         }
                     }
 
+                    // Send shape/binding changes only
                     if (hasChanges) {
                         socket.send(
                             JSON.stringify({
@@ -242,7 +225,7 @@ export function useWhiteboardSync(
                 { source: 'user' }
             );
 
-            // --- Add pointer move listener ---
+            // ========== POINTER MOVE LISTENER ==========
             const handlePointerMove = () => {
                 const now = Date.now()
                 if (now - lastSendRef.current < 50) return
@@ -268,7 +251,7 @@ export function useWhiteboardSync(
             }
             window.addEventListener('pointermove', handlePointerMove)
 
-            // --- Set up cleanup *inside* onopen ---
+            // ========== CLEANUP ==========
             socket.onclose = () => {
                 console.warn(`🔻 Disconnected from page: ${pageId}`);
                 cleanupStoreListener();
@@ -286,10 +269,14 @@ export function useWhiteboardSync(
             }
         }
 
-        // --- Main cleanup function ---
+        // Main cleanup function
         return () => {
             if (socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ type: 'leave', drawerId: drawerId.toString(), pageId }))
+                socket.send(JSON.stringify({ 
+                    type: 'leave', 
+                    drawerId: drawerId.toString(), 
+                    pageId 
+                }))
                 socket.close()
             }
             if (socketRef.current === socket) {
@@ -297,4 +284,7 @@ export function useWhiteboardSync(
             }
         }
     }, [editor, whiteboardId, pageId, drawerId, drawerName])
+
+    // ✅ Return WebSocket reference
+    return socketRef.current;
 }

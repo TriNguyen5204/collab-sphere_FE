@@ -1,5 +1,5 @@
 // CustomPageMenu.jsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useEditor } from 'tldraw';
 import {
   createPage,
@@ -7,50 +7,49 @@ import {
   deletePage,
 } from '../../../services/whiteboardService';
 
-/**
- * Custom Page Menu - replicates DefaultPageMenu behaviour:
- * - Shows pages
- * - Click to switch
- * - Inline rename (using whiteboardService.updatePageTitle)
- * - + New Page (using whiteboardService.createPage)
- * - Delete page (using whiteboardService.deletePage)
- *
- * Props:
- * - whiteboardId (number|string) -- passed by TldrawBoard when injecting component
- */
 export default function CustomPageMenu({
   whiteboardId,
   onClose,
   isOpen: externalIsOpen,
+  websocket
 }) {
   const editor = useEditor();
   const [open, setOpen] = useState(false);
-  // editing state
   const [editingPageId, setEditingPageId] = useState(null);
   const [editingValue, setEditingValue] = useState('');
-  // local snapshot of pages (kept in sync with editor.store)
-  const pages = useMemo(() => {
-    if (!editor) return [];
-    return Array.from(editor.store.allRecords())
-      .filter(r => r.typeName === 'page')
-      .sort((a, b) => {
-        if (a.index && b.index)
-          return String(a.index).localeCompare(String(b.index));
-        return String(a.name ?? '').localeCompare(String(b.name ?? ''));
-      });
-  }, [editor]);
+  
+  
+  // ✅ CRITICAL FIX: Tính toán pages mỗi lần render, KHÔNG dùng useMemo
+  // useMemo với forceUpdate không work vì forceUpdate là setter function
+  const pages = editor ? Array.from(editor.store.allRecords())
+    .filter(r => r.typeName === 'page')
+    .sort((a, b) => {
+      if (a.index && b.index)
+        return String(a.index).localeCompare(String(b.index));
+      return String(a.name ?? '').localeCompare(String(b.name ?? ''));
+    }) : [];
 
   // keep component open state in sync if Tldraw controls it
   useEffect(() => {
     if (typeof externalIsOpen === 'boolean') setOpen(externalIsOpen);
   }, [externalIsOpen]);
 
-  // Listen to store updates so the component re-renders when pages change
+  // ✅ CRITICAL FIX: Listen to ALL store updates and force re-render when pages change
   useEffect(() => {
     if (!editor) return;
-    const unsub = editor.store.listen(() => {
-      setOpen(v => v);
+    
+    const unsub = editor.store.listen((entry) => {
+      // Check if there are any page-related changes
+      const hasPageChanges = 
+        (entry.changes?.added && Object.values(entry.changes.added).some(r => r.typeName === 'page')) ||
+        (entry.changes?.updated && Object.values(entry.changes.updated).some(([from, to]) => to.typeName === 'page')) ||
+        (entry.changes?.removed && Object.values(entry.changes.removed).some(r => r.typeName === 'page'));
+      
+      if (hasPageChanges) {
+        console.log('📄 Page changes detected in CustomPageMenu, forcing re-render');
+      }
     });
+    
     return () => unsub();
   }, [editor]);
 
@@ -88,22 +87,36 @@ export default function CustomPageMenu({
       return;
     }
 
-    // Optimistically update local tldraw page record
-    const updatedRecord = {
-      ...page,
-      name: newTitle,
-    };
+    const numericPageId = page.id.split(':')[1];
+    
     try {
-      editor.store.put([updatedRecord]);
-
-      // Use whiteboardService instead of direct fetch
-      const numericPageId = page.id.split(':')[1];
+      // 1. Update API first
       await updatePageTitle(numericPageId, newTitle);
+      console.log(`✅ API: Page renamed to: ${newTitle}`);
 
-      console.log(`✅ Page renamed: ${newTitle}`);
+      // 2. Update local store (this will trigger the listener above)
+      const updatedRecord = {
+        ...page,
+        name: newTitle,
+      };
+      editor.store.put([updatedRecord]);
+      
+      // 3. Broadcast to other users
+      if (websocket && websocket.readyState === WebSocket.OPEN) {
+        websocket.send(JSON.stringify({
+          type: 'update_page',
+          page: {
+            pageId: numericPageId,
+            pageTitle: newTitle,
+          },
+        }));
+        console.log('📡 Broadcasted page update from CustomPageMenu');
+      } else {
+        console.warn('⚠️ WebSocket not ready, cannot broadcast rename');
+      }
     } catch (err) {
       console.error('💥 Rename page failed:', err);
-      // Optionally revert: reload page from editor.store
+      alert('Failed to rename page: ' + err.message);
     } finally {
       cancelEdit();
     }
@@ -128,12 +141,11 @@ export default function CustomPageMenu({
 
     const numericPageId = page.id.split(':')[1];
     try {
-      // Use whiteboardService instead of direct fetch
+      // 1. Delete from API
       await deletePage(numericPageId);
+      console.log(`✅ API: Page deleted: ${page.name}`);
 
-      console.log(`✅ Page deleted: ${page.name}`);
-
-      // Immediately remove locally and switch to another page
+      // 2. Remove locally and switch to another page
       editor.store.remove([page.id]);
 
       // Find another page to switch to (pick the first remaining)
@@ -155,6 +167,18 @@ export default function CustomPageMenu({
         editor.store.put([fallback]);
         editor.setCurrentPage(fallback.id);
       }
+      
+      // 3. Broadcast deletion
+      if (websocket && websocket.readyState === WebSocket.OPEN) {
+        websocket.send(JSON.stringify({
+          type: 'delete_page',
+          page: {
+            pageId: numericPageId,
+            pageTitle: page.name,
+          },
+        }));
+        console.log('📡 Broadcasted page deletion from CustomPageMenu');
+      }
     } catch (err) {
       console.error('💥 Delete error', err);
       alert('Error deleting page: ' + err.message);
@@ -169,19 +193,20 @@ export default function CustomPageMenu({
     if (!trimmed) return;
 
     try {
-      // Use whiteboardService instead of direct fetch
+      // 1. Create via API
       const newPage = await createPage(whiteboardId, trimmed);
-
-      console.log(`✅ Page created:`, newPage);
+      console.log(`✅ API: Page created:`, newPage);
+      
       let pageData;
       if (typeof newPage.message === 'string') {
         pageData = JSON.parse(newPage.message);
       } else {
-        pageData = newPage.message || newPage; // Fallback
+        pageData = newPage.message || newPage;
       }
 
       console.log('✅ Parsed page data:', pageData);
-      // Add to local store and switch to it immediately
+      
+      // 2. Add to local store and switch to it
       const newRecord = {
         id: `page:${pageData.PageId}`,
         typeName: 'page',
@@ -191,6 +216,21 @@ export default function CustomPageMenu({
       };
       editor.store.put([newRecord]);
       editor.setCurrentPage(newRecord.id);
+      
+      // 3. Broadcast new page
+      if (websocket && websocket.readyState === WebSocket.OPEN) {
+        websocket.send(JSON.stringify({
+          type: 'new_page',
+          page: {
+            pageId: pageData.PageId,
+            pageTitle: pageData.PageTitle,
+          },
+        }));
+        console.log('📡 Broadcasted new page from CustomPageMenu');
+      } else {
+        console.warn('⚠️ WebSocket not ready, cannot broadcast new page');
+      }
+      
       setOpen(false);
     } catch (err) {
       console.error('💥 Create page error:', err);
@@ -198,12 +238,10 @@ export default function CustomPageMenu({
     }
   };
 
-  // Render UI that visually matches the default: small dropdown, list items, rename pencil, plus button.
   return (
     <div
       style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
     >
-      {/* Toggle button (mimic default small button) */}
       <button
         onClick={handleToggle}
         aria-haspopup='menu'
@@ -218,7 +256,6 @@ export default function CustomPageMenu({
           cursor: 'pointer',
         }}
       >
-        {/* simple icon + label */}
         <svg
           width='16'
           height='16'
@@ -256,7 +293,6 @@ export default function CustomPageMenu({
         </svg>
       </button>
 
-      {/* Dropdown */}
       {open && (
         <div
           role='menu'
@@ -282,7 +318,7 @@ export default function CustomPageMenu({
               padding: '4px 6px',
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 600 }}>Các trang</div>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>Các trang ({pages.length})</div>
             <div style={{ display: 'flex', gap: 6 }}>
               <button
                 onClick={handleCreatePage}
@@ -336,7 +372,7 @@ export default function CustomPageMenu({
                 >
                   <div
                     style={{ flex: 1 }}
-                    onClick={() => handleSwitchPage(p.id)}
+                    onClick={() => !isEditing && handleSwitchPage(p.id)}
                     title={p.name}
                   >
                     {isEditing ? (
@@ -345,10 +381,12 @@ export default function CustomPageMenu({
                         value={editingValue}
                         onChange={e => setEditingValue(e.target.value)}
                         onKeyDown={e => {
+                          e.stopPropagation();
                           if (e.key === 'Enter') saveEdit(p);
                           if (e.key === 'Escape') cancelEdit();
                         }}
                         onBlur={() => saveEdit(p)}
+                        onClick={e => e.stopPropagation()}
                         style={{
                           width: '100%',
                           padding: '6px 8px',
@@ -377,11 +415,13 @@ export default function CustomPageMenu({
                     )}
                   </div>
 
-                  {/* Rename & Delete buttons */}
                   {!isEditing && (
                     <>
                       <button
-                        onClick={() => startEdit(p)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEdit(p);
+                        }}
                         title='Rename'
                         style={{
                           border: 'none',
@@ -399,7 +439,10 @@ export default function CustomPageMenu({
                       </button>
 
                       <button
-                        onClick={() => handleDelete(p)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(p);
+                        }}
                         title='Delete'
                         style={{
                           border: 'none',
