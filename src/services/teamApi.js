@@ -4,9 +4,17 @@ export const createTeam = async (payload = {}) => {
   if (!payload || typeof payload !== 'object') {
     throw new Error('A payload object is required to create a team.');
   }
-
-  const response = await apiClient.post('/team', payload);
-  return response.data;
+  try {
+    console.log('Creating team with payload:', payload);
+    const response = await apiClient.post('/team', payload);
+    console.log('Team created successfully:', response.data);
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.message ||
+      'An error occurred while creating the team.'
+    );
+  }
 };
 
 export const getTeamDetail = async (teamId) => {
