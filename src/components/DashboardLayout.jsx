@@ -11,12 +11,13 @@ import {
 } from '@heroicons/react/24/outline';
 import { Search, User, LogOut, ChevronDown } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import AppSidebar from './layout/AppSidebar';
 import logo from '../assets/logov1.png';
 import { logout } from '../store/slices/userSlice';
 import useClickOutside from '../hooks/useClickOutside';
 import { generateAvatarFromName } from '../utils/avatar';
+import AIChatAssistant from './ai/AIChatAssistant';
 
 
 const LecturerHeader = ({
@@ -234,6 +235,28 @@ const normalizePath = (path = '/') => {
 const DashboardLayout = ({ children }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const location = useLocation();
+
+  const showChatAssistant = useMemo(() => {
+    const path = location.pathname;
+    const allowedPaths = [
+      '/student',
+      '/lecturer/classes',
+      '/lecturer/projects',
+      '/lecturer/monitoring'
+    ];
+    
+    const excludedPaths = [
+      '/lecturer/projects/create-with-ai',
+      '/lecturer/create-project',
+      '/lecturer/projects/create'
+    ];
+
+    if (excludedPaths.some(p => path.startsWith(p))) return false;
+
+    return allowedPaths.some(p => path === p || path.startsWith(p));
+  }, [location.pathname]);
+
   const { accessToken, userId, fullName, avatar } = useSelector(state => state.user);
   const isAuthenticated = Boolean(accessToken);
   const navigationItems = [
@@ -342,6 +365,7 @@ const DashboardLayout = ({ children }) => {
           {children}
         </main>
       </div>
+      {showChatAssistant && <AIChatAssistant />}
     </div>
   );
 };
