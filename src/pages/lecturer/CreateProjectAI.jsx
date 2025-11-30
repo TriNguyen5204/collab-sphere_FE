@@ -105,6 +105,7 @@ const CreateProjectAI = () => {
   const [objectives, setObjectives] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
+  const [loadingSubjects, setLoadingSubjects] = useState(true);
 
   const { userId } = useSelector((state) => state.user);
   const lecturerId = userId; 
@@ -112,6 +113,7 @@ const CreateProjectAI = () => {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
+        setLoadingSubjects(true);
         const result = await getAllSubject();
         console.log("Loaded subjects:", result);
         const list = Array.isArray(result) ? result : (result.data || []);
@@ -119,6 +121,8 @@ const CreateProjectAI = () => {
       } catch (error) {
         console.error("Failed to load subjects", error);
         toast.error("Failed to load subjects");
+      } finally {
+        setLoadingSubjects(false);
       }
     };
     fetchSubjects();
@@ -185,7 +189,7 @@ const CreateProjectAI = () => {
         file_key: fileKey,
         bucket_name: 'collabsphere-uploads',
         lecturer_id: lecturerId,
-        subject_id: selectedSubjectId,
+        subject_id: parseInt(selectedSubjectId, 10),
       });
 
       if (analyzeResponse.data && analyzeResponse.data.jobId) {
@@ -205,7 +209,18 @@ const CreateProjectAI = () => {
   };
 
   const startPolling = (id) => {
+    const startTime = Date.now();
+    const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
     const interval = setInterval(async () => {
+      if (Date.now() - startTime > TIMEOUT_MS) {
+        clearInterval(interval);
+        toast.error('AI Analysis timed out. Please try uploading the file again.');
+        setPhase(1);
+        setAnalyzing(false);
+        return;
+      }
+
       try {
         const response = await axios.get(`${AI_API_BASE_URL}/jobs/${id}`);
         const { status, result } = response.data;
@@ -241,24 +256,14 @@ const CreateProjectAI = () => {
   const handleAnalysisComplete = (result) => {
     console.log("AI Analysis Result:", result);
     
-    let currentDate = new Date();
-    
     const objectivesWithDates = (result.objectives || []).map(obj => {
       const milestonesWithDates = (obj.milestones || []).map(ms => {
-        const start = new Date(currentDate);
-        const startDateStr = start.toISOString().split('T')[0];
-        
-        const end = new Date(start);
-        end.setDate(end.getDate() + 14);
-        const endDateStr = end.toISOString().split('T')[0];
-        
-        currentDate = new Date(end);
-        currentDate.setDate(currentDate.getDate() + 1);
-        
         return {
           ...ms,
-          startDate: startDateStr,
-          endDate: endDateStr
+          startDate: ms.startDate || '',
+          endDate: ms.endDate || '',
+          matchedOutcomes: ms.matchedOutcomes || [],
+          warnings: ms.warnings || null
         };
       });
       
@@ -445,9 +450,10 @@ const CreateProjectAI = () => {
                 console.log("Selected Subject ID:", e.target.value);
                 setSelectedSubjectId(e.target.value);
               }}
-              className="w-full appearance-none p-4 bg-white/50 border border-slate-200 rounded-2xl text-slate-700 font-medium focus:ring-2 focus:ring-sky-100 focus:border-sky-300 outline-none transition-all cursor-pointer hover:bg-white/80"
+              disabled={loadingSubjects}
+              className={`w-full appearance-none p-4 bg-white/50 border border-slate-200 rounded-2xl text-slate-700 font-medium focus:ring-2 focus:ring-sky-100 focus:border-sky-300 outline-none transition-all cursor-pointer hover:bg-white/80 ${loadingSubjects ? 'opacity-50 cursor-wait' : ''}`}
             >
-              <option value="">-- Choose a Subject --</option>
+              <option value="">{loadingSubjects ? 'Loading subjects...' : 'Choose a Subject'}</option>
               {subjects.map((sub, index) => {
                 const subId = sub.id || sub.subjectId;
                 return (
@@ -457,7 +463,13 @@ const CreateProjectAI = () => {
                 );
               })}
             </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
+            {loadingSubjects ? (
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                <Loader2 className="animate-spin text-sky-500" size={20} />
+              </div>
+            ) : (
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
+            )}
           </div>
         </div>
 
@@ -564,6 +576,33 @@ const CreateProjectAI = () => {
         </div>
       </div>
 
+      {/* New: Recommendation / Warning Block */}
+      {aiResult && aiResult.recommendation && (
+        <div className={`mb-8 p-6 rounded-2xl border ${
+          aiResult.recommendation.toLowerCase().includes('violation') 
+            ? 'bg-rose-50 border-rose-200 text-rose-800' 
+            : 'bg-amber-50 border-amber-200 text-amber-800'
+        } shadow-sm`}>
+          <div className="flex items-start gap-3">
+            {aiResult.recommendation.toLowerCase().includes('violation') ? (
+              <AlertCircle className="mt-1 shrink-0" size={20} />
+            ) : (
+              <Sparkles className="mt-1 shrink-0" size={20} />
+            )}
+            <div>
+              <h3 className="font-bold text-sm uppercase tracking-wider mb-1">
+                {aiResult.recommendation.toLowerCase().includes('violation') 
+                  ? 'Syllabus Compliance Warning' 
+                  : 'AI Architect Recommendation'}
+              </h3>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                {aiResult.recommendation}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Version Control Bar */}
       {versions.length > 0 && (
         <div className="mb-6 flex items-center gap-2 overflow-x-auto pb-2">
@@ -606,9 +645,10 @@ const CreateProjectAI = () => {
                 <select 
                   value={selectedSubjectId}
                   onChange={(e) => setSelectedSubjectId(e.target.value)}
-                  className="w-full appearance-none px-4 py-2.5 bg-white/70 border border-slate-200 rounded-2xl text-slate-700 font-medium focus:ring-2 focus:ring-sky-100 focus:border-sky-300 outline-none transition-all cursor-pointer hover:bg-white/80"
+                  disabled={loadingSubjects}
+                  className={`w-full appearance-none px-4 py-2.5 bg-white/70 border border-slate-200 rounded-2xl text-slate-700 font-medium focus:ring-2 focus:ring-sky-100 focus:border-sky-300 outline-none transition-all cursor-pointer hover:bg-white/80 ${loadingSubjects ? 'opacity-50 cursor-wait' : ''}`}
                 >
-                  <option value="">-- Choose a Subject --</option>
+                  <option value="">{loadingSubjects ? 'Loading...' : 'Choose a Subject'}</option>
                   {subjects.map((sub, index) => {
                     const subId = sub.id || sub.subjectId;
                     return (
@@ -618,7 +658,13 @@ const CreateProjectAI = () => {
                     );
                   })}
                 </select>
-                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
+                {loadingSubjects ? (
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <Loader2 className="animate-spin text-sky-500" size={20} />
+                  </div>
+                ) : (
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
+                )}
               </div>
             </div>
             <div>
@@ -768,6 +814,25 @@ const CreateProjectAI = () => {
                       <div className="flex items-center gap-1.5 text-xs text-rose-500 pl-1">
                         <AlertCircle size={12} />
                         <span>{dateError}</span>
+                      </div>
+                    )}
+
+                    {/* New: Display AI Warnings for specific milestone */}
+                    {ms.warnings && ms.warnings !== "None" && (
+                      <div className="mt-2 flex items-center gap-2 text-xs text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">
+                        <AlertCircle size={12} />
+                        <span className="font-medium">Compliance Alert: {ms.warnings}</span>
+                      </div>
+                    )}
+                    
+                    {/* New: Display Matched Outcomes */}
+                    {ms.matchedOutcomes && ms.matchedOutcomes.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {ms.matchedOutcomes.map((outcome, i) => (
+                          <span key={i} className="text-[10px] px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full border border-indigo-100">
+                            {outcome}
+                          </span>
+                        ))}
                       </div>
                     )}
                   </div>
