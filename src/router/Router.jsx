@@ -73,13 +73,16 @@ import SystemReport from '../pages/admin/SystemReport';
 
 // misc / sandbox
 import TestKanbanBoard from '../pages/TestKanbanBoard';
-import Layout from '../test/Meeting/Layout'
-import RoomJoinPage from '../test/RoomJoinPage'
-import MeetingRoomTest from '../test/MeetingRoomTest'
+import Layout from '../tool/Meeting/Layout'
+import RoomJoinPage from '../tool/RoomJoinPage'
+import MeetingRoomTest from '../tool/MeetingRoomTest'
 // import MeetingHistory from '../test/Meeting/MeetingHistory';
-import MeetingSchedulerFull from '../test/Meeting/MeetingSchedule';
-import MeetingManagement from '../test/Meeting/MeetingManagement';
+import MeetingSchedulerFull from '../tool/Meeting/MeetingSchedule';
+import MeetingManagement from '../tool/Meeting/MeetingManagement';
 // import StreamVideoMeeting from '../test/StreamVideoMeeting';
+import Whiteboard from '../tool/whiteboard/Whiteboard';
+import CollabEditor from '../tool/textEditor/CollabEditor';
+import ChatComponent from '../tool/chat/ChatConservationComponent';
 
 import RoleProtectedRoute from './RoleProtectedRoute';
 
@@ -97,6 +100,9 @@ const publicRoutes = [
   { path: '/meeting/history/:teamId', element: <MeetingManagement/> },
   { path: '/meeting/schedule/:teamId', element: <MeetingSchedulerFull/> },
   { path: '/test/kanban', element: <TestKanbanBoard /> },
+  { path: '/student/project/whiteboard', element: <Whiteboard/>},
+  { path: '/student/project/text-editor', element: <CollabEditor/>},
+  { path: '/student/project/chat', element: <ChatComponent/>},
 ];
 
 const studentRoutes = [

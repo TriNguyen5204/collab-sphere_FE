@@ -1,48 +1,170 @@
-import React, { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import ProjectBoardViewMenu from "../student/ProjectBoardViewMenu";
-import ProjectMemberAvatars from "../student/ProjectMemberAvatars";
-import ProjectBoardSetting from "../student/ProjectBoardSetting";
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import ProjectBoardViewMenu from '../student/ProjectBoardViewMenu';
+import ProjectMemberAvatars from '../student/ProjectMemberAvatars';
+import ProjectBoardSetting from '../student/ProjectBoardSetting';
+import NotificationBell from '../../tool/components/chat/NotificationBell';
 import { LogOut } from 'lucide-react';
-import useTeam from "../../context/useTeam";
-import ProjectResourcesMenu from "./ProjectResourcesMenu";
+import useTeam from '../../context/useTeam';
+import ProjectResourcesMenu from './ProjectResourcesMenu';
+import { SignalRChatProvider } from '../../tool/hooks/chat/SignalrChatProvider';
+import { useSelector } from 'react-redux';
+import { getChat } from '../../services/chatApi';
+import { MessageCircleMoreIcon } from 'lucide-react';
 
-const ProjectBoardHeader = ({ archivedItems, onRestoreArchived, onDeleteArchived, workspaceName }) => {
+const ProjectBoardHeader = ({
+  archivedItems,
+  onRestoreArchived,
+  onDeleteArchived,
+}) => {
   const navigate = useNavigate();
-  const [selectedMember, setSelectedMember] = useState(null);
-  const [popoverAnchor, setPopoverAnchor] = useState(null);
   const { clearTeam, team } = useTeam();
+
+  //state for notification
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [provider, setProvider] = useState(null);
+
+  const accessToken = useSelector(state => state.user.accessToken);
+  const [connectedConversationIds, setConnectedConversationIds] = useState([]);
+
+  // Fetch conversation IDs
+  useEffect(() => {
+    if (!team?.teamId) return;
+
+    const fetchConversationId = async () => {
+      try {
+        const response = await getChat(team.teamId);
+        if (response && response.chatConversations) {
+          const conversationIds = response.chatConversations.map(
+            c => c.conversationId
+          );
+          setConnectedConversationIds(conversationIds);
+        }
+      } catch (error) {
+        console.error('Failed to fetch chat conversations:', error);
+      }
+    };
+
+    fetchConversationId();
+  }, [team?.teamId]);
+
+  // Initialize SignalR provider
+  useEffect(() => {
+    if (!accessToken || connectedConversationIds.length === 0) {
+      return;
+    }
+
+    const chatProvider = new SignalRChatProvider(
+      connectedConversationIds,
+      accessToken
+    );
+
+    chatProvider.connect();
+    setProvider(chatProvider);
+
+    return () => {
+      chatProvider.disconnect();
+      setProvider(null);
+    };
+  }, [accessToken, connectedConversationIds]);
+
+  // Set up notification listeners
+  useEffect(() => {
+    if (!provider) return;
+
+    const onReceiveNoti = receivedNoti => {
+      console.log('New notification:', receivedNoti);
+      setNotifications(prev => [...prev, receivedNoti]);
+      setUnreadCount(prev => prev + 1);
+    };
+
+    const onReceiveAllNoti = receivedNotis => {
+      console.log('All notifications:', receivedNotis);
+      setNotifications(receivedNotis);
+
+      // Count unread
+      const unread = receivedNotis.filter(n => !n.isRead).length;
+      setUnreadCount(unread);
+    };
+
+    provider.onNotiReceived(onReceiveNoti);
+    provider.onNotiHistoryReceived(onReceiveAllNoti);
+
+    return () => {
+      provider.offNotiReceived(onReceiveNoti);
+      provider.offNotiHistoryReceived(onReceiveAllNoti);
+    };
+  }, [provider]);
+
+  const handleNotificationOpen = () => {
+    setUnreadCount(0);
+  };
+
+  const handleExitProject = async () => {
+    await navigate('/student/projects');
+    clearTeam();
+  };
+
   return (
-    <header className="sticky top-0 z-30 bg-white shadow p-4 flex items-center justify-between pl-6 pr-6">
+    <header className='sticky top-0 z-30 bg-white shadow-md border-b border-gray-200 p-4 flex items-center justify-between pl-6 pr-6'>
       {/* Left side */}
-      <div className="flex items-center gap-3">
-        <img
-          src={team?.teamImage}
-          alt="Project Avatar"
-          className="w-10 h-10 rounded-full object-cover border"
-        />
-        <h1 className="text-2xl font-bold">{team?.projectInfo?.projectName || "Workspace"}</h1>
+      <div className='flex items-center gap-3'>
+        <div className='relative'>
+          <img
+            src={team?.teamImage}
+            alt='Project Avatar'
+            className='w-10 h-10 rounded-full object-cover border-2 border-blue-500 shadow-sm'
+          />
+          {/* Online indicator */}
+          <div className='absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-sm'></div>
+        </div>
+
+        <h1 className='text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent'>
+          {team?.projectInfo?.projectName || 'Workspace'}
+        </h1>
+
         <ProjectBoardViewMenu />
       </div>
 
       {/* Right side */}
-      <div className="flex items-center space-x-4">
+      <div className='flex items-center space-x-3'>
+        <MessageCircleMoreIcon
+          size={45}
+          onClick={() => navigate('/student/project/chat')}
+          className='text-gray-500 cursor-pointer transition-all duration-200 hover:text-blue-700 hover:bg-blue-50 hover:border-blue-300 hover:shadow-md hover:rotate-3 active:scale-95 p-2 rounded-lg border border-transparent'
+        />
+
+        <NotificationBell
+          notifications={notifications}
+          unreadCount={unreadCount}
+          onOpen={handleNotificationOpen}
+        />
+
+        <div className='h-6 w-px bg-gray-300'></div>
+
         <ProjectMemberAvatars />
+
+        <div className='h-6 w-px bg-gray-300'></div>
+
         <ProjectResourcesMenu />
+
         <ProjectBoardSetting
           archivedItems={archivedItems}
           onRestoreArchived={onRestoreArchived}
           onDeleteArchived={onDeleteArchived}
         />
+
+        <div className='h-6 w-px bg-gray-300'></div>
+
         <button
-          onClick={() => navigate('/student/projects')
-            .then(() => clearTeam())
-          }
-          className="flex items-center text-sm text-red-600 hover:text-red-800 font-medium"
-          title="Exit project"
-          aria-label="Exit project"
+          onClick={handleExitProject}
+          className='flex items-center gap-1.5 px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 font-medium rounded-lg transition-all duration-200 border border-transparent hover:border-red-200'
+          title='Exit project'
+          aria-label='Exit project'
         >
-          <LogOut className="mr-1" size={16} />
+          <LogOut size={16} />
+          <span className='hidden md:inline'>Exit</span>
         </button>
       </div>
     </header>
