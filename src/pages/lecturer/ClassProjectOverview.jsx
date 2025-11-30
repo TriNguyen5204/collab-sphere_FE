@@ -105,7 +105,7 @@ const ClassProjectOverview = () => {
   const breadcrumbItems = useMemo(() => [
     { label: 'Classes', href: '/lecturer/classes' },
     { label: classTitle, href: `/lecturer/classes/${classId}` },
-    { label: 'Project overview' },
+
   ], [classId, classTitle]);
 
   const assignmentLookup = useMemo(() => {
@@ -169,7 +169,7 @@ const ClassProjectOverview = () => {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen space-y-8 bg-slate-50/50 p-6 lg:p-8">
+      <div className="min-h-screen space-y-8 bg-slate-50/50">
         <LecturerBreadcrumbs items={breadcrumbItems} />
 
         {/* --- HEADER --- */}

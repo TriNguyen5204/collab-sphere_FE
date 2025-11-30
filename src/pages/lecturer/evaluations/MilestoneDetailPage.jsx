@@ -1,29 +1,31 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeftIcon, CloudArrowDownIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { 
+  ArrowLeftIcon, 
+  CloudArrowDownIcon, 
+  DocumentTextIcon, 
+  ClockIcon, 
+  CheckCircleIcon,
+  ChatBubbleLeftRightIcon,
+  QuestionMarkCircleIcon,
+  StarIcon,
+  BeakerIcon
+} from '@heroicons/react/24/outline';
+import { toast } from 'sonner';
 import DashboardLayout from '../../../components/DashboardLayout';
 import LecturerBreadcrumbs from '../../../features/lecturer/components/LecturerBreadcrumbs';
 import { getTeamDetail } from '../../../services/teamApi';
-import { getMilestoneDetail } from '../../../services/milestoneApi';
+import { getMilestonesByTeam, getMilestoneDetail } from '../../../services/milestoneApi';
 import { submitMilestoneEvaluation } from '../../../services/evaluationApi';
 import { normalizeMilestoneStatus } from '../../../utils/milestoneHelpers';
-import { toast } from 'sonner';
 
-const glassPanelClass = 'backdrop-blur-[18px] bg-white/85 border border-white/70 shadow-[0_10px_45px_rgba(15,23,42,0.08)]';
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
-const statusMetaMap = {
-  completed: { label: 'Completed', className: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
-  'in-progress': { label: 'In progress', className: 'text-amber-600 bg-amber-50 border-amber-200' },
-  pending: { label: 'Not started', className: 'text-slate-600 bg-slate-50 border-slate-200' },
-  locked: { label: 'Locked', className: 'text-slate-500 bg-slate-100 border-slate-300' },
-};
-
-const formatDate = (value, options = { month: 'short', day: 'numeric' }) => {
+const formatDate = (value) => {
   if (!value) return '—';
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return '—';
-  return parsed.toLocaleDateString(undefined, options);
+  return parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 const buildDownloadUrl = (file) => {
@@ -45,351 +47,404 @@ const buildDownloadUrl = (file) => {
   return null;
 };
 
-const normalizeMilestoneDetailPayload = (detail = {}) => {
-  const id = detail.teamMilestoneId ?? detail.milestoneId ?? detail.id ?? null;
-  const statusToken = normalizeMilestoneStatus(detail?.statusString ?? detail?.status);
-  const returns = (detail?.milestoneReturns || []).map((record, index) => ({
-    id: record.mileReturnId ?? index,
-    studentName: record.studentName ?? record.fullname ?? record.fullName ?? 'Student',
-    studentCode: record.studentCode ?? '',
-    submittedAt: record.submitedDate ?? record.submittedAt ?? record.createdDate ?? '',
-    fileName: record.fileName ?? record.originalFileName ?? 'Submission',
-    fileSize: record.fileSize ?? null,
-    url: buildDownloadUrl(record),
-    fileId: record.fileId ?? record.mileReturnId ?? null,
-  }));
-
-  const evaluation = detail?.milestoneEvaluation
-    ? {
-        score: detail.milestoneEvaluation.score ?? null,
-        comments: detail.milestoneEvaluation.comment ?? detail.milestoneEvaluation.comments ?? '',
-        evaluatorName: detail.milestoneEvaluation.fullName ?? detail.milestoneEvaluation.lecturerName ?? '',
-        updatedAt: detail.milestoneEvaluation.createdDate ?? detail.milestoneEvaluation.updatedAt ?? '',
-      }
-    : null;
-
-  return {
-    id,
-    title: detail.title ?? detail.name ?? 'Milestone detail',
-    description: detail.description ?? '',
-    startDate: detail.startDate ?? detail.beginDate ?? null,
-    dueDate: detail.dueDate ?? detail.endDate ?? null,
-    statusToken,
-    statusLabel: statusMetaMap[statusToken]?.label || 'Not started',
-    returns,
-    evaluation,
-  };
+const getStatusColor = (status) => {
+  const s = (status || '').toLowerCase();
+  if (s === 'completed' || s === 'done') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+  if (s === 'in_progress' || s === 'inprogress') return 'bg-blue-100 text-blue-700 border-blue-200';
+  if (s === 'late' || s === 'overdue') return 'bg-rose-100 text-rose-700 border-rose-200';
+  return 'bg-slate-100 text-slate-600 border-slate-200';
 };
 
 const MilestoneDetailPage = () => {
   const { classId, teamId, milestoneId } = useParams();
   const navigate = useNavigate();
+  
+  // State
   const [teamInfo, setTeamInfo] = useState(null);
-  const [milestone, setMilestone] = useState(null);
-  const [evaluation, setEvaluation] = useState(null);
-  const [loading, setLoading] = useState({ team: false, milestone: false, evaluation: false, submitting: false });
+  const [milestones, setMilestones] = useState([]);
+  const [milestoneDetail, setMilestoneDetail] = useState(null);
+  const [loading, setLoading] = useState({ team: false, list: false, detail: false, submit: false });
+  
+  // Form State
   const [formState, setFormState] = useState({ score: '', comments: '' });
-  const [editing, setEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // --- Effects ---
 
   useEffect(() => {
     if (!teamId) return;
     let ignore = false;
-    const fetchTeam = async () => {
-      setLoading((prev) => ({ ...prev, team: true }));
+
+    const fetchTeamAndList = async () => {
+      setLoading(prev => ({ ...prev, team: true, list: true }));
       try {
-        const detail = await getTeamDetail(teamId);
+        const [teamData, milestonesData] = await Promise.all([
+          getTeamDetail(teamId),
+          getMilestonesByTeam(teamId)
+        ]);
+
         if (!ignore) {
-          setTeamInfo(detail);
+          setTeamInfo(teamData);
+          
+          let list = [];
+          if (Array.isArray(milestonesData?.teamMilestones)) list = milestonesData.teamMilestones;
+          else if (Array.isArray(milestonesData?.list)) list = milestonesData.list;
+          else if (Array.isArray(milestonesData?.data)) list = milestonesData.data;
+          else if (Array.isArray(milestonesData)) list = milestonesData;
+          setMilestones(list);
         }
       } catch (error) {
-        console.error('Unable to load team detail.', error);
-        if (!ignore) {
-          toast.error('Unable to load team detail.');
-        }
+        console.error('Failed to load team context', error);
+        if (!ignore) toast.error('Failed to load team data.');
       } finally {
-        if (!ignore) {
-          setLoading((prev) => ({ ...prev, team: false }));
-        }
+        if (!ignore) setLoading(prev => ({ ...prev, team: false, list: false }));
       }
     };
-    fetchTeam();
-    return () => {
-      ignore = true;
-    };
+
+    fetchTeamAndList();
+    return () => { ignore = true; };
   }, [teamId]);
 
-  const fetchMilestoneData = async () => {
+  useEffect(() => {
     if (!milestoneId) return;
-    setLoading((prev) => ({ ...prev, milestone: true }));
-    try {
-      const detail = await getMilestoneDetail(milestoneId);
-      const normalized = normalizeMilestoneDetailPayload(detail);
-      setMilestone(normalized);
+    let ignore = false;
 
-      if (normalized.evaluation) {
-        setEvaluation(normalized.evaluation);
-        setFormState({
-          score: normalized.evaluation.score ?? '',
-          comments: normalized.evaluation.comments ?? '',
-        });
-        setEditing(false);
-      } else {
-        setEvaluation(null);
-        setFormState({ score: '', comments: '' });
-        setEditing(true);
+    const fetchDetail = async () => {
+      setLoading(prev => ({ ...prev, detail: true }));
+      try {
+        const detail = await getMilestoneDetail(milestoneId);
+        if (!ignore) {
+          setMilestoneDetail(detail);
+          // Pre-fill form
+          const evalData = detail?.milestoneEvaluation;
+          if (evalData) {
+            setFormState({
+              score: evalData.score ?? '',
+              comments: evalData.comment ?? evalData.comments ?? ''
+            });
+            setIsEditing(false);
+          } else {
+            setFormState({ score: '', comments: '' });
+            setIsEditing(true);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load milestone detail', error);
+        if (!ignore) toast.error('Failed to load milestone details.');
+      } finally {
+        if (!ignore) setLoading(prev => ({ ...prev, detail: false }));
       }
-    } catch (error) {
-      console.error('Unable to load milestone detail.', error);
-      toast.error('Unable to load milestone detail.');
-    } finally {
-      setLoading((prev) => ({ ...prev, milestone: false }));
-    }
+    };
+
+    fetchDetail();
+    return () => { ignore = true; };
+  }, [milestoneId]);
+
+  // --- Handlers ---
+
+  const handleNavigateMilestone = (id) => {
+    if (id === milestoneId) return;
+    if (classId) navigate(`/lecturer/grading/class/${classId}/team/${teamId}/milestones/${id}`);
+    else navigate(`/lecturer/grading/team/${teamId}/milestones/${id}`);
   };
 
-  useEffect(() => {
-    fetchMilestoneData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [milestoneId]);
+  const handleDownload = (file) => {
+    const url = buildDownloadUrl(file);
+    if (url) window.open(url, '_blank');
+    else toast.error('Download URL unavailable');
+  };
+
+  const handleSubmitEvaluation = async (e) => {
+    e.preventDefault();
+    if (formState.score === '') {
+      toast.warning('Please enter a score.');
+      return;
+    }
+
+    setLoading(prev => ({ ...prev, submit: true }));
+    try {
+      await submitMilestoneEvaluation(milestoneId, {
+        score: Number(formState.score),
+        comments: formState.comments
+      });
+      toast.success('Evaluation saved successfully');
+      
+      // Refresh detail to show read-only view
+      const updated = await getMilestoneDetail(milestoneId);
+      setMilestoneDetail(updated);
+      setIsEditing(false);
+    } catch (error) {
+      toast.error('Failed to save evaluation');
+    } finally {
+      setLoading(prev => ({ ...prev, submit: false }));
+    }
+  };
 
   const breadcrumbItems = useMemo(() => {
     const items = [{ label: 'Classes', href: '/lecturer/classes' }];
     if (classId) {
       items.push({ label: 'Grading', href: `/lecturer/grading/${classId}` });
     }
-    if (teamInfo?.teamName) {
-      const teamPath = classId
-        ? `/lecturer/grading/class/${classId}/team/${teamId}`
-        : `/lecturer/grading/team/${teamId}`;
-      items.push({ label: teamInfo.teamName, href: teamPath });
-      items.push({ label: 'Milestones', href: `${teamPath}/milestones` });
-    } else {
-      items.push({ label: 'Team', href: classId ? `/lecturer/grading/${classId}` : '/lecturer/grading' });
-      items.push({ label: 'Milestones' });
+    if (teamInfo) {
+       const teamLabel = teamInfo.teamName || 'Team';
+       if (classId) items.push({ label: teamLabel, href: `/lecturer/grading/class/${classId}/team/${teamId}/milestones` });
+       else items.push({ label: teamLabel, href: `/lecturer/grading/team/${teamId}/milestones` });
     }
-    items.push({ label: milestone?.title || 'Milestone detail' });
+    items.push({ label: milestoneDetail?.title || 'Milestone Detail' });
     return items;
-  }, [classId, teamId, teamInfo?.teamName, milestone?.title]);
-
-  const statusMeta = statusMetaMap[milestone?.statusToken] || statusMetaMap.pending;
-
-  const handleBackToMilestones = () => {
-    if (classId) {
-      navigate(`/lecturer/grading/class/${classId}/team/${teamId}/milestones`);
-    } else {
-      navigate(`/lecturer/grading/team/${teamId}/milestones`);
-    }
-  };
-
-  const handleDownloadFile = (file) => {
-    const url = file?.url || (file?.fileId && apiBaseUrl ? `${apiBaseUrl}/resource/file/${file.fileId}` : null);
-    if (!url) {
-      toast.error('File download is unavailable.');
-      return;
-    }
-    window.open(url, '_blank', 'noopener');
-  };
-
-  const handleEvaluationSubmit = async (event) => {
-    event.preventDefault();
-    if (!milestoneId) return;
-    if (formState.score === '') {
-      toast.warning('Score is required to submit evaluation.');
-      return;
-    }
-
-    const payload = {
-      score: Number(formState.score),
-      comments: formState.comments?.trim() || '',
-    };
-
-    if (!Number.isFinite(payload.score)) {
-      toast.warning('Score must be a valid number.');
-      return;
-    }
-
-    setLoading((prev) => ({ ...prev, submitting: true }));
-    try {
-      await submitMilestoneEvaluation(milestoneId, payload);
-      toast.success('Milestone evaluation saved.');
-      await fetchMilestoneData();
-    } catch (error) {
-      console.error('Unable to submit milestone evaluation.', error);
-      toast.error(error?.message || 'Unable to submit milestone evaluation.');
-    } finally {
-      setLoading((prev) => ({ ...prev, submitting: false }));
-    }
-  };
-
-  const milestoneStats = useMemo(() => {
-    if (!milestone) return [];
-    return [
-      { label: 'Progress', value: milestone.progress !== null ? `${milestone.progress}%` : '—' },
-      { label: 'Questions answered', value: `${milestone.completedAnswers ?? 0}/${milestone.requiredAnswers ?? 0}` },
-      { label: 'Returns submitted', value: milestone.returns?.length || 0 },
-      { label: 'Checkpoints', value: milestone.checkpoints?.length || 0 },
-    ];
-  }, [milestone]);
+  }, [classId, teamId, teamInfo, milestoneDetail]);
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100">
-        <div className="relative w-full px-6 py-10 space-y-10 lg:px-10">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-64 translate-y-[-30%] bg-gradient-to-r from-sky-200/40 via-indigo-200/30 to-purple-200/40 blur-3xl" />
-
-          <header className={`${glassPanelClass} relative rounded-3xl border border-indigo-100 bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-6 shadow-[0_25px_80px_rgba(15,23,42,0.08)]`}>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <LecturerBreadcrumbs items={breadcrumbItems} />
-                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Milestone detail</p>
-                <h1 className="mt-2 text-3xl font-semibold text-slate-900">Milestone: {milestone?.title || 'Milestone workspace'}</h1>
-                <p className="mt-2 text-sm text-slate-600">{milestone?.description || 'Add instructions so teams know what to deliver.'}</p>
-                <div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                  <span className="rounded-full bg-white/80 px-3 py-1 text-[11px] normal-case tracking-normal text-slate-600">
-                    Start date: {formatDate(milestone?.startDate)}
-                  </span>
-                  <span className="rounded-full bg-white/80 px-3 py-1 text-[11px] normal-case tracking-normal text-slate-600">
-                    End date: {formatDate(milestone?.dueDate)}
-                  </span>
-                  <span
-                    className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${
-                      statusMeta.className || 'text-slate-600 bg-slate-100 border-slate-200'
-                    }`}
-                  >
-                    {milestone?.statusLabel || 'Not started'}
-                  </span>
+      <div className="min-h-screen bg-slate-50/50 p-6 lg:p-8">
+        
+        {/* --- HERO HEADER --- */}
+        <div className="mx-auto max-w-6xl">
+          <LecturerBreadcrumbs items={breadcrumbItems} />
+          
+          <div className="mt-6 relative overflow-hidden rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50">
+            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-orangeFpt-100/50 blur-3xl"></div>
+            
+            <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                   <span className="px-2.5 py-0.5 rounded-lg bg-orangeFpt-50 text-orangeFpt-700 text-xs font-bold border border-orangeFpt-200 uppercase tracking-wider">
+                      Milestone Detail
+                   </span>
+                </div>
+                <h1 className="text-3xl font-bold text-slate-900">
+                  {milestoneDetail?.title || 'Loading Milestone...'}
+                </h1>
+                <div className="flex items-center gap-4 text-sm text-slate-500">
+                   <span className="flex items-center gap-1.5">
+                      <ClockIcon className="h-4 w-4" />
+                      Due: {formatDate(milestoneDetail?.dueDate || milestoneDetail?.endDate)}
+                   </span>
+                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${getStatusColor(milestoneDetail?.statusString)}`}>
+                      {milestoneDetail?.statusString || 'Pending'}
+                   </span>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={handleBackToMilestones}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5"
-              >
-                <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" /> Back to milestones
-              </button>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate(-1)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-orangeFpt-600 transition-all shadow-sm active:scale-95"
+                >
+                  <ArrowLeftIcon className="h-4 w-4" />
+                  Back
+                </button>
+              </div>
             </div>
-          </header>
+          </div>
+        </div>
 
-          <section className="grid gap-6 lg:grid-cols-[1.6fr_0.9fr]">
-            <div className={`${glassPanelClass} rounded-3xl p-6`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Student submissions</p>
-                  <h2 className="text-2xl font-semibold text-slate-900">Files from the team</h2>
-                  <p className="mt-2 text-sm text-slate-600">Review every uploaded artifact before scoring this milestone.</p>
+        <div className="mx-auto grid max-w-6xl grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
+          
+          {/* LEFT: TIMELINE NAV */}
+          <div className="lg:col-span-4 space-y-6">
+             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm h-[calc(100vh-24rem)] flex flex-col">
+                <div className="pb-4 border-b border-slate-100 mb-4">
+                   <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                      <ClockIcon className="h-5 w-5 text-orangeFpt-500" />
+                      Timeline
+                   </h2>
                 </div>
-                <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-slate-600">
-                  {milestone?.returns?.length ?? 0} file{(milestone?.returns?.length ?? 0) === 1 ? '' : 's'}
-                </span>
-              </div>
+                
+                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
+                   {milestones.map((m) => {
+                      const id = String(m.teamMilestoneId ?? m.milestoneId ?? m.id);
+                      const isSelected = id === milestoneId;
+                      const score = m.milestoneEvaluation?.score ?? m.score;
+                      
+                      return (
+                         <button
+                            key={id}
+                            onClick={() => handleNavigateMilestone(id)}
+                            className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 group ${
+                               isSelected 
+                                  ? 'bg-orangeFpt-50 border-orangeFpt-200 shadow-sm ring-1 ring-orangeFpt-200' 
+                                  : 'bg-white border-slate-100 hover:border-orangeFpt-200 hover:bg-slate-50'
+                            }`}
+                         >
+                            <div className="flex justify-between items-start mb-2">
+                               <span className={`text-sm font-bold line-clamp-1 ${isSelected ? 'text-orangeFpt-900' : 'text-slate-700'}`}>
+                                  {m.title || m.name}
+                               </span>
+                               {score != null && (
+                                  <span className="flex items-center gap-1 text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                                     {score}
+                                  </span>
+                               )}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-slate-400 group-hover:text-slate-500">
+                               <ClockIcon className="h-3.5 w-3.5" />
+                               {formatDate(m.endDate || m.dueDate)}
+                            </div>
+                         </button>
+                      );
+                   })}
+                </div>
+             </div>
+          </div>
 
-              {loading.milestone ? (
-                <p className="mt-6 text-sm text-slate-500">Loading submissions…</p>
-              ) : milestone?.returns?.length ? (
-                <div className="mt-6 space-y-3">
-                  {milestone.returns.map((submission) => (
-                    <div key={submission.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-white/85 p-4">
-                      <div className="flex items-center gap-3">
-                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
-                          <DocumentTextIcon className="h-5 w-5" aria-hidden="true" />
-                        </span>
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">{submission.fileName}</p>
-                          <p className="text-xs text-slate-500">
-                            {submission.studentName}
-                            {submission.submittedAt ? ` · Submitted ${formatDate(submission.submittedAt, { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
-                          </p>
-                        </div>
+          {/* RIGHT: DETAIL & GRADING */}
+          <div className="lg:col-span-8 space-y-6">
+             
+             {/* Milestone Info Card */}
+             <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                   <DocumentTextIcon className="h-4 w-4 text-slate-400" /> Description
+                </h3>
+                <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                   {milestoneDetail?.description || 'No description provided.'}
+                </div>
+
+                {/* Submissions */}
+                <div className="mt-8">
+                   <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                      <CloudArrowDownIcon className="h-4 w-4 text-slate-400" /> Submissions
+                   </h3>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {(milestoneDetail?.milestoneReturns || []).map((file, idx) => (
+                         <div key={idx} 
+                            onClick={() => handleDownload(file)}
+                            className="cursor-pointer group p-4 rounded-2xl border border-slate-200 bg-white hover:border-orangeFpt-200 hover:shadow-md transition-all flex items-center gap-3"
+                         >
+                            <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-100 transition-colors">
+                               <DocumentTextIcon className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                               <p className="text-sm font-semibold text-slate-700 truncate group-hover:text-blue-700 transition-colors">
+                                  {file.fileName || file.originalFileName || 'Submission'}
+                               </p>
+                               <p className="text-xs text-slate-400 mt-0.5">
+                                  {file.studentName} • {formatDate(file.submittedAt)}
+                               </p>
+                            </div>
+                            <CloudArrowDownIcon className="h-5 w-5 text-slate-300 group-hover:text-blue-500" />
+                         </div>
+                      ))}
+                      {(!milestoneDetail?.milestoneReturns?.length) && (
+                         <div className="col-span-full py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 text-slate-400 text-sm">
+                            No submissions uploaded yet.
+                         </div>
+                      )}
+                   </div>
+                </div>
+                
+                {/* Q&A Preview (if exists) */}
+                {(milestoneDetail?.questions || milestoneDetail?.milestoneQuestions || []).length > 0 && (
+                   <div className="mt-8">
+                      <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                         <QuestionMarkCircleIcon className="h-4 w-4 text-slate-400" /> Questions
+                      </h3>
+                      <div className="space-y-3">
+                         {(milestoneDetail?.questions || milestoneDetail?.milestoneQuestions).map((q, idx) => (
+                            <div key={idx} className="p-3 rounded-xl border border-slate-100 bg-slate-50 text-sm text-slate-700 font-medium">
+                               {q.question}
+                            </div>
+                         ))}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadFile(submission)}
-                        className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5"
-                        disabled={!submission.fileId && !submission.url}
+                   </div>
+                )}
+             </div>
+
+             {/* Grading Card */}
+             <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+                <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+                   <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                      <BeakerIcon className="h-5 w-5 text-orangeFpt-500" /> Evaluation
+                   </h3>
+                   {!isEditing && milestoneDetail?.milestoneEvaluation && (
+                      <button 
+                         onClick={() => setIsEditing(true)}
+                         className="text-sm font-semibold text-indigo-600 hover:underline"
                       >
-                        <CloudArrowDownIcon className="h-4 w-4" aria-hidden="true" /> Download
+                         Edit Grade
                       </button>
-                    </div>
-                  ))}
+                   )}
                 </div>
-              ) : (
-                <p className="mt-6 text-sm text-slate-500">No submissions have been uploaded for this milestone yet.</p>
-              )}
-            </div>
 
-            <aside className={`${glassPanelClass} rounded-3xl p-6 space-y-5`}>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Milestone evaluation</p>
-                <h2 className="text-2xl font-semibold text-slate-900">Grade & feedback</h2>
-                <p className="mt-2 text-sm text-slate-600">{'Scores align with POST /evaluate/milestone/{teamMilestoneId}.'}</p>
-              </div>
+                {isEditing || !milestoneDetail?.milestoneEvaluation ? (
+                   <form onSubmit={handleSubmitEvaluation} className="space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+                         <div className="sm:col-span-1">
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Score (0-10)</label>
+                            <div className="relative">
+                               <input
+                                  type="number"
+                                  min="0"
+                                  max="10"
+                                  step="0.1"
+                                  placeholder="0.0"
+                                  value={formState.score}
+                                  onChange={(e) => setFormState({ ...formState, score: e.target.value })}
+                                  className="w-full rounded-2xl border-slate-200 py-3 pl-4 pr-12 text-2xl font-bold text-slate-900 focus:border-orangeFpt-500 focus:ring-4 focus:ring-orangeFpt-500/10 transition-all text-center"
+                               />
+                               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400">/10</span>
+                            </div>
+                         </div>
+                         <div className="sm:col-span-3">
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Feedback</label>
+                            <textarea
+                               rows={3}
+                               placeholder="Write constructive feedback..."
+                               value={formState.comments}
+                               onChange={(e) => setFormState({ ...formState, comments: e.target.value })}
+                               className="w-full rounded-2xl border-slate-200 p-4 text-sm text-slate-700 focus:border-orangeFpt-500 focus:ring-4 focus:ring-orangeFpt-500/10 transition-all resize-none"
+                            />
+                         </div>
+                      </div>
+                      <div className="flex justify-end gap-3 pt-2">
+                         {milestoneDetail?.milestoneEvaluation && (
+                            <button
+                               type="button"
+                               onClick={() => {
+                                  setIsEditing(false);
+                                  setFormState({
+                                     score: milestoneDetail.milestoneEvaluation.score,
+                                     comments: milestoneDetail.milestoneEvaluation.comment || ''
+                                  });
+                               }}
+                               className="px-6 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                            >
+                               Cancel
+                            </button>
+                         )}
+                         <button
+                            type="submit"
+                            disabled={loading.submit}
+                            className="flex items-center gap-2 px-8 py-2.5 rounded-xl bg-orangeFpt-500 text-white font-bold shadow-lg shadow-orangeFpt-200 hover:bg-orangeFpt-600 hover:shadow-orangeFpt-300 disabled:opacity-50 transition-all active:scale-95"
+                         >
+                            {loading.submit ? 'Saving...' : 'Save Evaluation'}
+                         </button>
+                      </div>
+                   </form>
+                ) : (
+                   <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                      <div className="flex items-center gap-3 mb-4">
+                         <div className="h-12 w-12 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm">
+                            <span className="text-xl font-bold text-orangeFpt-600">{milestoneDetail.milestoneEvaluation.score}</span>
+                         </div>
+                         <div>
+                            <p className="text-sm font-bold text-slate-900">Graded</p>
+                            <p className="text-xs text-slate-500">
+                               by {milestoneDetail.milestoneEvaluation.fullName || 'Lecturer'} on {formatDate(milestoneDetail.milestoneEvaluation.createdDate)}
+                            </p>
+                         </div>
+                      </div>
+                      <div className="bg-white p-4 rounded-xl border border-slate-200">
+                         <p className="text-sm text-slate-700 italic">
+                            "{milestoneDetail.milestoneEvaluation.comment || milestoneDetail.milestoneEvaluation.comments || 'No text feedback provided.'}"
+                         </p>
+                      </div>
+                   </div>
+                )}
+             </div>
 
-              {loading.evaluation ? (
-                <p className="text-sm text-slate-500">Loading evaluation…</p>
-              ) : evaluation && !editing ? (
-                <div className="rounded-2xl border border-slate-100 bg-white/85 p-4 space-y-2">
-                  <p className="text-sm font-semibold text-slate-900">Current evaluation</p>
-                  <p className="text-3xl font-bold text-indigo-600">{evaluation.score ?? '—'}</p>
-                  {evaluation.comments && <p className="text-sm text-slate-600">“{evaluation.comments}”</p>}
-                  <p className="text-xs text-slate-500">
-                    {evaluation.evaluatorName ? `${evaluation.evaluatorName} · ` : ''}
-                    Last updated {formatDate(evaluation.updatedAt, { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setEditing(true)}
-                    className="mt-3 inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
-                  >
-                    Edit evaluation
-                  </button>
-                </div>
-              ) : null}
+          </div>
 
-              {(editing || !evaluation) && (
-                <form className="space-y-4" onSubmit={handleEvaluationSubmit}>
-                  <label className="flex flex-col gap-1 text-sm text-slate-700">
-                    Score
-                    <input
-                      type="number"
-                      min="0"
-                      value={formState.score}
-                      onChange={(event) => setFormState((prev) => ({ ...prev, score: event.target.value }))}
-                      className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-2 text-sm text-slate-900 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1 text-sm text-slate-700">
-                    Comments
-                    <textarea
-                      rows={4}
-                      value={formState.comments}
-                      onChange={(event) => setFormState((prev) => ({ ...prev, comments: event.target.value }))}
-                      className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-2 text-sm text-slate-900 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                    />
-                  </label>
-                  <div className="flex justify-end gap-3">
-                    {evaluation && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditing(false);
-                          setFormState({ score: evaluation.score ?? '', comments: evaluation.comments ?? '' });
-                        }}
-                        className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600"
-                      >
-                        Cancel
-                      </button>
-                    )}
-                    <button
-                      type="submit"
-                      className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:-translate-y-0.5"
-                      disabled={loading.submitting || formState.score === ''}
-                    >
-                      {loading.submitting ? 'Saving…' : evaluation ? 'Update evaluation' : 'Submit evaluation'}
-                    </button>
-                  </div>
-                </form>
-              )}
-            </aside>
-          </section>
         </div>
       </div>
     </DashboardLayout>

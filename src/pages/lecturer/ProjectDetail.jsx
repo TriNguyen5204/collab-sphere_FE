@@ -353,10 +353,9 @@ const ProjectDetail = () => {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen space-y-8 bg-slate-50/50 p-6 lg:p-8">
+      <div className="min-h-screen space-y-8 bg-slate-50/50">
         
         {/* --- HEADER --- */}
-        <div className="mx-auto max-w-6xl">
           <LecturerBreadcrumbs items={breadcrumbItems} />
           
           <div className="mt-6 relative overflow-hidden rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50">
@@ -413,10 +412,9 @@ const ProjectDetail = () => {
               )}
             </div>
           </div>
-        </div>
 
         {/* --- MAIN CONTENT --- */}
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 lg:grid-cols-3">
           
           {/* Left Column: Objectives */}
           <div className="space-y-6 lg:col-span-2">
@@ -551,7 +549,7 @@ const ProjectDetail = () => {
 
       {/* 2. Structure Modal (Full Editor) */}
       <ModalWrapper isOpen={structureModalOpen} onClose={() => setStructureModalOpen(false)} title="Edit Objectives & Milestones">
-         <form onSubmit={handleSaveStructure} className="flex flex-col gap-6 max-h-[80vh] overflow-y-auto pr-2">
+         <form onSubmit={handleSaveStructure} className="flex flex-col gap-6 overflow-y-auto pr-2">
             {structureError && (
                <div className="p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-center gap-2">
                   <AlertCircle size={16} /> {structureError}
@@ -689,7 +687,7 @@ const ProjectDetail = () => {
                ))}
             </div>
 
-            <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
+            <div className="pt-2 border-t border-slate-100 flex justify-between items-center fixed-bottom">
                <button 
                   type="button" 
                   onClick={addDraftObjective}

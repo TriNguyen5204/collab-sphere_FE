@@ -1,14 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ChevronRightIcon, UserGroupIcon } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
 import DashboardLayout from '../../../components/DashboardLayout';
 import LecturerBreadcrumbs from '../../../features/lecturer/components/LecturerBreadcrumbs';
 import { getClassTeams, getClassById } from '../../../services/classApi';
 import { getTeamDetail } from '../../../services/teamApi';
 import { getTeamEvaluationSummary } from '../../../services/evaluationApi';
-
-const glassPanelClass = 'backdrop-blur-[18px] bg-white/85 border border-white/70 shadow-[0_10px_45px_rgba(15,23,42,0.08)]';
 
 const extractTeamCollection = (payload) => {
   if (Array.isArray(payload?.teams)) return payload.teams;
@@ -42,8 +40,7 @@ const ClassGradingOverview = () => {
 
   const breadcrumbItems = useMemo(
     () => [
-      { label: 'Classes', href: '/lecturer/classes' },
-      { label: 'Grading', href: '/lecturer/grading' },
+      { label: 'Grading overview', href: '/lecturer/grading' },
       { label: meta.className || `Class ${classId}` },
     ],
     [classId, meta.className]
@@ -70,7 +67,6 @@ const ClassGradingOverview = () => {
         
         const derivedMeta = deriveClassMeta(teamsResponse, classId);
         
-        // Helper to safely extract nested properties
         const getSemesterName = (details) => {
           return details?.semesterName 
             ?? details?.semester?.semesterName 
@@ -169,67 +165,79 @@ const ClassGradingOverview = () => {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100">
-        <div className="relative w-full px-6 py-10 space-y-10 lg:px-10">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-64 translate-y-[-30%] bg-gradient-to-r from-sky-200/40 via-indigo-200/30 to-purple-200/40 blur-3xl" />
-
-          <header className={`${glassPanelClass} relative rounded-3xl border border-indigo-100 bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-6 shadow-[0_25px_80px_rgba(15,23,42,0.08)]`}>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <LecturerBreadcrumbs items={breadcrumbItems} />
-                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Class grading overview</p>
-                <h1 className="mt-2 text-3xl font-semibold text-slate-900">{meta.className}</h1>
-                <div className="mt-2 flex items-center gap-3 text-sm text-slate-600">
-                  <span className="font-medium text-slate-700">{meta.subjectName}</span>
-                  {meta.semesterName !== '—' && (
-                    <>
-                      <span className="h-1 w-1 rounded-full bg-slate-300" />
-                      <span>{meta.semesterName}</span>
-                    </>
-                  )}
+      <div className="min-h-screen space-y-8 bg-slate-50/50">
+        
+        {/* --- HERO HEADER --- */}
+          <LecturerBreadcrumbs items={breadcrumbItems} />
+          
+          <div className="mt-6 relative overflow-hidden rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50">
+            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-orangeFpt-100/50 blur-3xl"></div>
+            
+            <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="space-y-4 max-w-2xl">
+                <div className="flex items-center gap-3">
+                   <span className="px-2.5 py-0.5 rounded-lg bg-orangeFpt-50 text-orangeFpt-700 text-xs font-bold border border-orangeFpt-200 uppercase tracking-wider">
+                      Class Grading
+                   </span>
+                </div>
+                <div>
+                   <h1 className="text-3xl font-bold text-slate-900">{meta.className}</h1>
+                   <div className="mt-2 flex items-center gap-3 text-lg text-slate-600">
+                      <span className="font-medium">{meta.subjectName}</span>
+                      {meta.semesterName !== '—' && (
+                        <>
+                          <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+                          <span>{meta.semesterName}</span>
+                        </>
+                      )}
+                   </div>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => navigate('/lecturer/grading')}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5"
-              >
-                <ArrowLeftIcon className="h-4 w-4" /> Back to grading dashboard
-              </button>
             </div>
-          </header>
+        </div>
 
-          <section className={`${glassPanelClass} rounded-3xl p-6`}>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Teams</p>
-                <h2 className="text-2xl font-semibold text-slate-900">Evaluation status</h2>
+        {/* --- TEAM LIST --- */}
+        <div className="mx-auto">
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-orangeFpt-100 text-orangeFpt-600">
+                   <UserGroupIcon className="h-5 w-5" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-800">Student Teams</h2>
               </div>
+              <span className="px-3 py-1 rounded-full bg-slate-100 text-xs font-semibold text-slate-600">
+                 {rows.length} Teams
+              </span>
             </div>
 
-            <div className="mt-6 overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-100 text-sm">
-                <thead>
-                  <tr className="text-left text-xs uppercase tracking-[0.3em] text-slate-500">
-                    <th className="py-2 pl-4">Team</th>
-                    <th className="py-2">Project</th>
-                    <th className="py-2">Members</th>
-                    <th className="py-2">Final grade</th>
-                    <th className="py-2">Status</th>
-                    <th className="py-2">Action</th>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-600">
+                <thead className="bg-slate-50/50 text-xs uppercase text-slate-500 font-bold">
+                  <tr>
+                    <th className="px-4 py-3 rounded-l-xl">Team</th>
+                    <th className="px-4 py-3">Project</th>
+                    <th className="px-4 py-3 text-center">Members</th>
+                    <th className="px-4 py-3 text-center">Grade</th>
+                    <th className="px-4 py-3 text-center">Status</th>
+                    <th className="px-4 py-3 rounded-r-xl text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
+                <tbody className="divide-y divide-slate-100">
                   {loading ? (
                     <tr>
-                      <td className="py-6 text-center text-slate-500" colSpan={6}>
-                        Loading teams…
+                      <td className="py-8 text-center text-slate-500" colSpan={6}>
+                        <div className="flex justify-center items-center gap-2">
+                           <div className="h-2 w-2 bg-orangeFpt-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                           <div className="h-2 w-2 bg-orangeFpt-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                           <div className="h-2 w-2 bg-orangeFpt-400 rounded-full animate-bounce"></div>
+                        </div>
                       </td>
                     </tr>
                   ) : rows.length ? (
                     rows.map((team) => (
-                      <tr key={team.teamId}>
-                        <td className="py-3 pl-4">
+                      <tr key={team.teamId} className="group hover:bg-orangeFpt-50/30 transition-colors">
+                        <td className="px-4 py-4">
                           <div className="flex items-center gap-3">
                             {team.teamImage ? (
                               <img
@@ -238,41 +246,41 @@ const ClassGradingOverview = () => {
                                 className="h-10 w-10 rounded-full object-cover ring-2 ring-white shadow-sm"
                               />
                             ) : (
-                              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 font-bold ring-2 ring-white shadow-sm">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orangeFpt-100 text-orangeFpt-600 font-bold ring-2 ring-white shadow-sm">
                                 {team.teamName.charAt(0)}
                               </div>
                             )}
                             <div>
-                              <div className="font-semibold text-slate-900">{team.teamName}</div>
+                              <div className="font-bold text-slate-900 group-hover:text-orangeFpt-700 transition-colors">{team.teamName}</div>
                               <div className="text-xs text-slate-500">{team.semesterName}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="py-3 text-slate-600">
-                          <span className="line-clamp-1 max-w-[250px]" title={team.projectName}>
+                        <td className="px-4 py-4">
+                          <span className="line-clamp-1 max-w-[250px] font-medium text-slate-700" title={team.projectName}>
                             {team.projectName}
                           </span>
                         </td>
-                        <td className="py-3">{team.memberCount}</td>
-                        <td className="py-3">{team.finalGrade ?? '—'}</td>
-                        <td className="py-3">
+                        <td className="px-4 py-4 text-center font-medium">{team.memberCount}</td>
+                        <td className="px-4 py-4 text-center font-bold text-slate-900">{team.finalGrade ?? '—'}</td>
+                        <td className="px-4 py-4 text-center">
                           <span
-                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold capitalize border ${
                               team.status === 'graded'
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-amber-50 text-amber-700'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
                             }`}
                           >
                             {team.status === 'graded' ? 'Graded' : 'Pending'}
                           </span>
                         </td>
-                        <td className="py-3">
+                        <td className="px-4 py-4 text-right">
                           <button
                             type="button"
                             onClick={() => handleOpenTeam(team.teamId)}
-                            className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-500"
+                            className="inline-flex items-center gap-1 text-sm font-bold text-orangeFpt-600 hover:text-orangeFpt-700 hover:underline decoration-2 underline-offset-4 transition-all"
                           >
-                            {team.status === 'graded' ? 'Review grade' : 'Grade now'}
+                            {team.status === 'graded' ? 'Review Grade' : 'Grade Now'}
                             <ChevronRightIcon className="h-4 w-4" />
                           </button>
                         </td>
@@ -280,8 +288,11 @@ const ClassGradingOverview = () => {
                     ))
                   ) : (
                     <tr>
-                      <td className="py-6 text-center text-slate-500" colSpan={6}>
-                        No teams available for this class yet.
+                      <td className="py-12 text-center text-slate-500" colSpan={6}>
+                        <div className="flex flex-col items-center gap-2">
+                           <UserGroupIcon className="h-8 w-8 text-slate-300" />
+                           <p>No teams available for grading in this class yet.</p>
+                        </div>
                       </td>
                     </tr>
                   )}

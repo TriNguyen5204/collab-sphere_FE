@@ -55,7 +55,7 @@ const LecturerHeader = ({
   }, [navigate]);
 
   return (
-    <header className="sticky top-0 z-[70] bg-white border-b border-slate-200">
+    <header className="sticky top-0 z-40 bg-white border-b border-slate-200">
       <div className="mx-auto px-4 py-3 md:px-6 lg:px-8">
         <div className="flex items-center gap-10 w-full">
           <div className="flex items-center gap-3 min-w-0">

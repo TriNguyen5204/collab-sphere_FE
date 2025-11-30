@@ -62,3 +62,17 @@ export const getClassProjects = async (classId, params = {}) => {
 	const response = await apiClient.get(`/project/class/${classId}`, { params });
 	return response.data;
 };
+
+export const getProjects = async (params = {}) => {
+    try {
+        const response = await apiClient.get('/project', { 
+            params,
+            paramsSerializer: {
+                indexes: null
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching projects:', error);
+    };
+};

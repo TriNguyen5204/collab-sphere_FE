@@ -94,6 +94,7 @@ const ClassDetailPage = () => {
       try {
         const response = await getClassDetail(classId);
         if (ignore) return;
+        console.log('Raw class detail response:', response);
         const normalised = normaliseClassDetailPayload(response, numericClassId);
         console.log('Normalised class detail:', normalised);
         setDetail(normalised);
@@ -190,7 +191,7 @@ const ClassDetailPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen space-y-8 bg-slate-50/50 p-6 lg:p-8">
+      <div className="min-h-screen space-y-8 bg-slate-50/50">
         <LecturerBreadcrumbs items={breadcrumbItems} />
 
         {/* --- HEADER (Merged Hero) --- */}
@@ -300,7 +301,7 @@ const ClassDetailPage = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-3 mx-auto max-w-[1500px]">
 
           {/* --- LEFT COLUMN: TEAMS & ROSTER --- */}
           <div className="flex flex-col gap-8 xl:col-span-2">
