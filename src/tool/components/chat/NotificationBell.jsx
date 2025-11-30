@@ -227,7 +227,7 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                                         setIsOpen(false);
                                         navigate('/student/project/chat');
                                     }}
-                                    className="w-full text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors py-2 hover:underline flex items-center justify-center gap-2 hover:gap-3 transition-all"
+                                    className="w-full text-sm font-semibold text-blue-600 hover:text-blue-700 py-2 hover:underline flex items-center justify-center gap-2 hover:gap-3 transition-all"
                                 >
                                     <MessageCircle className="w-4 h-4" />
                                     <span>Go to Messages</span>
