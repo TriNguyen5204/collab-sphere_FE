@@ -9,12 +9,6 @@ import { getAllSubject } from '../../services/userService';
 import axios from 'axios';
 import DashboardLayout from '../../components/DashboardLayout';
 
-// AWS Configuration - In a real app, use Pre-signed URLs!
-// For this task, we assume we have credentials or a way to upload.
-// Since we don't have the SDK installed, we'll use a placeholder for the actual S3 upload
-// or assume the user will provide a way.
-// Ideally: import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-
 const AI_API_BASE_URL = 'https://u8ls7dz738.execute-api.ap-southeast-1.amazonaws.com/dev';
 
 const glassPanelClass = 'backdrop-blur-[18px] bg-white/85 border border-white/70 shadow-[0_10px_45px_rgba(15,23,42,0.08)]';
@@ -89,7 +83,7 @@ const PrioritySelector = ({ priority, onChange }) => {
 
 const CreateProjectAI = () => {
   const navigate = useNavigate();
-  const [phase, setPhase] = useState(1); // 1: Upload, 2: Analyzing, 3: Review
+  const [phase, setPhase] = useState(1);
   const [file, setFile] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [jobId, setJobId] = useState(null);
@@ -98,14 +92,20 @@ const CreateProjectAI = () => {
   const [progressLogs, setProgressLogs] = useState([]);
   const [isLogExpanded, setIsLogExpanded] = useState(false);
   
-  // Form State
+  const [isRefineModalOpen, setIsRefineModalOpen] = useState(false);
+  const [refineFeedback, setRefineFeedback] = useState('');
+  const [isRefining, setIsRefining] = useState(false);
+  
+  // Version Control State
+  const [versions, setVersions] = useState([]);
+  const [currentVersionIndex, setCurrentVersionIndex] = useState(0);
+
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
   const [objectives, setObjectives] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
 
-  // Get User ID from Redux
   const { userId } = useSelector((state) => state.user);
   const lecturerId = userId; 
   
@@ -114,8 +114,6 @@ const CreateProjectAI = () => {
       try {
         const result = await getAllSubject();
         console.log("Loaded subjects:", result);
-        // Normalize subject list if needed, similar to CreateProject.jsx
-        // Assuming result is the array or result.data is the array
         const list = Array.isArray(result) ? result : (result.data || []);
         setSubjects(list);
       } catch (error) {
@@ -165,7 +163,6 @@ const CreateProjectAI = () => {
       setAnalyzing(true);
       setProgressLogs([{ message: 'Initializing secure upload session...', timestamp: new Date() }]);
 
-      // 1. Get Presigned URL from our new Lambda
       const urlResponse = await axios.get(`${AI_API_BASE_URL}/upload-url`, {
         params: {
           fileName: file.name,
@@ -175,7 +172,6 @@ const CreateProjectAI = () => {
 
       const { uploadUrl, fileKey } = urlResponse.data;
 
-      // 2. Upload file directly to S3 using the presigned URL
       setProgressLogs(prev => [...prev, { message: 'Uploading document to secure storage...', timestamp: new Date() }]);
       await axios.put(uploadUrl, file, {
         headers: {
@@ -185,7 +181,6 @@ const CreateProjectAI = () => {
 
       setProgressLogs(prev => [...prev, { message: 'Upload complete. Initiating AI analysis...', timestamp: new Date() }]);
 
-      // 3. Call Analyze API with the key S3 trả về
       const analyzeResponse = await axios.post(`${AI_API_BASE_URL}/analyze`, {
         file_key: fileKey,
         bucket_name: 'collabsphere-uploads',
@@ -224,32 +219,135 @@ const CreateProjectAI = () => {
           setPhase(1);
           setAnalyzing(false);
         }
-        // If PENDING or PROCESSING, continue polling
       } catch (error) {
         console.error('Polling error:', error);
-        // Don't stop polling immediately on network error, maybe retry?
-        // For now, we'll let it continue or user can cancel.
       }
     }, 5000);
     setPollingInterval(interval);
   };
 
-  // Cleanup polling on unmount
   useEffect(() => {
     return () => {
       if (pollingInterval) clearInterval(pollingInterval);
     };
   }, [pollingInterval]);
 
+  const loadVersion = (versionData) => {
+    setProjectName(versionData.projectName || '');
+    setDescription(versionData.description || '');
+    setObjectives(versionData.objectives || []);
+  };
+
   const handleAnalysisComplete = (result) => {
     console.log("AI Analysis Result:", result);
+    
+    let currentDate = new Date();
+    
+    const objectivesWithDates = (result.objectives || []).map(obj => {
+      const milestonesWithDates = (obj.milestones || []).map(ms => {
+        const start = new Date(currentDate);
+        const startDateStr = start.toISOString().split('T')[0];
+        
+        const end = new Date(start);
+        end.setDate(end.getDate() + 14);
+        const endDateStr = end.toISOString().split('T')[0];
+        
+        currentDate = new Date(end);
+        currentDate.setDate(currentDate.getDate() + 1);
+        
+        return {
+          ...ms,
+          startDate: startDateStr,
+          endDate: endDateStr
+        };
+      });
+      
+      return {
+        ...obj,
+        milestones: milestonesWithDates
+      };
+    });
+
+    const newVersion = {
+        id: Date.now(),
+        timestamp: new Date(),
+        data: {
+            ...result,
+            objectives: objectivesWithDates
+        },
+        feedback: refineFeedback || 'Initial Analysis'
+    };
+
+    setVersions(prev => [...prev, newVersion]);
+    setCurrentVersionIndex(prev => versions.length); // Point to the new version (index = length of old array)
+    
     setAiResult(result);
-    setProjectName(result.projectName || '');
-    setDescription(result.description || '');
-    setObjectives(result.objectives || []);
+    loadVersion(newVersion.data);
+    
     setPhase(3);
     setAnalyzing(false);
     toast.success('Analysis Complete!');
+  };
+
+  const handleRefine = async () => {
+    if (!refineFeedback.trim()) {
+        toast.error("Please enter feedback");
+        return;
+    }
+
+    setIsRefining(true);
+
+    try {
+        const triggerResponse = await axios.post(`${AI_API_BASE_URL}/refine`, {
+            jobId: jobId,
+            feedback: refineFeedback
+        });
+
+        if (triggerResponse.status === 202) {
+            toast.info("AI is thinking... This may take a minute.");
+            setIsRefineModalOpen(false); 
+            
+            const startTime = Date.now();
+            const TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes
+
+            const pollInterval = setInterval(async () => {
+                if (Date.now() - startTime > TIMEOUT_MS) {
+                    clearInterval(pollInterval);
+                    setIsRefining(false);
+                    toast.error("AI Refinement timed out. Please try again.");
+                    return;
+                }
+
+                try {
+                    const statusRes = await axios.get(`${AI_API_BASE_URL}/jobs/${jobId}`);
+                    const { status, result } = statusRes.data;
+
+                    if (status === 'COMPLETED') {
+                        clearInterval(pollInterval);
+                        
+                        handleAnalysisComplete(result);
+                        
+                        setRefineFeedback('');
+                        setIsRefining(false);
+                        toast.success("Refinement Complete!");
+                    } 
+                    else if (status === 'FAILED') {
+                        clearInterval(pollInterval);
+                        setIsRefining(false);
+                        toast.error("AI Refinement Failed. Please try again.");
+                    }
+                    
+                } catch (pollErr) {
+                    console.error("Polling error:", pollErr);
+                }
+            }, 3000);
+        }
+
+    } catch (error) {
+        console.error("Refine Request Error:", error);
+        toast.error("Could not send refine request.");
+        setIsRefining(false);
+    }
   };
 
   const handleCreateProject = async () => {
@@ -266,7 +364,6 @@ const CreateProjectAI = () => {
         return;
       }
 
-      // Validate Dates
       for (const obj of objectives) {
         for (const ms of obj.milestones) {
           if (!ms.startDate || !ms.endDate) {
@@ -286,13 +383,12 @@ const CreateProjectAI = () => {
         }
       }
 
-      // Transform objectives to match backend expected format
       const formattedObjectives = objectives.map(obj => ({
         description: obj.description,
         priority: obj.priority,
         objectiveMilestones: (obj.milestones || []).map(ms => ({
           title: ms.title,
-          description: ms.description || ms.title, // Use description if available, else fallback to title
+          description: ms.description || ms.title,
           startDate: ms.startDate && ms.startDate.includes('T') ? ms.startDate.split('T')[0] : ms.startDate,
           endDate: ms.endDate && ms.endDate.includes('T') ? ms.endDate.split('T')[0] : ms.endDate
         }))
@@ -310,7 +406,6 @@ const CreateProjectAI = () => {
       
       console.log("Creating Project Payload:", JSON.stringify(payload, null, 2));
       
-      // Call existing backend API
       await createProject(payload);
       
       toast.success('Project created successfully!');
@@ -320,8 +415,6 @@ const CreateProjectAI = () => {
       toast.error('Failed to create project.');
     }
   };
-
-  // --- Render Helpers ---
 
   const renderUploadZone = () => (
     <motion.div 
@@ -451,16 +544,57 @@ const CreateProjectAI = () => {
           <h1 className="text-3xl font-bold text-slate-900">Project Blueprint</h1>
           <p className="text-slate-600 mt-1">Review and refine the AI-generated structure.</p>
         </div>
-        <button 
-          onClick={handleCreateProject}
-          className="px-6 py-3 bg-emerald-600 text-white rounded-full font-semibold hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-lg shadow-emerald-200"
-        >
-          Confirm & Create <CheckCircle size={20} />
-        </button>
+        <div className="flex gap-3">
+            <button 
+                onClick={() => setIsRefineModalOpen(true)}
+                disabled={isRefining}
+                className="px-8 py-3 rounded-full font-medium text-sm transition-all backdrop-blur-md bg-white/40 border border-white/60 text-slate-700 hover:bg-white/60 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                {isRefining ? 'Refining...' : 'Refine with AI'}
+            </button>
+
+            {!isRefining && (
+                <button 
+                    onClick={handleCreateProject}
+                    className="px-8 py-3 rounded-full font-medium text-sm text-white transition-all bg-slate-900 hover:bg-slate-800 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                >
+                    Confirm & Create
+                </button>
+            )}
+        </div>
       </div>
 
+      {/* Version Control Bar */}
+      {versions.length > 0 && (
+        <div className="mb-6 flex items-center gap-2 overflow-x-auto pb-2">
+            {versions.map((v, idx) => (
+                <button
+                    key={v.id}
+                    onClick={() => {
+                        setCurrentVersionIndex(idx);
+                        loadVersion(v.data);
+                    }}
+                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap
+                        ${currentVersionIndex === idx 
+                            ? 'bg-slate-900 text-white shadow-lg' 
+                            : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'
+                        }`}
+                >
+                    Version {idx + 1}
+                    {idx === 0 && ' (Initial)'}
+                    {idx === versions.length - 1 && versions.length > 1 && ' (Latest)'}
+                </button>
+            ))}
+            {isRefining && (
+                <div className="px-4 py-2 rounded-full bg-purple-50 text-purple-600 text-xs font-bold border border-purple-100 flex items-center gap-2 animate-pulse">
+                    <Loader2 size={12} className="animate-spin" />
+                    Generating Version {versions.length + 1}...
+                </div>
+            )}
+        </div>
+      )}
+
       <div className="grid gap-6">
-        {/* Basic Info Card */}
         <div className={`${glassPanelClass} p-6 rounded-2xl`}>
           <h3 className="text-xs font-semibold tracking-[0.2em] text-slate-500 uppercase mb-6 flex items-center gap-2">
             <FileText size={16} className="text-sky-600" /> Basic Information
@@ -508,7 +642,6 @@ const CreateProjectAI = () => {
           </div>
         </div>
 
-        {/* Objectives & Milestones */}
         <div className="space-y-6">
           <h3 className="text-xl font-bold text-slate-900 px-2">Objectives & Milestones</h3>
           {objectives.map((obj, objIndex) => (
@@ -523,7 +656,7 @@ const CreateProjectAI = () => {
                       newObjs[objIndex].description = e.target.value;
                       setObjectives(newObjs);
                     }}
-                    className="w-full text-lg font-semibold bg-transparent border-b border-transparent focus:border-sky-300 outline-none text-slate-900 placeholder-slate-400"
+                    className="w-full text-lg font-semibold bg-transparent border-b-2 border-transparent focus:border-sky-500 focus:bg-sky-50/50 rounded-md px-3 py-1 transition-all outline-none text-slate-900 placeholder-slate-400"
                     placeholder="Objective Description"
                   />
                 </div>
@@ -546,7 +679,6 @@ const CreateProjectAI = () => {
                 </button>
               </div>
 
-              {/* Milestones List */}
               <div className="space-y-3 pl-4 border-l-2 border-slate-100">
                 {obj.milestones.map((ms, msIndex) => {
                   const startDate = ms.startDate ? (ms.startDate.includes('T') ? ms.startDate.split('T')[0] : ms.startDate) : '';
@@ -575,7 +707,7 @@ const CreateProjectAI = () => {
                             newObjs[objIndex].milestones[msIndex].title = e.target.value;
                             setObjectives(newObjs);
                           }}
-                          className="w-full bg-transparent outline-none text-sm font-medium text-slate-700 placeholder-slate-400"
+                          className="w-full bg-transparent focus:bg-white focus:ring-2 focus:ring-sky-200 rounded-md px-2 py-1 outline-none text-sm font-medium text-slate-700 placeholder-slate-400 transition-all"
                           placeholder="Milestone Title"
                         />
                         <input 
@@ -586,7 +718,7 @@ const CreateProjectAI = () => {
                             newObjs[objIndex].milestones[msIndex].description = e.target.value;
                             setObjectives(newObjs);
                           }}
-                          className="w-full bg-transparent outline-none text-xs text-slate-500 placeholder-slate-300 mt-1"
+                          className="w-full bg-transparent focus:bg-white focus:ring-2 focus:ring-sky-200 rounded-md px-2 py-1 outline-none text-xs text-slate-500 placeholder-slate-300 mt-1 transition-all"
                           placeholder="Milestone Description"
                         />
                       </div>
@@ -667,13 +799,54 @@ const CreateProjectAI = () => {
           </button>
         </div>
       </div>
+
+      <AnimatePresence>
+          {isRefineModalOpen && (
+              <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                  <motion.div 
+                      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                      className="bg-white/80 backdrop-blur-xl border border-white/60 rounded-3xl p-8 w-full max-w-lg shadow-[0_20px_60px_-10px_rgba(0,0,0,0.1)]"
+                  >
+                      <h3 className="text-xl font-semibold text-slate-900 mb-2">Refine Project Structure</h3>
+                      <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+                          Provide specific instructions to the AI Architect to adjust the timeline, objectives, or scope.
+                      </p>
+                      
+                      <textarea
+                          className="w-full p-4 bg-white/50 border border-slate-200 rounded-2xl text-slate-700 placeholder-slate-400 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 outline-none min-h-[140px] resize-none transition-all text-sm"
+                          placeholder="e.g., 'Add a QA phase before deployment', 'Extend the timeline by 2 weeks', 'Focus more on backend security'..."
+                          value={refineFeedback}
+                          onChange={(e) => setRefineFeedback(e.target.value)}
+                          autoFocus
+                      />
+                      
+                      <div className="flex justify-end gap-3 mt-8">
+                          <button 
+                              onClick={() => setIsRefineModalOpen(false)}
+                              className="px-6 py-2.5 rounded-full text-sm font-medium text-slate-500 hover:bg-slate-100 transition-colors"
+                          >
+                              Cancel
+                          </button>
+                          <button 
+                              onClick={handleRefine}
+                              disabled={isRefining}
+                              className="px-8 py-2.5 rounded-full text-sm font-medium bg-slate-900 text-white hover:bg-slate-800 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                          >
+                              {isRefining ? 'Refining...' : 'Regenerate'}
+                          </button>
+                      </div>
+                  </motion.div>
+              </div>
+          )}
+      </AnimatePresence>
     </motion.div>
   );
 
   return (
     <DashboardLayout>
       <div className="min-h-[calc(100vh-100px)]">
-        {/* Header */}
         <div className="mb-8 flex items-center gap-2 text-sm text-slate-500">
           <span className="cursor-pointer hover:text-sky-600 transition-colors" onClick={() => navigate('/lecturer/projects')}>Projects</span>
           <ArrowRight size={14} />
