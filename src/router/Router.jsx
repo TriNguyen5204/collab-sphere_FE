@@ -82,6 +82,7 @@ import MeetingManagement from '../tool/Meeting/MeetingManagement';
 // import StreamVideoMeeting from '../test/StreamVideoMeeting';
 import Whiteboard from '../tool/whiteboard/Whiteboard';
 import CollabEditor from '../tool/textEditor/CollabEditor';
+import ChatComponent from '../tool/chat/ChatConservationComponent';
 
 import RoleProtectedRoute from './RoleProtectedRoute';
 
@@ -100,7 +101,8 @@ const publicRoutes = [
   { path: '/meeting/schedule/:teamId', element: <MeetingSchedulerFull/> },
   { path: '/test/kanban', element: <TestKanbanBoard /> },
   { path: '/student/project/whiteboard', element: <Whiteboard/>},
-  { path: '/student/project/text-editor', element: <CollabEditor/>}
+  { path: '/student/project/text-editor', element: <CollabEditor/>},
+  { path: '/student/project/chat', element: <ChatComponent/>},
 ];
 
 const studentRoutes = [

@@ -15,7 +15,6 @@ import { Plus } from 'lucide-react';
 
 import BoardList from './BoardList';
 import CardModal from './CardModal';
-import UndoNotification from './UndoNotification';
 import { useSignalRContext } from '../../../context/kanban/useSignalRContext';
 import {
   createList,
@@ -44,7 +43,6 @@ const TrelloBoard = forwardRef(function TrelloBoard(
   const [editingCard, setEditingCard] = useState(null);
   const [isAddingList, setIsAddingList] = useState(false);
   const [newListTitle, setNewListTitle] = useState('');
-  const [undoAction, setUndoAction] = useState(null);
 
   // ✅ Ref để lưu trữ snapshot trước khi drag
   const dragSnapshotRef = useRef(null);
@@ -1091,13 +1089,6 @@ const TrelloBoard = forwardRef(function TrelloBoard(
           : l
       )
     );
-
-    setUndoAction({
-      type: 'card',
-      item: archivedCard,
-      listId,
-      message: `Card "${archivedCard.title}" archived`,
-    });
   };
 
   const deleteCard = async (listId, cardId) => {
@@ -1118,67 +1109,10 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     const list = lists.find(l => String(l.id) === String(listId));
     if (!list) return;
 
-    const archivedList = { ...list, archivedAt: new Date().toISOString() };
-
     setLists(prev => prev.filter(l => String(l.id) !== String(listId)));
 
-    setUndoAction({
-      type: 'list',
-      item: archivedList,
-      message: `List "${archivedList.title}" archived`,
-    });
   };
 
-  const restoreCard = (cardId, listId) => {
-    // ✅ FIX: So sánh string
-    const archivedCard = archivedItems.cards.find(
-      c => String(c.id) === String(cardId)
-    );
-    if (!archivedCard) return;
-
-    setLists(prev =>
-      prev.map(l =>
-        String(l.id) === String(listId)
-          ? {
-              ...l,
-              cards: [...l.cards, { ...archivedCard, archivedAt: undefined }],
-            }
-          : l
-      )
-    );
-
-    setArchivedItems(prev => ({
-      ...prev,
-      cards: prev.cards.filter(c => String(c.id) !== String(cardId)),
-    }));
-  };
-
-  const restoreList = listId => {
-    // ✅ FIX: So sánh string
-    const archivedList = archivedItems.lists.find(
-      l => String(l.id) === String(listId)
-    );
-    if (!archivedList) return;
-
-    setLists(prev => [...prev, { ...archivedList, archivedAt: undefined }]);
-
-    setArchivedItems(prev => ({
-      ...prev,
-      lists: prev.lists.filter(l => String(l.id) !== String(listId)),
-    }));
-  };
-
-  const handleUndo = () => {
-    if (!undoAction) return;
-
-    if (undoAction.type === 'card') {
-      restoreCard(undoAction.item.id, undoAction.listId);
-    } else if (undoAction.type === 'list') {
-      restoreList(undoAction.item.id);
-    }
-
-    setUndoAction(null);
-  };
 
   // ===================== RENDER =====================
 
@@ -1324,13 +1258,6 @@ const TrelloBoard = forwardRef(function TrelloBoard(
         />
       )}
 
-      {undoAction && (
-        <UndoNotification
-          message={undoAction.message}
-          onUndo={handleUndo}
-          onClose={() => setUndoAction(null)}
-        />
-      )}
     </>
   );
 });
