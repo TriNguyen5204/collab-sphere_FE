@@ -8,7 +8,7 @@ export const useSocket = (serverUrl = 'https://server-webrtc-production-3be0.up.
   useEffect(() => {
     if (socketRef.current) return;
 
-    console.log('🔌 Initializing socket connection...', serverUrl);
+    console.log('🔌 Initializing socket connection...');
     const socket = io(serverUrl, {
       reconnection: true,
       reconnectionDelay: 1000,
