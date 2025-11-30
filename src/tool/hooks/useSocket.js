@@ -8,10 +8,14 @@ export const useSocket = (serverUrl = import.meta.env.VITE_PORT_URL) => {
   useEffect(() => {
     if (socketRef.current) return;
 
-    console.log('🔌 Initializing socket connection...');
+    console.log('🔌 Initializing socket connection...', serverUrl);
     const socket = io(serverUrl, {
       reconnection: true,
       reconnectionDelay: 1000,
+      reconnectionAttempts: 5,
+      transports: ['websocket', 'polling'],
+      secure: true,
+      withCredentials: true,
     });
     socketRef.current = socket;
 
