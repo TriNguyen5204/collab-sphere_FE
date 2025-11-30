@@ -94,32 +94,44 @@ const PrioritySelector = ({ priority, onChange }) => {
 
 const CreateProjectAI = () => {
   const navigate = useNavigate();
-  const [phase, setPhase] = useState(1); // 1: Upload, 2: Analyzing, 3: Review
+  const [phase, setPhase] = useState(1);
   const [file, setFile] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [jobId, setJobId] = useState(null);
   const [pollingInterval, setPollingInterval] = useState(null);
   const [progressLogs, setProgressLogs] = useState([]);
+  const [isLogExpanded, setIsLogExpanded] = useState(false);
+  
+  const [isRefineModalOpen, setIsRefineModalOpen] = useState(false);
+  const [refineFeedback, setRefineFeedback] = useState('');
+  const [isRefining, setIsRefining] = useState(false);
+  
+  // Version Control State
+  const [versions, setVersions] = useState([]);
+  const [currentVersionIndex, setCurrentVersionIndex] = useState(0);
 
-  // Form State
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
   const [objectives, setObjectives] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
+  const [loadingSubjects, setLoadingSubjects] = useState(true);
 
-  // Get User ID from Redux
   const { userId } = useSelector((state) => state.user);
   const lecturerId = userId;
 
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
+        setLoadingSubjects(true);
         const result = await getAllSubject();
+        console.log("Loaded subjects:", result);
         const list = Array.isArray(result) ? result : (result.data || []);
         setSubjects(list);
       } catch (error) {
         toast.error("Failed to load subjects");
+      } finally {
+        setLoadingSubjects(false);
       }
     };
     fetchSubjects();
@@ -164,7 +176,6 @@ const CreateProjectAI = () => {
       setAnalyzing(true);
       setProgressLogs([{ message: 'Initializing secure upload session...', timestamp: new Date() }]);
 
-      // 1. Get Presigned URL
       const urlResponse = await axios.get(`${AI_API_BASE_URL}/upload-url`, {
         params: {
           fileName: file.name,
@@ -189,7 +200,7 @@ const CreateProjectAI = () => {
         file_key: fileKey,
         bucket_name: 'collabsphere-uploads',
         lecturer_id: lecturerId,
-        subject_id: selectedSubjectId,
+        subject_id: parseInt(selectedSubjectId, 10),
       });
 
       if (analyzeResponse.data && analyzeResponse.data.jobId) {
@@ -209,7 +220,18 @@ const CreateProjectAI = () => {
   };
 
   const startPolling = (id) => {
+    const startTime = Date.now();
+    const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
     const interval = setInterval(async () => {
+      if (Date.now() - startTime > TIMEOUT_MS) {
+        clearInterval(interval);
+        toast.error('AI Analysis timed out. Please try uploading the file again.');
+        setPhase(1);
+        setAnalyzing(false);
+        return;
+      }
+
       try {
         const response = await axios.get(`${AI_API_BASE_URL}/jobs/${id}`);
         const { status, result } = response.data;
@@ -236,13 +258,115 @@ const CreateProjectAI = () => {
     };
   }, [pollingInterval]);
 
+  const loadVersion = (versionData) => {
+    setProjectName(versionData.projectName || '');
+    setDescription(versionData.description || '');
+    setObjectives(versionData.objectives || []);
+  };
+
   const handleAnalysisComplete = (result) => {
     setProjectName(result.projectName || '');
     setDescription(result.description || '');
     setObjectives(result.objectives || []);
+    console.log("AI Analysis Result:", result);
+    
+    const objectivesWithDates = (result.objectives || []).map(obj => {
+      const milestonesWithDates = (obj.milestones || []).map(ms => {
+        return {
+          ...ms,
+          startDate: ms.startDate || '',
+          endDate: ms.endDate || '',
+          matchedOutcomes: ms.matchedOutcomes || [],
+          warnings: ms.warnings || null
+        };
+      });
+      
+      return {
+        ...obj,
+        milestones: milestonesWithDates
+      };
+    });
+
+    const newVersion = {
+        id: Date.now(),
+        timestamp: new Date(),
+        data: {
+            ...result,
+            objectives: objectivesWithDates
+        },
+        feedback: refineFeedback || 'Initial Analysis'
+    };
+
+    setVersions(prev => [...prev, newVersion]);
+    setCurrentVersionIndex(prev => versions.length); // Point to the new version (index = length of old array)
+    
+    setAiResult(result);
+    loadVersion(newVersion.data);
+    
     setPhase(3);
     setAnalyzing(false);
     toast.success('Analysis Complete!');
+  };
+
+  const handleRefine = async () => {
+    if (!refineFeedback.trim()) {
+        toast.error("Please enter feedback");
+        return;
+    }
+
+    setIsRefining(true);
+
+    try {
+        const triggerResponse = await axios.post(`${AI_API_BASE_URL}/refine`, {
+            jobId: jobId,
+            feedback: refineFeedback
+        });
+
+        if (triggerResponse.status === 202) {
+            toast.info("AI is thinking... This may take a minute.");
+            setIsRefineModalOpen(false); 
+            
+            const startTime = Date.now();
+            const TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes
+
+            const pollInterval = setInterval(async () => {
+                if (Date.now() - startTime > TIMEOUT_MS) {
+                    clearInterval(pollInterval);
+                    setIsRefining(false);
+                    toast.error("AI Refinement timed out. Please try again.");
+                    return;
+                }
+
+                try {
+                    const statusRes = await axios.get(`${AI_API_BASE_URL}/jobs/${jobId}`);
+                    const { status, result } = statusRes.data;
+
+                    if (status === 'COMPLETED') {
+                        clearInterval(pollInterval);
+                        
+                        handleAnalysisComplete(result);
+                        
+                        setRefineFeedback('');
+                        setIsRefining(false);
+                        toast.success("Refinement Complete!");
+                    } 
+                    else if (status === 'FAILED') {
+                        clearInterval(pollInterval);
+                        setIsRefining(false);
+                        toast.error("AI Refinement Failed. Please try again.");
+                    }
+                    
+                } catch (pollErr) {
+                    console.error("Polling error:", pollErr);
+                }
+            }, 3000);
+        }
+
+    } catch (error) {
+        console.error("Refine Request Error:", error);
+        toast.error("Could not send refine request.");
+        setIsRefining(false);
+    }
   };
 
   const handleCreateProject = async () => {
@@ -271,8 +395,8 @@ const CreateProjectAI = () => {
         objectiveMilestones: (obj.milestones || []).map(ms => ({
           title: ms.title,
           description: ms.description || ms.title,
-          startDate: ms.startDate?.split('T')[0],
-          endDate: ms.endDate?.split('T')[0]
+          startDate: ms.startDate && ms.startDate.includes('T') ? ms.startDate.split('T')[0] : ms.startDate,
+          endDate: ms.endDate && ms.endDate.includes('T') ? ms.endDate.split('T')[0] : ms.endDate
         }))
       }));
 
@@ -285,7 +409,9 @@ const CreateProjectAI = () => {
           objectives: formattedObjectives
         }
       };
-
+      
+      console.log("Creating Project Payload:", JSON.stringify(payload, null, 2));
+      
       await createProject(payload);
       toast.success('Project created successfully!');
       navigate('/lecturer/projects');

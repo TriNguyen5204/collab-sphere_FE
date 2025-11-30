@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import io from 'socket.io-client';
 
-export const useSocket = (serverUrl = import.meta.env.VITE_PORT_URL) => {
+export const useSocket = (serverUrl = 'https://server-webrtc-production-3be0.up.railway.app/') => {
   const [me, setMe] = useState('');
   const socketRef = useRef(null);
 
@@ -12,6 +12,10 @@ export const useSocket = (serverUrl = import.meta.env.VITE_PORT_URL) => {
     const socket = io(serverUrl, {
       reconnection: true,
       reconnectionDelay: 1000,
+      reconnectionAttempts: 5,
+      transports: ['websocket', 'polling'],
+      secure: true,
+      withCredentials: true,
     });
     socketRef.current = socket;
 

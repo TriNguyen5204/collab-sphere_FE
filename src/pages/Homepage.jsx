@@ -22,6 +22,7 @@ import lecturerImage from '../assets/lecturer.png';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/slices/userSlice';
 import { getRoleLandingRoute } from '../constants/roleRoutes';
+import AIChatAssistant from '../components/ai/AIChatAssistant';
 
 const heroHighlights = [
   'AI copilots transform module briefs into milestones, checkpoints, and evaluation rubrics in minutes.',
@@ -463,6 +464,7 @@ function Homepage() {
           </div>
         </div>
       </footer>
+      <AIChatAssistant />
     </div>
   );
 }

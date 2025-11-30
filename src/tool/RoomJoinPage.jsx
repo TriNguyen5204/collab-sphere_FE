@@ -44,7 +44,7 @@ function JoinPage() {
       teamId: teamId,
       title,
       description,
-      meetingUrl: `${import.meta.env.VITE_FRONTEND_URL}/room/${newRoomId}`,
+      meetingUrl: `https://collabsphere.space/room/${newRoomId}`,
       scheduleTime: new Date(now.getTime() + vnOffsetMs).toISOString(),
     };
 

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { Kanban, Flag, CheckSquare, MessageSquare, ClipboardList, ChevronDown, UsersRound, VideoIcon  } from 'lucide-react';
+import { Kanban, Flag, CheckSquare, MessageSquare, ClipboardList, ChevronDown, UsersRound, VideoIcon, CircuitBoardIcon, FileText  } from 'lucide-react';
 import useClickOutside from '../../hooks/useClickOutside';
 
 const ProjectBoardViewMenu = () => {
@@ -14,11 +14,13 @@ const ProjectBoardViewMenu = () => {
 
   const menuItems = [
     { name: 'Team Workspace', icon: UsersRound, path: `/student/project/team-workspace` },
-    { name: 'Task Board', icon: Kanban, path: `/student/project/task-board` },
+    { name: 'Task Board', icon: Kanban, path: `/student/project/project-board` },
     { name: 'Milestones & Checkpoints', icon: Flag, path: `/student/project/milestones&checkpoints` },
     { name: 'Peer Evaluation', icon: UsersRound, path: `/student/project/peer-evaluation` },
     { name: 'Communication', icon: MessageSquare, path: `/student/project/communication` },
-    { name: 'Meeting room', icon: VideoIcon, path: `/student/project/meeting-room`}
+    { name: 'Meeting room', icon: VideoIcon, path: `/student/project/meeting-room`},
+    { name: 'Whiteboard', icon: CircuitBoardIcon, path: `/student/project/whiteboard`},
+    { name: 'Text Editor', icon: FileText, path: `/student/project/text-editor`},
   ];
 
   const normalizePath = (p) => (p || '').replace(/\/+$/, '');
@@ -81,6 +83,7 @@ const ProjectBoardViewMenu = () => {
           })}
         </ul>
       )}
+
     </div>
   );
 };

@@ -47,7 +47,7 @@ export default function ProjectApprovals() {
             <div className="flex items-start justify-between mb-6 flex-col md:flex-row">
               <div className="flex items-center gap-3">
                 <Link
-                  to='/academic'
+                  to='/head-department'
                   className='text-gray-400 hover:text-gray-500'
                   aria-label="Back"
                 >
