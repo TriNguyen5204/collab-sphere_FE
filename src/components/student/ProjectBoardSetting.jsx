@@ -213,7 +213,7 @@ const ProjectBoardSetting = ({ archivedItems, onRestoreArchived, onDeleteArchive
 
 
   return (
-    <>
+    <div className="relative">
       <div className="relative" ref={menuRef}>
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -230,16 +230,10 @@ const ProjectBoardSetting = ({ archivedItems, onRestoreArchived, onDeleteArchive
           <div className="absolute right-0 mt-2 w-80 bg-white text-gray-900 rounded-lg shadow-xl border border-gray-200 py-2 z-50 max-h-[80vh] overflow-y-auto">
             <div className="px-4 py-2 border-b border-gray-100">
               <h3 className="font-semibold text-gray-900">Project Settings</h3>
-              <p className="text-xs text-gray-500 mt-1">{decodeURIComponent(projectName)}</p>
             </div>
 
             {menuItems.map((section, sectionIdx) => (
               <div key={sectionIdx}>
-                <div className="px-4 py-2 mt-2">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    {section.section}
-                  </p>
-                </div>
                 {section.items.map((item, itemIdx) => {
                   const Icon = item.icon;
                   return (
@@ -275,7 +269,7 @@ const ProjectBoardSetting = ({ archivedItems, onRestoreArchived, onDeleteArchive
         isSaving={isSavingSettings}
         isUploading={isUploadingAvatar}
       />
-    </>
+    </div>
   );
 };
 
@@ -382,7 +376,7 @@ const ProjectSettingsModal = ({
   const currentAvatar = avatarPreview || team?.teamImage;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white text-gray-900 border border-gray-200 rounded-lg w-full max-w-3xl shadow-2xl">
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-2xl font-bold text-gray-900">Team Settings</h2>
