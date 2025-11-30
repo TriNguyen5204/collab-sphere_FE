@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { 
   ArrowLeftIcon, 
   CheckCircleIcon, 
@@ -7,15 +7,24 @@ import {
   BeakerIcon, 
   ChatBubbleBottomCenterTextIcon, 
   StarIcon,
-  ExclamationCircleIcon
+  ExclamationCircleIcon,
+  CloudArrowDownIcon,
+  ListBulletIcon,
+  QuestionMarkCircleIcon,
+  ChevronDownIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
 
 import DashboardLayout from '../../../components/DashboardLayout';
 import LecturerBreadcrumbs from '../../../features/lecturer/components/LecturerBreadcrumbs';
 import { getTeamDetail } from '../../../services/teamApi';
-import { getMilestonesByTeam } from '../../../services/milestoneApi';
+import { getMilestonesByTeam, getMilestoneDetail } from '../../../services/milestoneApi';
 import { getMilestoneEvaluationsByTeam, submitMilestoneEvaluation } from '../../../services/evaluationApi';
+import { getMilestoneQuestionsAnswersByQuestionId, patchGenerateNewReturnFileLinkByMilestoneIdAndMileReturnId } from '../../../services/studentApi';
+import { useSecureFileHandler } from '../../../hooks/useSecureFileHandler';
+
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
 const formatDate = (value) => {
   if (!value) return '—';
@@ -23,9 +32,45 @@ const formatDate = (value) => {
   return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 };
 
+// --- File Helper Functions ---
+const buildDownloadUrl = (file) => {
+  if (!file) return null;
+  if (file.url) return file.url;
+  if (file.fileUrl) return file.fileUrl;
+  if (file.path) {
+    if (!apiBaseUrl) return file.path;
+    return `${apiBaseUrl}${file.path.startsWith('/') ? '' : '/'}${file.path}`;
+  }
+  if (file.filePath) {
+    if (!apiBaseUrl) return file.filePath;
+    return `${apiBaseUrl}${file.filePath.startsWith('/') ? '' : '/'}${file.filePath}`;
+  }
+  if (file.fileId) {
+    if (!apiBaseUrl) return null;
+    return `${apiBaseUrl}/resource/file/${file.fileId}`;
+  }
+  return null;
+};
+
+const resolveReturnFileId = (file) => file?.mileReturnId ?? file?.mileReturnID ?? file?.id ?? null;
+
+const extractUrlLike = (payload) => {
+   if (!payload) return null;
+   if (typeof payload === 'string') return payload;
+   const target = (typeof payload === 'object' && payload !== null && 'data' in payload)
+      ? payload.data
+      : payload;
+   if (typeof target === 'string') return target;
+   if (target && typeof target === 'object') {
+      return target.fileUrl || target.url || buildDownloadUrl(target) || null;
+   }
+   return null;
+};
+
 const MilestoneEvaluationPage = () => {
   const { classId, teamId } = useParams();
   const navigate = useNavigate();
+  const { openSecureFile } = useSecureFileHandler();
   
   // State
   const [teamInfo, setTeamInfo] = useState(null);
@@ -33,8 +78,12 @@ const MilestoneEvaluationPage = () => {
   const [evaluations, setEvaluations] = useState([]);
   const [selectedMilestoneId, setSelectedMilestoneId] = useState(null);
   
-  const [loading, setLoading] = useState({ team: false, milestones: false, submit: false });
-  const [formState, setFormState] = useState({ score: '', comments: '' });
+  // Detailed Data State
+  const [milestoneDetail, setMilestoneDetail] = useState(null);
+  const [questionAnswers, setQuestionAnswers] = useState({});
+  
+  const [loading, setLoading] = useState({ team: false, milestones: false, submit: false, detail: false });
+  const [formState, setFormState] = useState({ score: '', comment: '' });
 
   // --- Effects ---
 
@@ -75,12 +124,15 @@ const MilestoneEvaluationPage = () => {
             ? milestoneList
             : [];
 
-      setMilestones(normalizedMilestones);
+      const filteredMilestones = normalizedMilestones.filter((m) => {
+        return m.statusString === 'Done' || m.status === 1;
+      });
+
+      setMilestones(filteredMilestones); 
       setEvaluations(Array.isArray(evaluationList) ? evaluationList : []);
 
-      // Auto-select first milestone if none selected
-      if (!selectedMilestoneId && normalizedMilestones.length > 0) {
-        const firstId = normalizedMilestones[0].teamMilestoneId ?? normalizedMilestones[0].milestoneId ?? normalizedMilestones[0].id;
+      if (!selectedMilestoneId && filteredMilestones.length > 0) {
+        const firstId = filteredMilestones[0].teamMilestoneId ?? filteredMilestones[0].milestoneId ?? filteredMilestones[0].id;
         setSelectedMilestoneId(String(firstId));
       }
     } catch (error) {
@@ -95,15 +147,64 @@ const MilestoneEvaluationPage = () => {
     fetchMilestones();
   }, [teamId]);
 
-  // --- Derived State ---
+  // Fetch Milestone Detail
+  useEffect(() => {
+    if (!selectedMilestoneId) {
+      setMilestoneDetail(null);
+      return;
+    }
 
-  const selectedMilestone = useMemo(() => {
+    const loadMilestoneDetail = async () => {
+      setLoading((prev) => ({ ...prev, detail: true }));
+      try {
+        const detail = await getMilestoneDetail(selectedMilestoneId);
+        setMilestoneDetail(detail);
+      } catch (error) {
+        console.error('Failed to load milestone detail', error);
+        toast.error('Failed to load milestone details');
+      } finally {
+        setLoading((prev) => ({ ...prev, detail: false }));
+      }
+    };
+
+    loadMilestoneDetail();
+  }, [selectedMilestoneId]);
+
+  // Fetch Answers whenever milestoneDetail changes
+  useEffect(() => {
+    const questions = milestoneDetail?.questions || milestoneDetail?.milestoneQuestions || [];
+    if (!questions.length) {
+      setQuestionAnswers({});
+      return;
+    }
+    const fetchAnswers = async () => {
+      const answersMap = {};
+      await Promise.all(questions.map(async (q) => {
+        try {
+          const qId = q.id || q.milestoneQuestionId;
+          if (qId) {
+            const res = await getMilestoneQuestionsAnswersByQuestionId(qId);
+            answersMap[qId] = Array.isArray(res?.answersList) ? res.answersList : [];
+          }
+        } catch (err) {
+          console.error('Failed to fetch answers for question', q);
+        }
+      }));
+      setQuestionAnswers(answersMap);
+    };
+    fetchAnswers();
+  }, [milestoneDetail]);
+
+  // --- Derived State ---
+  const selectedMilestoneSummary = useMemo(() => {
     if (!selectedMilestoneId) return null;
     return milestones.find((m) => {
       const id = m.teamMilestoneId ?? m.milestoneId ?? m.id;
       return String(id) === String(selectedMilestoneId);
     });
   }, [milestones, selectedMilestoneId]);
+
+  const activeMilestone = milestoneDetail || selectedMilestoneSummary;
 
   const evaluationByMilestone = useMemo(() => {
     const map = new Map();
@@ -113,21 +214,18 @@ const MilestoneEvaluationPage = () => {
     return map;
   }, [evaluations]);
 
-  // Update form when selection changes
   useEffect(() => {
-    if (!selectedMilestone) return;
-    const id = String(selectedMilestone.teamMilestoneId ?? selectedMilestone.milestoneId ?? selectedMilestone.id);
-    const snapshot = evaluationByMilestone.get(id);
-    
+    if (!selectedMilestoneId) return;
+    const snapshot = evaluationByMilestone.get(String(selectedMilestoneId));
     if (snapshot) {
       setFormState({
         score: snapshot.score ?? '',
-        comments: snapshot.comments ?? '',
+        comment: snapshot.comment ?? '',
       });
     } else {
-      setFormState({ score: '', comments: '' });
+      setFormState({ score: '', comment: '' });
     }
-  }, [selectedMilestone, evaluationByMilestone]);
+  }, [selectedMilestoneId, evaluationByMilestone]);
 
   const breadcrumbItems = useMemo(() => {
     const items = [{ label: 'Classes', href: '/lecturer/classes' }];
@@ -140,13 +238,38 @@ const MilestoneEvaluationPage = () => {
 
   // --- Handlers ---
 
+  const handleViewFile = useCallback(async (file) => {
+      if (!file) return;
+      const fallbackUrl = buildDownloadUrl(file);
+      const resolvedMilestoneId = milestoneDetail?.teamMilestoneId || milestoneDetail?.milestoneId || selectedMilestoneId;
+      const resolvedReturnId = resolveReturnFileId(file);
+      const shouldRefresh = Boolean(resolvedMilestoneId && resolvedReturnId);
+
+      const secureFetcher = async () => {
+         if (!shouldRefresh) return fallbackUrl;
+         const refreshed = await patchGenerateNewReturnFileLinkByMilestoneIdAndMileReturnId(
+            resolvedMilestoneId,
+            resolvedReturnId
+         );
+         return extractUrlLike(refreshed) || fallbackUrl;
+      };
+
+      try {
+         await openSecureFile(
+            fallbackUrl,
+            secureFetcher,
+            shouldRefresh || !fallbackUrl
+         );
+      } catch (error) {
+         console.error('Failed to open secure file', error);
+         toast.error('Unable to open document link.');
+      }
+   }, [milestoneDetail, openSecureFile, selectedMilestoneId]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedMilestone) return;
+    if (!selectedMilestoneId) return;
     
-    const milestoneId = selectedMilestone.teamMilestoneId ?? selectedMilestone.milestoneId ?? selectedMilestone.id;
-    if (!milestoneId) return;
-
     if (formState.score === '' || formState.score === null) {
       toast.warning('Please enter a score.');
       return;
@@ -156,12 +279,11 @@ const MilestoneEvaluationPage = () => {
     try {
       const payload = {
         score: Number(formState.score),
-        comments: formState.comments?.trim() || '',
+        comment: formState.comment?.trim() || '',
       };
-      
-      await submitMilestoneEvaluation(milestoneId, payload);
+      await submitMilestoneEvaluation(selectedMilestoneId, payload);
       toast.success('Evaluation saved successfully');
-      await fetchMilestones(); // Refresh data
+      await fetchMilestones();
     } catch (error) {
       toast.error(error?.message || 'Failed to save evaluation');
     } finally {
@@ -171,10 +293,10 @@ const MilestoneEvaluationPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-slate-50/50 p-6 lg:p-8">
+      <div className="min-h-screen bg-slate-50/50">
         
         {/* --- HEADER --- */}
-        <div className="mx-auto max-w-6xl">
+
           <LecturerBreadcrumbs items={breadcrumbItems} />
           
           <div className="mt-6 relative overflow-hidden rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50">
@@ -204,13 +326,12 @@ const MilestoneEvaluationPage = () => {
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="mx-auto grid max-w-6xl grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
+        <div className="mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
           
           {/* LEFT: MILESTONE LIST */}
           <div className="lg:col-span-4 space-y-6">
-             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm h-[calc(100vh-24rem)] flex flex-col">
+             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm max-h-screen flex flex-col">
                 <div className="pb-4 border-b border-slate-100 mb-4">
                    <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                       <ClockIcon className="h-5 w-5 text-orangeFpt-500" />
@@ -269,22 +390,34 @@ const MilestoneEvaluationPage = () => {
           {/* RIGHT: EVALUATION WORKSPACE */}
           <div className="lg:col-span-8">
              <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm h-full min-h-[500px] flex flex-col">
-                {selectedMilestone ? (
+                {activeMilestone ? (
                    <>
                       <div className="mb-8 border-b border-slate-100 pb-6">
-                         <div className="flex items-center gap-2 mb-2">
-                            <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100 uppercase">
-                               Selected Milestone
-                            </span>
+                         <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                                <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100 uppercase">
+                                  Selected Milestone
+                                </span>
+                                {loading.detail && (
+                                   <span className="text-xs text-slate-400 animate-pulse ml-2">Refreshing details...</span>
+                                )}
+                            </div>
                          </div>
-                         <h2 className="text-2xl font-bold text-slate-900">{selectedMilestone.title}</h2>
+                         
+                         <h2 className="text-2xl font-bold text-slate-900">
+                            {activeMilestone.title}
+                         </h2>
+
+                         {/* Description */}
                          <p className="mt-2 text-slate-600 text-sm leading-relaxed">
-                            {selectedMilestone.description || 'No description provided.'}
+                            {activeMilestone.description || 'No description provided.'}
                          </p>
-                         <div className="mt-4 flex items-center gap-4 text-xs font-medium text-slate-500">
+
+                         {/* Stats */}
+                         <div className="mt-4 flex flex-wrap items-center gap-4 text-xs font-medium text-slate-500 mb-6">
                             <span className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
                                <ClockIcon className="h-4 w-4 text-slate-400" />
-                               Due: {formatDate(selectedMilestone.endDate)}
+                               Due: {formatDate(activeMilestone.endDate)}
                             </span>
                             {evaluationByMilestone.get(selectedMilestoneId) && (
                                <span className="flex items-center gap-1.5 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 text-emerald-700">
@@ -293,6 +426,64 @@ const MilestoneEvaluationPage = () => {
                                </span>
                             )}
                          </div>
+
+                         {/* --- NEW SECTIONS START HERE --- */}
+
+                         {/* 1. Artifacts (Returns) */}
+                         <div className="mb-6">
+                             <h4 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                                <CloudArrowDownIcon className="h-4 w-4 text-slate-400" /> Artifacts
+                             </h4>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {(milestoneDetail?.milestoneReturns || []).map((file, idx) => (
+                                   <div key={idx} onClick={() => handleViewFile(file)} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-white hover:border-indigo-200 hover:shadow-sm cursor-pointer transition-all group">
+                                      <div className="flex items-center gap-3 min-w-0">
+                                         <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                                            <DocumentTextIcon className="h-5 w-5" />
+                                         </div>
+                                         <div className="min-w-0">
+                                            <p className="text-sm font-medium text-slate-700 truncate group-hover:text-indigo-700">{file.fileName || 'File'}</p>
+                                            <p className="text-[10px] text-slate-400">{file.studentName}</p>
+                                         </div>
+                                      </div>
+                                   </div>
+                                ))}
+                                {(!milestoneDetail?.milestoneReturns?.length && !loading.detail) && (
+                                   <p className="text-sm text-slate-400 italic">No files submitted.</p>
+                                )}
+                             </div>
+                         </div>
+
+                         {/* 2. Checkpoints */}
+                         {(milestoneDetail?.checkpoints || []).length > 0 && (
+                            <div className="mb-6">
+                               <h4 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                                  <ListBulletIcon className="h-4 w-4 text-slate-400" /> Checkpoints
+                               </h4>
+                               <div className="grid grid-cols-1 gap-3">
+                                  {milestoneDetail.checkpoints.map((cp) => (
+                                     <CheckpointItem key={cp.checkpointId} cp={cp} />
+                                  ))}
+                               </div>
+                            </div>
+                         )}
+
+                         {/* 3. Questions */}
+                         {(milestoneDetail?.questions || milestoneDetail?.milestoneQuestions || []).length > 0 && (
+                             <div className="mb-2">
+                                <h4 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                                   <QuestionMarkCircleIcon className="h-4 w-4 text-slate-400" /> Questions & Answers
+                                </h4>
+                                <div className="space-y-3">
+                                   {(milestoneDetail?.questions || milestoneDetail?.milestoneQuestions).map((q, idx) => {
+                                      const qId = q.id || q.milestoneQuestionId;
+                                      const answers = questionAnswers[qId] || [];
+                                      return <QuestionItem key={idx} q={q} answers={answers} />;
+                                   })}
+                                </div>
+                             </div>
+                         )}
+                         {/* --- NEW SECTIONS END HERE --- */}
                       </div>
 
                       <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-6">
@@ -323,8 +514,8 @@ const MilestoneEvaluationPage = () => {
                                      rows={6}
                                      placeholder="Provide constructive feedback for the team..."
                                      className="w-full rounded-2xl border-slate-200 p-4 text-sm text-slate-700 focus:border-orangeFpt-500 focus:ring-4 focus:ring-orangeFpt-500/10 transition-all resize-none"
-                                     value={formState.comments}
-                                     onChange={(e) => setFormState({ ...formState, comments: e.target.value })}
+                                     value={formState.comment}
+                                     onChange={(e) => setFormState({ ...formState, comment: e.target.value })}
                                   />
                                   <ChatBubbleBottomCenterTextIcon className="absolute right-4 bottom-4 h-5 w-5 text-slate-300" />
                                </div>
@@ -368,6 +559,130 @@ const MilestoneEvaluationPage = () => {
       </div>
     </DashboardLayout>
   );
+};
+
+// --- Helper Components ---
+
+const CheckpointItem = ({ cp }) => {
+   const [isOpen, setIsOpen] = useState(false);
+
+   return (
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden transition-all hover:border-indigo-200">
+         {/* HEADER */}
+         <button 
+            onClick={() => setIsOpen(!isOpen)}
+            className="w-full flex justify-between items-center p-4 text-left hover:bg-slate-50 transition-colors"
+         >
+            <div className="flex items-center gap-3">
+               <h5 className="text-sm font-bold text-slate-900">{cp.title}</h5>
+               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${
+                  cp.statusString === 'DONE' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                  cp.statusString === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                  'bg-slate-50 text-slate-600 border-slate-100'
+               }`}>
+                  {cp.statusString}
+               </span>
+            </div>
+            <div className="flex items-center gap-4">
+               <div className="text-right hidden sm:block">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Due</p>
+                  <p className="text-xs font-semibold text-slate-700">{formatDate(cp.dueDate)}</p>
+               </div>
+               <ChevronDownIcon className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+            </div>
+         </button>
+
+         {/* BODY */}
+         {isOpen && (
+            <div className="p-4 pt-0 border-t border-slate-100 bg-slate-50/30">
+               {cp.complexity && (
+                  <div className="mt-3 mb-2">
+                     <span className="inline-block text-[10px] font-semibold text-slate-400 border border-slate-100 bg-white px-1.5 py-0.5 rounded">
+                        Complexity: {cp.complexity}
+                     </span>
+                  </div>
+               )}
+               {cp.description && (
+                  <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+                     {cp.description}
+                  </p>
+               )}
+               <div className="flex items-center justify-between pt-2 border-t border-slate-100/50">
+                  <div className="flex items-center gap-2">
+                     <span className="text-[10px] text-slate-400 font-bold uppercase">Assignees:</span>
+                     <div className="flex -space-x-2">
+                        {(cp.checkpointAssignments || []).map((assignee) => (
+                           <div 
+                              key={assignee.checkpointAssignmentId} 
+                              className="relative group"
+                              title={`${assignee.fullname} (${assignee.teamRoleString})`}
+                           >
+                              {assignee.avatarImg ? (
+                                 <img 
+                                    src={assignee.avatarImg} 
+                                    alt={assignee.fullname}
+                                    className="h-6 w-6 rounded-full ring-2 ring-white object-cover" 
+                                 />
+                              ) : (
+                                 <div className="h-6 w-6 rounded-full ring-2 ring-white bg-indigo-100 flex items-center justify-center text-[9px] font-bold text-indigo-700">
+                                    {assignee.fullname?.charAt(0)}
+                                 </div>
+                              )}
+                           </div>
+                        ))}
+                        {(cp.checkpointAssignments || []).length === 0 && (
+                           <span className="text-[10px] text-slate-400 italic">Unassigned</span>
+                        )}
+                     </div>
+                  </div>
+               </div>
+            </div>
+         )}
+      </div>
+   );
+};
+
+const QuestionItem = ({ q, answers }) => {
+   const [isOpen, setIsOpen] = useState(false);
+
+   return (
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+         {/* HEADER */}
+         <button 
+            onClick={() => setIsOpen(!isOpen)}
+            className="w-full flex justify-between items-center p-4 text-left hover:bg-slate-100 transition-colors"
+         >
+            <p className="text-sm font-semibold text-slate-900 pr-4">{q.question}</p>
+            <div className="flex items-center gap-3 shrink-0">
+               <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
+                  {answers.length} Ans
+               </span>
+               <ChevronDownIcon className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+            </div>
+         </button>
+
+         {/* BODY */}
+         {isOpen && (
+            <div className="p-4 pt-0 border-t border-slate-100">
+               <div className="space-y-3 pl-3 border-l-2 border-indigo-100 mt-3">
+                  {answers.length > 0 ? answers.map((ans, aIdx) => (
+                     <div key={aIdx} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                        <div className="flex items-center gap-2 mb-1.5">
+                           <div className="h-5 w-5 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600">
+                              {ans.studentName?.charAt(0)}
+                           </div>
+                           <span className="text-xs font-bold text-slate-700">{ans.studentName}</span>
+                        </div>
+                        <p className="text-sm text-slate-600 leading-relaxed">{ans.answer}</p>
+                     </div>
+                  )) : (
+                     <p className="text-xs text-slate-400 italic">No answers yet.</p>
+                  )}
+               </div>
+            </div>
+         )}
+      </div>
+   );
 };
 
 export default MilestoneEvaluationPage;

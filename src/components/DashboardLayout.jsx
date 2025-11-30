@@ -260,24 +260,24 @@ const DashboardLayout = ({ children }) => {
       icon: ClipboardDocumentListIcon,
       match: path => path === '/lecturer/grading' || path.startsWith('/lecturer/grading/')
     },
-    {
-      label: 'Analytics',
-      href: '/lecturer/analytics',
-      icon: ChartBarIcon,
-      match: path => path === '/lecturer/analytics' || path.startsWith('/lecturer/analytics/')
-    },
-    {
-      label: 'Meetings',
-      href: '/lecturer/meetings',
-      icon: CalendarDaysIcon,
-      match: path => path === '/lecturer/meetings' || path.startsWith('/lecturer/meetings/')
-    },
-    {
-      label: 'Tools',
-      href: '/lecturer/tools',
-      icon: WrenchScrewdriverIcon,
-      match: path => path === '/lecturer/tools' || path.startsWith('/lecturer/tools/')
-    },
+    // {
+    //   label: 'Analytics',
+    //   href: '/lecturer/analytics',
+    //   icon: ChartBarIcon,
+    //   match: path => path === '/lecturer/analytics' || path.startsWith('/lecturer/analytics/')
+    // },
+    // {
+    //   label: 'Meetings',
+    //   href: '/lecturer/meetings',
+    //   icon: CalendarDaysIcon,
+    //   match: path => path === '/lecturer/meetings' || path.startsWith('/lecturer/meetings/')
+    // },
+    // {
+    //   label: 'Tools',
+    //   href: '/lecturer/tools',
+    //   icon: WrenchScrewdriverIcon,
+    //   match: path => path === '/lecturer/tools' || path.startsWith('/lecturer/tools/')
+    // },
     {
       label: 'Profile',
       href: userId ? `/${userId}/profile` : '/lecturer/profile',

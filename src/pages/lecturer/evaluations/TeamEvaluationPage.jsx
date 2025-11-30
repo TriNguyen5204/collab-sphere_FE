@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeftIcon, 
   DocumentTextIcon, 
-  UserCircleIcon, 
   BeakerIcon, 
   ChatBubbleLeftRightIcon,
   CloudArrowDownIcon,
@@ -13,7 +12,10 @@ import {
   ClockIcon,
   StarIcon,
   ExclamationCircleIcon,
-  UserGroupIcon
+  UserGroupIcon,
+  ListBulletIcon,
+  ChevronDownIcon, // Added
+  ChevronUpIcon    // Added
 } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
 
@@ -22,11 +24,14 @@ import LecturerBreadcrumbs from '../../../features/lecturer/components/LecturerB
 import { getTeamDetail } from '../../../services/teamApi';
 import { getMilestonesByTeam, getMilestoneDetail } from '../../../services/milestoneApi';
 import { getSubjectById, getClassDetail } from '../../../services/userService';
-import { getMilestoneQuestionsAnswersByQuestionId } from '../../../services/studentApi';
+import { getMilestoneQuestionsAnswersByQuestionId,
+   patchGenerateNewReturnFileLinkByMilestoneIdAndMileReturnId
+ } from '../../../services/studentApi';
 import { 
   getTeamEvaluationSummary, 
   submitTeamEvaluation 
 } from '../../../services/evaluationApi';
+import { useSecureFileHandler } from '../../../hooks/useSecureFileHandler';
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
@@ -56,9 +61,25 @@ const buildDownloadUrl = (file) => {
   return null;
 };
 
+const resolveReturnFileId = (file) => file?.mileReturnId ?? file?.mileReturnID ?? file?.id ?? null;
+
+const extractUrlLike = (payload) => {
+   if (!payload) return null;
+   if (typeof payload === 'string') return payload;
+   const target = (typeof payload === 'object' && payload !== null && 'data' in payload)
+      ? payload.data
+      : payload;
+   if (typeof target === 'string') return target;
+   if (target && typeof target === 'object') {
+      return target.fileUrl || target.url || buildDownloadUrl(target) || null;
+   }
+   return null;
+};
+
 const TeamEvaluationPage = () => {
   const { classId, teamId } = useParams();
   const navigate = useNavigate();
+   const { openSecureFile } = useSecureFileHandler();
 
   // --- State ---
   const [teamInfo, setTeamInfo] = useState(null);
@@ -68,7 +89,7 @@ const TeamEvaluationPage = () => {
   // Selection
   const [selectedMilestoneId, setSelectedMilestoneId] = useState(null);
   const [milestoneDetail, setMilestoneDetail] = useState(null);
-  const [questionAnswers, setQuestionAnswers] = useState({}); // { questionId: [answers] }
+  const [questionAnswers, setQuestionAnswers] = useState({}); 
 
   // Final Grading Form
   const [finalForm, setFinalForm] = useState({ components: {}, teamComment: '' });
@@ -113,7 +134,7 @@ const TeamEvaluationPage = () => {
     loadContext();
   }, [teamId]);
 
-  // 2. Fetch Subject (for Final Eval)
+  // 2. Fetch Subject (Backup structure)
   useEffect(() => {
     if (!teamInfo) return;
 
@@ -121,8 +142,6 @@ const TeamEvaluationPage = () => {
       setLoading(prev => ({ ...prev, subject: true }));
       try {
         let subjectId = teamInfo?.classInfo?.subjectId || teamInfo?.subjectInfo?.subjectId;
-
-        // If subjectId is missing, try to fetch it from Class Detail
         if (!subjectId && teamInfo?.classInfo?.classId) {
           try {
             const classData = await getClassDetail(teamInfo.classInfo.classId);
@@ -131,7 +150,6 @@ const TeamEvaluationPage = () => {
             console.error('Failed to fetch class detail for subjectId', err);
           }
         }
-
         if (subjectId) {
           const data = await getSubjectById(Number(subjectId));
           setSubjectData(data);
@@ -145,13 +163,15 @@ const TeamEvaluationPage = () => {
     loadSubject();
   }, [teamInfo]);
 
-  // 3. Fetch Final Eval Summary (to pre-fill)
+  // 3. Fetch Final Eval Summary (PRIMARY DATA SOURCE)
   useEffect(() => {
     if (!teamId) return;
     const loadFinalEval = async () => {
       try {
         const summary = await getTeamEvaluationSummary(teamId);
         setFinalEvaluationSummary(summary);
+        
+        // Pre-fill form state from the summary
         if (summary) {
           const compMap = {};
           (summary.evaluateDetails || []).forEach(d => {
@@ -160,6 +180,7 @@ const TeamEvaluationPage = () => {
               detailComment: d.detailComment || d.comment || ''
             };
           });
+
           setFinalForm({
             components: compMap,
             teamComment: summary.teamComment || summary.comment || ''
@@ -178,11 +199,11 @@ const TeamEvaluationPage = () => {
       setMilestoneDetail(null);
       return;
     }
-
     const loadMilestone = async () => {
       setLoading(prev => ({ ...prev, detail: true }));
       try {
         const detail = await getMilestoneDetail(selectedMilestoneId);
+        console.log('Fetched milestone detail:', detail);
         setMilestoneDetail(detail);
       } catch (error) {
         console.error('Failed to load milestone detail', error);
@@ -194,14 +215,13 @@ const TeamEvaluationPage = () => {
     loadMilestone();
   }, [selectedMilestoneId]);
 
-  // 5. Fetch Answers for Questions
+  // 5. Fetch Answers
   useEffect(() => {
     const questions = milestoneDetail?.questions || milestoneDetail?.milestoneQuestions || [];
     if (!questions.length) {
       setQuestionAnswers({});
       return;
     }
-
     const fetchAnswers = async () => {
       const answersMap = {};
       await Promise.all(questions.map(async (q) => {
@@ -220,13 +240,30 @@ const TeamEvaluationPage = () => {
     fetchAnswers();
   }, [milestoneDetail]);
 
+  // --- Derived Data ---
+
+  const gradingList = useMemo(() => {
+    if (finalEvaluationSummary?.evaluateDetails?.length > 0) {
+      return finalEvaluationSummary.evaluateDetails;
+    }
+    return subjectData?.subjectSyllabus?.subjectGradeComponents || [];
+  }, [finalEvaluationSummary, subjectData]);
+
+  // UPDATED: Strictly use finalGrade from summary
+  const displayTotal = useMemo(() => {
+    if (finalEvaluationSummary?.finalGrade !== undefined && finalEvaluationSummary?.finalGrade !== null) {
+        return finalEvaluationSummary.finalGrade;
+    }
+    return 0;
+  }, [finalEvaluationSummary]);
+
   // --- Handlers ---
 
   const handleFinalSubmit = async (e) => {
     e.preventDefault();
     setLoading(prev => ({ ...prev, submitting: true }));
     try {
-      const details = subjectComponents.map(comp => {
+      const details = gradingList.map(comp => {
         const compId = comp.subjectGradeComponentId;
         const val = finalForm.components[compId] || {};
         return {
@@ -244,7 +281,6 @@ const TeamEvaluationPage = () => {
       await submitTeamEvaluation(teamId, payload);
       toast.success('Final evaluation saved');
       
-      // Refresh summary
       const summary = await getTeamEvaluationSummary(teamId);
       setFinalEvaluationSummary(summary);
 
@@ -256,34 +292,33 @@ const TeamEvaluationPage = () => {
     }
   };
 
-  const handleViewFile = (file) => {
-    const url = buildDownloadUrl(file);
-    if (url) window.open(url, '_blank');
-    else toast.error('File URL not available');
-  };
+   const handleViewFile = useCallback(async (file) => {
+      if (!file) return;
+      const fallbackUrl = buildDownloadUrl(file);
+      const resolvedMilestoneId = milestoneDetail?.teamMilestoneId || milestoneDetail?.milestoneId || selectedMilestoneId;
+      const resolvedReturnId = resolveReturnFileId(file);
+      const shouldRefresh = Boolean(resolvedMilestoneId && resolvedReturnId);
 
-  // --- Derived Data ---
+      const secureFetcher = async () => {
+         if (!shouldRefresh) return fallbackUrl;
+         const refreshed = await patchGenerateNewReturnFileLinkByMilestoneIdAndMileReturnId(
+            resolvedMilestoneId,
+            resolvedReturnId
+         );
+         return extractUrlLike(refreshed) || fallbackUrl;
+      };
 
-  const subjectComponents = useMemo(() => {
-    console.log('subjectData for components:', subjectData);
-    return subjectData?.subjectSyllabus?.subjectGradeComponents || [];
-  }, [subjectData]);
-
-  const weightedTotal = useMemo(() => {
-    console.log('Calculating weighted total with components:', subjectComponents, 'and finalForm:', finalForm);
-    if (!subjectComponents.length) return 0;
-    let total = 0;
-    
-    subjectComponents.forEach(comp => {
-      const weight = Number(comp.referencePercentage || comp.percentage || comp.weight || 0);
-      const score = Number(finalForm.components[comp.subjectGradeComponentId]?.score || 0);
-      if (!Number.isNaN(weight) && !Number.isNaN(score)) {
-        total += score * (weight / 100);
+      try {
+         await openSecureFile(
+            fallbackUrl,
+            secureFetcher,
+            shouldRefresh || !fallbackUrl
+         );
+      } catch (error) {
+         console.error('Failed to open secure file from evaluation page', error);
+         toast.error('Unable to open document link.');
       }
-    });
-    
-    return total.toFixed(2);
-  }, [subjectComponents, finalForm.components]);
+   }, [milestoneDetail, openSecureFile, selectedMilestoneId]);
 
   const breadcrumbItems = useMemo(() => [
     { label: 'Classes', href: '/lecturer/classes' },
@@ -361,7 +396,7 @@ const TeamEvaluationPage = () => {
                 </div>
              </div>
 
-             <div className="flex-1 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm flex flex-col">
+             <div className="flex-1 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm flex flex-col max-h-[500px]">
                 <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100">
                    <div className="p-2 rounded-lg bg-indigo-100 text-indigo-600">
                       <ClockIcon className="h-5 w-5" />
@@ -417,7 +452,7 @@ const TeamEvaluationPage = () => {
           {/* COLUMN 2: Grading Workspace (Middle) */}
           <div className="col-span-12 xl:col-span-5 flex flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm h-full overflow-hidden">
              {selectedMilestoneId ? (
-                // MODE A: Milestone Details (Read Only here, since grading is in separate page)
+                // MODE A: Milestone Details
                 <div className="h-full flex flex-col">
                    <div className="mb-6 border-b border-slate-100 pb-4">
                       <div className="flex items-center gap-2 text-indigo-600 mb-2">
@@ -459,36 +494,32 @@ const TeamEvaluationPage = () => {
                          </div>
                       </div>
 
-                      {/* Q&A Section - New */}
+
+                      {/* CHECKPOINTS SECTION (COLLAPSIBLE) */}
+                      {(milestoneDetail?.checkpoints || []).length > 0 && (
+                        <div>
+                           <h4 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                              <ListBulletIcon className="h-4 w-4 text-slate-400" /> Checkpoints
+                           </h4>
+                           <div className="grid grid-cols-1 gap-3">
+                              {milestoneDetail.checkpoints.map((cp) => (
+                                 <CheckpointItem key={cp.checkpointId} cp={cp} />
+                              ))}
+                           </div>
+                        </div>
+                      )}
+
+                      {/* Q&A SECTION (COLLAPSIBLE) */}
                       {(milestoneDetail?.questions || milestoneDetail?.milestoneQuestions || []).length > 0 && (
                          <div>
                             <h4 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
                                <QuestionMarkCircleIcon className="h-4 w-4 text-slate-400" /> Questions & Answers
                             </h4>
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                {(milestoneDetail?.questions || milestoneDetail?.milestoneQuestions).map((q, idx) => {
                                   const qId = q.id || q.milestoneQuestionId;
                                   const answers = questionAnswers[qId] || [];
-                                  return (
-                                     <div key={idx} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50">
-                                        <p className="text-sm font-semibold text-slate-900 mb-3">{q.question}</p>
-                                        <div className="space-y-3 pl-3 border-l-2 border-indigo-100">
-                                           {answers.length > 0 ? answers.map((ans, aIdx) => (
-                                              <div key={aIdx} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                                                 <div className="flex items-center gap-2 mb-1.5">
-                                                    <div className="h-5 w-5 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600">
-                                                       {ans.studentName?.charAt(0)}
-                                                    </div>
-                                                    <span className="text-xs font-bold text-slate-700">{ans.studentName}</span>
-                                                 </div>
-                                                 <p className="text-sm text-slate-600 leading-relaxed">{ans.answer}</p>
-                                              </div>
-                                           )) : (
-                                              <p className="text-xs text-slate-400 italic">No answers yet.</p>
-                                           )}
-                                        </div>
-                                     </div>
-                                  );
+                                  return <QuestionItem key={idx} q={q} answers={answers} />;
                                })}
                             </div>
                          </div>
@@ -505,23 +536,25 @@ const TeamEvaluationPage = () => {
                       </div>
                       <div className="text-right bg-slate-50 p-2 px-3 rounded-xl border border-slate-100">
                          <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total</p>
-                         <p className="text-2xl font-black text-orangeFpt-600">{weightedTotal}</p>
+                         <div className="flex items-baseline justify-end gap-1">
+                            <p className="text-2xl font-black text-orangeFpt-600">{displayTotal}</p>
+                            <span className="text-lg text-slate-400 font-bold">/10</span>
+                         </div>
                       </div>
                    </div>
 
                    <form onSubmit={handleFinalSubmit} className="flex-1 flex flex-col min-h-0">
                       <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
-                         {subjectComponents.map(comp => {
+                         {gradingList.map(comp => {
                             const compId = comp.subjectGradeComponentId;
                             const current = finalForm.components[compId] || { score: '', detailComment: '' };
                             
+                            const name = comp.subjectGradeComponentName || comp.componentName || comp.name;
+
                             return (
                                <div key={compId} className="p-4 rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:border-orangeFpt-200">
                                   <div className="flex justify-between items-center mb-3">
-                                     <label className="font-bold text-slate-700 text-sm">{comp.componentName || comp.name}</label>
-                                     <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">
-                                        Weight: {comp.referencePercentage || comp.percentage || comp.weight}%
-                                     </span>
+                                     <label className="font-bold text-slate-700 text-sm">{name}</label>
                                   </div>
                                   <div className="grid grid-cols-12 gap-3">
                                      <div className="col-span-3">
@@ -535,7 +568,10 @@ const TeamEvaluationPage = () => {
                                               value={current.score}
                                               onChange={e => setFinalForm({
                                                  ...finalForm,
-                                                 components: { ...finalForm.components, [compId]: { ...current, score: e.target.value } }
+                                                 components: { 
+                                                     ...finalForm.components, 
+                                                     [compId]: { ...current, score: e.target.value } 
+                                                 }
                                               })}
                                               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center text-lg font-bold text-slate-900 focus:ring-2 focus:ring-orangeFpt-500/20 focus:border-orangeFpt-500 transition-all"
                                            />
@@ -548,7 +584,10 @@ const TeamEvaluationPage = () => {
                                            value={current.detailComment}
                                            onChange={e => setFinalForm({
                                               ...finalForm,
-                                              components: { ...finalForm.components, [compId]: { ...current, detailComment: e.target.value } }
+                                              components: { 
+                                                  ...finalForm.components, 
+                                                  [compId]: { ...current, detailComment: e.target.value } 
+                                              }
                                            })}
                                            className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:ring-2 focus:ring-orangeFpt-500/20 focus:border-orangeFpt-500 transition-all"
                                         />
@@ -577,7 +616,7 @@ const TeamEvaluationPage = () => {
              )}
           </div>
 
-          {/* COLUMN 3: History/Feedback (Right) */}
+          {/* COLUMN 3: Feedback (Right) */}
           <div className="col-span-12 xl:col-span-4 flex flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm h-full overflow-hidden">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
                <ChatBubbleLeftRightIcon className="h-4 w-4" />
@@ -632,6 +671,130 @@ const TeamEvaluationPage = () => {
       </div>
     </DashboardLayout>
   );
+};
+
+// --- Helper Components for Collapsible Items ---
+
+const CheckpointItem = ({ cp }) => {
+   const [isOpen, setIsOpen] = useState(false); // Default minimized
+
+   return (
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden transition-all hover:border-indigo-200">
+         {/* HEADER - Always Visible */}
+         <button 
+            onClick={() => setIsOpen(!isOpen)}
+            className="w-full flex justify-between items-center p-4 text-left hover:bg-slate-50 transition-colors"
+         >
+            <div className="flex items-center gap-3">
+               <h5 className="text-sm font-bold text-slate-900">{cp.title}</h5>
+               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${
+                  cp.statusString === 'DONE' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                  cp.statusString === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                  'bg-slate-50 text-slate-600 border-slate-100'
+               }`}>
+                  {cp.statusString}
+               </span>
+            </div>
+            <div className="flex items-center gap-4">
+               <div className="text-right hidden sm:block">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Due</p>
+                  <p className="text-xs font-semibold text-slate-700">{formatDate(cp.dueDate)}</p>
+               </div>
+               <ChevronDownIcon className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+            </div>
+         </button>
+
+         {/* BODY - Collapsible */}
+         {isOpen && (
+            <div className="p-4 pt-0 border-t border-slate-100 bg-slate-50/30">
+               {cp.complexity && (
+                  <div className="mt-3 mb-2">
+                     <span className="inline-block text-[10px] font-semibold text-slate-400 border border-slate-100 bg-white px-1.5 py-0.5 rounded">
+                        Complexity: {cp.complexity}
+                     </span>
+                  </div>
+               )}
+               {cp.description && (
+                  <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+                     {cp.description}
+                  </p>
+               )}
+               <div className="flex items-center justify-between pt-2 border-t border-slate-100/50">
+                  <div className="flex items-center gap-2">
+                     <span className="text-[10px] text-slate-400 font-bold uppercase">Assignees:</span>
+                     <div className="flex -space-x-2">
+                        {(cp.checkpointAssignments || []).map((assignee) => (
+                           <div 
+                              key={assignee.checkpointAssignmentId} 
+                              className="relative group"
+                              title={`${assignee.fullname} (${assignee.teamRoleString})`}
+                           >
+                              {assignee.avatarImg ? (
+                                 <img 
+                                    src={assignee.avatarImg} 
+                                    alt={assignee.fullname}
+                                    className="h-6 w-6 rounded-full ring-2 ring-white object-cover" 
+                                 />
+                              ) : (
+                                 <div className="h-6 w-6 rounded-full ring-2 ring-white bg-indigo-100 flex items-center justify-center text-[9px] font-bold text-indigo-700">
+                                    {assignee.fullname?.charAt(0)}
+                                 </div>
+                              )}
+                           </div>
+                        ))}
+                        {(cp.checkpointAssignments || []).length === 0 && (
+                           <span className="text-[10px] text-slate-400 italic">Unassigned</span>
+                        )}
+                     </div>
+                  </div>
+               </div>
+            </div>
+         )}
+      </div>
+   );
+};
+
+const QuestionItem = ({ q, answers }) => {
+   const [isOpen, setIsOpen] = useState(false); // Default minimized
+
+   return (
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+         {/* HEADER */}
+         <button 
+            onClick={() => setIsOpen(!isOpen)}
+            className="w-full flex justify-between items-center p-4 text-left hover:bg-slate-100 transition-colors"
+         >
+            <p className="text-sm font-semibold text-slate-900 pr-4">{q.question}</p>
+            <div className="flex items-center gap-3 shrink-0">
+               <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
+                  {answers.length} Ans
+               </span>
+               <ChevronDownIcon className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+            </div>
+         </button>
+
+         {/* BODY */}
+         {isOpen && (
+            <div className="p-4 pt-0 border-t border-slate-100">
+               <div className="space-y-3 pl-3 border-l-2 border-indigo-100 mt-3">
+                  {answers.length > 0 ? answers.map((ans, aIdx) => (
+                     <div key={aIdx} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                        <div className="flex items-center gap-2 mb-1.5">
+                           <div className="h-5 w-5 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600">
+                              {ans.studentName?.charAt(0)}
+                           </div>
+                           <span className="text-xs font-bold text-slate-700">{ans.studentName}</span>
+                        </div>
+                        <p className="text-sm text-slate-600 leading-relaxed">{ans.answer}</p>
+                     </div>
+                  )) : (
+                     <p className="text-xs text-slate-400 italic">No answers yet.</p>
+                  )}
+               </div>
+            </div>
+         )}
+      </div>
+   );
 };
 
 export default TeamEvaluationPage;
