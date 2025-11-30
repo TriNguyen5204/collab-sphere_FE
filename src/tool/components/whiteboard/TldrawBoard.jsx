@@ -151,14 +151,6 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
     return () => unsub();
   }, [editor, currentPageId]);
 
-  // useWhiteboardSync(
-  //   whiteboardId,
-  //   currentPageId?.split(":")[1],
-  //   drawerId,
-  //   drawerName,
-  //   editor
-  // );
-
   return (
     <div style={{ position: 'fixed', inset: 0, touchAction: 'none' }}>
       <Tldraw
@@ -166,6 +158,7 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
           setEditor(e);
           console.log('✅ tldraw ready');
         }}
+        licenseKey={import.meta.env.VITE_TILDRAW_LICENSE_KEY}
         components={{
           // Replace the PageMenu completely with our custom menu
           PageMenu: props => (
