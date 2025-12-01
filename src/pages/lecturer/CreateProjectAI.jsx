@@ -98,6 +98,7 @@ const CreateProjectAI = () => {
   const [file, setFile] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [jobId, setJobId] = useState(null);
+  const [aiResult, setAiResult] = useState(null);
   const [pollingInterval, setPollingInterval] = useState(null);
   const [progressLogs, setProgressLogs] = useState([]);
   const [isLogExpanded, setIsLogExpanded] = useState(false);
@@ -541,6 +542,13 @@ const CreateProjectAI = () => {
           <p className="text-xs text-slate-500">Review AI-generated structure</p>
         </div>
         <div className="flex gap-3">
+          <button 
+            onClick={() => setIsRefineModalOpen(true)}
+            disabled={isRefining}
+            className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors border border-slate-200"
+          >
+            {isRefining ? 'Refining...' : 'Refine with AI'}
+          </button>
           <button
             onClick={() => setPhase(1)}
             className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
@@ -555,6 +563,63 @@ const CreateProjectAI = () => {
           </button>
         </div>
       </div>
+
+      {/* Recommendation / Warning Block */}
+      {aiResult && aiResult.recommendation && (
+        <div className={`mb-8 p-6 rounded-2xl border ${
+          aiResult.recommendation.toLowerCase().includes('violation') 
+            ? 'bg-rose-50 border-rose-200 text-rose-800' 
+            : 'bg-amber-50 border-amber-200 text-amber-800'
+        } shadow-sm`}>
+          <div className="flex items-start gap-3">
+            {aiResult.recommendation.toLowerCase().includes('violation') ? (
+              <AlertCircle className="mt-1 shrink-0" size={20} />
+            ) : (
+              <Sparkles className="mt-1 shrink-0" size={20} />
+            )}
+            <div>
+              <h3 className="font-bold text-sm uppercase tracking-wider mb-1">
+                {aiResult.recommendation.toLowerCase().includes('violation') 
+                  ? 'Syllabus Compliance Warning' 
+                  : 'AI Architect Recommendation'}
+              </h3>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                {aiResult.recommendation}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Version Control Bar */}
+      {versions.length > 0 && (
+        <div className="mb-6 flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar">
+            {versions.map((v, idx) => (
+                <button
+                    key={v.id}
+                    onClick={() => {
+                        setCurrentVersionIndex(idx);
+                        loadVersion(v.data);
+                    }}
+                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2
+                        ${currentVersionIndex === idx 
+                            ? 'bg-slate-900 text-white shadow-lg' 
+                            : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'
+                        }`}
+                >
+                    <span>Version {idx + 1}</span>
+                    {idx === 0 && <span className="opacity-60 font-normal">(Initial)</span>}
+                    {idx === versions.length - 1 && versions.length > 1 && <span className="opacity-60 font-normal">(Latest)</span>}
+                </button>
+            ))}
+            {isRefining && (
+                <div className="px-4 py-2 rounded-full bg-purple-50 text-purple-600 text-xs font-bold border border-purple-100 flex items-center gap-2 animate-pulse">
+                    <Loader2 size={12} className="animate-spin" />
+                    Generating Version {versions.length + 1}...
+                </div>
+            )}
+        </div>
+      )}
 
       <div className="grid gap-8">
         {/* Basic Info */}
@@ -725,6 +790,25 @@ const CreateProjectAI = () => {
                         </div>
                       </div>
                       {dateError && <p className="text-xs text-red-500 font-medium flex items-center gap-1"><AlertCircle size={12} /> {dateError}</p>}
+
+                      {/* Display AI Warnings for specific milestone */}
+                      {ms.warnings && ms.warnings !== "None" && (
+                        <div className="mt-2 flex items-center gap-2 text-xs text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">
+                          <AlertCircle size={12} />
+                          <span className="font-medium">Compliance Alert: {ms.warnings}</span>
+                        </div>
+                      )}
+                      
+                      {/* Display Matched Outcomes */}
+                      {ms.matchedOutcomes && ms.matchedOutcomes.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {ms.matchedOutcomes.map((outcome, i) => (
+                            <span key={i} className="text-[10px] px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full border border-indigo-100">
+                              {outcome}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -748,6 +832,48 @@ const CreateProjectAI = () => {
           ))}
         </div>
       </div>
+
+      <AnimatePresence>
+          {isRefineModalOpen && (
+              <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                  <motion.div 
+                      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                      className="bg-white/80 backdrop-blur-xl border border-white/60 rounded-3xl p-8 w-full max-w-lg shadow-[0_20px_60px_-10px_rgba(0,0,0,0.1)]"
+                  >
+                      <h3 className="text-xl font-semibold text-slate-900 mb-2">Refine Project Structure</h3>
+                      <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+                          Provide specific instructions to the AI Architect to adjust the timeline, objectives, or scope.
+                      </p>
+                      
+                      <textarea
+                          className="w-full p-4 bg-white/50 border border-slate-200 rounded-2xl text-slate-700 placeholder-slate-400 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 outline-none min-h-[140px] resize-none transition-all text-sm"
+                          placeholder="e.g., 'Add a QA phase before deployment', 'Extend the timeline by 2 weeks', 'Focus more on backend security'..."
+                          value={refineFeedback}
+                          onChange={(e) => setRefineFeedback(e.target.value)}
+                          autoFocus
+                      />
+                      
+                      <div className="flex justify-end gap-3 mt-8">
+                          <button 
+                              onClick={() => setIsRefineModalOpen(false)}
+                              className="px-6 py-2.5 rounded-full text-sm font-medium text-slate-500 hover:bg-slate-100 transition-colors"
+                          >
+                              Cancel
+                          </button>
+                          <button 
+                              onClick={handleRefine}
+                              disabled={isRefining}
+                              className="px-8 py-2.5 rounded-full text-sm font-medium bg-slate-900 text-white hover:bg-slate-800 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                          >
+                              {isRefining ? 'Refining...' : 'Regenerate'}
+                          </button>
+                      </div>
+                  </motion.div>
+              </div>
+          )}
+      </AnimatePresence>
     </div>
   );
 
