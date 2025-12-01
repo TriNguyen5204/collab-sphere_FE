@@ -1,8 +1,9 @@
 // src/CollabEditor.jsx
-import React, { useEffect, useState, useMemo } from "react"
+import React, { useEffect, useState } from "react"
 import { useSelector } from "react-redux"
 import * as Y from "yjs"
 import { SignalRYjsProvider } from "../hooks/textEditor/SignalRYjsProvider"
+import useTeam from "../../context/useTeam"
 
 // Custom Collaboration extensions
 import { CustomCollaborationCaret } from "../hooks/textEditor/collaboration-caret-custom"
@@ -26,8 +27,6 @@ import RoomList from "../components/textEditor/RoomList"
 
 // API imports
 import { getDocuments } from "../../services/textEditorApi"
-import { useProjectContext } from "../../hooks/useProjectContext"
-
 
 const CollabEditor = () => {
     const [provider, setProvider] = useState(null)
@@ -40,15 +39,13 @@ const CollabEditor = () => {
     const userId = useSelector(state => state.user.userId);
     const userName = useSelector(state => state.user.fullName);
     const accessToken = useSelector(state => state.user.accessToken);
+    const { team } = useTeam();
+    const teamId = team?.teamId ?? '';
 
     // Team Id and Room Name state
     const [roomList, setRoomList] = useState([])
     const [currentRoomName, setCurrentRoomName] = useState("")
-    const { projectContext } = useProjectContext();
-
-    const teamId = useMemo(() => {
-        return projectContext?.teamId || '';
-      }, [projectContext]);
+    
 
     // --- Initialize Yjs provider ---
     useEffect(() => {

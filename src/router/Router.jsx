@@ -72,7 +72,7 @@ import AccountManagement from '../pages/admin/AccountManagement';
 import SystemReport from '../pages/admin/SystemReport';
 
 // misc / sandbox
-import TestKanbanBoard from '../pages/TestKanbanBoard';
+// import TestKanbanBoard from '../pages/TestKanbanBoard';
 import Layout from '../tool/Meeting/Layout'
 import RoomJoinPage from '../tool/RoomJoinPage'
 import MeetingRoomTest from '../tool/MeetingRoomTest'
@@ -96,13 +96,6 @@ const publicRoutes = [
   { path: '/register', element: <RegisterPage /> },
   { path: '/unauthorized', element: <Unauthorized /> },
 
-  { path: '/room/:roomId', element: <MeetingRoomTest/>},
-  { path: '/meeting/history/:teamId', element: <MeetingManagement/> },
-  { path: '/meeting/schedule/:teamId', element: <MeetingSchedulerFull/> },
-  { path: '/test/kanban', element: <TestKanbanBoard /> },
-  { path: '/student/project/whiteboard', element: <Whiteboard/>},
-  { path: '/student/project/text-editor', element: <CollabEditor/>},
-  { path: '/student/project/chat', element: <ChatComponent/>},
 ];
 
 const studentRoutes = [
@@ -114,8 +107,6 @@ const studentRoutes = [
   { path: '/student/project/milestones&checkpoints', element: protectRoute(['STUDENT'], <MilestoneCheckpointPage />) },
   { path: '/student/project/team-workspace', element: protectRoute(['STUDENT'], <TeamWorkspace />) },
   { path: '/student/project/pr-analysis/:analysisId', element: protectRoute(['STUDENT'], <ProfessionalAnalysisView />) },
-  { path: '/student/project/meeting-room', element: <Layout/> },
-  { path: '/student/project/join-room/:teamId', element: <RoomJoinPage/>},
   { path: '/projects/github-callback', element: protectRoute(['STUDENT'], <GitHubAppCallback />) },
   { path: '/github-callback', element: protectRoute(['STUDENT'], <GitHubAppCallback />) },
   { path: '/student/ai/pr-analysis', element: protectRoute(['STUDENT'], <StudentPRAnalysisPage />) },
@@ -123,6 +114,16 @@ const studentRoutes = [
   { path: '/student/:className/projects', element: protectRoute(['STUDENT'], <StudentClassProjectsPage />) },
   { path: '/student/:className/syllabus', element: protectRoute(['STUDENT'], <StudentClassSyllabusPage />) },
   { path: '/student/project/peer-evaluation', element: protectRoute(['STUDENT'], <PeerEvaluationPage />) },
+
+  { path: '/student/project/meeting-room', element: protectRoute(['STUDENT'], <Layout/>) },
+  { path: '/student/project/join-room/:teamId', element: protectRoute(['STUDENT'], <RoomJoinPage/>)},
+  { path: '/room/:roomId', element: protectRoute(['STUDENT'], <MeetingRoomTest/>)},
+  { path: '/meeting/history/:teamId', element: protectRoute(['STUDENT'], <MeetingManagement/> )},
+  { path: '/meeting/schedule/:teamId', element: protectRoute(['STUDENT'], <MeetingSchedulerFull/> )},
+  // { path: '/test/kanban', element: protectRoute(['STUDENT'], <TestKanbanBoard /> )},
+  { path: '/student/project/whiteboard',  element: protectRoute(['STUDENT'], <Whiteboard/>)},
+  { path: '/student/project/text-editor', element: protectRoute(['STUDENT'], <CollabEditor/>)},
+  { path: '/student/project/chat', element: protectRoute(['STUDENT'], <ChatComponent/>)},
 ];
 
 const authenticatedRoles = ['STUDENT', 'LECTURER', 'STAFF', 'HEAD_DEPARTMENT', 'ADMIN'];

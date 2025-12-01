@@ -38,10 +38,10 @@ const BoardCard = ({ card, listId, onClick, onUpdate }) => {
   const getRiskColor = () => {
     if (!card.riskLevel) return 'bg-gray-200';
     switch (card.riskLevel) {
-      case 'High': return 'bg-red-500';
-      case 'Normal': return 'bg-yellow-500';
-      case 'Medium': return 'bg-orange-500';
-      case 'Low': return 'bg-green-500';
+      case 'high': return 'bg-red-500';
+      case 'normal': return 'bg-yellow-500';
+      case 'medium': return 'bg-orange-500';
+      case 'low': return 'bg-green-500';
       default: return 'bg-gray-200';
     }
   };
@@ -99,7 +99,7 @@ const BoardCard = ({ card, listId, onClick, onUpdate }) => {
             >
               <Clock size={14} />
               <span className="font-medium">
-                {new Date(card.dueDate).toLocaleDateString('en-US', {
+                {new Date(card.dueAt).toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric',
                 })}

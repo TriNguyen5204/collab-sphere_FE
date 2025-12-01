@@ -17,9 +17,9 @@ import { toast } from 'sonner';
 import { calculateNewPosition } from '../../../utils/positionHelper';
 
 const riskOptions = [
-  { id: 'Low', label: 'Low', color: 'bg-green-500' },
-  { id: 'Medium', label: 'Medium', color: 'bg-orange-500' },
-  { id: 'High', label: 'High', color: 'bg-red-500' },
+  { id: 'low', label: 'Low', color: 'bg-green-500' },
+  { id: 'medium', label: 'Medium', color: 'bg-orange-500' },
+  { id: 'high', label: 'High', color: 'bg-red-500' },
 ];
 
 const CreateCardModal = ({
@@ -44,7 +44,7 @@ const CreateCardModal = ({
       subtasks: [{ id: Date.now() + 1, title: '', done: false }],
     },
   ]);
-  const [risk, setRisk] = useState('Medium');
+  const [risk, setRisk] = useState('medium');
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [dueDate, setDueDate] = useState('');
 
@@ -99,6 +99,7 @@ const CreateCardModal = ({
           setIsCreating(false);
           return;
         }
+        formattedDueDate = dateObj.toISOString();
       }
       const assignmentList = selectedMembers.map(m => ({
         studentId: m.studentId,

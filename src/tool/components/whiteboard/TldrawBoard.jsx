@@ -15,6 +15,7 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
   const hasInitialized = useRef(false);
   const isLoadingPage = useRef(false);
   const [websocket, setWebsocket] = useState(null);
+  const tildrawKey = import.meta.env.VITE_TILDRAW_LICENSE_KEY;
 
   const defaultTldrawPageId = 'page:page';
 
@@ -158,7 +159,7 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
           setEditor(e);
           console.log('✅ tldraw ready');
         }}
-        licenseKey={import.meta.env.VITE_TILDRAW_LICENSE_KEY}
+        licenseKey={tildrawKey}
         components={{
           // Replace the PageMenu completely with our custom menu
           PageMenu: props => (

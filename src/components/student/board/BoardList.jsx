@@ -29,7 +29,6 @@ const BoardList = ({
   members,
   onCardClick,
   onUpdateCard,
-  onArchiveList,
   workspaceId,
   onCardCreated,
 }) => {
@@ -229,16 +228,6 @@ const BoardList = ({
               >
                 <button
                   onClick={() => {
-                    onArchiveList();
-                    setShowMenu(false);
-                  }}
-                  className='flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-medium text-orange-600 transition-colors hover:bg-orange-50'
-                >
-                  <Archive size={16} />
-                  Archive List
-                </button>
-                <button
-                  onClick={() => {
                     setIsEditingTitle(true);
                     setShowMenu(false);
                   }}
@@ -283,13 +272,6 @@ const BoardList = ({
             ))}
           </div>
         </SortableContext>
-
-        {/* Empty placeholder only when no visible (non-archived) cards AND not adding */}
-        {list.cards?.filter(c => !c.archived).length === 0 && !isAddingCard && (
-          <div className='rounded-lg border border-dashed border-gray-300 bg-white/60 px-3 py-4 text-center text-sm text-gray-500'>
-            No cards yet
-          </div>
-        )}
 
         {/* Add card composer */}
         {!isAddingCard && (

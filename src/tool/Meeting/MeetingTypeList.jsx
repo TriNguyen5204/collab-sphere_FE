@@ -9,7 +9,7 @@ const MeetingTypeList = ({ teamId }) => {
 
   useEffect(() => {
     if (meetingState === 'isInstantMeeting') {
-      navigate(`/student/project/join-room`);
+      navigate(`/student/project/join-room/${teamId}`);
     } else if (meetingState === 'history') {
       navigate(`/meeting/history/${teamId}`);
     } else if (meetingState === 'schedule') {
@@ -21,7 +21,7 @@ const MeetingTypeList = ({ teamId }) => {
     {
       icon: <Video className="w-8 h-8 text-white" />,
       title: 'New Meeting',
-      description: 'Start an instant meeting now',
+      description: 'Start or join a meeting now',
       color: 'bg-gradient-to-br from-blue-500 to-blue-700',
       handleClick: () => setMeetingState('isInstantMeeting'),
     },
@@ -38,13 +38,6 @@ const MeetingTypeList = ({ teamId }) => {
       description: 'Review past meeting records',
       color: 'bg-gradient-to-br from-purple-500 to-purple-700',
       handleClick: () => setMeetingState('history'),
-    },
-    {
-      icon: <LogIn className="w-8 h-8 text-white" />,
-      title: 'Join Meeting',
-      description: 'Enter via code or link',
-      color: 'bg-gradient-to-br from-orange-500 to-red-600',
-      handleClick: () => setMeetingState('join'),
     },
   ];
 
@@ -76,7 +69,7 @@ const MeetingTypeList = ({ teamId }) => {
       </div>
 
       {/* Cards Grid */}
-      <section className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
         {meetingTypes.map((item, index) => (
           <MeetingCard
             key={index}
