@@ -30,14 +30,13 @@ import {
 } from '../../../utils/sortHelper';
 
 const TrelloBoard = forwardRef(function TrelloBoard(
-  { onUpdateArchived, workspaceData, members },
+  { workspaceData, members },
   ref
 ) {
   const workspaceId = workspaceData?.id;
   const { connection, isConnected } = useSignalRContext();
 
   const [lists, setLists] = useState([]);
-  const [archivedItems, setArchivedItems] = useState({ cards: [], lists: [] });
   const [activeCard, setActiveCard] = useState(null);
   const [activeList, setActiveList] = useState(null);
   const [editingCard, setEditingCard] = useState(null);
@@ -650,11 +649,6 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
-  useEffect(() => {
-    if (onUpdateArchived) {
-      onUpdateArchived(archivedItems);
-    }
-  }, [archivedItems, onUpdateArchived]);
 
   // Custom collision detection
   const collisionDetectionStrategy = args => {
@@ -1064,33 +1058,6 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     }
   };
 
-  const archiveCard = (listId, cardId) => {
-    const from = findCard(cardId);
-    if (!from) return;
-
-    const archivedCard = {
-      ...from.card,
-      listId,
-      archivedAt: new Date().toISOString(),
-    };
-
-    setArchivedItems(prev => ({
-      ...prev,
-      cards: [...prev.cards, archivedCard],
-    }));
-
-    setLists(prev =>
-      prev.map(l =>
-        String(l.id) === String(listId)
-          ? {
-              ...l,
-              cards: l.cards.filter(c => String(c.id) !== String(cardId)),
-            }
-          : l
-      )
-    );
-  };
-
   const deleteCard = async (listId, cardId) => {
     try {
       await deleteCardSignalR(
@@ -1103,16 +1070,6 @@ const TrelloBoard = forwardRef(function TrelloBoard(
       console.error('Error deleting card:', error);
     }
   };
-
-  const archiveList = listId => {
-    // ✅ FIX: So sánh string
-    const list = lists.find(l => String(l.id) === String(listId));
-    if (!list) return;
-
-    setLists(prev => prev.filter(l => String(l.id) !== String(listId)));
-
-  };
-
 
   // ===================== RENDER =====================
 
@@ -1150,7 +1107,6 @@ const TrelloBoard = forwardRef(function TrelloBoard(
                   })
                 }
                 onUpdateCard={updateCard}
-                onArchiveList={() => archiveList(list.id)}
                 workspaceId={workspaceId}
               />
             ))}
@@ -1249,10 +1205,6 @@ const TrelloBoard = forwardRef(function TrelloBoard(
           onUpdate={(listId, card) => updateCard(listId, card)}
           onDelete={(listId, cardId) => {
             deleteCard(listId, cardId);
-            setEditingCard(null);
-          }}
-          onArchive={(listId, cardId) => {
-            archiveCard(listId, cardId);
             setEditingCard(null);
           }}
         />

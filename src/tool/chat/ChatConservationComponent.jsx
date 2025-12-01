@@ -1,6 +1,6 @@
 import { SignalRChatProvider } from '../hooks/chat/SignalrChatProvider';
 import NotificationBell from '../components/chat/NotificationBell.jsx';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom'; // ✅ THÊM useNavigate
 import React from 'react';
@@ -8,9 +8,9 @@ import React from 'react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import DOMPurify from 'dompurify';
-import { useProjectContext } from '../../hooks/useProjectContext';
 
 import * as ChatAPI from '../../services/chatApi';
+import useTeam from '../../context/useTeam.js';
 
 // Lucide React Icons
 import {
@@ -28,6 +28,7 @@ export default function ChatComponent() {
   const [provider, setProvider] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
+  const { team } = useTeam();
 
   // Get accessToken from Redux store
   const accessToken = useSelector(state => state.user.accessToken);
@@ -48,12 +49,6 @@ export default function ChatComponent() {
   // State for the unread count
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const { projectContext } = useProjectContext();
-
-  const teamId = useMemo(() => {
-    return projectContext?.teamId || '';
-  }, [projectContext]);
-  console.log('teamId in ChatComponent:', teamId);
 
   // Initialize SignalR connection
   useEffect(() => {
@@ -209,7 +204,7 @@ export default function ChatComponent() {
       provider.offNotiHistoryReceived(onReceiveAllNoti);
       provider.offMessageReadUpdateReceived(onMessageReadUpdateReceived);
     };
-  }, [provider, currentConversationId, teamId, accessToken, userId]);
+  }, [provider, currentConversationId, team, accessToken, userId]);
 
   // Handle changing conversation focus
   useEffect(() => {
@@ -261,7 +256,7 @@ export default function ChatComponent() {
     };
 
     loadConversationDetails();
-  }, [provider, currentConversationId, teamId, accessToken]);
+  }, [provider, currentConversationId, team, accessToken]);
 
   // Handle auto-scrolling
   useEffect(() => {
@@ -283,8 +278,8 @@ export default function ChatComponent() {
 
     const fetchConversations = async () => {
       try {
-        if (teamId) {
-          const response = await ChatAPI.getChat(teamId);
+        if (team.teamId) {
+          const response = await ChatAPI.getChat(team.teamId);
 
           if (response && response.isSuccess && response.chatConversations) {
             setChatConversations(response.chatConversations);
@@ -303,7 +298,7 @@ export default function ChatComponent() {
     };
 
     fetchConversations();
-  }, [teamId, accessToken]);
+  }, [team, accessToken]);
 
   const handleSendMessage = () => {
     const isEmptyInput = !getMessagePreview(inputMessage).trim();

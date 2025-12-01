@@ -36,7 +36,6 @@ const CardModal = ({
   listTitle,
   onClose,
   onDelete,
-  onArchive,
   members,
   workspaceId,
   lists, // ✅ Nhận lists từ TrelloBoard
@@ -84,13 +83,32 @@ const CardModal = ({
       dueAt: card.dueAt || null,
     };
   }, [lists, listId, card]);
+  // ✅ Helper function để format date cho input type="date"
+  const formatDateForInput = dateString => {
+    if (!dateString) return '';
+
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+
+      // Format thành YYYY-MM-DD
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+
+      return `${year}-${month}-${day}`;
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '';
+    }
+  };
 
   // ✅ State riêng cho các field đang edit (title, description, risk, dueAt)
   const [editableFields, setEditableFields] = useState({
     title: card.title,
     description: card.description || '',
     riskLevel: card.riskLevel || 'low',
-    dueAt: card.dueAt || null,
+    dueAt: formatDateForInput(card.dueAt) || null,
   });
 
   // Sync editableFields khi editedCard thay đổi
@@ -99,7 +117,7 @@ const CardModal = ({
       title: editedCard.title,
       description: editedCard.description || '',
       riskLevel: editedCard.riskLevel || 'low',
-      dueAt: editedCard.dueAt || null,
+      dueAt: formatDateForInput(editedCard.dueAt) || null,
     });
   }, [editedCard]);
 
@@ -112,6 +130,13 @@ const CardModal = ({
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      let formattedDueAt = null;
+      if (editableFields.dueAt) {
+        const dateObj = new Date(editableFields.dueAt);
+        if (!isNaN(dateObj.getTime())) {
+          formattedDueAt = dateObj.toISOString();
+        }
+      }
       await updateCardDetails(
         connection,
         workspaceId,
@@ -121,7 +146,7 @@ const CardModal = ({
           title: editableFields.title,
           description: editableFields.description,
           riskLevel: editableFields.riskLevel,
-          dueAt: editableFields.dueAt,
+          dueAt: formattedDueAt,
         }
       );
 
@@ -139,11 +164,6 @@ const CardModal = ({
       onDelete(listId, editedCard.id);
       onClose();
     }
-  };
-
-  const handleArchive = () => {
-    onArchive(listId, editedCard.id);
-    onClose();
   };
 
   const toggleComplete = async () => {
@@ -263,11 +283,6 @@ const CardModal = ({
       console.error('Error deleting task:', error);
       alert('Failed to delete task');
     }
-  };
-
-  const handleToggleTaskDone = async (taskId, currentStatus) => {
-    // TODO: Cần backend endpoint cho toggle task done
-    console.log('Toggle task done not implemented yet');
   };
 
   // ✅ SUBTASK HANDLERS - CHỈ GỌI SIGNALR
@@ -398,15 +413,6 @@ const CardModal = ({
               </span>
             )}
             <div className='flex items-center gap-2'>
-              <button
-                onClick={handleArchive}
-                className='text-white/90 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg transition-all flex items-center gap-2'
-                type='button'
-                title='Archive Card'
-              >
-                <Archive size={18} />
-                Archive
-              </button>
               <button
                 onClick={handleDelete}
                 className='text-white/90 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg transition-all flex items-center gap-2'
