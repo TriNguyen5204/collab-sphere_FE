@@ -531,7 +531,7 @@ const TeamProjectDetail = () => {
             </div>
 
             {/* --- CONTENT --- */}
-            <div className="mx-auto grid max-w-[1500px] grid-cols-1 gap-8 lg:grid-cols-3">
+            <div className="mx-auto grid grid-cols-1 gap-8 lg:grid-cols-3">
 
                {/* LEFT: MILESTONES */}
                <div className="space-y-8 lg:col-span-2">

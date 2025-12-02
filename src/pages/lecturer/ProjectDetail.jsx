@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { toast } from 'sonner';
@@ -102,7 +102,9 @@ const normalizeObjectivesForDraft = (objectives) => {
 
 // --- Sub-Components ---
 
-const ObjectiveCard = ({ objective, index, isPending, onEdit }) => (
+const ObjectiveCard = ({ objective, index, isPending, onEdit }) => {
+  const objId = objective.objectiveId || objective.id;
+  return (
   <div className="group relative rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-orangeFpt-200 hover:shadow-md">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="space-y-2">
@@ -124,7 +126,7 @@ const ObjectiveCard = ({ objective, index, isPending, onEdit }) => (
       
       {isPending && (
         <button 
-          onClick={() => onEdit(objective)}
+          onClick={() => onEdit({ objectiveId: objId })}
           className="shrink-0 p-2 text-slate-400 hover:bg-slate-50 hover:text-orangeFpt-600 rounded-lg transition-colors"
         >
           <Edit3 size={18} />
@@ -135,13 +137,24 @@ const ObjectiveCard = ({ objective, index, isPending, onEdit }) => (
     {/* Milestones Timeline */}
     <div className="mt-6 pl-3 sm:pl-9">
       <div className="relative border-l-2 border-slate-100 space-y-6 pb-2">
-        {objective.objectiveMilestones?.map((milestone, mIdx) => (
+        {objective.objectiveMilestones?.map((milestone, mIdx) => {
+          const msId = milestone.objectiveMilestoneId || milestone.milestoneId || milestone.id;
+          return (
           <div key={mIdx} className="relative pl-6">
             {/* Timeline Dot */}
             <div className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-white border-2 border-orangeFpt-400 ring-2 ring-white"></div>
             
-            <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4">
-              <div className="flex flex-wrap justify-between gap-2 mb-1">
+            <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 group/milestone relative hover:border-orangeFpt-200 transition-colors">
+              {isPending && (
+                  <button 
+                     onClick={() => onEdit({ objectiveId: objId, milestoneId: msId })}
+                     className="absolute top-2 right-2 p-1.5 text-slate-300 hover:text-orangeFpt-600 hover:bg-white rounded-lg opacity-0 group-hover/milestone:opacity-100 transition-all"
+                     title="Edit Milestone"
+                  >
+                     <Edit3 size={14} />
+                  </button>
+               )}
+              <div className="flex flex-wrap justify-between gap-2 mb-1 pr-6">
                 <h4 className="text-sm font-semibold text-slate-800">{milestone.title || 'Untitled Milestone'}</h4>
                 <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
                   <Calendar size={12} />
@@ -151,11 +164,12 @@ const ObjectiveCard = ({ objective, index, isPending, onEdit }) => (
               <p className="text-xs text-slate-500">{milestone.description}</p>
             </div>
           </div>
-        ))}
+        )})}
       </div>
     </div>
   </div>
-);
+  );
+};
 
 const ProjectDetail = () => {
   const { projectId } = useParams();
@@ -179,6 +193,28 @@ const ProjectDetail = () => {
   const [structureMeta, setStructureMeta] = useState({ projectName: '', description: '' });
   const [isStructureSaving, setIsStructureSaving] = useState(false);
   const [structureError, setStructureError] = useState('');
+
+  // Scroll to target
+  const [focusTarget, setFocusTarget] = useState(null);
+  const objectiveRefs = useRef({});
+
+  useEffect(() => {
+    if (structureModalOpen && focusTarget) {
+      const targetId = focusTarget.milestoneId || focusTarget.objectiveId;
+      if (!targetId) return;
+
+      // Small timeout to ensure modal content is rendered
+      setTimeout(() => {
+        const el = objectiveRefs.current[targetId];
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Highlight effect
+          el.classList.add('ring-2', 'ring-orangeFpt-500', 'ring-offset-2');
+          setTimeout(() => el.classList.remove('ring-2', 'ring-orangeFpt-500', 'ring-offset-2'), 2000);
+        }
+      }, 300);
+    }
+  }, [structureModalOpen, focusTarget]);
 
   // --- Fetch Data ---
   const fetchProject = useCallback(async (silent = false) => {
@@ -250,6 +286,7 @@ const ProjectDetail = () => {
     setStructureMeta({ projectName: project.projectName, description: project.description });
     setStructureDraft(normalizeObjectivesForDraft(project.objectives));
     setStructureError('');
+    setFocusTarget(focusObj);
     setStructureModalOpen(true);
   };
 
@@ -368,9 +405,6 @@ const ProjectDetail = () => {
                       <StatusIcon size={14} />
                       {statusConfig.label}
                    </div>
-                   <span className="text-sm font-medium text-slate-500">
-                      ID: #{project.projectId || project.id}
-                   </span>
                 </div>
                 
                 <div>
@@ -414,7 +448,7 @@ const ProjectDetail = () => {
           </div>
 
         {/* --- MAIN CONTENT --- */}
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="mx-auto grid grid-cols-1 gap-8 lg:grid-cols-3">
           
           {/* Left Column: Objectives */}
           <div className="space-y-6 lg:col-span-2">
@@ -441,7 +475,7 @@ const ProjectDetail = () => {
                         objective={obj} 
                         index={idx} 
                         isPending={isPending}
-                        onEdit={() => handleOpenStructure({ objectiveId: obj.id })}
+                        onEdit={(target) => handleOpenStructure(target)}
                       />
                    ))
                 ) : (
@@ -556,62 +590,68 @@ const ProjectDetail = () => {
                </div>
             )}
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Project Name</label>
+                  <label className="block text-sm font-bold uppercase text-slate-500 mb-2">Project Name</label>
                   <input 
                      type="text" 
-                     className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium"
+                     className="w-full rounded-xl border border-slate-200 px-4 py-3 text-base font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                      value={structureMeta.projectName}
                      onChange={(e) => setStructureMeta({ ...structureMeta, projectName: e.target.value })}
                   />
                </div>
                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Description</label>
+                  <label className="block text-sm font-bold uppercase text-slate-500 mb-2">Description</label>
                   <textarea 
-                     rows={2} 
-                     className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                     rows={3} 
+                     className="w-full rounded-xl border border-slate-200 px-4 py-3 text-base focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                      value={structureMeta.description}
                      onChange={(e) => setStructureMeta({ ...structureMeta, description: e.target.value })}
                   />
                </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-8">
                {structureDraft.map((objective, oIdx) => (
-                  <div key={objective.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-5 space-y-4">
+                  <div 
+                     key={objective.id} 
+                     ref={el => objectiveRefs.current[objective.id] = el}
+                     className="rounded-2xl border border-slate-200 bg-slate-50/50 p-6 space-y-6 shadow-sm transition-all duration-300"
+                  >
                      {/* Objective Header */}
-                     <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-2">
-                           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-600">
+                     <div className="flex justify-between items-center border-b border-slate-200 pb-4">
+                        <div className="flex items-center gap-3">
+                           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white shadow-md shadow-blue-200">
                               {oIdx + 1}
                            </span>
-                           <h4 className="font-bold text-slate-800">Objective</h4>
+                           <h4 className="text-lg font-bold text-slate-800">Objective</h4>
                         </div>
                         <button 
                            type="button" 
                            onClick={() => removeDraftObjective(oIdx)}
                            disabled={structureDraft.length === 1}
-                           className="text-slate-400 hover:text-red-500 disabled:opacity-30"
+                           className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30"
                         >
-                           <Trash2 size={18} />
+                           <Trash2 size={20} />
                         </button>
                      </div>
 
                      {/* Objective Fields */}
-                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                         <div className="sm:col-span-3">
+                           <label className="block text-xs font-bold uppercase text-slate-400 mb-1.5">Title</label>
                            <input 
                               type="text" 
-                              placeholder="Objective Title"
-                              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-orangeFpt-500/20 focus:border-orangeFpt-500 outline-none"
+                              placeholder="e.g. Develop Core Features"
+                              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-base font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-white shadow-sm"
                               value={objective.title}
                               onChange={(e) => updateDraftObjective(oIdx, 'title', e.target.value)}
                            />
                         </div>
                         <div>
+                           <label className="block text-xs font-bold uppercase text-slate-400 mb-1.5">Priority</label>
                            <select 
-                              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-base bg-white shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                               value={objective.priority}
                               onChange={(e) => updateDraftObjective(oIdx, 'priority', e.target.value)}
                            >
@@ -621,10 +661,11 @@ const ProjectDetail = () => {
                            </select>
                         </div>
                         <div className="sm:col-span-4">
+                           <label className="block text-xs font-bold uppercase text-slate-400 mb-1.5">Description</label>
                            <textarea 
-                              rows={2}
-                              placeholder="Description..."
-                              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                              rows={3}
+                              placeholder="Describe the objective..."
+                              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-base bg-white shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
                               value={objective.description}
                               onChange={(e) => updateDraftObjective(oIdx, 'description', e.target.value)}
                            />
@@ -632,85 +673,105 @@ const ProjectDetail = () => {
                      </div>
 
                      {/* Milestones */}
-                     <div className="pl-4 border-l-2 border-slate-200 space-y-3">
+                     <div className="pl-6 border-l-2 border-slate-200 space-y-4">
+                        <div className="flex items-center justify-between">
+                           <h5 className="text-sm font-bold uppercase text-slate-500 tracking-wide">Milestones</h5>
+                        </div>
                         {objective.objectiveMilestones.map((milestone, mIdx) => (
-                           <div key={milestone.id} className="bg-white rounded-xl border border-slate-200 p-3 space-y-3 relative group">
+                           <div 
+                              key={milestone.id} 
+                              ref={el => {
+                                 if (milestone.id) objectiveRefs.current[milestone.id] = el;
+                              }}
+                              className="bg-white rounded-xl border border-slate-200 p-4 space-y-4 relative group shadow-sm hover:shadow-md transition-shadow"
+                           >
                               <button 
                                  type="button"
                                  onClick={() => removeDraftMilestone(oIdx, mIdx)}
-                                 className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                 className="absolute top-3 right-3 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
                               >
-                                 <Trash2 size={14} />
+                                 <Trash2 size={16} />
                               </button>
                               
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                 <input 
-                                    type="text" 
-                                    placeholder="Milestone Title"
-                                    className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium"
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                 <div>
+                                    <label className="block text-xs font-semibold text-slate-400 mb-1">Milestone Title</label>
+                                    <input 
+                                       type="text" 
+                                       placeholder="Milestone Title"
+                                       className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 outline-none"
                                     value={milestone.title}
                                     onChange={(e) => updateDraftMilestone(oIdx, mIdx, 'title', e.target.value)}
                                  />
-                                 <div className="flex gap-2">
-                                    <input 
-                                       type="date" 
-                                       className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600"
-                                       value={milestone.startDate}
-                                       onChange={(e) => updateDraftMilestone(oIdx, mIdx, 'startDate', e.target.value)}
-                                    />
-                                    <input 
-                                       type="date" 
-                                       className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600"
-                                       value={milestone.endDate}
-                                       onChange={(e) => updateDraftMilestone(oIdx, mIdx, 'endDate', e.target.value)}
-                                    />
+                                 </div>
+                                 <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                       <label className="block text-xs font-semibold text-slate-400 mb-1">Start Date</label>
+                                       <input 
+                                          type="date" 
+                                          className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 outline-none"
+                                          value={milestone.startDate}
+                                          onChange={(e) => updateDraftMilestone(oIdx, mIdx, 'startDate', e.target.value)}
+                                       />
+                                    </div>
+                                    <div>
+                                       <label className="block text-xs font-semibold text-slate-400 mb-1">End Date</label>
+                                       <input 
+                                          type="date" 
+                                          className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 outline-none"
+                                          value={milestone.endDate}
+                                          onChange={(e) => updateDraftMilestone(oIdx, mIdx, 'endDate', e.target.value)}
+                                       />
+                                    </div>
                                  </div>
                               </div>
-                              <textarea 
-                                 rows={1}
-                                 placeholder="Milestone deliverables..."
-                                 className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 resize-none"
-                                 value={milestone.description}
-                                 onChange={(e) => updateDraftMilestone(oIdx, mIdx, 'description', e.target.value)}
-                              />
+                              <div className="mt-2">
+                                 <label className="block text-xs font-semibold text-slate-400 mb-1">Deliverables</label>
+                                 <textarea 
+                                    rows={2}
+                                    placeholder="Milestone deliverables..."
+                                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-600 resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 outline-none"
+                                    value={milestone.description}
+                                    onChange={(e) => updateDraftMilestone(oIdx, mIdx, 'description', e.target.value)}
+                                 />
+                              </div>
                            </div>
                         ))}
                         <button 
                            type="button" 
                            onClick={() => addDraftMilestone(oIdx)}
-                           className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
+                           className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors"
                         >
-                           <Plus size={14} /> Add Milestone
+                           <Plus size={16} /> Add Milestone
                         </button>
                      </div>
                   </div>
                ))}
-            </div>
-
-            <div className="pt-2 border-t border-slate-100 flex justify-between items-center fixed-bottom">
+               
                <button 
                   type="button" 
                   onClick={addDraftObjective}
-                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-sm font-semibold hover:bg-slate-200"
+                  className="w-full py-4 rounded-xl border-2 border-dashed border-slate-300 text-slate-500 font-bold hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
                >
-                  + Add Objective
+                  <Plus size={20} /> Add New Objective
                </button>
-               <div className="flex gap-3">
-                  <button 
-                     type="button" 
-                     onClick={() => setStructureModalOpen(false)}
-                     className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50"
-                  >
-                     Cancel
-                  </button>
-                  <button 
-                     type="submit" 
-                     disabled={isStructureSaving}
-                     className="px-4 py-2 rounded-xl bg-orangeFpt-500 text-sm font-semibold text-white hover:bg-orangeFpt-600 disabled:opacity-50"
-                  >
-                     {isStructureSaving ? 'Saving...' : 'Save All Changes'}
-                  </button>
-               </div>
+            </div>
+
+            <div className="sticky bottom-0 bg-white pt-4 border-t border-slate-100 flex justify-end gap-3 pb-2">
+               <button 
+                  type="button" 
+                  onClick={() => setStructureModalOpen(false)}
+                  className="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors"
+               >
+                  Cancel
+               </button>
+               <button 
+                  type="submit" 
+                  disabled={isStructureSaving}
+                  className="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all transform active:scale-95 disabled:opacity-50 disabled:transform-none"
+               >
+                  {isStructureSaving ? 'Saving...' : 'Save Changes'}
+               </button>
             </div>
          </form>
       </ModalWrapper>

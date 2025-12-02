@@ -301,7 +301,7 @@ const ClassDetailPage = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-8 xl:grid-cols-3 mx-auto max-w-[1500px]">
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-3 mx-auto">
 
           {/* --- LEFT COLUMN: TEAMS & ROSTER --- */}
           <div className="flex flex-col gap-8 xl:col-span-2">

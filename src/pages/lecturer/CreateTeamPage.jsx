@@ -340,7 +340,7 @@ const CreateTeamPage = () => {
       <div className="min-h-screen space-y-8 bg-slate-50/50 p-6 lg:p-8">
         
         {/* --- HEADER --- */}
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto">
           <LecturerBreadcrumbs items={breadcrumbItems} />
           
           <div className="mt-6 relative overflow-hidden rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50">
@@ -372,7 +372,7 @@ const CreateTeamPage = () => {
         </div>
 
         {/* --- FORM CONTENT --- */}
-        <form onSubmit={handleSubmit} className="mx-auto grid max-w-6xl grid-cols-1 gap-8 lg:grid-cols-3">
+        <form onSubmit={handleSubmit} className="mx-auto grid grid-cols-1 gap-8 lg:grid-cols-3">
           
           {/* LEFT: TEAM DETAILS */}
           <div className="space-y-6 lg:col-span-2">

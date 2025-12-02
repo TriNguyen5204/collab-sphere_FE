@@ -331,7 +331,7 @@ const TeamEvaluationPage = () => {
       <div className="min-h-screen bg-slate-50/50 p-6 lg:p-8">
         
         {/* --- HERO HEADER --- */}
-        <div className="mx-auto max-w-[1600px]">
+        <div className="mx-auto">
           <LecturerBreadcrumbs items={breadcrumbItems} />
           
           <div className="mt-6 relative overflow-hidden rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50">
@@ -370,7 +370,7 @@ const TeamEvaluationPage = () => {
           </div>
         </div>
 
-        <div className="mx-auto grid max-w-[1600px] grid-cols-12 gap-6 mt-8 min-h-[600px]">
+        <div className="mx-auto grid grid-cols-12 gap-6 mt-8 min-h-[600px]">
           
           {/* COLUMN 1: Team & Milestones (Left) */}
           <div className="col-span-12 xl:col-span-3 flex flex-col gap-6">
@@ -396,14 +396,14 @@ const TeamEvaluationPage = () => {
                 </div>
              </div>
 
-             <div className="flex-1 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm flex flex-col max-h-[500px]">
+             <div className="flex-1 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm flex flex-col max-h-screen">
                 <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100">
                    <div className="p-2 rounded-lg bg-indigo-100 text-indigo-600">
                       <ClockIcon className="h-5 w-5" />
                    </div>
                    <h3 className="font-bold text-slate-800">Milestones</h3>
                 </div>
-                <div className="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar max-h-[500px]">
+                <div className="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar max-h-screen">
                    {milestones.map(m => {
                       const isSelected = selectedMilestoneId === (m.teamMilestoneId || m.id);
                       const score = m.milestoneEvaluation?.score ?? m.score;

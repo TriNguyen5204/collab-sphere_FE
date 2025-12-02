@@ -113,6 +113,7 @@ const ProfessionalAnalysisView = () => {
             <div className="sticky top-10">
               <MetadataSidebar
                 analysis={analysis}
+                annotations={annotations}
                 totalIssues={totalIssues}
                 filesWithIssues={files.length}
               />

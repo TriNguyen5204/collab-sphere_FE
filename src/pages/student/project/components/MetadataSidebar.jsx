@@ -1,51 +1,57 @@
 import React, { useMemo } from 'react';
-import { ExternalLink, GitPullRequest, Shield, Bug, Lightbulb } from 'lucide-react';
+import { ExternalLink, GitPullRequest, Octagon, AlertCircle, Lightbulb } from 'lucide-react';
 import StatCard from './StatCard';
 
 /**
  * @typedef {Object} MetadataSidebarProps
  * @property {Object} analysis
+ * @property {Array} annotations
  * @property {number} totalIssues
  * @property {number} filesWithIssues
  */
 
 const severityIconMap = {
-  bugs: <Bug className="h-4 w-4" />,
-  security: <Shield className="h-4 w-4" />,
-  suggestions: <Lightbulb className="h-4 w-4" />
+  failure: <Octagon className="h-4 w-4" />,
+  warning: <AlertCircle className="h-4 w-4" />,
+  notice: <Lightbulb className="h-4 w-4" />
 };
 
 /**
  * Sticky sidebar summarizing PR metadata and AI signals.
  * @param {MetadataSidebarProps} props
  */
-const MetadataSidebar = ({ analysis, totalIssues, filesWithIssues }) => {
-  const score = analysis.aiOverallSCore || analysis.aiOverallScore || 0;
-
-  const scoreMeta = useMemo(() => {
-    if (score >= 8) return { color: '#16a34a', label: 'Excellent' };
-    if (score >= 5) return { color: '#f97316', label: 'Good' };
-    return { color: '#dc2626', label: 'Needs Work' };
-  }, [score]);
+const MetadataSidebar = ({ analysis, annotations = [], totalIssues, filesWithIssues }) => {
+  const counts = useMemo(() => {
+    return annotations.reduce(
+      (acc, item) => {
+        const level = (item.annotation_level || 'notice').toLowerCase();
+        if (acc[level] !== undefined) {
+          acc[level] += 1;
+        }
+        return acc;
+      },
+      { failure: 0, warning: 0, notice: 0 }
+    );
+  }, [annotations]);
 
   const stats = [
     {
-      label: 'Bugs',
-      value: analysis.aiBugCount || 0,
-      icon: severityIconMap.bugs,
-      accent: 'text-red-500'
+      label: 'Failures',
+      value: counts.failure,
+      icon: severityIconMap.failure,
+      accent: 'text-red-600'
     },
     {
-      label: 'Security',
-      value: analysis.aiSecurityIssueCount || 0,
-      icon: severityIconMap.security,
+      label: 'Warnings',
+      value: counts.warning,
+      icon: severityIconMap.warning,
       accent: 'text-amber-600'
     },
     {
-      label: 'Suggestions',
-      value: analysis.aiSuggestionCount || 0,
-      icon: severityIconMap.suggestions,
-      accent: 'text-blue-500'
+      label: 'Notices',
+      value: counts.notice,
+      icon: severityIconMap.notice,
+      accent: 'text-blue-600'
     }
   ];
 
@@ -64,43 +70,6 @@ const MetadataSidebar = ({ analysis, totalIssues, filesWithIssues }) => {
 
   return (
     <aside className="space-y-6">
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-6">
-        <p className="text-sm uppercase tracking-wide text-gray-500">Overall Score</p>
-        <div className="mt-4 flex items-center justify-center">
-          <div className="relative h-40 w-40">
-            <svg viewBox="0 0 120 120" className="h-full w-full">
-              <circle
-                cx="60"
-                cy="60"
-                r="54"
-                fill="none"
-                stroke="#e5e7eb"
-                strokeWidth="8"
-              />
-              <circle
-                cx="60"
-                cy="60"
-                r="54"
-                fill="none"
-                stroke={scoreMeta.color}
-                strokeWidth="8"
-                strokeDasharray={339.292}
-                strokeDashoffset={339.292 - (Math.min(score, 10) / 10) * 339.292}
-                strokeLinecap="round"
-                transform="rotate(-90 60 60)"
-              />
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-4xl font-semibold text-gray-900">{score.toFixed(1)}</span>
-              <span className="text-sm text-gray-500">/10</span>
-            </div>
-          </div>
-        </div>
-        <p className="mt-2 text-center text-sm font-medium" style={{ color: scoreMeta.color }}>
-          {scoreMeta.label}
-        </p>
-      </div>
-
       <div className="space-y-2">
         {stats.map(stat => (
           <StatCard key={stat.label} label={stat.label} value={stat.value} icon={stat.icon} accent={stat.accent} />
