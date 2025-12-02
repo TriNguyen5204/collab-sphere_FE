@@ -26,7 +26,7 @@ import {
 import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
 import ModalWrapper from '../../components/layout/ModalWrapper';
 // Reuse DashboardLayout if available, or wrapping div
-import DashboardLayout from '../../components/DashboardLayout';
+import DashboardLayout from '../../components/layout/DashboardLayout';
 
 // --- Styles & Constants ---
 const glassPanelClass = 'bg-white border border-slate-200 shadow-sm';

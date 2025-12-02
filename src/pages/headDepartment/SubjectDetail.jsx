@@ -11,7 +11,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import ModalWrapper from '../../components/layout/ModalWrapper';
-import UpdateSubjectForm from '../../components/staff/UpdateSubjectForm';
+import UpdateSubjectForm from '../../features/staff/components/UpdateSubjectForm';
 import HeadDepartmentSidebar from '../../components/layout/HeadDepartmentSidebar';
 
 const SubjectDetail = () => {

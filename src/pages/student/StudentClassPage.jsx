@@ -3,10 +3,10 @@ import { BookOpen, Users, Calendar, FileText } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getClassesByStudentId, getClassDetailsById, getAssignedTeamByClassId, getDetailOfTeamByTeamId } from '../../services/studentApi';
-import { EnrolledClassesSkeleton, ClassDetailsSkeleton } from '../../components/skeletons/StudentSkeletons';
+import { EnrolledClassesSkeleton, ClassDetailsSkeleton } from '../../features/student/components/skeletons/StudentSkeletons';
 import { useSelector } from 'react-redux';
 import StudentLayout from '../../components/layout/StudentLayout';
-import ProjectCard from '../../components/student/ProjectCard';
+import ProjectCard from '../../features/student/components/ProjectCard';
 import { useQueryClient } from '@tanstack/react-query';
 import useTeam from '../../context/useTeam';
 

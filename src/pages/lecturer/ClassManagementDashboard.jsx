@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import DashboardLayout from '../../components/DashboardLayout';
+import DashboardLayout from '../../components/layout/DashboardLayout';
 import { AcademicCapIcon, ClipboardDocumentListIcon, Squares2X2Icon, UserGroupIcon } from '@heroicons/react/24/outline';
 import { getLecturerClasses } from '../../services/classApi';
 import { Search } from 'lucide-react';

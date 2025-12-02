@@ -9,7 +9,7 @@ import {
   AcademicCapIcon,
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
-import DashboardLayout from '../../components/DashboardLayout';
+import DashboardLayout from '../../components/layout/DashboardLayout';
 import styles from './LecturerMonitoringDashboard.module.css';
 import { getClassDetail } from '../../services/userService';
 import { normaliseClassDetailPayload } from './classDetailNormalizer';

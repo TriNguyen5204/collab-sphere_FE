@@ -25,7 +25,7 @@ import {
 } from '../../services/questionApi';
 import { getUserProfile } from '../../services/userService';
 import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
-import DashboardLayout from '../../components/DashboardLayout';
+import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useSecureFileHandler } from '../../hooks/useSecureFileHandler';
 import useFileSizeFormatter from '../../hooks/useFileSizeFormatter';
 import { useAvatar } from '../../hooks/useAvatar';
@@ -907,10 +907,10 @@ const TeamProjectDetail = () => {
                      </button>
                      <button
                         onClick={handleDeleteMilestone}
-                        disabled={mutationLoading.delete}
+                        disabled={isSubmitting}
                         className="px-4 py-2 rounded-xl bg-red-600 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                      >
-                        {mutationLoading.delete ? 'Deleting...' : 'Delete'}
+                        {isSubmitting ? 'Deleting...' : 'Delete'}
                      </button>
                   </div>
                </div>

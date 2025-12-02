@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftIcon, ChevronRightIcon, UserGroupIcon } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
-import DashboardLayout from '../../../components/DashboardLayout';
+import DashboardLayout from '../../../components/layout/DashboardLayout';
 import LecturerBreadcrumbs from '../../../features/lecturer/components/LecturerBreadcrumbs';
 import { getClassTeams, getClassById } from '../../../services/classApi';
 import { getTeamDetail } from '../../../services/teamApi';

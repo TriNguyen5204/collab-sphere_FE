@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import DashboardLayout from '../../components/DashboardLayout';
+import DashboardLayout from '../../components/layout/DashboardLayout';
 import {
    BookOpenIcon,
    ClipboardDocumentListIcon,

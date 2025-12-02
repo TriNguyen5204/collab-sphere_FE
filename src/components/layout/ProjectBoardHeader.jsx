@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ProjectBoardViewMenu from '../student/ProjectBoardViewMenu';
-import ProjectMemberAvatars from '../student/ProjectMemberAvatars';
-import ProjectBoardSetting from '../student/ProjectBoardSetting';
-import NotificationBell from '../../tool/components/chat/NotificationBell';
+import ProjectBoardViewMenu from '../../features/student/components/ProjectBoardViewMenu';
+import ProjectMemberAvatars from '../../features/student/components/ProjectMemberAvatars';
+import ProjectBoardSetting from '../../features/student/components/ProjectBoardSetting';
+import NotificationBell from '../../features/chat/components/NotificationBell';
 import { LogOut } from 'lucide-react';
 import useTeam from "../../context/useTeam";
 import { useAvatar } from "../../hooks/useAvatar";
 import ProjectResourcesMenu from './ProjectResourcesMenu';
-import { SignalRChatProvider } from '../../tool/hooks/chat/SignalrChatProvider';
+import { SignalRChatProvider } from '../../features/chat/hooks/SignalrChatProvider';
 import { useSelector } from 'react-redux';
-import { getChat } from '../../services/chatApi';
+import { getChat } from '../../features/chat/services/chatApi';
 import { MessageCircleMoreIcon } from 'lucide-react';
 
 const ProjectBoardHeader = ({

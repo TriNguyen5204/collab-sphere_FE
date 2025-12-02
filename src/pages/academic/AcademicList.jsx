@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import AcademicTable from "../../components/ui/AcademicTable";
 import AcademicCard from "../../components/ui/AcademicCard";
 import AcademicForm from "../../components/ui/AcademicForm";
-import ProjectApprovalList from "../../components/staff/ProjectApprovalList";
+import ProjectApprovalList from "../../features/staff/components/ProjectApprovalList";
 import Header from "../../components/layout/Header";
 import { Search } from "lucide-react";
 import { Table } from "lucide-react";

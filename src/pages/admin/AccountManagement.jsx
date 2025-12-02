@@ -17,7 +17,7 @@ import {
 import AdminSidebar from '../../components/layout/AdminSidebar';
 import { getAllAccount, deactivateAccount } from '../../services/userService';
 import { toast } from 'sonner';
-import CreateAccountForm from '../../components/admin/CreateAccountForm';
+import CreateAccountForm from '../../features/admin/components/CreateAccountForm';
 import ModalWrapper from '../../components/layout/ModalWrapper'
 
 export default function AccountManagement() {

@@ -16,7 +16,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
 
-import DashboardLayout from '../../../components/DashboardLayout';
+import DashboardLayout from '../../../components/layout/DashboardLayout';
 import LecturerBreadcrumbs from '../../../features/lecturer/components/LecturerBreadcrumbs';
 import { getTeamDetail } from '../../../services/teamApi';
 import { getMilestonesByTeam, getMilestoneDetail } from '../../../services/milestoneApi';

@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import ProjectBoardHeader from '../../../components/layout/ProjectBoardHeader';
-import MilestoneTimeline from '../../../components/student/milestone/MilestoneTimeline';
-import MilestoneHeader from '../../../components/student/milestone/MilestoneHeader';
-import CheckpointSummaryCards from '../../../components/student/milestone/CheckpointSummaryCards';
-import CheckpointCard from '../../../components/student/milestone/CheckpointCard';
-import CheckpointFormModal from '../../../components/student/milestone/CheckpointFormModal';
+import MilestoneTimeline from '../../../features/student/components/milestone/MilestoneTimeline';
+import MilestoneHeader from '../../../features/student/components/milestone/MilestoneHeader';
+import CheckpointSummaryCards from '../../../features/student/components/milestone/CheckpointSummaryCards';
+import CheckpointCard from '../../../features/student/components/milestone/CheckpointCard';
+import CheckpointFormModal from '../../../features/student/components/milestone/CheckpointFormModal';
 import { Plus, Folder } from 'lucide-react';
 import {
   getAllMilestonesByTeamId,

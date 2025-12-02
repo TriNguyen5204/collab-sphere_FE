@@ -22,7 +22,7 @@ import { toast } from 'sonner';
 import { createProject } from '../../services/projectApi';
 import { getAllSubject } from '../../services/userService';
 import axios from 'axios';
-import DashboardLayout from '../../components/DashboardLayout';
+import DashboardLayout from '../../components/layout/DashboardLayout';
 import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
 
 const AI_API_BASE_URL = 'https://u8ls7dz738.execute-api.ap-southeast-1.amazonaws.com/dev';

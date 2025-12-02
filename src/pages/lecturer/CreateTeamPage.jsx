@@ -12,7 +12,7 @@ import {
   SparklesIcon
 } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
-import DashboardLayout from '../../components/DashboardLayout';
+import DashboardLayout from '../../components/layout/DashboardLayout';
 import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
 import { getClassDetail } from '../../services/userService';
 import { createTeam } from '../../services/teamApi';

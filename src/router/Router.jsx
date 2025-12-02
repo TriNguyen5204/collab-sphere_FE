@@ -22,7 +22,6 @@ import ProfessionalAnalysisView from '../pages/student/project/ProfessionalAnaly
 import StudentClassMembersPage from '../pages/student/StudentClassMembersPage';
 import StudentClassProjectsPage from '../pages/student/StudentClassProjectsPage';
 import StudentClassSyllabusPage from '../pages/student/StudentClassSyllabusPage';
-import StudentPRAnalysisPage from '../pages/student/StudentPRAnalysisPage';
 import PeerEvaluationPage from '../pages/student/project/PeerEvaluationPage';
 import ProfilePage from '../pages/ProfilePage';
 
@@ -71,18 +70,16 @@ import AdminDashboard from '../pages/admin/AdminDashboard';
 import AccountManagement from '../pages/admin/AccountManagement';
 import SystemReport from '../pages/admin/SystemReport';
 
-// misc / sandbox
-// import TestKanbanBoard from '../pages/TestKanbanBoard';
-import Layout from '../tool/Meeting/Layout'
-import RoomJoinPage from '../tool/Meeting/Room/RoomJoinPage';
-import MeetingRoomTest from '../tool/Meeting/Room/MeetingRoomTest';
+import Layout from '../pages/meeting/MeetingLayout'
+import RoomJoinPage from '../pages/meeting/RoomJoinPage';
+import MeetingRoomTest from '../pages/meeting/MeetingRoomTest';
 // import MeetingHistory from '../test/Meeting/MeetingHistory';
-import MeetingSchedulerFull from '../tool/Meeting/MeetingSchedule';
-import MeetingManagement from '../tool/Meeting/MeetingManagement';
+import MeetingSchedulerFull from '../pages/meeting/MeetingSchedule';
+import MeetingManagement from '../pages/meeting/MeetingManagement';
 // import StreamVideoMeeting from '../test/StreamVideoMeeting';
-import Whiteboard from '../tool/whiteboard/Whiteboard';
-import CollabEditor from '../tool/textEditor/CollabEditor';
-import ChatComponent from '../tool/chat/ChatConservationComponent';
+import Whiteboard from '../features/whiteboard/Whiteboard';
+import CollabEditor from '../features/textEditor/CollabEditor';
+import ChatComponent from '../features/chat/ChatConservationComponent';
 
 import RoleProtectedRoute from './RoleProtectedRoute';
 
@@ -103,27 +100,25 @@ const studentRoutes = [
   { path: '/student/projects', element: protectRoute(['STUDENT'], <StudentProjectPage />) },
   { path: '/student/classes', element: protectRoute(['STUDENT'], <StudentClassPage />) },
   { path: '/student/profile', element: protectRoute(['STUDENT'], <StudentProfile />) },
-  { path: '/student/project/task-board', element: protectRoute(['STUDENT'], <ProjectBoard />) },
-  { path: '/student/project/milestones&checkpoints', element: protectRoute(['STUDENT'], <MilestoneCheckpointPage />) },
-  { path: '/student/project/team-workspace', element: protectRoute(['STUDENT'], <TeamWorkspace />) },
+  { path: '/student/project/task-board', element: protectRoute(['STUDENT', 'LECTURER'], <ProjectBoard />) },
+  { path: '/student/project/milestones&checkpoints', element: protectRoute(['STUDENT', 'LECTURER'], <MilestoneCheckpointPage />) },
+  { path: '/student/project/team-workspace', element: protectRoute(['STUDENT', 'LECTURER'], <TeamWorkspace />) },
   { path: '/student/project/pr-analysis/:analysisId', element: protectRoute(['STUDENT'], <ProfessionalAnalysisView />) },
   { path: '/projects/github-callback', element: protectRoute(['STUDENT'], <GitHubAppCallback />) },
   { path: '/github-callback', element: protectRoute(['STUDENT'], <GitHubAppCallback />) },
-  { path: '/student/ai/pr-analysis', element: protectRoute(['STUDENT'], <StudentPRAnalysisPage />) },
   { path: '/student/:className/members', element: protectRoute(['STUDENT'], <StudentClassMembersPage />) },
   { path: '/student/:className/projects', element: protectRoute(['STUDENT'], <StudentClassProjectsPage />) },
   { path: '/student/:className/syllabus', element: protectRoute(['STUDENT'], <StudentClassSyllabusPage />) },
   { path: '/student/project/peer-evaluation', element: protectRoute(['STUDENT'], <PeerEvaluationPage />) },
 
-  { path: '/student/project/meeting-room', element: protectRoute(['STUDENT'], <Layout/>) },
-  { path: '/student/project/join-room/:teamId', element: protectRoute(['STUDENT'], <RoomJoinPage/>)},
-  { path: '/room/:roomId', element: protectRoute(['STUDENT'], <MeetingRoomTest/>)},
-  { path: '/meeting/history/:teamId', element: protectRoute(['STUDENT'], <MeetingManagement/> )},
-  { path: '/meeting/schedule/:teamId', element: protectRoute(['STUDENT'], <MeetingSchedulerFull/> )},
-  // { path: '/test/kanban', element: protectRoute(['STUDENT'], <TestKanbanBoard /> )},
-  { path: '/student/project/whiteboard',  element: protectRoute(['STUDENT'], <Whiteboard/>)},
-  { path: '/student/project/text-editor', element: protectRoute(['STUDENT'], <CollabEditor/>)},
-  { path: '/student/project/chat', element: protectRoute(['STUDENT'], <ChatComponent/>)},
+  { path: '/student/project/meeting-room', element: protectRoute(['STUDENT', 'LECTURER'], <Layout/>) },
+  { path: '/student/project/join-room/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <RoomJoinPage/>)},
+  { path: '/room/:roomId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingRoomTest/>)},
+  { path: '/meeting/history/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingManagement/> )},
+  { path: '/meeting/schedule/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingSchedulerFull/> )},
+  { path: '/student/project/whiteboard',  element: protectRoute(['STUDENT', 'LECTURER'], <Whiteboard/>)},
+  { path: '/student/project/text-editor', element: protectRoute(['STUDENT', 'LECTURER'], <CollabEditor/>)},
+  { path: '/student/project/chat', element: protectRoute(['STUDENT', 'LECTURER'], <ChatComponent/>)},
 ];
 
 const authenticatedRoles = ['STUDENT', 'LECTURER', 'STAFF', 'HEAD_DEPARTMENT', 'ADMIN'];

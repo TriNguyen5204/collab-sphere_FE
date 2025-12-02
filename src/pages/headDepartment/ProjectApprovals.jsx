@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import ProjectApprovalList from '../../components/staff/ProjectApprovalList';
+import ProjectApprovalList from '../../features/staff/components/ProjectApprovalList';
 import { getPendingProjects } from '../../services/userService';
 import Sidebar from '../../components/layout/HeadDepartmentSidebar';
 import { toast } from 'sonner';

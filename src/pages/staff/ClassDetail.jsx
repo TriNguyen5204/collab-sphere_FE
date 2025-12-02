@@ -15,7 +15,7 @@ import ModalWrapper from '../../components/layout/ModalWrapper';
 import Table from '../../components/ui/Table';
 import SectionCard from '../../components/ui/SectionCard';
 import Header from '../../components/layout/Header';
-import UpdateClassForm from '../../components/staff/UpdateClassForm';
+import UpdateClassForm from '../../features/staff/components/UpdateClassForm';
 
 export default function ClassDetail() {
   const { classId } = useParams();

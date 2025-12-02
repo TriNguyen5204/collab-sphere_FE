@@ -17,7 +17,7 @@ import {
    InboxIcon
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleSolidIcon } from '@heroicons/react/24/solid';
-import DashboardLayout from '../../components/DashboardLayout';
+import DashboardLayout from '../../components/layout/DashboardLayout';
 import { getClassProjects, getProjects } from '../../services/projectApi';
 import { getClassDetail } from '../../services/userService';
 import { assignProjectsToClass } from '../../services/classApi';

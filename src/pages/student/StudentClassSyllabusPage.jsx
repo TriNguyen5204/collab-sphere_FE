@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getSyllabusOfSubjectBySubjectId } from '../../services/studentApi';
-import { ClassDetailsSkeleton } from '../../components/skeletons/StudentSkeletons';
+import { ClassDetailsSkeleton } from '../../features/student/components/skeletons/StudentSkeletons';
 
 const StudentClassSyllabusPage = () => {
   const { classSlug } = useParams();

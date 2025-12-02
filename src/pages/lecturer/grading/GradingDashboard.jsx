@@ -10,7 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
 
-import DashboardLayout from '../../../components/DashboardLayout';
+import DashboardLayout from '../../../components/layout/DashboardLayout';
 import LecturerBreadcrumbs from '../../../features/lecturer/components/LecturerBreadcrumbs';
 import { getLecturerClasses, getClassTeams } from '../../../services/classApi';
 import { getTeamEvaluationSummary } from '../../../services/evaluationApi';

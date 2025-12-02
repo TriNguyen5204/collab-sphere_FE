@@ -16,7 +16,7 @@ import {
   MoreHorizontal,
   AlertCircle
 } from 'lucide-react';
-import DashboardLayout from '../../components/DashboardLayout';
+import DashboardLayout from '../../components/layout/DashboardLayout';
 import { getClassDetail } from '../../services/userService';
 import { normaliseClassDetailPayload } from './classDetailNormalizer';
 import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';

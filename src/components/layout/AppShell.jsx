@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom';
 import AppHeader from './AppHeader';
 import AppSidebar from './AppSidebar';
-import styles from '../DashboardLayout.module.css';
+import styles from './DashboardLayout.module.css';
 
 const AppShell = ({
   children,

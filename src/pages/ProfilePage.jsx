@@ -3,9 +3,9 @@ import { useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import { User, Settings } from "lucide-react";
 import StudentLayout from "../components/layout/StudentLayout";
-import DashboardLayout from "../components/DashboardLayout";
-import ProfileInformation from "../components/student/ProfileInformation";
-import AccountSettings from "../components/student/AccountSettings";
+import DashboardLayout from "../components/layout/DashboardLayout";
+import ProfileInformation from "../features/student/components/ProfileInformation";
+import AccountSettings from "../features/student/components/AccountSettings";
 import {
 	getUserProfile,
 	getAvatarByPublicId,

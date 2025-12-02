@@ -21,7 +21,7 @@ import { createProject } from "../../services/projectApi";
 import { getAllSubject } from "../../services/userService";
 import LecturerBreadcrumbs from "../../features/lecturer/components/LecturerBreadcrumbs";
 // Reuse the dashboard layout to keep sidebar/nav consistent
-import DashboardLayout from "../../components/DashboardLayout";
+import DashboardLayout from "../../components/layout/DashboardLayout";
 
 const PRIORITY_OPTIONS = [
    { label: "High impact", value: "HIGH", color: "text-red-600 bg-red-50 border-red-200" },

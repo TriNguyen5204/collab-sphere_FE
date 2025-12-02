@@ -10,11 +10,11 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import ModalWrapper from '../../components/layout/ModalWrapper';
-import CreateLecturerForm from '../../components/staff/CreateLecturerForm';
-import CreateMultipleLecturerForm from '../../components/staff/CreateMultipleLecturerForm';
-import CreateStudentForm from '../../components/staff/CreateStudentForm';
-import CreateMultipleStudentForm from '../../components/staff/CreateMultipleStudent';
-import EditAccountForm from '../../components/staff/EditAccountForm';
+import CreateLecturerForm from '../../features/staff/components/CreateLecturerForm';
+import CreateMultipleLecturerForm from '../../features/staff/components/CreateMultipleLecturerForm';
+import CreateStudentForm from '../../features/staff/components/CreateStudentForm';
+import CreateMultipleStudentForm from '../../features/staff/components/CreateMultipleStudent';
+import EditAccountForm from '../../features/staff/components/EditAccountForm';
 import Header from '../../components/layout/Header';
 import { getAllLecturer, getAllStudent } from '../../services/userService';
 
