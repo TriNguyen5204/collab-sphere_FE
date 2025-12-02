@@ -15,6 +15,13 @@ const VARIANT_STYLES = {
     focusLabel: 'peer-focus:text-purple-500',
     focusShadow: 'group-focus-within:shadow-[0_26px_58px_-28px_rgba(192,38,211,0.55)]',
   },
+  simple: {
+    gradient: 'from-slate-200 via-slate-300 to-slate-200',
+    glow: 'shadow-none',
+    iconBg: 'bg-slate-50 text-slate-500',
+    focusLabel: 'peer-focus:text-indigo-600',
+    focusShadow: 'group-focus-within:shadow-lg group-focus-within:shadow-indigo-500/10',
+  },
 };
 
 const AuthInput = ({
@@ -31,6 +38,7 @@ const AuthInput = ({
   disabled,
   children,
   inputMode,
+  className = '',
 }) => {
   const styles = VARIANT_STYLES[variant] || VARIANT_STYLES.blue;
   const gradientClasses = error
@@ -49,7 +57,7 @@ const AuthInput = ({
             error
               ? 'border-rose-200/80 bg-white/95 shadow-[0_24px_55px_-28px_rgba(244,63,94,0.45)]'
               : `hover:border-white/70 ${styles.focusShadow}`
-          } group-focus-within:border-transparent group-focus-within:bg-white/95`}
+          } group-focus-within:border-transparent group-focus-within:bg-white/95 ${className}`}
         >
           {Icon && (
             <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${styles.iconBg}`}>
