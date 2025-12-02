@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import GlassInput from '../../components/ui/GlassInput';
 import {
   EyeIcon,
   EyeSlashIcon,
@@ -87,26 +88,24 @@ const RegisterPage = () => {
 
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
     }
 
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password';
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword =
+        'The password and confirmation password do not match.';
     }
     if (!formData.address) {
-      newErrors.address = 'Please enter your address';
+      newErrors.address = 'The Address field is required';
     }
     if (!formData.phoneNumber) {
       newErrors.phoneNumber = 'Phone number is required';
-    } else if (!/^0\d{9}$/.test(formData.phoneNumber)) {
-      newErrors.phoneNumber =
-        'Phone number must start with 0 and have exactly 10 digits';
     }
     if (!formData.yob) {
       newErrors.yob = 'Year of birth is required';
+    } else if (formData.yob < 1900 || formData.yob > new Date().getFullYear()) {
+      newErrors.yob = 'Please enter a valid year of birth';
     }
     if (!formData.school) {
       newErrors.school = 'School is required';
@@ -127,8 +126,8 @@ const RegisterPage = () => {
       return;
     }
 
+    setIsSendingOtp(true);
     try {
-      setIsSendingOtp(true);
       const response = await sendOtp(email);
       if (response) {
         toast.success('OTP has been sent to your email');
@@ -137,20 +136,50 @@ const RegisterPage = () => {
         toast.error('Failed to send OTP');
       }
     } catch (error) {
-      toast.error('An error occurred while sending OTP');
+      const errorMessage =
+        error.response?.data?.item2 || error.message || 'An error occurred';
+      toast.error(errorMessage);
+    } finally {
+      setIsSendingOtp(false);
     }
   };
 
   const handleSubmit = async e => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
-    const response = await register(formData);
-    if (response.item1 === true) {
-      toast.success('Register successfully');
-      navigate('/login');
+    try {
+      const response = await register(formData);
+      if (response.item1 === true) {
+        toast.success('Register successfully');
+        setIsLoading(false);
+        navigate('/login');
+      } else {
+        toast.error();
+      }
+    } catch (error) {
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+
+        // Hiển thị tất cả lỗi
+        Object.keys(errors).forEach(field => {
+          errors[field].forEach(message => {
+            toast.error(message);
+          });
+        });
+      } else {
+        const errorMessage =
+          error.response?.data?.item2 ||
+          'An error occurred';
+        toast.error(errorMessage);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -179,99 +208,72 @@ const RegisterPage = () => {
     }
   };
 
-  // Custom Input Component for the Glass Theme
-  const GlassInput = ({ label, error, icon: Icon, rightElement, ...props }) => (
-    <div className="group relative mb-6">
-      <div className="relative">
-        {Icon && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 text-white/50 transition-colors group-focus-within:text-orange-400">
-            <Icon className="h-5 w-5" />
-          </div>
-        )}
-        <input
-          {...props}
-          className={`w-full bg-transparent border-b-2 py-3 text-white placeholder-white/30 transition-all focus:outline-none focus:border-orange-400 focus:shadow-[0_10px_20px_-10px_rgba(249,115,22,0.3)] ${
-            Icon ? 'pl-8' : ''
-          } ${
-            error ? 'border-rose-400' : 'border-white/20'
-          } ${props.className || ''}`}
-        />
-        {rightElement && (
-          <div className="absolute right-0 top-1/2 -translate-y-1/2">
-            {rightElement}
-          </div>
-        )}
-      </div>
-      {label && (
-        <label className="absolute -top-5 left-0 text-xs font-medium text-orange-200/80 uppercase tracking-wider">
-          {label}
-        </label>
-      )}
-      {error && <p className="mt-1 text-xs text-rose-400">{error}</p>}
-    </div>
-  );
-
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[#1a0b05] text-white selection:bg-orange-500/30">
+    <div className='relative min-h-screen w-full overflow-hidden bg-[#1a0b05] text-white selection:bg-orange-500/30'>
       {/* Atmospheric Aurora Background */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_#4a1d08_0%,_#1a0b05_100%)]" />
-      
+      <div className='absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_#4a1d08_0%,_#1a0b05_100%)]' />
+
       {/* Floating 3D Spheres / Parallax Elements */}
       <motion.div
         animate={{
           y: [0, -20, 0],
           rotate: [0, 5, 0],
         }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-1/4 left-1/4 h-64 w-64 rounded-full bg-gradient-to-br from-orange-600/30 to-red-600/30 blur-3xl"
+        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+        className='absolute top-1/4 left-1/4 h-64 w-64 rounded-full bg-gradient-to-br from-orange-600/30 to-red-600/30 blur-3xl'
       />
       <motion.div
         animate={{
           y: [0, 30, 0],
           x: [0, 20, 0],
         }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-        className="absolute bottom-1/3 right-1/4 h-96 w-96 rounded-full bg-gradient-to-tr from-amber-500/20 to-orange-600/20 blur-3xl"
+        transition={{
+          duration: 10,
+          repeat: Infinity,
+          ease: 'easeInOut',
+          delay: 1,
+        }}
+        className='absolute bottom-1/3 right-1/4 h-96 w-96 rounded-full bg-gradient-to-tr from-amber-500/20 to-orange-600/20 blur-3xl'
       />
-      
+
       {/* Abstract Learning Icons (Simulated with shapes for now) */}
       <motion.div
         animate={{ rotate: 360 }}
-        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        className="absolute top-20 right-20 opacity-20"
+        transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+        className='absolute top-20 right-20 opacity-20'
       >
-        <div className="h-20 w-20 border-4 border-white/10 rounded-xl transform rotate-45" />
+        <div className='h-20 w-20 border-4 border-white/10 rounded-xl transform rotate-45' />
       </motion.div>
 
-      <div className="relative flex min-h-screen items-center justify-center p-4">
+      <div className='relative flex min-h-screen items-center justify-center p-4'>
         {/* Glass Panel HUD */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl"
+          className='relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl'
         >
           {/* Glowing Timeline Step Indicator */}
-          <div className="relative h-1 w-full bg-white/10">
+          <div className='relative h-1 w-full bg-white/10'>
             <motion.div
               initial={{ width: '0%' }}
               animate={{ width: step === 1 ? '50%' : '100%' }}
-              className="absolute left-0 top-0 h-full bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.8)]"
+              className='absolute left-0 top-0 h-full bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.8)]'
             />
           </div>
 
-          <div className="p-8 md:p-12">
+          <div className='p-8 md:p-12'>
             {/* Header */}
-            <div className="mb-10 text-center">
+            <div className='mb-10 text-center'>
               <motion.h1
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                className="text-3xl font-bold text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+                className='text-3xl font-bold text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]'
               >
                 {step === 1 ? 'Verify your email' : 'Complete Profile'}
               </motion.h1>
-              <p className="mt-2 text-white/60">
-                {step === 1 
-                  ? 'Enter your email to begin the journey' 
+              <p className='mt-2 text-white/60'>
+                {step === 1
+                  ? 'Enter your email to begin the journey'
                   : 'Tell us a bit more about yourself'}
               </p>
             </div>
@@ -280,36 +282,40 @@ const RegisterPage = () => {
               <motion.div
                 initial={{ x: 20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
-                className="space-y-8"
+                className='space-y-8'
               >
                 <GlassInput
-                  label="Email Address"
-                  name="email"
-                  type="email"
+                  label='Email Address'
+                  name='email'
+                  type='email'
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="student@university.edu"
+                  placeholder='student@university.edu'
                   error={errors.email}
-                  autoComplete="email"
+                  autoComplete='email'
                   autoFocus
                 />
 
                 <button
-                  type="button"
+                  type='button'
                   onClick={() => handleOtp(formData.email)}
                   disabled={isSendingOtp}
-                  className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-orange-500 to-red-600 p-[1px] transition-all hover:shadow-[0_0_20px_rgba(249,115,22,0.5)] disabled:opacity-70"
+                  className='group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-orange-500 to-red-600 p-[1px] transition-all hover:shadow-[0_0_20px_rgba(249,115,22,0.5)] disabled:opacity-70'
                 >
-                  <div className="relative flex items-center justify-center gap-2 rounded-xl bg-[#1a0b05]/80 px-4 py-3.5 transition-all group-hover:bg-transparent">
+                  <div className='relative flex items-center justify-center gap-2 rounded-xl bg-[#1a0b05]/80 px-4 py-3.5 transition-all group-hover:bg-transparent'>
                     {isSendingOtp ? (
                       <>
-                        <Loader2 className="h-5 w-5 animate-spin text-white" />
-                        <span className="font-semibold text-white">Sending...</span>
+                        <Loader2 className='h-5 w-5 animate-spin text-white' />
+                        <span className='font-semibold text-white'>
+                          Sending...
+                        </span>
                       </>
                     ) : (
                       <>
-                        <span className="font-semibold text-white">Send OTP Code</span>
-                        <Sparkles className="h-4 w-4 text-orange-300" />
+                        <span className='font-semibold text-white'>
+                          Send OTP Code
+                        </span>
+                        <Sparkles className='h-4 w-4 text-orange-300' />
                       </>
                     )}
                   </div>
@@ -320,20 +326,20 @@ const RegisterPage = () => {
                 initial={{ x: 20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 onSubmit={handleSubmit}
-                className="space-y-6"
+                className='space-y-6'
               >
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div className='grid grid-cols-1 gap-6 sm:grid-cols-2'>
                   <GlassInput
-                    label="OTP Code"
-                    name="otpCode"
+                    label='OTP Code'
+                    name='otpCode'
                     value={formData.otpCode}
                     onChange={handleChange}
                     error={errors.otpCode}
                     icon={KeyRound}
                   />
                   <GlassInput
-                    label="Full Name"
-                    name="fullName"
+                    label='Full Name'
+                    name='fullName'
                     value={formData.fullName}
                     onChange={handleChange}
                     error={errors.fullName}
@@ -342,17 +348,17 @@ const RegisterPage = () => {
                 </div>
 
                 <GlassInput
-                  label="Email"
-                  name="email"
+                  label='Email'
+                  name='email'
                   value={formData.email}
                   disabled
-                  className="opacity-50 cursor-not-allowed"
+                  className='opacity-50 cursor-not-allowed'
                 />
 
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div className='grid grid-cols-1 gap-6 sm:grid-cols-2'>
                   <GlassInput
-                    label="Password"
-                    name="password"
+                    label='Password'
+                    name='password'
                     type={showPassword ? 'text' : 'password'}
                     value={formData.password}
                     onChange={handleChange}
@@ -360,17 +366,21 @@ const RegisterPage = () => {
                     icon={LockClosedIcon}
                     rightElement={
                       <button
-                        type="button"
+                        type='button'
                         onClick={() => setShowPassword(!showPassword)}
-                        className="text-white/50 hover:text-white"
+                        className='text-white/50 hover:text-white'
                       >
-                        {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                        {showPassword ? (
+                          <EyeSlashIcon className='h-5 w-5' />
+                        ) : (
+                          <EyeIcon className='h-5 w-5' />
+                        )}
                       </button>
                     }
                   />
                   <GlassInput
-                    label="Confirm Password"
-                    name="confirmPassword"
+                    label='Confirm Password'
+                    name='confirmPassword'
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={formData.confirmPassword}
                     onChange={handleChange}
@@ -378,11 +388,17 @@ const RegisterPage = () => {
                     icon={LockClosedIcon}
                     rightElement={
                       <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="text-white/50 hover:text-white"
+                        type='button'
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
+                        className='text-white/50 hover:text-white'
                       >
-                        {showConfirmPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                        {showConfirmPassword ? (
+                          <EyeSlashIcon className='h-5 w-5' />
+                        ) : (
+                          <EyeIcon className='h-5 w-5' />
+                        )}
                       </button>
                     }
                   />
@@ -390,36 +406,40 @@ const RegisterPage = () => {
 
                 {/* Password Strength Indicator */}
                 {formData.password && (
-                  <div className="space-y-2 -mt-4 mb-4">
-                    <div className="flex gap-1 h-1">
+                  <div className='space-y-2 -mt-4 mb-4'>
+                    <div className='flex gap-1 h-1'>
                       {[1, 2, 3, 4].map(level => (
                         <div
                           key={level}
                           className={`flex-1 rounded-full transition-colors ${
-                            level <= passwordStrength ? getPasswordStrengthColor() : 'bg-white/10'
+                            level <= passwordStrength
+                              ? getPasswordStrengthColor()
+                              : 'bg-white/10'
                           }`}
                         />
                       ))}
                     </div>
-                    <p className={`text-xs font-medium ${passwordStrength >= 3 ? 'text-emerald-400' : 'text-white/50'}`}>
+                    <p
+                      className={`text-xs font-medium ${passwordStrength >= 3 ? 'text-emerald-400' : 'text-white/50'}`}
+                    >
                       Strength: {getPasswordStrengthText()}
                     </p>
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div className='grid grid-cols-1 gap-6 sm:grid-cols-2'>
                   <GlassInput
-                    label="Address"
-                    name="address"
+                    label='Address'
+                    name='address'
                     value={formData.address}
                     onChange={handleChange}
                     error={errors.address}
                     icon={MapPinIcon}
                   />
                   <GlassInput
-                    label="Phone"
-                    name="phoneNumber"
-                    type="number"
+                    label='Phone'
+                    name='phoneNumber'
+                    type='number'
                     value={formData.phoneNumber}
                     onChange={handleChange}
                     error={errors.phoneNumber}
@@ -427,19 +447,19 @@ const RegisterPage = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div className='grid grid-cols-1 gap-6 sm:grid-cols-2'>
                   <GlassInput
-                    label="Year of Birth"
-                    name="yob"
-                    type="number"
+                    label='Year of Birth'
+                    name='yob'
+                    type='number'
                     value={formData.yob}
                     onChange={handleChange}
                     error={errors.yob}
                     icon={CalendarIcon}
                   />
                   <GlassInput
-                    label="School"
-                    name="school"
+                    label='School'
+                    name='school'
                     value={formData.school}
                     onChange={handleChange}
                     error={errors.school}
@@ -447,18 +467,18 @@ const RegisterPage = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div className='grid grid-cols-1 gap-6 sm:grid-cols-2'>
                   <GlassInput
-                    label="Student Code"
-                    name="studentCode"
+                    label='Student Code'
+                    name='studentCode'
                     value={formData.studentCode}
                     onChange={handleChange}
                     error={errors.studentCode}
                     icon={IdentificationIcon}
                   />
                   <GlassInput
-                    label="Major"
-                    name="major"
+                    label='Major'
+                    name='major'
                     value={formData.major}
                     onChange={handleChange}
                     error={errors.major}
@@ -467,28 +487,35 @@ const RegisterPage = () => {
                 </div>
 
                 <button
-                  type="submit"
+                  type='submit'
                   disabled={isLoading}
-                  className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-orange-500 to-red-600 p-[1px] transition-all hover:shadow-[0_0_20px_rgba(249,115,22,0.5)] disabled:opacity-70"
+                  className='group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-orange-500 to-red-600 p-[1px] transition-all hover:shadow-[0_0_20px_rgba(249,115,22,0.5)] disabled:opacity-70'
                 >
-                  <div className="relative flex items-center justify-center gap-2 rounded-xl bg-[#1a0b05]/80 px-4 py-3.5 transition-all group-hover:bg-transparent">
+                  <div className='relative flex items-center justify-center gap-2 rounded-xl bg-[#1a0b05]/80 px-4 py-3.5 transition-all group-hover:bg-transparent'>
                     {isLoading ? (
                       <>
-                        <Loader2 className="h-5 w-5 animate-spin text-white" />
-                        <span className="font-semibold text-white">Creating Account...</span>
+                        <Loader2 className='h-5 w-5 animate-spin text-white' />
+                        <span className='font-semibold text-white'>
+                          Creating Account...
+                        </span>
                       </>
                     ) : (
-                      <span className="font-semibold text-white">Create Account</span>
+                      <span className='font-semibold text-white'>
+                        Create Account
+                      </span>
                     )}
                   </div>
                 </button>
               </motion.form>
             )}
 
-            <div className="mt-8 text-center">
-              <p className="text-sm text-white/60">
+            <div className='mt-8 text-center'>
+              <p className='text-sm text-white/60'>
                 Already have an account?{' '}
-                <Link to="/login" className="font-semibold text-orange-400 hover:text-orange-300 hover:underline">
+                <Link
+                  to='/login'
+                  className='font-semibold text-orange-400 hover:text-orange-300 hover:underline'
+                >
                   Sign in
                 </Link>
               </p>

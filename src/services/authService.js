@@ -69,7 +69,7 @@ export const sendOtp = async (email) => {
     return response.data;
   } catch (error) {
     console.error("Send OTP API failed:", error);
-    throw new Error(error.response?.data?.message || "Send OTP failed");
+    throw error
   }
 };
 
@@ -79,7 +79,7 @@ export const register = async (data) => {
     return response.data;
   } catch (error) {
     console.error("Register API failed:", error);
-    throw new Error(error.response?.data?.message || "Registration failed");
+    throw error
   }
 };
 

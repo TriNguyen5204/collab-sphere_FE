@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef} from 'react';
 import {
   Download,
   Upload,
@@ -23,6 +23,7 @@ const LecturerCreation = ({ onClose }) => {
   const [errors, setErrors] = useState([]);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [apiErrors, setApiErrors] = useState([]);
+  const fileInputRef = useRef(null);
 
   // Download template function
   const downloadTemplate = () => {
@@ -73,6 +74,7 @@ const LecturerCreation = ({ onClose }) => {
 
     setUploadedFile(file);
     setUploadStatus('processing');
+    setApiErrors([]);
     const reader = new FileReader();
 
     reader.onload = e => {
@@ -128,6 +130,9 @@ const LecturerCreation = ({ onClose }) => {
           { general: 'Lỗi khi đọc file. Vui lòng kiểm tra định dạng file.' },
         ]);
       }
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     };
 
     reader.readAsArrayBuffer(file);
@@ -156,10 +161,12 @@ const LecturerCreation = ({ onClose }) => {
       setIsLoading(false);
       const apiErrorList = error?.response?.data?.errorList || [];
       setApiErrors(apiErrorList);
+      toast.error('Đã xảy ra lỗi khi import. Chỉnh sửa lại file trước khi thử lại.');
 
       if (!apiErrorList.length) {
         toast.error(error.message || 'Đã xảy ra lỗi khi import');
-      }
+        console.error('Import error:', error);
+      } 
     }
   };
 
@@ -259,6 +266,7 @@ const LecturerCreation = ({ onClose }) => {
           </p>
           <div className='relative'>
             <input
+              ref={fileInputRef}
               type='file'
               accept='.xlsx,.xls,.csv'
               onChange={handleFileUpload}
