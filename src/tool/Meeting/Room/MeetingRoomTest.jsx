@@ -1,15 +1,15 @@
 import { useRef, useEffect, useState } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
-import { useSocket } from './hooks/useSocket';
-import { useMediaStream } from './hooks/useMediaStream';
-import { useScreenShare } from './hooks/useScreenShare';
-import { usePeerConnections } from './hooks/usePeerConnection';
-import { ParticipantVideo } from './components/ParticipantVideo';
-import { ControlBar } from './components/ControlBar';
-import { useMeetingRecorder } from './hooks/useMeetingRecorder';
-import ChatBox from './components/ChatBox';
+import { useSocket } from '../../hooks/meeting/useSocket';
+import { useMediaStream } from '../../hooks/meeting/useMediaStream';
+import { useScreenShare } from '../../hooks/meeting/useScreenShare';
+import { usePeerConnections } from '../../hooks/meeting/usePeerConnection';
+import { ParticipantVideo } from '../../components/meeting/ParticipantVideo';
+import { ControlBar } from '../../components/meeting/ControlBar';
+import { useMeetingRecorder } from '../../hooks/meeting/useMeetingRecorder';
+import ChatBox from '../../components/meeting/ChatBox';
 import { useNavigate } from 'react-router-dom';
-import { updateMeeting } from '../services/meetingApi';
+import { updateMeeting } from '../../../services/meetingApi';
 
 function MeetingRoom() {
   const { roomId } = useParams();

@@ -1,4 +1,4 @@
-import MeetingTypeList from './MeetingTypeList';
+import MeetingTypeList from '../components/meeting/MeetingTypeList';
 import { Calendar, Clock, Sunrise, Sunset, Moon, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
