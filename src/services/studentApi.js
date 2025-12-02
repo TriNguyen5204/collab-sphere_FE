@@ -25,9 +25,9 @@ export const getSyllabusOfSubjectBySubjectId = async (subjectId) => {
 };
 
 // Class API (Student-flow)
-export const getClassesByStudentId = async (studentId) => {
+export const getClassesByStudentId = async (studentId, params = {}) => {
   try {
-    const response = await apiClient.get(`/class/student/${studentId}`);
+    const response = await apiClient.get(`/class/student/${studentId}`, { params });
     const data = response.data;
     return data?.list ?? [];
   } catch (error) {
@@ -50,9 +50,9 @@ export const getClassDetailsById = async (classId) => {
 };
 
 // Team and Project API (Student-flow)
-export const getListOfTeamsByStudentId = async (studentId) => {
+export const getListOfTeamsByStudentId = async (studentId, params = {}) => {
   try {
-    const response = await apiClient.get(`/team/student/${studentId}`);
+    const response = await apiClient.get(`/team/student/${studentId}`, { params });
     return response.data;
   } catch (error) {
     console.error(`Error fetching teams for student ID ${studentId}:`, error);

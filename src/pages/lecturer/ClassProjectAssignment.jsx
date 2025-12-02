@@ -251,7 +251,7 @@ const ClassProjectAssignment = () => {
             </div>
 
             {/* --- MAIN CONTENT --- */}
-            <div className=" flex flex-col gap-10 mx-auto max-w-[1500px]">
+            <div className=" flex flex-col gap-10 mx-auto">
 
                {/* SECTION 1: CURRENTLY ASSIGNED (Moved Above Toolbar) */}
                <section className="space-y-4">

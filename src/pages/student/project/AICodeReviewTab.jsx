@@ -9,8 +9,7 @@ import {
   Github,
   GitPullRequest,
   Clock,
-  Bug,
-  ShieldAlert,
+  Octagon,
   Lightbulb,
   ArrowUpRight,
   RefreshCcw
@@ -181,8 +180,6 @@ const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
   };
 
   const handleManageClick = () => {
-    // We use the same flow as connecting to ensure a 'state' token is generated.
-    // This allows the backend to verify and sync the updated data when redirected back.
     handleConfirmConnect();
   };
 
@@ -376,7 +373,7 @@ const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
             <span>Author</span>
             <span>AI Summary</span>
             <span>Issues</span>
-            <span className="text-right">Score</span>
+            <span className="text-right"></span>
           </div>
           {loadingAnalyses ? (
             <div className="flex items-center justify-center px-6 py-16">
@@ -391,7 +388,6 @@ const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
             <div className="divide-y divide-gray-100">
               {prAnalyses.map((analysis) => {
                 const analysisId = analysis.analysisId || analysis.id;
-                const score = Number(analysis.aiOverallScore ?? analysis.aiOverallSCore ?? 0);
                 return (
                   <div
                     key={analysisId}
@@ -427,13 +423,13 @@ const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
                       {analysis.aiSummary || 'AI summary is not available yet for this review.'}
                     </div>
                     <div className="flex flex-wrap items-center gap-4 text-xs font-medium">
-                      <span className="flex items-center gap-1 text-red-600">
-                        <Bug className="h-4 w-4" /> {analysis.aiBugCount ?? 0}
+                      <span className="flex items-center gap-1 text-red-600" title="Failures">
+                        <Octagon className="h-4 w-4" /> {analysis.aiSecurityIssueCount ?? 0}
                       </span>
-                      <span className="flex items-center gap-1 text-amber-600">
-                        <ShieldAlert className="h-4 w-4" /> {analysis.aiSecurityIssueCount ?? 0}
+                      <span className="flex items-center gap-1 text-amber-600" title="Warnings">
+                        <AlertCircle className="h-4 w-4" /> {analysis.aiBugCount ?? 0}
                       </span>
-                      <span className="flex items-center gap-1 text-blue-600">
+                      <span className="flex items-center gap-1 text-blue-600" title="Notices">
                         <Lightbulb className="h-4 w-4" /> {analysis.aiSuggestionCount ?? 0}
                       </span>
                       <a
@@ -447,9 +443,6 @@ const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
                       </a>
                     </div>
                     <div className="flex items-center justify-end gap-2">
-                      <span className={`rounded-full px-3 py-1 text-sm font-semibold ${getScoreBadgeClasses(score)}`}>
-                        {score.toFixed(1)} / 10
-                      </span>
                       <ArrowUpRight className="h-4 w-4 text-gray-400 transition group-hover:text-blue-600" />
                     </div>
                   </div>
@@ -530,7 +523,6 @@ const mapAnalysisItem = (item = {}, repoDefaults = {}) => ({
   prCreatedAt: item.analyzedAt ?? item.analyzedAt,
   repositoryFullName: item.repositoryFullName ?? item.repoFullName ?? repoDefaults.name,
   repositoryId: item.repositoryId ?? repoDefaults.id,
-  aiOverallScore: item.aiOverallScore ?? item.aiScore ?? 0,
   aiBugCount: item.aiBugCount ?? item.bugCount ?? 0,
   aiSecurityIssueCount: item.aiSecurityIssueCount ?? item.securityIssueCount ?? 0,
   aiSuggestionCount: item.aiSuggestionCount ?? item.suggestionCount ?? 0,
@@ -539,16 +531,6 @@ const mapAnalysisItem = (item = {}, repoDefaults = {}) => ({
   analyzedAt: item.analyzedAt ?? item.analyzeAt,
   prAuthor: item.prAuthor ?? item.author,
 });
-
-const getScoreBadgeClasses = (score) => {
-  if (score >= 8) {
-    return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
-  }
-  if (score >= 5) {
-    return 'bg-amber-50 text-amber-700 border border-amber-200';
-  }
-  return 'bg-rose-50 text-rose-700 border border-rose-200';
-};
 
 const renderPRStateBadge = (state) => {
   if (!state) return null;

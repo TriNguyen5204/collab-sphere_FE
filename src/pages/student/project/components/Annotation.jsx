@@ -80,15 +80,7 @@ const Annotation = ({ annotation }) => {
         .replace(/\\n/g, '\n');
     }
 
-    const placeholders = [
-      '// Placeholder code snippet',
-      'const response = await apiClient.get(url);',
-      'if (!response?.data) {',
-      "  throw new Error('Missing payload');",
-      '}',
-      'return transformResponse(response.data);'
-    ];
-    return placeholders.join('\n');
+    return null;
   }, [codeSnippet, code]);
 
   const lineProps = lineNumber => ({
@@ -99,19 +91,21 @@ const Annotation = ({ annotation }) => {
 
   return (
     <div className="space-y-3">
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white text-xs">
-        <SyntaxHighlighter
-          language="tsx"
-          wrapLongLines
-          showLineNumbers
-          startingLineNumber={start_line || 1}
-          style={oneLight}
-          customStyle={{ margin: 0, padding: '1.25rem', fontSize: '0.85rem' }}
-          lineProps={lineNumber => lineProps(lineNumber)}
-        >
-          {fallbackSnippet}
-        </SyntaxHighlighter>
-      </div>
+      {fallbackSnippet && (
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white text-xs">
+          <SyntaxHighlighter
+            language="tsx"
+            wrapLongLines
+            showLineNumbers
+            startingLineNumber={start_line || 1}
+            style={oneLight}
+            customStyle={{ margin: 0, padding: '1.25rem', fontSize: '0.85rem' }}
+            lineProps={lineNumber => lineProps(lineNumber)}
+          >
+            {fallbackSnippet}
+          </SyntaxHighlighter>
+        </div>
+      )}
 
       <div className={`rounded-xl border-l-4 bg-white p-4 shadow-sm ${severity.border}`}>
         <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">

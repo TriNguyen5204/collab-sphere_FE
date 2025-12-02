@@ -179,7 +179,7 @@ const GradingDashboard = () => {
         </header>
 
         {/* --- MAIN GRID --- */}
-        <div className="mx-auto max-w-[1500px]">
+        <div className="mx-auto">
           <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {loading && !cards.length ? (
               Array.from({ length: 3 }).map((_, index) => (
