@@ -104,6 +104,7 @@ const StudentClassPage = () => {
     try {
       setLoadingList(true);
       const list = await getClassesByStudentId(studentId);
+      console.log('Fetched classes:', list);
       setClasses(list);
       const ids = list.map((c) => c.classId);
       console.log('Class IDs:', ids);
