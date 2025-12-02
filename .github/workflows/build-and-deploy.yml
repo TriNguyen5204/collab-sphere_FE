@@ -37,6 +37,9 @@ jobs:
             ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
           build-args: |
             VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
+            VITE_TILDRAW_LICENSE_KEY=${{ secrets.VITE_TILDRAW_LICENSE_KEY }}
+            VITE_PORT_URL=${{ secrets.VITE_PORT_URL }}
+            VITE_FRONTEND_URL=${{ secrets.VITE_FRONTEND_URL }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
