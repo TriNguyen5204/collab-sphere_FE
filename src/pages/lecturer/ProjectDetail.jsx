@@ -33,8 +33,11 @@ const glassPanelClass = 'bg-white border border-slate-200 shadow-sm';
 
 const PRIORITY_COLORS = {
   HIGH: 'bg-red-50 text-red-700 border-red-200',
+  High: 'bg-red-50 text-red-700 border-red-200',
   MEDIUM: 'bg-orangeFpt-50 text-orangeFpt-700 border-orangeFpt-200',
+  Medium: 'bg-orangeFpt-50 text-orangeFpt-700 border-orangeFpt-200',
   LOW: 'bg-slate-50 text-slate-700 border-slate-200',
+  Low: 'bg-slate-50 text-slate-700 border-slate-200',
   '': 'bg-slate-50 text-slate-600 border-slate-200'
 };
 
@@ -82,7 +85,7 @@ const createEmptyObjective = () => ({
   id: generateTempId(),
   title: '',
   description: '',
-  priority: 'MEDIUM',
+  priority: 'Medium',
   objectiveMilestones: [createEmptyMilestone()],
 });
 
@@ -253,11 +256,27 @@ const ProjectDetail = () => {
     e.preventDefault();
     setIsEditSaving(true);
     try {
+      // Preserve existing objectives to prevent deletion
+      const objectivesPayload = project.objectives?.map(obj => ({
+        objectiveId: obj.objectiveId || obj.id,
+        title: obj.title,
+        description: obj.description,
+        priority: obj.priority,
+        objectiveMilestones: obj.objectiveMilestones?.map(m => ({
+          objectiveMilestoneId: m.objectiveMilestoneId || m.milestoneId || m.id,
+          title: m.title,
+          description: m.description,
+          startDate: toDateInputValue(m.startDate || m.beginDate),
+          endDate: toDateInputValue(m.endDate || m.dueDate)
+        })) || []
+      })) || [];
+
       await updateProjectBeforeApproval({
         projectId: project.id || project.projectId,
         ...editDraft,
         lecturerId: project.lecturerId,
-        subjectId: project.subjectId
+        subjectId: project.subjectId,
+        objectives: objectivesPayload
       });
       toast.success('Project details updated');
       await fetchProject(true);
@@ -310,12 +329,12 @@ const ProjectDetail = () => {
         subjectId: project.subjectId,
         objectives: structureDraft.map(obj => ({
           // Only send IDs if they are NOT temp ones (numeric)
-          objectiveId: String(obj.id).startsWith('tmp') ? null : obj.objectiveId || obj.id,
+          objectiveId: String(obj.id).startsWith('tmp') ? 0 : obj.objectiveId || obj.id,
           title: obj.title,
           description: obj.description,
           priority: obj.priority,
           objectiveMilestones: obj.objectiveMilestones.map(m => ({
-            objectiveMilestoneId: String(m.id).startsWith('tmp') ? null : m.objectiveMilestoneId || m.id,
+            objectiveMilestoneId: String(m.id).startsWith('tmp') ? 0 : m.objectiveMilestoneId || m.id,
             title: m.title,
             description: m.description,
             startDate: m.startDate,
@@ -655,9 +674,9 @@ const ProjectDetail = () => {
                               value={objective.priority}
                               onChange={(e) => updateDraftObjective(oIdx, 'priority', e.target.value)}
                            >
-                              <option value="HIGH">High</option>
-                              <option value="MEDIUM">Medium</option>
-                              <option value="LOW">Low</option>
+                              <option value="High">High</option>
+                              <option value="Medium">Medium</option>
+                              <option value="Low">Low</option>
                            </select>
                         </div>
                         <div className="sm:col-span-4">
