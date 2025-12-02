@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import RecordRTC from 'recordrtc';
-import { getRecordUrl } from '../../services/meetingApi';
+import { getRecordUrl } from '../../../services/meetingApi';
 
 export const useMeetingRecorder = (
   socket,

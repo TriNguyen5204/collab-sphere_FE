@@ -74,8 +74,8 @@ import SystemReport from '../pages/admin/SystemReport';
 // misc / sandbox
 // import TestKanbanBoard from '../pages/TestKanbanBoard';
 import Layout from '../tool/Meeting/Layout'
-import RoomJoinPage from '../tool/RoomJoinPage'
-import MeetingRoomTest from '../tool/MeetingRoomTest'
+import RoomJoinPage from '../tool/Meeting/Room/RoomJoinPage';
+import MeetingRoomTest from '../tool/Meeting/Room/MeetingRoomTest';
 // import MeetingHistory from '../test/Meeting/MeetingHistory';
 import MeetingSchedulerFull from '../tool/Meeting/MeetingSchedule';
 import MeetingManagement from '../tool/Meeting/MeetingManagement';

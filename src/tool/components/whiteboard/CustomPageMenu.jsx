@@ -18,9 +18,7 @@ export default function CustomPageMenu({
   const [editingPageId, setEditingPageId] = useState(null);
   const [editingValue, setEditingValue] = useState('');
   
-  
-  // ✅ CRITICAL FIX: Tính toán pages mỗi lần render, KHÔNG dùng useMemo
-  // useMemo với forceUpdate không work vì forceUpdate là setter function
+  // ✅ Calculate pages on every render
   const pages = editor ? Array.from(editor.store.allRecords())
     .filter(r => r.typeName === 'page')
     .sort((a, b) => {
@@ -29,12 +27,12 @@ export default function CustomPageMenu({
       return String(a.name ?? '').localeCompare(String(b.name ?? ''));
     }) : [];
 
-  // keep component open state in sync if Tldraw controls it
+  // Keep component open state in sync if Tldraw controls it
   useEffect(() => {
     if (typeof externalIsOpen === 'boolean') setOpen(externalIsOpen);
   }, [externalIsOpen]);
 
-  // ✅ CRITICAL FIX: Listen to ALL store updates and force re-render when pages change
+  // ✅ Listen to ALL store updates for page changes
   useEffect(() => {
     if (!editor) return;
     
@@ -46,7 +44,7 @@ export default function CustomPageMenu({
         (entry.changes?.removed && Object.values(entry.changes.removed).some(r => r.typeName === 'page'));
       
       if (hasPageChanges) {
-        console.log('📄 Page changes detected in CustomPageMenu, forcing re-render');
+        console.log('🔄 Page changes detected in CustomPageMenu');
       }
     });
     
@@ -94,14 +92,14 @@ export default function CustomPageMenu({
       await updatePageTitle(numericPageId, newTitle);
       console.log(`✅ API: Page renamed to: ${newTitle}`);
 
-      // 2. Update local store (this will trigger the listener above)
+      // 2. Update local store (this will trigger the listener)
       const updatedRecord = {
         ...page,
         name: newTitle,
       };
       editor.store.put([updatedRecord]);
       
-      // 3. Broadcast to other users
+      // 3. Broadcast to other users via WebSocket
       if (websocket && websocket.readyState === WebSocket.OPEN) {
         websocket.send(JSON.stringify({
           type: 'update_page',
@@ -168,7 +166,7 @@ export default function CustomPageMenu({
         editor.setCurrentPage(fallback.id);
       }
       
-      // 3. Broadcast deletion
+      // 3. Broadcast deletion via WebSocket
       if (websocket && websocket.readyState === WebSocket.OPEN) {
         websocket.send(JSON.stringify({
           type: 'delete_page',
@@ -178,6 +176,8 @@ export default function CustomPageMenu({
           },
         }));
         console.log('📡 Broadcasted page deletion from CustomPageMenu');
+      } else {
+        console.warn('⚠️ WebSocket not ready, cannot broadcast deletion');
       }
     } catch (err) {
       console.error('💥 Delete error', err);
@@ -217,7 +217,7 @@ export default function CustomPageMenu({
       editor.store.put([newRecord]);
       editor.setCurrentPage(newRecord.id);
       
-      // 3. Broadcast new page
+      // 3. Broadcast new page via WebSocket
       if (websocket && websocket.readyState === WebSocket.OPEN) {
         websocket.send(JSON.stringify({
           type: 'new_page',

@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, Video, Plus, Users, Clock } from 'lucide-react';
-import { createMeeting } from '../services/meetingApi';
+import { createMeeting } from '../../../services/meetingApi';
 import { toast } from 'sonner';
 import ClipLoader from 'react-spinners/ClipLoader';
-import useTeam from '../context/useTeam';
+import useTeam from '../../../context/useTeam';
 
 function JoinPage() {
   const myName = useSelector(state => state.user.fullName);

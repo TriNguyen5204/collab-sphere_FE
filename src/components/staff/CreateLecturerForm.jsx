@@ -87,12 +87,23 @@ const CreateLecturerForm = ({ onClose }) => {
       });
     } catch (error) {
       console.error('Error creating lecturer:', error);
-      const errorMsg =
-        error?.response?.data?.item2 ||
-        error?.message ||
-        'Unknown error occurred.';
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
 
-      toast.error(errorMsg);
+        // Hiển thị tất cả lỗi
+        Object.keys(errors).forEach(field => {
+          errors[field].forEach(message => {
+            toast.error(message);
+          });
+        });
+      } else {
+        const errorMsg =
+          error?.response?.data?.item2 ||
+          error?.message ||
+          'Unknown error occurred.';
+
+        toast.error(errorMsg);
+      }
     } finally {
       setIsSubmitting(false);
     }
