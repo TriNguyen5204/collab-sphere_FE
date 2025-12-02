@@ -19,17 +19,17 @@ function isPage(record: TLRecord): record is TLPage {
  */
 function parseWebSocketMessage(data: string): any[] {
     const messages: any[] = [];
-    
+
     try {
         const singleMessage = JSON.parse(data);
         return [singleMessage];
     } catch (err) {
         // Multiple messages concatenated
     }
-    
+
     let depth = 0;
     let start = 0;
-    
+
     for (let i = 0; i < data.length; i++) {
         if (data[i] === '{') {
             if (depth === 0) start = i;
@@ -47,11 +47,11 @@ function parseWebSocketMessage(data: string): any[] {
             }
         }
     }
-    
+
     if (messages.length > 1) {
         console.log(`✅ Parsed ${messages.length} concatenated messages`);
     }
-    
+
     return messages;
 }
 
@@ -65,24 +65,24 @@ class OptimizedRAFBatcher {
         updated: Map<string, { from: TLRecord, to: TLRecord }>,
         removed: Map<string, TLRecord>
     } = {
-        added: new Map(),
-        updated: new Map(),
-        removed: new Map()
-    };
-    
+            added: new Map(),
+            updated: new Map(),
+            removed: new Map()
+        };
+
     private rafId: number | null = null;
     private socket: WebSocket;
     private drawerId: string;
     private pageId: number;
     private lastSendTime: number = 0;
     private minSendInterval: number = 16; // ~60fps max
-    
+
     constructor(socket: WebSocket, drawerId: string, pageId: number) {
         this.socket = socket;
         this.drawerId = drawerId;
         this.pageId = pageId;
     }
-    
+
     addChange(type: 'added' | 'updated' | 'removed', id: string, record: TLRecord, from?: TLRecord) {
         // Optimize: If added then removed in same batch, skip both
         if (type === 'added') {
@@ -107,38 +107,38 @@ class OptimizedRAFBatcher {
                 this.pending.removed.set(id, record);
             }
         }
-        
+
         // Schedule flush
         this.scheduleFlush();
     }
-    
+
     private scheduleFlush() {
         if (this.rafId !== null) return;
-        
+
         this.rafId = requestAnimationFrame(() => {
             this.flush();
         });
     }
-    
+
     flush() {
         this.rafId = null;
-        
+
         const now = performance.now();
         const timeSinceLastSend = now - this.lastSendTime;
-        
+
         // Throttle: Don't send more than 60 times per second
         if (timeSinceLastSend < this.minSendInterval) {
             this.scheduleFlush(); // Reschedule
             return;
         }
-        
-        const hasChanges = 
-            this.pending.added.size > 0 || 
-            this.pending.updated.size > 0 || 
+
+        const hasChanges =
+            this.pending.added.size > 0 ||
+            this.pending.updated.size > 0 ||
             this.pending.removed.size > 0;
-        
+
         if (!hasChanges || this.socket.readyState !== WebSocket.OPEN) return;
-        
+
         // Convert Maps to Objects for JSON
         const payload = {
             added: Object.fromEntries(this.pending.added),
@@ -147,12 +147,12 @@ class OptimizedRAFBatcher {
             ),
             removed: Object.fromEntries(this.pending.removed)
         };
-        
+
         // Clear immediately
         this.pending.added.clear();
         this.pending.updated.clear();
         this.pending.removed.clear();
-        
+
         try {
             this.socket.send(JSON.stringify({
                 type: 'sync',
@@ -160,13 +160,13 @@ class OptimizedRAFBatcher {
                 pageId: this.pageId,
                 payload: payload,
             }));
-            
+
             this.lastSendTime = now;
-            
-            const total = Object.keys(payload.added).length + 
-                         Object.keys(payload.updated).length + 
-                         Object.keys(payload.removed).length;
-            
+
+            const total = Object.keys(payload.added).length +
+                Object.keys(payload.updated).length +
+                Object.keys(payload.removed).length;
+
             if (total > 0) {
                 console.log(`⚡ Batched ${total} changes in one message`);
             }
@@ -174,13 +174,13 @@ class OptimizedRAFBatcher {
             console.error('❌ Failed to send batch:', error);
             // Restore on failure
             Object.entries(payload.added).forEach(([id, rec]) => this.pending.added.set(id, rec));
-            Object.entries(payload.updated).forEach(([id, [from, to]]) => 
+            Object.entries(payload.updated).forEach(([id, [from, to]]) =>
                 this.pending.updated.set(id, { from, to })
             );
             Object.entries(payload.removed).forEach(([id, rec]) => this.pending.removed.set(id, rec));
         }
     }
-    
+
     destroy() {
         if (this.rafId !== null) {
             cancelAnimationFrame(this.rafId);
@@ -201,18 +201,18 @@ class PresenceThrottler {
     private timeoutId: number | null = null;
     private socket: WebSocket;
     private payload: any;
-    
+
     constructor(socket: WebSocket, payload: any) {
         this.socket = socket;
         this.payload = payload;
     }
-    
+
     update(x: number, y: number, camera: any) {
         this.lastPosition = { x, y, camera };
-        
+
         const now = performance.now();
         const timeSinceLastSend = now - this.lastSendTime;
-        
+
         // If enough time has passed, send immediately
         if (timeSinceLastSend >= this.throttleInterval) {
             this.send();
@@ -225,15 +225,15 @@ class PresenceThrottler {
             }
         }
     }
-    
+
     private send() {
         if (this.timeoutId !== null) {
             clearTimeout(this.timeoutId);
             this.timeoutId = null;
         }
-        
+
         if (!this.lastPosition || this.socket.readyState !== WebSocket.OPEN) return;
-        
+
         try {
             this.socket.send(JSON.stringify({
                 ...this.payload,
@@ -242,13 +242,13 @@ class PresenceThrottler {
                 y: this.lastPosition.y,
                 camera: this.lastPosition.camera,
             }));
-            
+
             this.lastSendTime = performance.now();
         } catch (error) {
             console.error('❌ Failed to send presence:', error);
         }
     }
-    
+
     destroy() {
         if (this.timeoutId !== null) {
             clearTimeout(this.timeoutId);
@@ -282,13 +282,20 @@ export function useWhiteboardSync(
     }, [])
 
     useEffect(() => {
-        if (!editor || !whiteboardId || !pageId || !drawerId) {
-            console.warn('⚠️ Missing required params:', { 
-                hasEditor: !!editor, 
-                whiteboardId, 
-                pageId, 
-                drawerId 
-            });
+        if (!editor || !whiteboardId || !drawerId) {
+            if (editor) { // Only warn if editor exists but other params missing
+                console.warn('⚠️ Missing required params:', {
+                    hasEditor: !!editor,
+                    whiteboardId,
+                    pageId,
+                    drawerId
+                });
+            }
+            return
+        }
+
+        if (!pageId) {
+            // PageId will be set after pages are loaded, this is normal
             return
         }
 
@@ -314,7 +321,7 @@ export function useWhiteboardSync(
         socket.onclose = (e) => {
             console.log('🔴 WebSocket Closed:', e.code, e.reason);
             isConnecting.current = false
-            
+
             // Cleanup
             if (batcherRef.current) {
                 batcherRef.current.destroy();
@@ -324,7 +331,7 @@ export function useWhiteboardSync(
                 presenceRef.current.destroy();
                 presenceRef.current = null;
             }
-            
+
             // Auto-reconnect on abnormal closure
             if (isMounted.current && e.code !== 1000 && e.code !== 1001) {
                 console.log('🔄 Attempting to reconnect in 2 seconds...');
@@ -362,7 +369,7 @@ export function useWhiteboardSync(
 
             // ✅ Initialize optimized batcher
             batcherRef.current = new OptimizedRAFBatcher(socket, drawerId, pageId);
-            
+
             // ✅ Initialize presence throttler
             presenceRef.current = new PresenceThrottler(socket, {
                 userId: drawerId,
@@ -375,7 +382,7 @@ export function useWhiteboardSync(
             socket.onmessage = (event) => {
                 try {
                     const messages = parseWebSocketMessage(event.data);
-                    
+
                     for (const msg of messages) {
                         try {
                             processMessage(msg);
@@ -387,7 +394,7 @@ export function useWhiteboardSync(
                     console.error('⚠️ WebSocket handler error:', err)
                 }
             }
-            
+
             // ========== MESSAGE PROCESSOR ==========
             function processMessage(msg: any) {
                 if (!editor) {
@@ -403,7 +410,7 @@ export function useWhiteboardSync(
                 if (msg.type === 'new_page') {
                     console.log('📡 WebSocket: Received new_page', msg.page);
                     const tldrawPageId = `page:${msg.page.pageId}` as TLPageId;
-                    
+
                     if (!editor.store.get(tldrawPageId)) {
                         editor.store.put([{
                             id: tldrawPageId,
@@ -464,11 +471,11 @@ export function useWhiteboardSync(
                         // Use mergeRemoteChanges for better performance
                         editor.store.mergeRemoteChanges(() => {
                             const { added, updated, removed } = msg.payload;
-                            
+
                             // Batch all operations
                             const toAdd: TLRecord[] = [];
                             const toRemove: TLRecord['id'][] = [];
-                            
+
                             if (added) {
                                 toAdd.push(...Object.values(added) as TLRecord[]);
                             }
@@ -478,11 +485,11 @@ export function useWhiteboardSync(
                             if (removed) {
                                 toRemove.push(...Object.values(removed).map((r: any) => r.id) as TLRecord['id'][]);
                             }
-                            
+
                             // Apply in one batch
                             if (toAdd.length) editor.store.put(toAdd);
                             if (toRemove.length) editor.store.remove(toRemove);
-                            
+
                             const total = toAdd.length + toRemove.length;
                             if (total > 0) {
                                 console.log(`📥 Received ${total} changes from ${msgUserId}`);
@@ -503,7 +510,7 @@ export function useWhiteboardSync(
                     if (typeof msg.x !== 'number' || typeof msg.y !== 'number') {
                         return;
                     }
-                    
+
                     if (!msg.camera || typeof msg.camera.x !== 'number') {
                         return;
                     }
@@ -515,16 +522,16 @@ export function useWhiteboardSync(
                         userId: msgUserId,
                         userName: msg.userName ?? msgUserId,
                         lastActivityTimestamp: Date.now(),
-                        camera: { 
-                            x: msg.camera.x, 
-                            y: msg.camera.y, 
-                            z: msg.camera.z || 1 
+                        camera: {
+                            x: msg.camera.x,
+                            y: msg.camera.y,
+                            z: msg.camera.z || 1
                         },
-                        cursor: { 
-                            x: msg.x, 
-                            y: msg.y, 
-                            type: 'pointer', 
-                            rotation: 0 
+                        cursor: {
+                            x: msg.x,
+                            y: msg.y,
+                            type: 'pointer',
+                            rotation: 0
                         },
                         color: msg.color ?? '#1E90FF',
                         currentPageId: editor.getCurrentPageId(),
@@ -583,19 +590,19 @@ export function useWhiteboardSync(
             // ========== 🚀 OPTIMIZED POINTER MOVE LISTENER ==========
             const handlePointerMove = () => {
                 if (!editor || !presenceRef.current) return;
-                
+
                 const point = editor.inputs.currentPagePoint;
                 const camera = editor.getCamera();
-                
+
                 presenceRef.current.update(point.x, point.y, camera);
             }
-            
+
             window.addEventListener('pointermove', handlePointerMove);
 
             // ========== CLEANUP ==========
             socket.onclose = () => {
                 console.warn(`🔻 Disconnected from page: ${pageId}`);
-                
+
                 // Destroy batcher and throttler
                 if (batcherRef.current) {
                     batcherRef.current.destroy();
@@ -605,10 +612,10 @@ export function useWhiteboardSync(
                     presenceRef.current.destroy();
                     presenceRef.current = null;
                 }
-                
+
                 cleanupStoreListener();
                 window.removeEventListener('pointermove', handlePointerMove);
-                
+
                 if (socketRef.current === socket) {
                     socketRef.current = null;
                 }
@@ -627,7 +634,7 @@ export function useWhiteboardSync(
         return () => {
             console.log('🧹 Cleaning up WebSocket connection');
             isMounted.current = false
-            
+
             // Destroy batcher and throttler
             if (batcherRef.current) {
                 batcherRef.current.destroy();
@@ -637,14 +644,14 @@ export function useWhiteboardSync(
                 presenceRef.current.destroy();
                 presenceRef.current = null;
             }
-            
+
             if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
                 try {
                     if (socket.readyState === WebSocket.OPEN) {
-                        socket.send(JSON.stringify({ 
-                            type: 'leave', 
-                            drawerId: drawerId.toString(), 
-                            pageId 
+                        socket.send(JSON.stringify({
+                            type: 'leave',
+                            drawerId: drawerId.toString(),
+                            pageId
                         }));
                     }
                     socket.close(1000, 'Component unmounting');
@@ -652,11 +659,11 @@ export function useWhiteboardSync(
                     console.error('❌ Failed to send leave/close:', err);
                 }
             }
-            
+
             if (socketRef.current === socket) {
                 socketRef.current = null;
             }
-            
+
             isConnecting.current = false
         }
     }, [editor, whiteboardId, pageId, drawerId, drawerName])

@@ -332,34 +332,31 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
         overflow: 'hidden',
       }}
     >
-      {tildrawKey != null && (
-        console.log('🔑 Using tldraw license key', tildrawKey),
-        <Tldraw
-          onMount={e => {
-            setEditor(e);
-            console.log('✅ tldraw ready');
-          }}
-          licenseKey={tildrawKey}
-          components={{
-            PageMenu: props => (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  zIndex: 999999,
-                  pointerEvents: 'all',
-                }}
-              >
-                <CustomPageMenu
-                  {...props}
-                  whiteboardId={whiteboardId}
-                  websocket={websocket}
-                />
-              </div>
-            ),
-          }}
-        />
-      )}
+      <Tldraw
+        onMount={e => {
+          setEditor(e);
+          console.log('✅ tldraw ready');
+        }}
+        licenseKey={tildrawKey}
+        components={{
+          PageMenu: props => (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                zIndex: 999999,
+                pointerEvents: 'all',
+              }}
+            >
+              <CustomPageMenu
+                {...props}
+                whiteboardId={whiteboardId}
+                websocket={websocket}
+              />
+            </div>
+          ),
+        }}
+      />
     </div>
   );
 }
