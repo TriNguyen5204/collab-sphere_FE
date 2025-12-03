@@ -9,7 +9,7 @@ import {
   ArrowRightOnRectangleIcon,
   UserPlusIcon,
 } from '@heroicons/react/24/outline';
-import { Search, User, LogOut, ChevronDown } from 'lucide-react';
+import { Search, User, LogOut, ChevronDown, MessageSquareWarning } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AppSidebar from './AppSidebar';
@@ -17,7 +17,6 @@ import logo from '../../assets/logov1.png';
 import { logout } from '../../store/slices/userSlice';
 import useClickOutside from '../../hooks/useClickOutside';
 import { useAvatar } from '../../hooks/useAvatar';
-import { generateAvatarFromName } from '../../utils/avatar';
 import AIChatAssistant from '../../features/ai/components/AIChatAssistant';
 
 
@@ -145,6 +144,13 @@ const LecturerHeader = ({
                     </button>
                     <button
                       type="button"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-200"
+                    >
+                      <MessageSquareWarning className="w-4 h-4" />
+                      Report System
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => {
                         setOpenProfile(false);
                         onLogout();
@@ -251,7 +257,7 @@ const DashboardLayout = ({ children }) => {
       '/lecturer/projects',
       '/lecturer/monitoring'
     ];
-    
+
     const excludedPaths = [
       '/lecturer/projects/create-with-ai',
       '/lecturer/create-project',
@@ -284,29 +290,23 @@ const DashboardLayout = ({ children }) => {
       icon: ClipboardDocumentListIcon,
       match: path => path === '/lecturer/grading' || path.startsWith('/lecturer/grading/')
     },
-    // {
-    //   label: 'Analytics',
-    //   href: '/lecturer/analytics',
-    //   icon: ChartBarIcon,
-    //   match: path => path === '/lecturer/analytics' || path.startsWith('/lecturer/analytics/')
-    // },
-    // {
-    //   label: 'Meetings',
-    //   href: '/lecturer/meetings',
-    //   icon: CalendarDaysIcon,
-    //   match: path => path === '/lecturer/meetings' || path.startsWith('/lecturer/meetings/')
-    // },
-    // {
-    //   label: 'Tools',
-    //   href: '/lecturer/tools',
-    //   icon: WrenchScrewdriverIcon,
-    //   match: path => path === '/lecturer/tools' || path.startsWith('/lecturer/tools/')
-    // },
     {
-      label: 'Profile',
-      href: userId ? `/${userId}/profile` : '/lecturer/profile',
-      icon: User,
-      match: path => path === `/${userId}/profile` || path.startsWith('/lecturer/profile'),
+      label: 'Analytics',
+      href: '/lecturer/analytics',
+      icon: ChartBarIcon,
+      match: path => path === '/lecturer/analytics' || path.startsWith('/lecturer/analytics/')
+    },
+    {
+      label: 'Meetings',
+      href: '/lecturer/meetings',
+      icon: CalendarDaysIcon,
+      match: path => path === '/lecturer/meetings' || path.startsWith('/lecturer/meetings/')
+    },
+    {
+      label: 'Tools',
+      href: '/lecturer/tools',
+      icon: WrenchScrewdriverIcon,
+      match: path => path === '/lecturer/tools' || path.startsWith('/lecturer/tools/')
     },
   ];
 
@@ -332,7 +332,7 @@ const DashboardLayout = ({ children }) => {
     },
   ]), [computedNavigationItems]);
 
-  
+
 
   const handleLogin = useCallback(() => navigate('/login'), [navigate]);
   const handleSignup = useCallback(() => navigate('/register'), [navigate]);

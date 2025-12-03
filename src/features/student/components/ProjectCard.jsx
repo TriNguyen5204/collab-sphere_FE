@@ -16,7 +16,7 @@ const ProjectCard = ({ project, onClick }) => {
 
   return (
     <div
-      className="bg-white rounded-lg shadow-md w-80 relative group hover:ring-2 hover:ring-brand-500 hover:shadow-lg transition cursor-pointer overflow-hidden flex flex-col"
+      className="bg-white rounded-lg shadow-md w-80 relative group hover:ring-2 hover:ring-orangeFpt-500 hover:shadow-lg transition cursor-pointer overflow-hidden flex flex-col"
       onClick={onClick}
     >
       <div

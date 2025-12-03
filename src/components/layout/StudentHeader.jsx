@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Search, BookOpen, FolderKanban, User, LogOut, ChevronDown } from 'lucide-react';
+import { Search, BookOpen, FolderKanban, User, LogOut, ChevronDown, MessageSquareWarning } from 'lucide-react';
 import { getClassesByStudentId, getListOfTeamsByStudentId, getDetailOfTeamByTeamId } from '../../services/studentApi';
 import { logout } from '../../store/slices/userSlice';
 import useClickOutside from '../../hooks/useClickOutside';
@@ -209,6 +209,13 @@ const StudentHeader = () => {
                 >
                   <User className="w-4 h-4" />
                   Profile
+                </button>
+                <button
+                  type="button"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-200"
+                >
+                  <MessageSquareWarning className="w-4 h-4" />
+                  Report System
                 </button>
                 <button
                   type="button"
