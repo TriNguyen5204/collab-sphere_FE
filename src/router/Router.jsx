@@ -30,6 +30,7 @@ import ClassManagementDashboard from '../pages/lecturer/ClassManagementDashboard
 import ClassDetailPage from '../pages/lecturer/ClassDetailPage';
 import ClassProjectOverview from '../pages/lecturer/ClassProjectOverview';
 import TeamProjectDetail from '../pages/lecturer/TeamProjectDetail';
+import TeamMilestoneDetail from '../pages/lecturer/TeamMilestoneDetail';
 import CreateProject from '../pages/lecturer/CreateProject';
 import CreateProjectAI from '../pages/lecturer/CreateProjectAI';
 import ProjectLibrary from '../pages/lecturer/ProjectLibrary';
@@ -133,6 +134,7 @@ const lecturerRoutes = [
   { path: '/lecturer/classes/:classId/projects', element: protectRoute(['LECTURER'], <ClassProjectOverview />) },
   { path: '/lecturer/classes/:classId/project-assignments', element: protectRoute(['LECTURER'], <ClassProjectAssignment />) },
   { path: '/lecturer/classes/:classId/team/:teamId', element: protectRoute(['LECTURER'], <TeamProjectDetail />) },
+  { path: '/lecturer/classes/:classId/team/:teamId/milestone/:milestoneId', element: protectRoute(['LECTURER'], <TeamMilestoneDetail />) },
   { path: '/lecturer/classes/:classId/create-team', element: protectRoute(['LECTURER'], <CreateTeamPage />) },
   { path: '/lecturer/create-project', element: protectRoute(['LECTURER'], <CreateProject />) },
   { path: '/lecturer/projects/create-with-ai', element: protectRoute(['LECTURER'], <CreateProjectAI />) },

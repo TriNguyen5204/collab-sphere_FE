@@ -6,7 +6,9 @@ import {
   ArrowPathIcon,
   AcademicCapIcon,
   ChartBarIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
 
@@ -50,6 +52,12 @@ const GradingDashboard = () => {
   const navigate = useNavigate();
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    pageNum: 1,
+    pageSize: 12,
+    pageCount: 1,
+    totalItems: 0
+  });
   const cancelRef = useRef(false);
   const requestIdRef = useRef(0);
 
@@ -61,7 +69,19 @@ const GradingDashboard = () => {
     const requestId = ++requestIdRef.current;
     setLoading(true);
     try {
-      const response = await getLecturerClasses(activeLecturerId);
+      const response = await getLecturerClasses(activeLecturerId, {
+        pageNum: pagination.pageNum,
+        pageSize: pagination.pageSize
+      });
+
+      if (response && response.list) {
+        setPagination((prev) => ({
+          ...prev,
+          pageCount: response.pageCount,
+          totalItems: response.itemCount
+        }));
+      }
+
       const normalizedClasses = extractClassCollection(response)
         .map(mapClassRecord)
         .filter((cls) => cls.classId);
@@ -131,7 +151,7 @@ const GradingDashboard = () => {
     return () => {
       cancelRef.current = true;
     };
-  }, [lecturerId]);
+  }, [lecturerId, pagination.pageNum, pagination.pageSize]);
 
   const handleOpenClass = (classId) => {
     if (!classId) return;
@@ -260,6 +280,32 @@ const GradingDashboard = () => {
               </div>
             )}
           </section>
+
+          {/* --- PAGINATION --- */}
+          {!loading && pagination.pageCount > 1 && (
+            <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-6">
+              <p className="text-sm text-slate-500">
+                Showing page <span className="font-semibold text-slate-900">{pagination.pageNum}</span> of{' '}
+                <span className="font-semibold text-slate-900">{pagination.pageCount}</span>
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPagination((prev) => ({ ...prev, pageNum: Math.max(1, prev.pageNum - 1) }))}
+                  disabled={pagination.pageNum === 1}
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeftIcon className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => setPagination((prev) => ({ ...prev, pageNum: Math.min(pagination.pageCount, prev.pageNum + 1) }))}
+                  disabled={pagination.pageNum === pagination.pageCount}
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRightIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>

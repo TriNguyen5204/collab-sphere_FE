@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { AcademicCapIcon, ClipboardDocumentListIcon, Squares2X2Icon, UserGroupIcon } from '@heroicons/react/24/outline';
 import { getLecturerClasses } from '../../services/classApi';
-import { Search } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const REQUIRED_CLASS_FIELDS = {
   classId: 'Used as the unique key for cards and navigation into class detail.',
@@ -161,6 +161,12 @@ const ClassManagementDashboard = () => {
   const [recentSearches, setRecentSearches] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [subjectFilter, setSubjectFilter] = useState('all');
+  const [pagination, setPagination] = useState({
+    pageNum: 1,
+    pageSize: 12,
+    pageCount: 1,
+    totalItems: 0
+  });
   const showClassSkeleton = isLoadingClasses && classes.length === 0;
 
   useEffect(() => {
@@ -177,7 +183,20 @@ const ClassManagementDashboard = () => {
       setError('');
 
       try {
-        const payload = await getLecturerClasses(lecturerId);
+        const payload = await getLecturerClasses(lecturerId, {
+          pageNum: pagination.pageNum,
+          pageSize: pagination.pageSize
+        });
+        console.log('Lecturer classes payload:', payload);
+
+        if (payload && payload.list) {
+          setPagination((prev) => ({
+            ...prev,
+            pageCount: payload.pageCount,
+            totalItems: payload.itemCount
+          }));
+        }
+
         const { classes: apiClasses, missingFields } = normaliseClassResponse(payload);
 
         if (!isMounted) {
@@ -214,7 +233,7 @@ const ClassManagementDashboard = () => {
     return () => {
       isMounted = false;
     };
-  }, [lecturerId]);
+  }, [lecturerId, pagination.pageNum, pagination.pageSize]);
 
   const orderedClasses = useMemo(() => {
     const toTimestamp = (value) => {
@@ -528,6 +547,31 @@ const ClassManagementDashboard = () => {
                 {filteredClasses.map((cls) => (
                   <ClassCard key={cls.classId} cls={cls} onView={handleViewClass} subjectGradient={subjectGradient} />
                 ))}
+              </div>
+            )}
+
+            {!showClassSkeleton && pagination.pageCount > 1 && (
+              <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-6 pr-24">
+                <p className="text-sm text-slate-500">
+                  Showing page <span className="font-semibold text-slate-900">{pagination.pageNum}</span> of{' '}
+                  <span className="font-semibold text-slate-900">{pagination.pageCount}</span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPagination((prev) => ({ ...prev, pageNum: Math.max(1, prev.pageNum - 1) }))}
+                    disabled={pagination.pageNum === 1}
+                    className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => setPagination((prev) => ({ ...prev, pageNum: Math.min(pagination.pageCount, prev.pageNum + 1) }))}
+                    disabled={pagination.pageNum === pagination.pageCount}
+                    className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
             )}
           </div>
