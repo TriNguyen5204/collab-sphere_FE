@@ -139,7 +139,7 @@ const LoginPage = () => {
         <div className="relative hidden flex-col justify-center p-12 lg:col-span-2 lg:flex">
            {/* Giant Watermark */}
            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none">
-              <img src={logo} className="h-[800px] w-[800px] animate-[spin_60s_linear_infinite]" alt="" />
+              <img src={logo} className="h-[800px] w-[800px] object-contain max-w-none animate-[spin_60s_linear_infinite]" alt="" />
            </div>
            
            <div className="relative z-10 ml-12 max-w-2xl">
