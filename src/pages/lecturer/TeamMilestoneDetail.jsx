@@ -4,13 +4,10 @@ import { toast } from 'sonner';
 import {
   ArrowLeft,
   Calendar,
-  Clock,
-  FileText,
   HelpCircle,
   Loader2,
   Trash2,
   UploadCloud,
-  Download,
   Plus,
   Save,
   CheckCircle
@@ -290,8 +287,8 @@ const TeamMilestoneDetail = () => {
             const res = await getMilestoneQuestionsAnswersByQuestionId(qId);
             answersMap[qId] = Array.isArray(res?.answersList) ? res.answersList : [];
           }
-        } catch (err) {
-          console.error('Failed to fetch answers for question', q);
+        } catch (error) {
+          console.error('Failed to fetch answers for question', q, error);
         }
       }));
       setQuestionAnswers(answersMap);

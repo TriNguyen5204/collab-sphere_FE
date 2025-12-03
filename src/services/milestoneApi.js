@@ -46,6 +46,19 @@ export const getMilestonesByTeam = async (teamId) => {
   }
 };
 
+export const deleteTeamMilestone = async (teamMilestoneId) => {
+  if (!teamMilestoneId) {
+    throw new Error('teamMilestoneId is required to delete a milestone.');
+  }
+  try {
+    const response = await apiClient.delete(`/milestone/${teamMilestoneId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error deleting team milestone ${teamMilestoneId}:`, error);
+    throw new Error(normalizeError(error));
+  }
+};
+
 export const getMilestoneDetail = async (milestoneId) => {
   if (milestoneId === undefined || milestoneId === null || milestoneId === '') {
     throw new Error('milestoneId is required to fetch milestone detail.');

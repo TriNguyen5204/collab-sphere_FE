@@ -5,6 +5,7 @@ import MilestoneHeader from '../../../features/student/components/milestone/Mile
 import CheckpointSummaryCards from '../../../features/student/components/milestone/CheckpointSummaryCards';
 import CheckpointCard from '../../../features/student/components/milestone/CheckpointCard';
 import CheckpointFormModal from '../../../features/student/components/milestone/CheckpointFormModal';
+import MilestoneUpdateModal from '../../../features/student/components/milestone/MilestoneUpdateModal';
 import { Plus, Folder } from 'lucide-react';
 import {
   getAllMilestonesByTeamId,
@@ -20,6 +21,7 @@ import {
   putUpdateCheckpointByCheckpointId,
   postUploadMilestoneFilebyMilestoneId,
   deleteMilestoneFileByMilestoneIdAndMileReturnId,
+  deleteTeamMilestoneById,
 } from '../../../services/studentApi';
 import { normalizeMilestoneStatus } from '../../../utils/milestoneHelpers';
 import { toast } from 'sonner';
@@ -31,6 +33,8 @@ const MilestonePage = () => {
   const [isLoadingList, setIsLoadingList] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [milestoneToUpdate, setMilestoneToUpdate] = useState(null);
   const [newCheckpoint, setNewCheckpoint] = useState({ title: '', description: '', startDate: '', dueDate: '', complexity: 'LOW' });
   const [activeTab, setActiveTab] = useState('all');
   const { team } = useTeam();
@@ -349,7 +353,7 @@ const MilestonePage = () => {
   };
 
   // Fetch milestones list
-  const fetchMilestones = async (teamId) => {
+  const fetchMilestones = async (teamId, keepSelection = false) => {
     try {
       setIsLoadingList(true);
       const response = await getAllMilestonesByTeamId(teamId);
@@ -360,12 +364,22 @@ const MilestonePage = () => {
           : (response?.data || []);
       const normalizedList = Array.isArray(list) ? list : [];
       setMilestones(normalizedList);
+      
       if (normalizedList.length > 0) {
-        const firstMilestone = normalizedList[0];
-        const firstId = getMilestoneId(firstMilestone);
-        setSelectedMilestone(firstMilestone);
-        if (firstId) {
-          await fetchMilestoneDetail(firstId, firstMilestone);
+        let milestoneToSelect = normalizedList[0];
+        
+        if (keepSelection && selectedMilestone) {
+            const currentId = getMilestoneId(selectedMilestone);
+            const found = normalizedList.find(m => getMilestoneId(m) === currentId);
+            if (found) {
+                milestoneToSelect = found;
+            }
+        }
+
+        const mId = getMilestoneId(milestoneToSelect);
+        setSelectedMilestone(milestoneToSelect);
+        if (mId) {
+          await fetchMilestoneDetail(mId, milestoneToSelect);
         }
       } else {
         setSelectedMilestone(null);
@@ -421,6 +435,37 @@ const MilestonePage = () => {
       fetchMilestones(teamId);
     }
   }, [teamId]);
+
+  const handleMilestoneUpdated = async () => {
+    if (teamId) {
+      await fetchMilestones(teamId, true);
+    }
+  };
+
+  const handleOpenUpdateModal = (milestone) => {
+    setMilestoneToUpdate(milestone);
+    setShowUpdateModal(true);
+  };
+
+  const handleDeleteMilestone = async (milestone) => {
+    const milestoneId = getMilestoneId(milestone);
+    if (!milestoneId) return;
+
+    if (window.confirm(`Are you sure you want to delete milestone '${milestone.title}'?`)) {
+      try {
+        await deleteTeamMilestoneById(milestoneId);
+        toast.success(`Deleted successfully team milestone '${milestone.title}' (${milestoneId})`);
+        
+        // Refresh list
+        if (teamId) {
+            fetchMilestones(teamId);
+        }
+      } catch (error) {
+        console.error('Failed to delete milestone:', error);
+        toast.error('Failed to delete milestone');
+      }
+    }
+  };
 
   const handleCompleteMilestone = async () => {
     if (!selectedMilestone) return;
@@ -823,6 +868,8 @@ const MilestonePage = () => {
               milestones={milestones}
               selectedMilestone={selectedMilestone}
               onSelectMilestone={handleSelectMilestone}
+              onDeleteMilestone={handleDeleteMilestone}
+              onUpdateMilestone={handleOpenUpdateModal}
             />
           )}
         </aside>
@@ -841,6 +888,7 @@ const MilestonePage = () => {
                 onUploadMilestoneFiles={handleUploadMilestoneReturns}
                 onDeleteMilestoneReturn={handleDeleteMilestoneReturn}
                 onAnswerSubmitted={handleQuestionAnswered}
+                onUpdateClick={() => handleOpenUpdateModal(selectedMilestone)}
               />
             )
           ) : (
@@ -938,6 +986,12 @@ const MilestonePage = () => {
         onChange={setNewCheckpoint}
         onSubmit={handleCreateCheckpoint}
         onClose={closeModals}
+      />
+      <MilestoneUpdateModal
+        isOpen={showUpdateModal}
+        onClose={() => setShowUpdateModal(false)}
+        milestone={milestoneToUpdate}
+        onUpdateSuccess={handleMilestoneUpdated}
       />
     </div>
   );
