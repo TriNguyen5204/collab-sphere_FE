@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flag, Calendar, ChevronRight, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Flag, Calendar, ChevronRight, CheckCircle, Clock, AlertCircle, Trash2, Pencil } from 'lucide-react';
 import { getStatusColor, getStatusIcon, getDaysRemaining, normalizeMilestoneStatus } from '../../../../utils/milestoneHelpers';
 
 const iconMap = {
@@ -9,7 +9,7 @@ const iconMap = {
   Flag: Flag
 };
 
-const MilestoneTimeline = ({ milestones, selectedMilestone, onSelectMilestone }) => {
+const MilestoneTimeline = ({ milestones, selectedMilestone, onSelectMilestone, onDeleteMilestone, onUpdateMilestone }) => {
   return (
     <div className="bg-white rounded-lg shadow-md p-6 w-full">
       <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -35,9 +35,8 @@ const MilestoneTimeline = ({ milestones, selectedMilestone, onSelectMilestone })
                 className={`w-full text-left p-4 rounded-lg border-2 transition ${isActive
                     ? 'border-orangeFpt-500 bg-orangeFpt-50'
                     : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
+                  } flex items-start gap-3`}
               >
-                <div className="flex items-start gap-3">
                   <div className={`p-2 rounded-full ${getStatusColor(status)}`}>
                     <IconComponent size={20} />
                   </div>
@@ -59,8 +58,35 @@ const MilestoneTimeline = ({ milestones, selectedMilestone, onSelectMilestone })
                     </div>
                   </div>
 
-                  {isActive && <ChevronRight className="text-orangeFpt-500 flex-shrink-0" size={20} />}
-                </div>
+                  <div className="flex items-center gap-1">
+                    {onUpdateMilestone && (
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onUpdateMilestone(milestone);
+                        }}
+                        className="p-1 text-gray-400 hover:text-blue-500 transition-colors rounded-full hover:bg-blue-50"
+                        title="Update Milestone"
+                      >
+                        <Pencil size={18} />
+                      </div>
+                    )}
+
+                    {onDeleteMilestone && (
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteMilestone(milestone);
+                        }}
+                        className="p-1 text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50"
+                        title="Delete Milestone"
+                      >
+                        <Trash2 size={18} />
+                      </div>
+                    )}
+                  </div>
+
+                  {isActive && <ChevronRight className="text-orangeFpt-500 flex-shrink-0 self-center" size={20} />}
               </button>
             </div>
           );

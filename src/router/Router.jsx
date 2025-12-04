@@ -46,6 +46,7 @@ import MilestoneDetailPage from '../pages/lecturer/evaluations/MilestoneDetailPa
 import MilestoneEvaluationPage from '../pages/lecturer/evaluations/MilestoneEvaluationPage';
 import LecturerGradingDashboard from '../pages/lecturer/grading/LecturerGradingDashboard';
 import CreateTeamPage from '../pages/lecturer/CreateTeamPage';
+import ResourcesHub from '../pages/lecturer/ResourcesHub';
 
 // academic services (staff) pages
 import StaffPage from '../pages/staff/StaffPage';
@@ -130,6 +131,7 @@ const sharedRoutes = [
 
 const lecturerRoutes = [
   { path: '/lecturer/classes', element: protectRoute(['LECTURER'], <ClassManagementDashboard />) },
+  { path: '/lecturer/resources', element: protectRoute(['LECTURER'], <ResourcesHub />) },
   { path: '/lecturer/classes/:classId', element: protectRoute(['LECTURER'], <ClassDetailPage />) },
   { path: '/lecturer/classes/:classId/projects', element: protectRoute(['LECTURER'], <ClassProjectOverview />) },
   { path: '/lecturer/classes/:classId/project-assignments', element: protectRoute(['LECTURER'], <ClassProjectAssignment />) },

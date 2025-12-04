@@ -49,3 +49,35 @@ export const assignProjectsToClass = async (classId, projectIds = []) => {
     throw error;
   }
 };
+
+export const postClassFile = async (classId, formData) => {
+  try {
+    const response = await apiClient.post(`/class/${classId}/files`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error uploading file for class ID ${classId}:`, error);
+    throw error;
+  }
+};
+
+export const deleteClassFile = async (classId, fileId) => {
+  try {
+    const response = await apiClient.delete(`/class/${classId}/files/${fileId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error deleting file for class ID ${classId} and file ID ${fileId}:`, error);
+    throw error;
+  }
+};
+
+export const patchRefreshClassFileUrl = async (classId, fileId) => {
+  try {
+    const response = await apiClient.patch(`/class/${classId}/files/${fileId}/new-url`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error refreshing file URL for class ID ${classId} and file ID ${fileId}:`, error);
+    throw error;
+  }
+};

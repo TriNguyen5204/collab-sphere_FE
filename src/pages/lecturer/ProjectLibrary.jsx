@@ -15,9 +15,12 @@ import {
    CpuChipIcon,
    ListBulletIcon,
    Squares2X2Icon,
-   ArrowRightIcon
+   ArrowRightIcon,
+   ChevronLeftIcon,
+   ChevronRightIcon,
+   UserIcon
 } from '@heroicons/react/24/outline';
-import { getLecturerProjects } from '../../services/projectApi';
+import { getLecturerProjects, getProjects } from '../../services/projectApi';
 import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
 
 // --- Constants & Helpers ---
@@ -80,12 +83,19 @@ const ProjectLibrary = () => {
    const lecturerId = useSelector((state) => state.user?.userId);
 
    const [projects, setProjects] = useState([]);
-   const [isLoading, setIsLoading] = useState(false);
+   const [isLoading, setIsLoading] = useState(true);
    const [searchTerm, setSearchTerm] = useState('');
    const [statusFilter, setStatusFilter] = useState('all');
+   const [ownerFilter, setOwnerFilter] = useState('all'); // 'all' | 'my'
    const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
    const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
    const createMenuRef = useRef(null);
+   const [pagination, setPagination] = useState({
+      pageNum: 1,
+      pageSize: 12,
+      pageCount: 1,
+      totalItems: 0
+   });
 
    useEffect(() => {
       const handleClickOutside = (event) => {
@@ -96,28 +106,53 @@ const ProjectLibrary = () => {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
    }, []);
-
    useEffect(() => {
       if (!lecturerId) return;
       let isMounted = true;
       const fetchData = async () => {
          setIsLoading(true);
          try {
-            const payload = await getLecturerProjects(lecturerId);
+            const params = {
+               pageNum: pagination.pageNum,
+               pageSize: pagination.pageSize
+            };
+
+            let payload;
+            if (ownerFilter === 'my') {
+               payload = await getLecturerProjects(lecturerId, params);
+            } else {
+               payload = await getProjects(params);
+            }
+
             if (!isMounted) return;
-            console.log("Raw lecturer projects payload:", payload);
-            const rawList = payload.list || [];
-            const mapped = rawList.map(mapApiProjectToViewModel);
-            setProjects(mapped);
+            console.log("Projects payload:", payload);
+
+            if (payload && (payload.list || Array.isArray(payload))) {
+               // Handle both { list: [], ... } and [] responses if necessary, 
+               // though the sample shows { list: [], itemCount: ... }
+               const list = payload.list || (Array.isArray(payload) ? payload : []);
+               
+               setPagination((prev) => ({
+                  ...prev,
+                  pageCount: payload.pageCount || 1,
+                  totalItems: payload.itemCount || list.length
+               }));
+
+               const mapped = list.map(mapApiProjectToViewModel);
+               setProjects(mapped);
+            } else {
+               setProjects([]);
+            }
          } catch (err) {
             console.error("Failed to fetch projects", err);
+            setProjects([]);
          } finally {
             if (isMounted) setIsLoading(false);
          }
       };
       fetchData();
       return () => { isMounted = false; };
-   }, [lecturerId]);
+   }, [lecturerId, pagination.pageNum, pagination.pageSize, ownerFilter]);
 
    // --- Derived State ---
    const filteredProjects = useMemo(() => {
@@ -257,16 +292,54 @@ const ProjectLibrary = () => {
             <div className="grid grid-cols-1 gap-8 xl:grid-cols-12">
 
                {/* LEFT: PROJECT LIST */}
-               <div className="xl:col-span-8 2xl:col-span-9 space-y-6">
+               <div className="col-span-1 xl:col-span-8 2xl:col-span-9">
+                  
+                  {/* Tabs */}
+                  <div className="mb-6 border-b border-slate-200">
+                     <div className="flex gap-8">
+                        <button
+                           onClick={() => {
+                              setOwnerFilter('all');
+                              setPagination(prev => ({ ...prev, pageNum: 1 }));
+                           }}
+                           className={`relative pb-3 text-sm font-semibold transition-all ${
+                              ownerFilter === 'all'
+                                 ? 'text-orangeFpt-600'
+                                 : 'text-slate-500 hover:text-slate-700'
+                           }`}
+                        >
+                           All Approved Projects
+                           {ownerFilter === 'all' && (
+                              <span className="absolute bottom-0 left-0 h-0.5 w-full bg-orangeFpt-600 rounded-t-full" />
+                           )}
+                        </button>
+                        <button
+                           onClick={() => {
+                              setOwnerFilter('my');
+                              setPagination(prev => ({ ...prev, pageNum: 1 }));
+                           }}
+                           className={`relative pb-3 text-sm font-semibold transition-all ${
+                              ownerFilter === 'my'
+                                 ? 'text-orangeFpt-600'
+                                 : 'text-slate-500 hover:text-slate-700'
+                           }`}
+                        >
+                           Personal Projects
+                           {ownerFilter === 'my' && (
+                              <span className="absolute bottom-0 left-0 h-0.5 w-full bg-orangeFpt-600 rounded-t-full" />
+                           )}
+                        </button>
+                     </div>
+                  </div>
 
-                  {/* Filter Bar */}
-                  <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                  {/* Toolbar */}
+                  <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                      <div className="relative flex-1 max-w-md">
-                        <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                        <MagnifyingGlassIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                         <input
                            type="text"
                            placeholder="Search projects..."
-                           className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-2.5 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-2 focus:ring-orangeFpt-500/10"
+                           className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-11 pr-4 text-sm font-medium text-slate-700 placeholder:text-slate-400 focus:border-orangeFpt-500 focus:outline-none focus:ring-1 focus:ring-orangeFpt-500"
                            value={searchTerm}
                            onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -306,23 +379,48 @@ const ProjectLibrary = () => {
                         ))}
                      </div>
                   ) : filteredProjects.length === 0 ? (
-                     <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50/50 py-20 text-center">
-                        <ClipboardDocumentListIcon className="h-12 w-12 text-slate-300 mb-4" />
+                     <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 py-20 text-center">
+                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm">
+                           <ClipboardDocumentListIcon className="h-8 w-8 text-slate-400" />
+                        </div>
                         <h3 className="text-lg font-semibold text-slate-900">No projects found</h3>
-                        <p className="text-sm text-slate-500">Try adjusting your filters or create a new project.</p>
+                        <p className="mt-1 text-sm text-slate-500 max-w-xs mx-auto">
+                           Try adjusting your search or filters, or create a new project to get started.
+                        </p>
+                        <button
+                           onClick={() => {
+                              setSearchTerm('');
+                              setStatusFilter('all');
+                              setOwnerFilter('all');
+                           }}
+                           className="mt-6 text-sm font-medium text-orangeFpt-600 hover:text-orangeFpt-700"
+                        >
+                           Clear all filters
+                        </button>
                      </div>
                   ) : (
                      <>
                         {viewMode === 'grid' ? (
-                           /* --- GRID VIEW (Updated) --- */
                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                               {filteredProjects.map((project) => (
-                                 <div key={project.projectId} className="group relative flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-orangeFpt-200 hover:shadow-lg">
+                                 <div
+                                    key={project.projectId}
+                                    onClick={() => navigate(`/lecturer/projects/${project.projectId}`)}
+                                    className="group relative flex cursor-pointer flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-orangeFpt-200 hover:shadow-md"
+                                 >
                                     <div className="mb-4 flex items-start justify-between">
                                        <div className="space-y-1">
-                                          <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                                             {project.subjectCode}
-                                          </span>
+                                          <div className="flex items-center gap-2">
+                                             <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                                                {project.subjectCode}
+                                             </span>
+                                             {project.lecturerName && (
+                                                <span className="inline-flex items-center gap-1 text-[10px] text-slate-500" title={`Created by ${project.lecturerName}`}>
+                                                   <UserIcon className="h-3 w-3" />
+                                                   <span className="truncate max-w-[100px]">{project.lecturerName}</span>
+                                                </span>
+                                             )}
+                                          </div>
                                           <h3 className="text-base font-bold text-slate-900 line-clamp-1 group-hover:text-orangeFpt-600 transition-colors" title={project.projectName}>
                                              {project.projectName}
                                           </h3>
@@ -347,21 +445,16 @@ const ProjectLibrary = () => {
                                        </div>
                                     </div>
 
-                                    {/* Updated Button Section (Grid) */}
-                                    <div className="mt-auto pt-2">
-                                       <button
-                                          onClick={() => navigate(`/lecturer/projects/${project.projectId}`)}
-                                          className="group/btn flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:border-orangeFpt-200 hover:bg-orangeFpt-50 hover:text-orangeFpt-700 active:scale-[0.98]"
-                                       >
-                                          <span>View Details</span>
-                                          <ArrowRightIcon className="h-3.5 w-3.5 transition-transform group-hover/btn:translate-x-1" />
-                                       </button>
+                                    <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4">
+                                       <span className="text-xs font-medium text-slate-400 group-hover:text-orangeFpt-500 transition-colors">View Details</span>
+                                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-colors group-hover:bg-orangeFpt-50 group-hover:text-orangeFpt-600">
+                                          <ArrowRightIcon className="h-4 w-4" />
+                                       </div>
                                     </div>
                                  </div>
                               ))}
                            </div>
                         ) : (
-                           /* --- LIST VIEW (Updated) --- */
                            <div className="flex flex-col gap-4">
                               {filteredProjects.map((project) => (
                                  <div key={project.projectId} className="group flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-orangeFpt-200 hover:shadow-md sm:flex-row sm:items-center">
@@ -375,6 +468,12 @@ const ProjectLibrary = () => {
                                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${getStatusColor(project.status)}`}>
                                              {project.statusLabel}
                                           </span>
+                                          {project.lecturerName && (
+                                             <span className="inline-flex items-center gap-1 text-xs text-slate-500 ml-2">
+                                                <UserIcon className="h-3 w-3" />
+                                                <span>{project.lecturerName}</span>
+                                             </span>
+                                          )}
                                        </div>
                                        <h3 className="text-base font-bold text-slate-900 truncate group-hover:text-orangeFpt-600 transition-colors">
                                           {project.projectName}
@@ -396,7 +495,7 @@ const ProjectLibrary = () => {
                                        </div>
                                     </div>
 
-                                    {/* Right: Actions (Updated) */}
+                                    {/* Right: Actions */}
                                     <div className="flex sm:w-auto w-full">
                                        <button
                                           onClick={() => navigate(`/lecturer/projects/${project.projectId}`)}
@@ -411,6 +510,31 @@ const ProjectLibrary = () => {
                            </div>
                         )}
                      </>
+                  )}
+
+                  {!isLoading && pagination.pageCount > 1 && (
+                     <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-6">
+                        <p className="text-sm text-slate-500">
+                           Showing page <span className="font-semibold text-slate-900">{pagination.pageNum}</span> of{' '}
+                           <span className="font-semibold text-slate-900">{pagination.pageCount}</span>
+                        </p>
+                        <div className="flex items-center gap-2">
+                           <button
+                              onClick={() => setPagination((prev) => ({ ...prev, pageNum: Math.max(1, prev.pageNum - 1) }))}
+                              disabled={pagination.pageNum === 1}
+                              className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                           >
+                              <ChevronLeftIcon className="h-5 w-5" />
+                           </button>
+                           <button
+                              onClick={() => setPagination((prev) => ({ ...prev, pageNum: Math.min(pagination.pageCount, prev.pageNum + 1) }))}
+                              disabled={pagination.pageNum === pagination.pageCount}
+                              className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                           >
+                              <ChevronRightIcon className="h-5 w-5" />
+                           </button>
+                        </div>
+                     </div>
                   )}
                </div>
 

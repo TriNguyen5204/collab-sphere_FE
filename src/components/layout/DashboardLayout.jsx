@@ -8,6 +8,7 @@ import {
   WrenchScrewdriverIcon,
   ArrowRightOnRectangleIcon,
   UserPlusIcon,
+  FolderIcon,
 } from '@heroicons/react/24/outline';
 import { Search, User, LogOut, ChevronDown } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -271,6 +272,12 @@ const DashboardLayout = ({ children }) => {
       href: '/lecturer/classes',
       icon: AcademicCapIcon,
       match: path => path === '/lecturer/classes' || path.startsWith('/lecturer/classes/')
+    },
+    {
+      label: 'Resources Hub',
+      href: '/lecturer/resources',
+      icon: FolderIcon,
+      match: path => path === '/lecturer/resources' || path.startsWith('/lecturer/resources/')
     },
     {
       label: 'Project Library',

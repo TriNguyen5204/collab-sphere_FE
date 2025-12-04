@@ -4,7 +4,7 @@ import {
    Users, Target, Calendar, Clock, CheckCircle2, MoreHorizontal,
    Plus, Trash2, Edit3, ArrowLeft, Github, Flag, AlertCircle,
    X, Mail, Phone, MapPin, GraduationCap, FileText, HelpCircle,
-   Paperclip, UploadCloud, Loader2, Download
+   Paperclip, UploadCloud, Loader2, Download, Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getTeamDetail } from '../../services/teamApi';
@@ -18,6 +18,7 @@ import {
 } from '../../services/milestoneApi';
 import { getUserProfile } from '../../services/userService';
 import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
+import TeamResources from '../../features/lecturer/components/TeamResources';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useSecureFileHandler } from '../../hooks/useSecureFileHandler';
 import useFileSizeFormatter from '../../hooks/useFileSizeFormatter';
@@ -170,6 +171,7 @@ const TeamProjectDetail = () => {
 
    // Modals
    const [milestoneModal, setMilestoneModal] = useState(null);
+   const [activeTab, setActiveTab] = useState('overview');
 
    const [milestoneFormValues, setMilestoneFormValues] = useState(initialMilestoneForm);
    const [confirmState, setConfirmState] = useState(null);
@@ -232,6 +234,18 @@ const TeamProjectDetail = () => {
       fetchTeamAndProject();
       fetchMilestonesList();
    }, [fetchTeamAndProject, fetchMilestonesList]);
+
+   useEffect(() => {
+      if (milestoneModal?.mode === 'edit' && milestoneModal.milestone) {
+         const m = milestoneModal.milestone;
+         setMilestoneFormValues({
+            title: m.title || '',
+            description: m.description || '',
+            startDate: toDateInputValue(m.startDate),
+            endDate: toDateInputValue(m.endDate)
+         });
+      }
+   }, [milestoneModal]);
 
    // --- Derived Data ---
 
@@ -327,6 +341,7 @@ const TeamProjectDetail = () => {
             const id = milestoneModal.milestone.displayId || milestoneModal.milestone.id;
             await updateMilestone(id, payload);
             toast.success('Milestone details updated');
+            setMilestoneModal(null);
          }
          fetchMilestonesList(true);
       } catch (err) {
@@ -414,7 +429,34 @@ const TeamProjectDetail = () => {
                </div>
             </div>
 
+            {/* --- TABS --- */}
+            <div className="flex items-center gap-4 mb-8">
+               <button
+                  onClick={() => setActiveTab('overview')}
+                  className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${
+                     activeTab === 'overview'
+                        ? 'bg-orangeFpt-500 text-white shadow-lg shadow-orangeFpt-200 scale-105'
+                        : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
+                  }`}
+               >
+                  Overview
+               </button>
+               <button
+                  onClick={() => setActiveTab('resources')}
+                  className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${
+                     activeTab === 'resources'
+                        ? 'bg-orangeFpt-500 text-white shadow-lg shadow-orangeFpt-200 scale-105'
+                        : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
+                  }`}
+               >
+                  Resources
+               </button>
+            </div>
+
             {/* --- CONTENT --- */}
+            {activeTab === 'resources' ? (
+               <TeamResources teamId={teamId} />
+            ) : (
             <div className="mx-auto grid grid-cols-1 gap-8 lg:grid-cols-3">
 
                {/* LEFT: MILESTONES */}
@@ -472,7 +514,13 @@ const TeamProjectDetail = () => {
                                                             onClick={() => navigate(`/lecturer/classes/${classId}/team/${teamId}/milestone/${milestone.displayId || milestone.id}`)}
                                                             className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center gap-2"
                                                          >
-                                                            <Edit3 size={14} /> View Details
+                                                            <Eye size={14} /> View Details
+                                                         </button>
+                                                         <button
+                                                            onClick={() => handleOpenMilestoneManager(milestone, 'edit')}
+                                                            className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+                                                         >
+                                                            <Edit3 size={14} /> Edit
                                                          </button>
                                                       </div>
                                                    )}
@@ -531,7 +579,13 @@ const TeamProjectDetail = () => {
                                                 onClick={() => navigate(`/lecturer/classes/${classId}/team/${teamId}/milestone/${milestone.displayId || milestone.id}`)}
                                                 className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center gap-2"
                                              >
-                                                <Edit3 size={14} /> View Details
+                                                <Eye size={14} /> View Details
+                                             </button>
+                                             <button
+                                                onClick={() => handleOpenMilestoneManager(milestone, 'edit')}
+                                                className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+                                             >
+                                                <Edit3 size={14} /> Edit
                                              </button>
                                              <button
                                                 onClick={() => setConfirmState({ item: milestone })}
@@ -590,6 +644,7 @@ const TeamProjectDetail = () => {
                   </div>
                </aside>
             </div>
+            )}
          </div>
 
          {/* --- MILESTONE MANAGEMENT MODAL --- */}
