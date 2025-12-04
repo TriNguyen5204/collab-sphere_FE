@@ -8,6 +8,8 @@ import {
   ChevronDown,
   User,
   GraduationCap,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import ModalWrapper from '../../components/layout/ModalWrapper';
 import CreateLecturerForm from '../../features/staff/components/CreateLecturerForm';
@@ -15,10 +17,12 @@ import CreateMultipleLecturerForm from '../../features/staff/components/CreateMu
 import CreateStudentForm from '../../features/staff/components/CreateStudentForm';
 import CreateMultipleStudentForm from '../../features/staff/components/CreateMultipleStudent';
 import EditAccountForm from '../../features/staff/components/EditAccountForm';
-import Header from '../../components/layout/Header';
+import StaffDashboardLayout from '../../components/layout/StaffDashboardLayout';
 import { getAllLecturer, getAllStudent } from '../../services/userService';
 
 export default function ImprovedAccountsTable() {
+  const [showLecturerDropdown, setShowLecturerDropdown] = useState(false);
+  const [showStudentDropdown, setShowStudentDropdown] = useState(false);
   const [accountType, setAccountType] = useState('lecturer');
   const [searchFilters, setSearchFilters] = useState({
     Email: '',
@@ -28,7 +32,6 @@ export default function ImprovedAccountsTable() {
     Major: '',
   });
   const [appliedFilters, setAppliedFilters] = useState(searchFilters);
-  const [showFilters, setShowFilters] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isMultipleOpen, setIsMultipleOpen] = useState(false);
   const [isStudentOpen, setIsStudentOpen] = useState(false);
@@ -104,295 +107,321 @@ export default function ImprovedAccountsTable() {
 
   return (
     <>
-      <Header />
-      <div className='min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6'>
-        <div className='max-w-7xl mx-auto'>
-          {/* Header */}
-          <div className='mb-8'>
-            <h1 className='text-3xl font-bold text-gray-900 mb-2'>
-              Account Management
-            </h1>
-            <p className='text-gray-600'>
-              Manage lecturers and students in the system
-            </p>
-          </div>
+      <StaffDashboardLayout>
+        <div className='min-h-screen'>
+          <div className='max-w-7xl mx-auto'>
+            {/* Header */}
+            <div className='mb-8'>
+              <h1 className='text-3xl font-bold text-slate-800 mb-2'>
+                Account Management
+              </h1>
+              <p className='text-slate-600'>
+                Manage lecturers and students in the system
+              </p>
+            </div>
 
-          <div className='flex gap-3 mb-6'>
-            <button
-              onClick={() => setAccountType('lecturer')}
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg border transition-all ${
-                accountType === 'lecturer'
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <User className='w-4 h-4' /> Lecturers
-            </button>
-            <button
-              onClick={() => setAccountType('student')}
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg border transition-all ${
-                accountType === 'student'
-                  ? 'bg-green-600 text-white border-green-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <GraduationCap className='w-4 h-4' /> Students
-            </button>
-          </div>
-          {/* Controls Bar */}
-          <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6'>
-            <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4'>
-              {/* Left side - Search and Filters */}
-              <div className='flex items-center gap-4 flex-1'>
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className='flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'
-                >
-                  <Filter className='w-4 h-4' />
-                  Filters
-                </button>
-                <button
-                  onClick={handleApplyFilters}
-                  className='flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-all'
-                >
-                  <Search className='w-4 h-4' />
-                  Search
-                </button>
-              </div>
+            {/* Account Type Toggle - Glassmorphism */}
+            <div className='flex gap-3 mb-6'>
+              <button
+                onClick={() => setAccountType('lecturer')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-2xl border backdrop-blur-sm transition-all shadow-lg ${
+                  accountType === 'lecturer'
+                    ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-blue-400/50'
+                    : 'bg-white/70 text-slate-700 border-white/40 hover:bg-white/90'
+                }`}
+              >
+                <User className='w-4 h-4' /> Lecturers
+              </button>
+              <button
+                onClick={() => setAccountType('student')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-2xl border backdrop-blur-sm transition-all shadow-lg ${
+                  accountType === 'student'
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-emerald-400/50'
+                    : 'bg-white/70 text-slate-700 border-white/40 hover:bg-white/90'
+                }`}
+              >
+                <GraduationCap className='w-4 h-4' /> Students
+              </button>
+            </div>
 
-              {/* Right side - Actions */}
-              <div className='flex items-center gap-3'>
-                {/* Create Lecturer Dropdown */}
-                <div className='relative group'>
-                  <button className='flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg shadow-sm hover:bg-blue-700 transition-all hover:shadow-md'>
-                    <Plus className='w-4 h-4' />
-                    Create Lecturer
-                    <ChevronDown className='w-4 h-4' />
+            {/* Controls Bar - Glassmorphism */}
+            <div className='bg-white/70 backdrop-blur-xl rounded-3xl shadow-lg border border-white/20 p-6 mb-6 overflow-visible'>
+              <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4'>
+                {/* Left side - Search and Filters */}
+                <div className='flex items-center gap-4 flex-1'>
+                  <button
+                    className='flex items-center gap-2 px-4 py-2.5 bg-white/50 backdrop-blur-sm border border-slate-200/50 rounded-xl hover:bg-white/80 transition-all'
+                  >
+                    <Filter className='w-4 h-4' />
+                    Filters
                   </button>
-                  <div className='absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10'>
-                    <button
-                      onClick={() => setIsOpen(true)}
-                      className='w-full text-left px-4 py-2 hover:bg-gray-50 first:rounded-t-lg'
-                    >
-                      Single Lecturer
-                    </button>
-                    <button
-                      onClick={() => setIsMultipleOpen(true)}
-                      className='w-full text-left px-4 py-2 hover:bg-gray-50 last:rounded-b-lg'
-                    >
-                      Multiple Lecturers
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleApplyFilters}
+                    className='flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-5 py-2.5 rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all shadow-lg'
+                  >
+                    <Search className='w-4 h-4' />
+                    Search
+                  </button>
                 </div>
 
-                {/* Create Student Dropdown */}
-                <div className='relative group'>
-                  <button className='flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-lg shadow-sm hover:bg-green-700 transition-all hover:shadow-md'>
-                    <Plus className='w-4 h-4' />
-                    Create Student
-                    <ChevronDown className='w-4 h-4' />
-                  </button>
-                  <div className='absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10'>
+                {/* Right side - Actions */}
+                <div className='flex items-center gap-3'>
+                  {/* Create Lecturer Dropdown */}
+                  <div className='relative group'>
                     <button
-                      onClick={() => setIsStudentOpen(true)}
-                      className='w-full text-left px-4 py-2 hover:bg-gray-50 first:rounded-t-lg'
+                      onClick={() =>
+                        setShowLecturerDropdown(!showLecturerDropdown)
+                      }
+                      className='flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-5 py-2.5 rounded-xl shadow-lg hover:from-blue-600 hover:to-indigo-600 transition-all backdrop-blur-sm'
                     >
-                      Single Student
+                      <Plus className='w-4 h-4' />
+                      Create Lecturer
+                      <ChevronDown className='w-4 h-4' />
                     </button>
-                    <button
-                      onClick={() => setIsMultipleStudentOpen(true)}
-                      className='w-full text-left px-4 py-2 hover:bg-gray-50 last:rounded-b-lg'
-                    >
-                      Multiple Students
-                    </button>
+                    {showLecturerDropdown && (
+                      <div className='absolute top-full left-0 mt-2 w-48 bg-white/90 backdrop-blur-xl border border-white/30 rounded-2xl shadow-xl transition-all z-[200]'>
+                        <button
+                          onClick={() => setIsOpen(true)}
+                          className='w-full text-left px-4 py-2.5 hover:bg-blue-50/80 first:rounded-t-2xl transition-colors'
+                        >
+                          Single Lecturer
+                        </button>
+                        <button
+                          onClick={() => setIsMultipleOpen(true)}
+                          className='w-full text-left px-4 py-2.5 hover:bg-blue-50/80 last:rounded-b-2xl transition-colors'
+                        >
+                          Multiple Lecturers
+                        </button>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Create Student Dropdown */}
+                  <div className='relative group'>
+                    <button
+                      onClick={() =>
+                        setShowStudentDropdown(!showStudentDropdown)
+                      }
+                      className='flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-5 py-2.5 rounded-xl shadow-lg hover:from-emerald-600 hover:to-teal-600 transition-all backdrop-blur-sm'
+                    >
+                      <Plus className='w-4 h-4' />
+                      Create Student
+                      <ChevronDown className='w-4 h-4' />
+                    </button>
+                    {showStudentDropdown && (
+                      <div className='absolute top-full left-0 mt-2 w-48 bg-white/90 backdrop-blur-xl border border-white/30 rounded-2xl shadow-xl transition-all z-[200]'>
+                        <button
+                          onClick={() => setIsStudentOpen(true)}
+                          className='w-full text-left px-4 py-2.5 hover:bg-emerald-50/80 first:rounded-t-2xl transition-colors'
+                        >
+                          Single Student
+                        </button>
+                        <button
+                          onClick={() => setIsMultipleStudentOpen(true)}
+                          className='w-full text-left px-4 py-2.5 hover:bg-emerald-50/80 last:rounded-b-2xl transition-colors'
+                        >
+                          Multiple Students
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Filter Form - Glassmorphism */}
+                <div className='mt-6 grid grid-cols-1 md:grid-cols-5 gap-4 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 backdrop-blur-sm p-5 rounded-2xl border border-blue-100/50'>
+                  {Object.entries(searchFilters).map(([key, value]) => (
+                    <div key={key} className='flex flex-col'>
+                      <label className='text-sm font-medium text-slate-700 mb-2'>
+                        {key === 'LecturerCode' && accountType === 'student'
+                          ? 'StudentCode'
+                          : key}
+                      </label>
+                      <input
+                        name={key}
+                        value={value}
+                        onChange={handleFilterChange}
+                        placeholder={key}
+                        className='px-4 py-2.5 bg-white/60 backdrop-blur-sm border border-slate-200/50 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 focus:outline-none transition-all text-sm'
+                      />
+                    </div>
+                  ))}
+                </div>
+            </div>
+
+            {/* Accounts Table with Pagination Inside - Glassmorphism */}
+            <div className='bg-white/50 backdrop-blur-xl rounded-3xl border border-white/30 shadow-lg '>
+              <div className='overflow-visible relative z-10 min-h-[400px] overflow-y-auto'>
+                <table className='min-w-full divide-y divide-slate-200/50'>
+                  <thead className='bg-gradient-to-r from-slate-50/80 to-blue-50/80 backdrop-blur-sm'>
+                    <tr>
+                      <th className='px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider'>
+                        {accountType === 'lecturer' ? 'Lecturer' : 'Student'}
+                      </th>
+                      <th className='px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider'>
+                        Email
+                      </th>
+                      <th className='px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider'>
+                        {accountType === 'lecturer'
+                          ? 'Lecturer Code'
+                          : 'Student Code'}
+                      </th>
+                      <th className='px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider'>
+                        Major
+                      </th>
+                      <th className='px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider'>
+                        YOB
+                      </th>
+                      <th className='px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider'>
+                        Status
+                      </th>
+                      <th className='px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider'>
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    className='divide-y divide-slate-100/50'
+                    style={{ minHeight: '400px' }}
+                  >
+                    {accounts.map(acc => (
+                      <tr
+                        key={acc.uId}
+                        className='hover:bg-white/60 backdrop-blur-sm transition-colors'
+                      >
+                        <td className='px-6 py-4 font-medium text-slate-800'>
+                          {acc.fullname}
+                        </td>
+                        <td className='px-6 py-4 text-slate-600'>
+                          {acc.email}
+                        </td>
+                        <td className='px-6 py-4 text-slate-600'>
+                          {accountType === 'lecturer'
+                            ? acc.lecturerCode
+                            : acc.studentCode}
+                        </td>
+                        <td className='px-6 py-4 text-slate-600'>
+                          {acc.major}
+                        </td>
+                        <td className='px-6 py-4 text-slate-600'>
+                          {acc.yob || '-'}
+                        </td>
+                        <td className='px-6 py-4'>
+                          <span
+                            className={`px-3 py-1 text-xs rounded-full font-semibold backdrop-blur-sm ${
+                              acc.isActive
+                                ? 'bg-emerald-100/80 text-emerald-700 border border-emerald-200/50'
+                                : 'bg-rose-100/80 text-rose-700 border border-rose-200/50'
+                            }`}
+                          >
+                            {acc.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className='px-6 py-4 flex items-center gap-3'>
+                          <button
+                            className='p-2 rounded-xl bg-blue-50/50 backdrop-blur-sm border border-blue-200/50 hover:bg-blue-100 hover:shadow-md text-blue-600 transition-all'
+                            onClick={() => {
+                              setSelectedAccountId(acc.uId);
+                              setIsEditOpen(true);
+                            }}
+                          >
+                            <Edit3 className='w-4 h-4' />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {accounts.length === 0 && (
+                  <div
+                    className='p-8 text-center text-slate-500 bg-white/40 backdrop-blur-sm'
+                    style={{ minHeight: '400px' }}
+                  >
+                    No {accountType}s found.
+                  </div>
+                )}
+              </div>
+
+              {/* Pagination inside table */}
+              <div className='flex justify-between items-center px-6 py-4 border-t border-slate-200/50 bg-gradient-to-r from-slate-50/50 to-blue-50/50 backdrop-blur-sm'>
+                <p className='text-slate-600 text-sm'>
+                  Showing{' '}
+                  <span className='font-semibold'>{accounts.length}</span> of{' '}
+                  <span className='font-semibold'>{itemCount}</span>{' '}
+                  {accountType}s
+                </p>
+
+                <div className='flex items-center gap-3'>
+                  <button
+                    onClick={handlePrevPage}
+                    disabled={pageNum === 1}
+                    className='p-2 rounded-xl bg-white/50 backdrop-blur-sm border border-slate-200/50 hover:bg-blue-50 hover:border-blue-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all'
+                  >
+                    <ChevronLeft size={18} className='text-slate-600' />
+                  </button>
+                  <span className='text-slate-700 text-sm font-medium px-4 py-2 bg-white/50 backdrop-blur-sm rounded-xl border border-slate-200/50'>
+                    Page {pageNum} of {pageCount}
+                  </span>
+                  <button
+                    onClick={handleNextPage}
+                    disabled={pageNum === pageCount}
+                    className='p-2 rounded-xl bg-white/50 backdrop-blur-sm border border-slate-200/50 hover:bg-blue-50 hover:border-blue-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all'
+                  >
+                    <ChevronRight size={18} className='text-slate-600' />
+                  </button>
                 </div>
               </div>
             </div>
-
-            {/* Filter Form */}
-            {showFilters && (
-              <div className='mt-6 grid grid-cols-1 md:grid-cols-5 gap-4 bg-blue-50 p-4 rounded-lg border border-blue-100'>
-                {Object.entries(searchFilters).map(([key, value]) => (
-                  <div key={key} className='flex flex-col'>
-                    <label className='text-sm font-medium text-gray-700 mb-1'>
-                      {key === 'LecturerCode' && accountType === 'student'
-                        ? 'StudentCode'
-                        : key}
-                    </label>
-                    <input
-                      name={key}
-                      value={value}
-                      onChange={handleFilterChange}
-                      placeholder={key}
-                      className='px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm'
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Accounts Table */}
-          <div className='bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
-            <table className='min-w-full divide-y divide-gray-200'>
-              <thead className='bg-gray-50'>
-                <tr>
-                  <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase'>
-                    {accountType === 'lecturer' ? 'Lecturer' : 'Student'}
-                  </th>
-                  <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase'>
-                    Email
-                  </th>
-                  <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase'>
-                    {accountType === 'lecturer'
-                      ? 'Lecturer Code'
-                      : 'Student Code'}
-                  </th>
-                  <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase'>
-                    Major
-                  </th>
-                  <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase'>
-                    YOB
-                  </th>
-                  <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase'>
-                    Status
-                  </th>
-                  <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase'>
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className='divide-y divide-gray-100'>
-                {accounts.map(acc => (
-                  <tr key={acc.uId} className='hover:bg-gray-50'>
-                    <td className='px-6 py-4 font-medium text-gray-800'>
-                      {acc.fullname}
-                    </td>
-                    <td className='px-6 py-4 text-gray-600'>{acc.email}</td>
-                    <td className='px-6 py-4 text-gray-600'>
-                      {accountType === 'lecturer'
-                        ? acc.lecturerCode
-                        : acc.studentCode}
-                    </td>
-                    <td className='px-6 py-4 text-gray-600'>{acc.major}</td>
-                    <td className='px-6 py-4 text-gray-600'>
-                      {acc.yob || '-'}
-                    </td>
-                    <td className='px-6 py-4'>
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full font-semibold ${
-                          acc.isActive
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}
-                      >
-                        {acc.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className='px-6 py-4 flex items-center gap-3'>
-                      {/* Edit button */}
-                      <button
-                        className='p-2 rounded-md hover:bg-blue-100 text-blue-600 transition'
-                        onClick={() => {
-                          setSelectedAccountId(acc.uId);
-                          setIsEditOpen(true);
-                        }}
-                      >
-                        <Edit3 className='w-4 h-4' />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {accounts.length === 0 && (
-              <div className='p-6 text-center text-gray-500'>
-                No {accountType}s found.
-              </div>
-            )}
           </div>
         </div>
-        <div className='flex justify-between items-center mt-6'>
-          <p className='text-gray-600 text-sm'>
-            Showing <span className='font-semibold'>{accounts.length}</span> of{' '}
-            <span className='font-semibold'>{itemCount}</span> lecturers
-          </p>
 
-          <div className='flex gap-2'>
-            <button
-              onClick={handlePrevPage}
-              disabled={pageNum === 1}
-              className={`px-4 py-2 rounded-lg border ${
-                pageNum === 1
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-white hover:bg-gray-100 text-gray-700'
-              }`}
-            >
-              Prev
-            </button>
-            <span className='px-4 py-2 text-gray-700'>
-              Page {pageNum} of {pageCount}
-            </span>
-            <button
-              onClick={handleNextPage}
-              disabled={pageNum === pageCount}
-              className={`px-4 py-2 rounded-lg border ${
-                pageNum === pageCount
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-white hover:bg-gray-100 text-gray-700'
-              }`}
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      </div>
+        {/* Modals */}
+        <ModalWrapper
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          title='Create New Lecturer'
+        >
+          <CreateLecturerForm onClose={() => setIsOpen(false)} />
+        </ModalWrapper>
 
-      {/* Modals */}
-      <ModalWrapper
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        title='Create New Lecturer'
-      >
-        <CreateLecturerForm onClose={() => setIsOpen(false)} />
-      </ModalWrapper>
+        <ModalWrapper
+          isOpen={isMultipleOpen}
+          onClose={() => setIsMultipleOpen(false)}
+          title='Create multiple lecturer'
+        >
+          <CreateMultipleLecturerForm
+            onClose={() => setIsMultipleOpen(false)}
+          />
+        </ModalWrapper>
 
-      <ModalWrapper
-        isOpen={isMultipleOpen}
-        onClose={() => setIsMultipleOpen(false)}
-        title='Create multiple lecturer'
-      >
-        <CreateMultipleLecturerForm onClose={() => setIsMultipleOpen(false)} />
-      </ModalWrapper>
+        <ModalWrapper
+          isOpen={isStudentOpen}
+          onClose={() => setIsStudentOpen(false)}
+          title='Create student'
+        >
+          <CreateStudentForm onClose={() => setIsStudentOpen(false)} />
+        </ModalWrapper>
 
-      <ModalWrapper
-        isOpen={isStudentOpen}
-        onClose={() => setIsStudentOpen(false)}
-        title='Create student'
-      >
-        <CreateStudentForm onClose={() => setIsStudentOpen(false)} />
-      </ModalWrapper>
-
-      <ModalWrapper
-        isOpen={isMultipleStudentOpen}
-        onClose={() => setIsMultipleStudentOpen(false)}
-        title='Create multiple student'
-      >
-        <CreateMultipleStudentForm
+        <ModalWrapper
+          isOpen={isMultipleStudentOpen}
           onClose={() => setIsMultipleStudentOpen(false)}
-        />
-      </ModalWrapper>
-      <ModalWrapper
-        isOpen={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
-        title='Edit Account'
-      >
-        <EditAccountForm
-          id={selectedAccountId}
+          title='Create multiple student'
+        >
+          <CreateMultipleStudentForm
+            onClose={() => setIsMultipleStudentOpen(false)}
+          />
+        </ModalWrapper>
+        <ModalWrapper
+          isOpen={isEditOpen}
           onClose={() => setIsEditOpen(false)}
-        />
-      </ModalWrapper>
+          title='Edit Account'
+        >
+          <EditAccountForm
+            id={selectedAccountId}
+            onClose={() => setIsEditOpen(false)}
+          />
+        </ModalWrapper>
+      </StaffDashboardLayout>
     </>
   );
 }

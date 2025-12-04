@@ -163,7 +163,6 @@ const lecturerRoutes = [
 ];
 
 const staffRoutes = [
-  { path: '/staff', element: protectRoute(['STAFF'], <StaffPage />) },
   { path: '/academic', element: protectRoute(['STAFF'], <AcademicList />) },
   { path: '/academic/new', element: protectRoute(['STAFF'], <AcademicCreate />) },
   { path: '/academic/:id', element: protectRoute(['STAFF'], <AcademicDetail />) },

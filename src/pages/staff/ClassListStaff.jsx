@@ -23,8 +23,7 @@ import {
   getAllSubject,
   getAllLecturer,
 } from '../../services/userService';
-// import { toast } from 'sonner';
-import Header from '../../components/layout/Header';
+import StaffDashboardLayout from '../../components/layout/StaffDashboardLayout';
 
 export default function ClassListStaff() {
   const [classes, setClasses] = useState([]);
@@ -37,10 +36,8 @@ export default function ClassListStaff() {
     SubjectIds: null,
     LecturerIds: null,
     OrderBy: 'ClassName',
-    // Descending: false,
     PageNum: 1,
     PageSize: 9,
-    // ViewAll: false,
   });
 
   const [totalPages, setTotalPages] = useState(1);
@@ -67,7 +64,7 @@ export default function ClassListStaff() {
   const fetchData = useCallback(async () => {
     try {
       const data = await getClass(filters);
-      setTotalClasses(data.itemCount)
+      setTotalClasses(data.itemCount);
       if (data?.list) {
         setClasses(data.list);
         setTotalPages(data.pageCount || 1);
@@ -96,46 +93,45 @@ export default function ClassListStaff() {
   };
 
   return (
-    <>
-      <Header />
-      <div className='min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6'>
+    <StaffDashboardLayout>
+      <div className='min-h-screen'>
         <div className='max-w-7xl mx-auto'>
           {/* Header */}
           <div className='mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4'>
             <div>
-              <h1 className='text-3xl font-bold text-gray-900 mb-2'>
+              <h1 className='text-3xl font-bold text-slate-800 mb-2'>
                 Class Management
               </h1>
-              <p className='text-gray-600'>
+              <p className='text-slate-600'>
                 Manage your classes and monitor student progress
               </p>
             </div>
             <div className='flex gap-3'>
               <button
                 onClick={() => setIsOpen(true)}
-                className='flex items-center bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all'
+                className='flex items-center bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl hover:from-blue-600 hover:to-indigo-600 transition-all backdrop-blur-sm'
               >
                 <Plus className='w-5 h-5 mr-2' />
                 Create Class
               </button>
               <button
                 onClick={() => setIsMultiOpen(true)}
-                className='flex items-center bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all'
+                className='flex items-center bg-gradient-to-r from-violet-500 to-purple-500 text-white px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl hover:from-violet-600 hover:to-purple-600 transition-all backdrop-blur-sm'
               >
                 <Plus className='w-5 h-5 mr-2' />
-                Create multiple class
+                Create Multiple
               </button>
             </div>
           </div>
 
-          {/* Filter Section */}
+          {/* Filter Section - Glassmorphism */}
           <form
             onSubmit={handleSearch}
-            className='bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 grid grid-cols-1 md:grid-cols-4 gap-4'
+            className='bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-lg border border-white/20 mb-8 grid grid-cols-1 md:grid-cols-4 gap-4'
           >
             {/* --- ClassName --- */}
             <div className='col-span-1'>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
+              <label className='block text-sm font-medium text-slate-700 mb-2'>
                 Class Name
               </label>
               <div className='relative'>
@@ -146,10 +142,10 @@ export default function ClassListStaff() {
                     setFilters({ ...filters, ClassName: e.target.value })
                   }
                   placeholder='Search class...'
-                  className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none'
+                  className='w-full bg-white/50 backdrop-blur-sm border border-slate-200/50 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 focus:outline-none transition-all'
                 />
                 <Search
-                  className='absolute right-3 top-2.5 text-gray-400'
+                  className='absolute right-3 top-3 text-slate-400'
                   size={18}
                 />
               </div>
@@ -157,16 +153,18 @@ export default function ClassListStaff() {
 
             {/* --- Subject --- */}
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
+              <label className='block text-sm font-medium text-slate-700 mb-2'>
                 Subject
               </label>
               <select
-                className='w-full border border-gray-300 rounded-lg px-3 py-2'
+                className='w-full bg-white/50 backdrop-blur-sm border border-slate-200/50 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 focus:outline-none transition-all'
                 value={filters.SubjectIds ?? ''}
                 onChange={e =>
                   setFilters({
                     ...filters,
-                    SubjectIds: e.target.value ? parseInt(e.target.value) : null,
+                    SubjectIds: e.target.value
+                      ? parseInt(e.target.value)
+                      : null,
                   })
                 }
               >
@@ -181,11 +179,11 @@ export default function ClassListStaff() {
 
             {/* --- Lecturer --- */}
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
+              <label className='block text-sm font-medium text-slate-700 mb-2'>
                 Lecturer
               </label>
               <select
-                className='w-full border border-gray-300 rounded-lg px-3 py-2'
+                className='w-full bg-white/50 backdrop-blur-sm border border-slate-200/50 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 focus:outline-none transition-all'
                 value={filters.LecturerIds ?? ''}
                 onChange={e =>
                   setFilters({
@@ -207,12 +205,12 @@ export default function ClassListStaff() {
 
             {/* --- Order By --- */}
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
+              <label className='block text-sm font-medium text-slate-700 mb-2'>
                 Order By
               </label>
               <div className='flex items-center gap-2'>
                 <select
-                  className='flex-1 border border-gray-300 rounded-lg px-3 py-2'
+                  className='flex-1 bg-white/50 backdrop-blur-sm border border-slate-200/50 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 focus:outline-none transition-all'
                   value={filters.OrderBy}
                   onChange={e =>
                     setFilters({ ...filters, OrderBy: e.target.value })
@@ -231,10 +229,10 @@ export default function ClassListStaff() {
                       Descending: !prev.Descending,
                     }))
                   }
-                  className={`p-2 rounded-lg border transition-colors ${
+                  className={`p-2.5 rounded-xl border backdrop-blur-sm transition-all ${
                     filters.Descending
-                      ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'bg-white text-gray-600 border-gray-300'
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-blue-400/50 shadow-lg'
+                      : 'bg-white/50 text-slate-600 border-slate-200/50 hover:bg-white/80'
                   }`}
                   title='Toggle ascending/descending'
                 >
@@ -252,21 +250,23 @@ export default function ClassListStaff() {
             <div className='md:col-span-4 flex justify-end'>
               <button
                 type='submit'
-                className='bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors'
+                className='bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-8 py-2.5 rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all shadow-lg hover:shadow-xl backdrop-blur-sm'
               >
                 Search
               </button>
             </div>
           </form>
 
-          {/* Stats */}
-          <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8 flex items-center gap-4'>
-            <div className='w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center'>
-              <BookOpen className='w-6 h-6 text-white' />
+          {/* Stats - Glassmorphism */}
+          <div className='bg-gradient-to-br from-blue-500/10 to-indigo-500/10 backdrop-blur-xl rounded-3xl shadow-lg border border-white/30 p-6 mb-8 flex items-center gap-4'>
+            <div className='w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg'>
+              <BookOpen className='w-7 h-7 text-white' />
             </div>
             <div>
-              <p className='text-sm text-gray-600'>Total Classes</p>
-              <p className='text-2xl font-bold text-gray-900'>
+              <p className='text-sm text-slate-600 font-medium'>
+                Total Classes
+              </p>
+              <p className='text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent'>
                 {totalClasses}
               </p>
             </div>
@@ -274,103 +274,111 @@ export default function ClassListStaff() {
 
           {/* Class List */}
           {classes.length === 0 ? (
-            <div className='text-center py-12'>
-              <BookOpen className='w-12 h-12 text-gray-400 mx-auto mb-4' />
-              <h3 className='text-lg font-medium text-gray-900 mb-2'>
+            <div className='text-center py-16 bg-white/50 backdrop-blur-xl rounded-3xl border border-white/30 shadow-lg '>
+              <BookOpen className='w-16 h-16 text-slate-300 mx-auto mb-4' />
+              <h3 className='text-xl font-semibold text-slate-700 mb-2'>
                 No classes found
               </h3>
-              <p className='text-gray-600 mb-6'>
+              <p className='text-slate-500 mb-6'>
                 Try adjusting your search or filter criteria
               </p>
               <button
                 onClick={() => setIsOpen(true)}
-                className='bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors'
+                className='bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-6 py-3 rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all shadow-lg hover:shadow-xl'
               >
                 Create your first class
               </button>
             </div>
           ) : (
-            <div>
-              {/* Grid/List display — tùy bạn thêm code hiển thị class card */}
-              <div className='grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+            <div className='bg-white/50 backdrop-blur-xl rounded-3xl border border-white/30 shadow-lg p-6'>
+              {/* Grid display */}
+              <div
+                className='grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
+                style={{ minHeight: '500px', gridAutoRows: '1fr' }}
+              >
                 {classes.map(c => (
                   <div
                     key={c.classId}
-                    className='bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all p-5 flex flex-col justify-between'
+                    className='bg-white/70 backdrop-blur-md rounded-2xl shadow-md border border-white/40 hover:shadow-xl hover:border-blue-300/50 transition-all p-5 flex flex-col justify-between group'
                   >
                     <div>
-                      <div className='flex justify-between items-center mb-2'>
-                        <h2 className='text-lg font-semibold text-gray-900'>
+                      <div className='flex justify-between items-center mb-3'>
+                        <h2 className='text-lg font-semibold text-slate-800 group-hover:text-blue-600 transition-colors'>
                           {c.className}
                         </h2>
                         <span
-                          className={`px-2 py-1 text-xs rounded-full font-medium ${
+                          className={`px-3 py-1 text-xs rounded-full font-medium backdrop-blur-sm ${
                             c.isActive
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-gray-200 text-gray-600'
+                              ? 'bg-emerald-100/80 text-emerald-700 border border-emerald-200/50'
+                              : 'bg-slate-100/80 text-slate-600 border border-slate-200/50'
                           }`}
                         >
                           {c.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </div>
 
-                      <p className='text-sm text-gray-600 flex items-center gap-2'>
-                        <BookCopy size={15} className='text-indigo-500' />
+                      <p className='text-sm text-slate-600 flex items-center gap-2 mb-2'>
+                        <BookCopy size={15} className='text-blue-500' />
                         {c.subjectName} ({c.subjectCode})
                       </p>
-                      <p className='text-sm text-gray-600 flex items-center gap-2 mt-1'>
+                      <p className='text-sm text-slate-600 flex items-center gap-2'>
                         <UserCheck size={15} className='text-indigo-500' />
                         {c.lecturerName} ({c.lecturerCode})
                       </p>
 
-                      <div className='mt-3 flex flex-wrap gap-3 text-sm text-gray-500'>
-                        <span className='flex items-center gap-1'>
-                          <Users size={15} /> {c.memberCount} members
+                      <div className='mt-4 flex flex-wrap gap-3 text-sm text-slate-500'>
+                        <span className='flex items-center gap-1 bg-slate-50/50 px-2 py-1 rounded-lg backdrop-blur-sm'>
+                          <Users size={15} /> {c.memberCount}
                         </span>
-                        <span className='flex items-center gap-1'>
-                          <BookOpen size={15} /> {c.teamCount} teams
+                        <span className='flex items-center gap-1 bg-slate-50/50 px-2 py-1 rounded-lg backdrop-blur-sm'>
+                          <BookOpen size={15} /> {c.teamCount}
                         </span>
-                        <span className='flex items-center gap-1'>
+                        <span className='flex items-center gap-1 bg-slate-50/50 px-2 py-1 rounded-lg backdrop-blur-sm'>
                           <CalendarDays size={15} />
                           {new Date(c.createdDate).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
 
-                    <div className='flex justify-end gap-2 mt-5'>
+                    <div className='flex justify-end gap-2 mt-5 pt-4 border-t border-slate-100/50'>
                       <button
                         onClick={() => navigate(`/staff/classes/${c.classId}`)}
-                        className='p-2 rounded-lg border border-gray-200 hover:bg-gray-100'
+                        className='p-2 rounded-xl bg-slate-50/50 backdrop-blur-sm border border-slate-200/50 hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all'
                       >
-                        <Eye size={16} className='text-gray-600' />
+                        <Eye
+                          size={16}
+                          className='text-slate-600 group-hover:text-blue-600'
+                        />
                       </button>
-                      <button className='p-2 rounded-lg border border-gray-200 hover:bg-indigo-50'>
+                      <button className='p-2 rounded-xl bg-slate-50/50 backdrop-blur-sm border border-slate-200/50 hover:bg-indigo-50 hover:border-indigo-300 hover:shadow-md transition-all'>
                         <Edit size={16} className='text-indigo-600' />
                       </button>
-                      <button className='p-2 rounded-lg border border-gray-200 hover:bg-red-50'>
-                        <Trash2 size={16} className='text-red-600' />
+                      <button className='p-2 rounded-xl bg-slate-50/50 backdrop-blur-sm border border-slate-200/50 hover:bg-rose-50 hover:border-rose-300 hover:shadow-md transition-all'>
+                        <Trash2 size={16} className='text-rose-600' />
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
-              <div className='flex justify-center mt-8 gap-4'>
+
+              {/* Pagination inside table card */}
+              <div className='flex justify-center items-center gap-4 pt-4 border-t border-slate-200/50'>
                 <button
                   onClick={() => handlePageChange(filters.PageNum - 1)}
                   disabled={filters.PageNum === 1}
-                  className='px-3 py-2 border rounded-lg hover:bg-gray-100 disabled:opacity-50'
+                  className='p-2 rounded-xl bg-white/50 backdrop-blur-sm border border-slate-200/50 hover:bg-blue-50 hover:border-blue-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all'
                 >
-                  <ChevronLeft size={18} />
+                  <ChevronLeft size={18} className='text-slate-600' />
                 </button>
-                <span className='text-gray-700 text-sm'>
+                <span className='text-slate-700 text-sm font-medium px-4 py-2 bg-white/50 backdrop-blur-sm rounded-xl border border-slate-200/50'>
                   Page {filters.PageNum} of {totalPages}
                 </span>
                 <button
                   onClick={() => handlePageChange(filters.PageNum + 1)}
                   disabled={filters.PageNum === totalPages}
-                  className='px-3 py-2 border rounded-lg hover:bg-gray-100 disabled:opacity-50'
+                  className='p-2 rounded-xl bg-white/50 backdrop-blur-sm border border-slate-200/50 hover:bg-blue-50 hover:border-blue-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all'
                 >
-                  <ChevronRight size={18} />
+                  <ChevronRight size={18} className='text-slate-600' />
                 </button>
               </div>
             </div>
@@ -393,6 +401,6 @@ export default function ClassListStaff() {
           <CreateMultipleClassForm onClose={() => setIsMultiOpen(false)} />
         </ModalWrapper>
       </div>
-    </>
+    </StaffDashboardLayout>
   );
 }
