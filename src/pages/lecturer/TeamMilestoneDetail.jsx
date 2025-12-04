@@ -22,6 +22,7 @@ import {
 
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
+import useToastConfirmation from '../../hooks/useToastConfirmation';
 import { getTeamDetail } from '../../services/teamApi';
 import {
   getMilestoneDetail,
@@ -223,6 +224,7 @@ const TeamMilestoneDetail = () => {
   const { classId, teamId, milestoneId } = useParams();
   const navigate = useNavigate();
   const { openSecureFile } = useSecureFileHandler();
+  const confirm = useToastConfirmation();
 
   const [teamInfo, setTeamInfo] = useState(null);
   const [milestone, setMilestone] = useState(null);
@@ -344,7 +346,14 @@ const TeamMilestoneDetail = () => {
   };
 
   const handleDeleteQuestion = async (qId) => {
-    if (!window.confirm('Delete this question?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Question',
+      message: 'Are you sure you want to delete this question? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    });
+    if (!confirmed) return;
+
     try {
       await deleteMilestoneQuestion(qId);
       toast.success('Question deleted');
@@ -375,9 +384,16 @@ const TeamMilestoneDetail = () => {
   };
 
   const handleDeleteFile = async (fileId) => {
-    if (!window.confirm('Delete this file?')) return;
+    const confirmed = await confirm({
+      title: 'Delete File',
+      message: 'Are you sure you want to delete this file? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    });
+    if (!confirmed) return;
+
     try {
-      await deleteMilestoneFile(fileId);
+      await deleteMilestoneFile(milestoneId, fileId);
       toast.success('File deleted');
       refreshMilestone();
     } catch (error) {

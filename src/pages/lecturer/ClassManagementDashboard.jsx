@@ -281,41 +281,6 @@ const ClassManagementDashboard = () => {
     };
   }, [classes]);
 
-  const classStatCards = [
-    {
-      id: 'activeClasses',
-      label: 'Active classes',
-      value: `${stats.activeClasses}/${stats.totalClasses || '—'}`,
-      description: 'Currently in delivery or grading.',
-      icon: AcademicCapIcon,
-      accent: 'from-indigo-500/40 to-sky-400/30 text-indigo-700'
-    },
-    {
-      id: 'totalStudents',
-      label: 'Students enrolled',
-      value: stats.totalStudents,
-      description: 'Active enrolments across classes.',
-      icon: UserGroupIcon,
-      accent: 'from-emerald-400/40 to-teal-300/20 text-emerald-700'
-    },
-    {
-      id: 'totalTeams',
-      label: 'Teams tracked',
-      value: stats.totalTeams,
-      description: 'Derived from team records.',
-      icon: Squares2X2Icon,
-      accent: 'from-sky-400/40 to-cyan-300/20 text-sky-700'
-    },
-    {
-      id: 'averageClassSize',
-      label: 'Average class size',
-      value: stats.averageClassSize,
-      description: 'Helps balance cohorts.',
-      icon: ClipboardDocumentListIcon,
-      accent: 'from-amber-300/40 to-orange-200/20 text-amber-700'
-    }
-  ];
-
   const handleViewClass = (classId) => {
     navigate(`/lecturer/classes/${classId}`);
   };
@@ -372,30 +337,6 @@ const ClassManagementDashboard = () => {
             Create New Project
           </button>
         </header>
-
-        <section className="relative">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {showClassSkeleton
-              ? classStatCards.map((card) => renderClassStatSkeleton(card.id))
-              : classStatCards.map((card) => {
-                const Icon = card.icon;
-                return (
-                  <div key={card.id} className={`${glassPanelClass} rounded-2xl p-4`}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">{card.label}</p>
-                        <p className="mt-2 text-2xl font-semibold text-slate-900">{card.value}</p>
-                      </div>
-                      <div className={`rounded-xl bg-gradient-to-br ${card.accent} p-3`}>
-                        <Icon className="h-5 w-5" aria-hidden="true" />
-                      </div>
-                    </div>
-                    <p className="mt-2 text-xs text-slate-600">{card.description}</p>
-                  </div>
-                );
-              })}
-          </div>
-        </section>
 
         {error && (
           <div className="rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-sm text-rose-700">

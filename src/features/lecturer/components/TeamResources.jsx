@@ -165,6 +165,7 @@ const TeamResources = ({ teamId }) => {
   const [menuError, setMenuError] = useState(null);
   const [pendingFiles, setPendingFiles] = useState([]);
   const [pendingFolder, setPendingFolder] = useState("");
+  const [uploadErrors, setUploadErrors] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [refreshingFileId, setRefreshingFileId] = useState(null);
   const [openingFileId, setOpeningFileId] = useState(null);
@@ -235,6 +236,7 @@ const TeamResources = ({ teamId }) => {
       return;
     }
     setIsUploading(true);
+    setUploadErrors([]);
     const normalizedPath = ensurePathPrefix(pendingFolder);
     try {
       for (const file of pendingFiles) {
@@ -249,7 +251,12 @@ const TeamResources = ({ teamId }) => {
       await fetchResources({ showSpinner: false });
     } catch (error) {
       console.error("Failed to upload team resources:", error);
-      toast.error("Unable to upload files right now.");
+      if (error.response?.data?.errorList && Array.isArray(error.response.data.errorList)) {
+        setUploadErrors(error.response.data.errorList);
+        toast.error("Upload failed with errors.");
+      } else {
+        toast.error("Unable to upload files right now.");
+      }
     } finally {
       setIsUploading(false);
     }
@@ -516,6 +523,22 @@ const TeamResources = ({ teamId }) => {
                     {isUploading ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
                     {isUploading ? "Uploading..." : "Start Upload"}
                   </button>
+                  
+                  {uploadErrors.length > 0 && (
+                    <div className="mt-3 p-3 rounded-xl bg-red-50/80 border border-red-100 backdrop-blur-sm">
+                      <div className="flex items-center gap-2 text-red-600 font-bold text-xs mb-2">
+                        <AlertCircle size={14} />
+                        <span>Upload Failed</span>
+                      </div>
+                      <ul className="space-y-1">
+                        {uploadErrors.map((err, idx) => (
+                          <li key={idx} className="text-xs text-red-500 pl-5 relative before:content-['•'] before:absolute before:left-1 before:text-red-400">
+                            {typeof err === 'string' ? err : `${err.field ? err.field + ': ' : ''}${err.message}`}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

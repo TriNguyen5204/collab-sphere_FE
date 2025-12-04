@@ -1,7 +1,27 @@
-| Style | Visual Identity | Color Strategy | Implementation Notes |
-| --- | --- | --- | --- |
-| Claymorphism | Playful, soft 3D elements with pill-shaped cards, thick shadows and squishy, tactile surfaces. | Bright, saturated colors with gentle gradients on components over neutral or light backgrounds. | Use large border-radius, layered soft drop-shadows, subtle scale/float animations, and 3D icons for key CTAs. |
-| Neo-brutalism | Raw, bold, slightly “harsh” layouts with thick borders, large typography and minimal decoration. | High contrast, solid blocks of saturated color; limited gradients; frequent use of black/white for structure. | Build rigid grids, flat panels with strong outlines, oversized headings and simple hover animations (color or border only). |
-| Soft minimalism | Clean, calm interfaces with generous whitespace, soft geometry and friendly typography. | Muted, warm palettes with 1–2 accent colors for focus states and key actions. | Combine rounded containers, light elevation, minimal iconography and reduced motion; prioritize readability and accessibility. |
-| Immersive 3D | Hero sections or key visuals using realistic 3D objects, depth and atmospheric lighting. | Limited base palette, with 3D assets providing richer color and light accents. | Integrate 3D renders or Lottie-style animations, parallax scroll, and depth via layered foreground/background elements. |
-| Dark mode 2.0 | Refined dark themes with improved contrast, softer surfaces and subtle glow accents. | Deep grays instead of pure black, with neon or vivid accent colors for focus and status. | Use adaptive color tokens for light/dark, elevated cards with low-contrast borders, and motion only for feedback, not decoration. |
+Glassmorphism
+Visual Identity: Frosted glass effect with translucent panels, backdrop blur, subtle light borders and multi-layered depth creating floating elements.
+
+Color Strategy: Vibrant gradients or saturated backgrounds visible through semi-transparent surfaces; high-contrast text over blurred content.
+
+Implementation Notes: Apply backdrop-filter: blur() with semi-transparent backgrounds (rgba), add 1px light borders for definition, use soft shadows for depth and ensure strong text contrast for legibility.
+
+Neo-brutalism
+Visual Identity: Raw, bold, slightly "harsh" layouts with thick borders, large typography and minimal decoration.
+
+Color Strategy: High contrast, solid blocks of saturated color; limited gradients; frequent use of black/white for structure.
+
+Implementation Notes: Build rigid grids, flat panels with strong outlines, oversized headings and simple hover animations (color or border only).
+
+Soft minimalism
+Visual Identity: Clean, calm interfaces with generous whitespace, soft geometry and friendly typography.
+
+Color Strategy: Muted, warm palettes with 1–2 accent colors for focus states and key actions.
+
+Implementation Notes: Combine rounded containers, light elevation, minimal iconography and reduced motion; prioritize readability and accessibility.
+
+Immersive 3D
+Visual Identity: Hero sections or key visuals using realistic 3D objects, depth and atmospheric lighting.
+
+Color Strategy: Limited base palette, with 3D assets providing richer color and light accents.
+
+Implementation Notes: Integrate 3D renders or Lottie-style animations, parallax scroll, and depth via layered foreground/background elements.
