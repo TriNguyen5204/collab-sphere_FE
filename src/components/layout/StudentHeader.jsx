@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Search, BookOpen, FolderKanban, User, LogOut, ChevronDown } from 'lucide-react';
+import { Search, BookOpen, FolderKanban, User, LogOut, ChevronDown, LayoutDashboard } from 'lucide-react';
 import { getClassesByStudentId, getListOfTeamsByStudentId, getDetailOfTeamByTeamId } from '../../services/studentApi';
 import { logout } from '../../store/slices/userSlice';
 import useClickOutside from '../../hooks/useClickOutside';
@@ -9,12 +9,14 @@ import logo from '../../assets/logov1.png';
 import { useAvatar } from '../../hooks/useAvatar';
 import { useQueryClient } from '@tanstack/react-query';
 import useTeam from '../../context/useTeam';
+import { getRoleLandingRoute } from '../../constants/roleRoutes';
 
 const StudentHeader = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const studentId = useSelector((state) => state.user.userId);
   const userId = useSelector((state) => state.user.userId);
+  const roleName = useSelector((state) => state.user.roleName);
   const [query, setQuery] = useState('');
   const [classes, setClasses] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -176,47 +178,64 @@ const StudentHeader = () => {
           {/* Profile menu */}
           <div className="relative" ref={profileRef}>
             <button
-              type="button"
-              onClick={() => setOpenProfile((v) => !v)}
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              onClick={() => setOpenProfile(!openProfile)}
+              className="flex items-center gap-3 pl-4 border-transparent border-2 rounded-full hover:border-orangeFpt-500 hover:rounded-full hover:border-2 hover:text-white hover:bg-orangeFpt-500 transition-all duration-300"
             >
-              {shouldShowImage ? (
-                <img
-                  src={avatar}
-                  alt="Profile"
-                  onError={() => setImageError(true)}
-                  className="w-7 h-7 rounded-full object-cover"
-                />
-              ) : (
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold ${colorClass}`}>
-                  {initials}
+              <div className='p-1 flex items-center gap-2'>
+                <div className="text-right hidden md:block">
+                  <p className="text-sm font-medium">{fullname}</p>
                 </div>
-              )}
-                <span className="hidden sm:inline max-w-[120px] truncate">{fullname ?? 'Student'}</span>
-              <ChevronDown className="w-4 h-4 text-slate-400" />
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium text-white overflow-hidden ${colorClass} ring-2 ring-white shadow-sm`}>
+                  {shouldShowImage ? (
+                    <img
+                      src={avatar}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                      onError={() => setImageError(true)}
+                    />
+                  ) : (
+                    <span>{initials}</span>
+                  )}
+                </div>
+                <ChevronDown size={16} className={`transition-transform duration-200 ${openProfile ? 'rotate-180' : ''}`} />
+              </div>
             </button>
 
             {openProfile && (
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden z-[80]">
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="px-4 py-3 border-b border-gray-50 mb-2">
+                  <p className="text-sm font-medium text-gray-900">Signed in as</p>
+                  <p className="text-sm text-gray-500 truncate">{fullname}</p>
+                </div>
+                
+                <button 
+                  onClick={() => navigate(getRoleLandingRoute(roleName))}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                >
+                  <LayoutDashboard size={16} />
+                  Dashboard
+                </button>
+
                 <button
-                  type="button"
                   onClick={() => {
                     setOpenProfile(false);
                     const profilePath = userId ? `/${userId}/profile` : '/student/profile';
                     navigate(profilePath);
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-200"
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
                 >
-                  <User className="w-4 h-4" />
+                  <User size={16} />
                   Profile
                 </button>
+                
+                <div className="h-px bg-gray-50 my-2" />
+                
                 <button
-                  type="button"
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-rose-600 hover:bg-slate-200"
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
                 >
-                  <LogOut className="w-4 h-4" />
-                  Logout
+                  <LogOut size={16} />
+                  Sign out
                 </button>
               </div>
             )}

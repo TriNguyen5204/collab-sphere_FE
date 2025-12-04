@@ -1,16 +1,21 @@
 import React, { useState, useRef, useMemo, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { 
-  Environment, 
-  MeshTransmissionMaterial, 
+import {
+  Environment,
+  MeshTransmissionMaterial,
   PerspectiveCamera,
   Float,
   Text,
   useCursor
 } from '@react-three/drei';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ChevronRight, Play } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowRight, ChevronRight, Play, User, LogOut, ChevronDown, LayoutDashboard } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { logout } from '../store/slices/userSlice';
+import { useAvatar } from '../hooks/useAvatar';
+import useClickOutside from '../hooks/useClickOutside';
+import { getRoleLandingRoute } from '../constants/roleRoutes';
 import * as THREE from 'three';
 
 // --- 0. Global Styles & Assets ---
@@ -79,7 +84,7 @@ const GlobalStyles = () => (
 // The Prism (Hero)
 const GlassPrism = () => {
   const mesh = useRef(null);
-  
+
   useFrame((state) => {
     if (mesh.current) {
       mesh.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.2) * 0.2;
@@ -91,7 +96,7 @@ const GlassPrism = () => {
     <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
       <mesh ref={mesh} scale={1.5}>
         <icosahedronGeometry args={[1, 0]} />
-        <MeshTransmissionMaterial 
+        <MeshTransmissionMaterial
           backside
           samples={16}
           resolution={512}
@@ -118,12 +123,12 @@ const GlassPrism = () => {
 // The Wireframe Mesh (AI)
 const TopoMesh = () => {
   const mesh = useRef(null);
-  
+
   useFrame((state) => {
     if (mesh.current) {
       const time = state.clock.elapsedTime;
       const positions = mesh.current.geometry.attributes.position;
-      
+
       for (let i = 0; i < positions.count; i++) {
         const x = positions.getX(i);
         const y = positions.getY(i);
@@ -139,11 +144,11 @@ const TopoMesh = () => {
   return (
     <mesh ref={mesh} rotation={[-Math.PI / 3, 0, 0]}>
       <planeGeometry args={[8, 8, 32, 32]} />
-      <meshBasicMaterial 
-        color="#0B1221" 
-        wireframe 
-        transparent 
-        opacity={0.3} 
+      <meshBasicMaterial
+        color="#0B1221"
+        wireframe
+        transparent
+        opacity={0.3}
       />
     </mesh>
   );
@@ -213,17 +218,17 @@ const Section = ({ children, className = "" }) => (
 
 const WorkspaceCard = ({ title, role, image }) => {
   return (
-    <motion.div 
+    <motion.div
       className="relative w-[300px] h-[500px] flex-shrink-0 overflow-hidden group cursor-pointer border border-gray-200 bg-white"
       whileHover={{ y: -10 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
       {/* Background Image */}
-      <div 
+      <div
         className="absolute inset-0 bg-cover bg-center transition-all duration-700 ease-out grayscale group-hover:grayscale-0 group-hover:scale-105 blur-[2px] group-hover:blur-0"
         style={{ backgroundImage: `url(${image})` }}
       />
-      
+
       {/* Frosted Overlay */}
       <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-white/80 backdrop-blur-md border-t border-white/50 p-6 flex flex-col justify-center transition-all duration-500 group-hover:bg-white/90">
         <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-500 mb-2">{role}</span>
@@ -235,11 +240,11 @@ const WorkspaceCard = ({ title, role, image }) => {
 };
 
 const TimelineNode = ({ active, onClick, label }) => (
-  <div 
+  <div
     onClick={onClick}
     className="relative flex flex-col items-center cursor-pointer group"
   >
-    <motion.div 
+    <motion.div
       className={`w-4 h-4 rounded-full border-2 transition-colors duration-300 z-10 bg-[#F9F8F6] ${active ? 'border-[#C6A87C] bg-[#C6A87C]' : 'border-gray-300 group-hover:border-[#0B1221]'}`}
     />
     <span className={`absolute top-8 text-xs uppercase tracking-widest font-medium transition-colors duration-300 w-32 text-center ${active ? 'text-[#0B1221]' : 'text-gray-400'}`}>
@@ -252,7 +257,21 @@ const TimelineNode = ({ active, onClick, label }) => (
 const Homepage = () => {
   const { scrollYProgress } = useScroll();
   const [activeStage, setActiveStage] = useState(0);
-  
+
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { userId, fullName, avatar, roleName } = useSelector((state) => state.user);
+  const [openProfile, setOpenProfile] = useState(false);
+  const profileRef = useRef(null);
+  useClickOutside(profileRef, () => setOpenProfile(false));
+
+  const { initials, colorClass, shouldShowImage, setImageError } = useAvatar(fullName, avatar);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate('/login');
+  };
+
   const stages = [
     { id: 0, label: "Formation", title: "Team Assembly", desc: "Algorithmic matching based on skills and personality." },
     { id: 1, label: "Briefing", title: "Project Scope", desc: "Standardized requirements and milestone definition." },
@@ -266,16 +285,71 @@ const Homepage = () => {
       <div className="noise-bg" />
 
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 px-12 py-6 flex justify-between items-center mix-blend-difference text-white">
+      <nav className="fixed top-0 w-full z-50 px-12 py-6 flex justify-between items-center text-[#0B1221]">
         <div className="font-serif text-2xl tracking-tight">CollabSphere.</div>
         <div className="hidden md:flex gap-12 text-sm font-medium tracking-wide">
-          <a href="#" className="hover:text-gray-300 transition-colors">Platform</a>
-          <a href="#" className="hover:text-gray-300 transition-colors">Institutions</a>
-          <a href="#" className="hover:text-gray-300 transition-colors">Research</a>
+          <a href="#" className="hover:text-gray-600 transition-colors">Platform</a>
+          <a href="#" className="hover:text-gray-600 transition-colors">Institutions</a>
+          <a href="#" className="hover:text-gray-600 transition-colors">Research</a>
         </div>
-        <Link to="/login" className="text-sm font-medium border border-white/30 px-6 py-2 hover:bg-white hover:text-black transition-all duration-300">
-          Sign In
-        </Link>
+        {userId ? (
+          <div className="relative" ref={profileRef}>
+            <button
+              onClick={() => setOpenProfile(!openProfile)}
+              className="flex items-center gap-3 pl-4 border-transparent border-2 rounded-full hover:border-orangeFpt-500 hover:rounded-full hover:border-2 hover:text-white hover:bg-orangeFpt-500 transition-all duration-300"
+            >
+              <div className='p-1 flex items-center gap-2'>
+                <div className="text-right hidden md:block">
+                  <p className="text-sm font-medium">{fullName}</p>
+                </div>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium text-white overflow-hidden ${colorClass} ring-2 ring-white shadow-sm`}>
+                  {shouldShowImage ? (
+                    <img
+                      src={avatar}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                      onError={() => setImageError(true)}
+                    />
+                  ) : (
+                    <span>{initials}</span>
+                  )}
+                </div>
+                <ChevronDown size={16} className={`transition-transform duration-200 ${openProfile ? 'rotate-180' : ''}`} />
+              </div>
+            </button>
+
+            {openProfile && (
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="px-4 py-3 border-b border-gray-50 mb-2">
+                  <p className="text-sm font-medium text-gray-900">Signed in as</p>
+                  <p className="text-sm text-gray-500 truncate">{fullName}</p>
+                </div>
+
+                <button
+                  onClick={() => navigate(getRoleLandingRoute(roleName))}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                >
+                  <LayoutDashboard size={16} />
+                  Dashboard
+                </button>
+
+                <div className="h-px bg-gray-50 my-2" />
+
+                <button
+                  onClick={handleLogout}
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                >
+                  <LogOut size={16} />
+                  Sign out
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Link to="/login" className="text-sm font-medium border border-[#0B1221]/30 px-6 py-2 hover:bg-[#0B1221] hover:text-white transition-all duration-300">
+            Sign In
+          </Link>
+        )}
       </nav>
 
       {/* 1. Hero Section */}
@@ -289,7 +363,7 @@ const Homepage = () => {
               Excellence.
             </h1>
             <p className="text-lg text-gray-600 max-w-md font-light leading-relaxed">
-              The operating system for high-performance university collaboration. 
+              The operating system for high-performance university collaboration.
               Precision, clarity, and institutional trust in one platform.
             </p>
             <button className="group relative px-8 py-4 border border-[#0B1221] text-[#0B1221] overflow-hidden transition-colors duration-300 hover:text-white">
@@ -316,26 +390,26 @@ const Homepage = () => {
           <h2 className="font-serif text-4xl text-[#0B1221]">Architectural Workspaces</h2>
           <p className="text-gray-500 mt-2 font-light">Designed for specific academic roles.</p>
         </div>
-        
+
         <div className="flex gap-8 overflow-x-auto pb-12 hide-scrollbar pl-1">
-          <WorkspaceCard 
-            title="The Lecture Hall" 
-            role="FOR LECTURERS" 
+          <WorkspaceCard
+            title="The Lecture Hall"
+            role="FOR LECTURERS"
             image="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800"
           />
-          <WorkspaceCard 
-            title="The Laboratory" 
-            role="FOR STUDENTS" 
+          <WorkspaceCard
+            title="The Laboratory"
+            role="FOR STUDENTS"
             image="https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=800"
           />
-          <WorkspaceCard 
-            title="The Archive" 
-            role="FOR ADMINS" 
+          <WorkspaceCard
+            title="The Archive"
+            role="FOR ADMINS"
             image="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&q=80&w=800"
           />
-          <WorkspaceCard 
-            title="The Boardroom" 
-            role="FOR GUESTS" 
+          <WorkspaceCard
+            title="The Boardroom"
+            role="FOR GUESTS"
             image="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&q=80&w=800"
           />
         </div>
@@ -350,9 +424,9 @@ const Homepage = () => {
               From formation to final review, every stage is tracked with audit-grade precision.
               Navigate the timeline to see the workflow.
             </p>
-            
+
             <AnimatePresence mode="wait">
-              <motion.div 
+              <motion.div
                 key={activeStage}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -372,15 +446,15 @@ const Homepage = () => {
           <div className="lg:col-span-8 flex flex-col justify-center relative">
             {/* The Line */}
             <div className="relative w-full h-px bg-gray-200 mt-8">
-              <motion.div 
+              <motion.div
                 className="absolute top-0 left-0 h-full bg-[#C6A87C]"
                 style={{ width: useTransform(scrollYProgress, [0.3, 0.6], ["0%", "100%"]) }}
               />
-              
+
               {/* Nodes */}
               <div className="absolute top-1/2 -translate-y-1/2 w-full flex justify-between px-4">
                 {stages.map((stage, index) => (
-                  <TimelineNode 
+                  <TimelineNode
                     key={stage.id}
                     label={stage.label}
                     active={activeStage === index}
@@ -402,7 +476,7 @@ const Homepage = () => {
               <TopoMesh />
             </Canvas>
           </div>
-          
+
           <div className="order-1 lg:order-2 space-y-8">
             <div className="inline-block px-3 py-1 border border-[#0B1221] rounded-full text-[10px] uppercase tracking-widest font-bold">
               Beta 2.0
@@ -431,15 +505,15 @@ const Homepage = () => {
       {/* 5. Trust Seal */}
       <div className="bg-[#0B1221] text-white py-32 relative overflow-hidden">
         <div className="absolute inset-0 opacity-20">
-           <Canvas camera={{ position: [0, 0, 5] }}>
-             <ParticleShield />
-           </Canvas>
+          <Canvas camera={{ position: [0, 0, 5] }}>
+            <ParticleShield />
+          </Canvas>
         </div>
-        
+
         <div className="relative z-10 max-w-4xl mx-auto text-center px-6">
           <div className="w-16 h-16 mx-auto border border-[#C6A87C] rounded-full flex items-center justify-center mb-8">
             <div className="w-12 h-12 border border-[#C6A87C] rounded-full flex items-center justify-center">
-               <div className="w-1 h-1 bg-[#C6A87C] rounded-full" />
+              <div className="w-1 h-1 bg-[#C6A87C] rounded-full" />
             </div>
           </div>
           <h2 className="font-serif text-4xl md:text-5xl mb-6">Audit-ready at every milestone.</h2>
@@ -462,7 +536,7 @@ const Homepage = () => {
                 Request a Consultation
               </button>
             </div>
-            
+
             <div>
               <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-6">Product</h4>
               <ul className="space-y-4 text-sm font-medium text-gray-600">
@@ -472,7 +546,7 @@ const Homepage = () => {
                 <li><a href="#" className="hover:text-black">Changelog</a></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-6">Company</h4>
               <ul className="space-y-4 text-sm font-medium text-gray-600">
@@ -483,7 +557,7 @@ const Homepage = () => {
               </ul>
             </div>
           </div>
-          
+
           <div className="flex justify-between items-center pt-8 border-t border-gray-100 text-xs text-gray-400 uppercase tracking-wider">
             <span>© 2025 CollabSphere Inc.</span>
             <div className="flex gap-6">

@@ -29,12 +29,6 @@ const StudentSidebar = () => {
                 match: path => path.startsWith('/student/classes'),
             },
             {
-                label: 'AI PR Analysis',
-                href: '/student/ai/pr-analysis',
-                icon: Sparkles,
-                match: path => path.startsWith('/student/ai/pr-analysis'),
-            },
-            {
                 label: 'Profile',
                 href: profileHref,
                 icon: User,
