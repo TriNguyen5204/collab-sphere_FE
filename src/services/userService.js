@@ -308,7 +308,7 @@ export const getAllProject = async (params = {}) => {
         Descriptors: params.descriptors,
         ViewAll: params.viewAll,
         PageNum: params.pageNum,
-        PageSize: params.pageSize,
+        PageSize: 9,
       },
       paramsSerializer: {
         indexes: null, // quan trọng: giúp Axios format array như ?SubjectIds=10&SubjectIds=11

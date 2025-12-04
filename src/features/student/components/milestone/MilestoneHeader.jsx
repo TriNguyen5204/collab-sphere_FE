@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Calendar, MessageSquare, CheckCircle, Award, FileText, ChevronDown, ChevronUp, User, Quote } from 'lucide-react';
+import { Calendar, MessageSquare, CheckCircle, Award, FileText, ChevronDown, ChevronUp, User, Quote, Pencil } from 'lucide-react';
 import { getStatusColor, normalizeMilestoneStatus } from '../../../../utils/milestoneHelpers';
 import MilestoneFilesModal from './MilestoneFilesModal';
 import MilestoneQuestions from './MilestoneQuestions';
@@ -26,6 +26,7 @@ const MilestoneHeader = ({
   onUploadMilestoneFiles = () => { },
   onDeleteMilestoneReturn = () => { },
   onAnswerSubmitted = () => { },
+  onUpdateClick,
 }) => {
   const [showFilesModal, setShowFilesModal] = useState(false);
   const [showQuestions, setShowQuestions] = useState(false);
@@ -96,17 +97,29 @@ const MilestoneHeader = ({
           </div>
           <p className="text-gray-600">{milestone.description}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowFilesModal(true)}
-          className="relative inline-flex flex-shrink-0 items-center justify-center self-start rounded-full border p-2 transition border-gray-200 text-black hover:border-gray-300 hover:bg-gray-50"
-          aria-label="View milestone files"
-        >
-          <FileText size={20} />
-          <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full  bg-black px-1 text-[10px] font-semibold leading-none text-white">
-            {lecturerFiles.length}
-          </span>
-        </button>
+        <div className="flex items-center gap-2 self-start">
+          {!readOnly && onUpdateClick && (
+            <button
+              type="button"
+              onClick={onUpdateClick}
+              className="inline-flex items-center justify-center rounded-full border p-2 transition border-gray-200 text-black hover:border-gray-300 hover:bg-gray-50"
+              aria-label="Edit milestone"
+            >
+              <Pencil size={20} />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowFilesModal(true)}
+            className="relative inline-flex flex-shrink-0 items-center justify-center rounded-full border p-2 transition border-gray-200 text-black hover:border-gray-300 hover:bg-gray-50"
+            aria-label="View milestone files"
+          >
+            <FileText size={20} />
+            <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full  bg-black px-1 text-[10px] font-semibold leading-none text-white">
+              {lecturerFiles.length}
+            </span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 border-t md:grid-cols-3 p-6">

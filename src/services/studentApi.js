@@ -1,6 +1,6 @@
 import apiClient from './apiClient';
 import { getTeamDetail } from './teamApi';
-import { getMilestonesByTeam, getMilestoneDetail, patchGenerateNewMilestoneFile } from './milestoneApi';
+import { getMilestonesByTeam, getMilestoneDetail, patchGenerateNewMilestoneFile, deleteTeamMilestone, updateMilestone } from './milestoneApi';
 
 // Student-specific API 
 
@@ -385,6 +385,10 @@ export const getLecturerEvaluationByTeamId = async (teamId) => {
 export const getAllMilestonesByTeamId = async (teamId) => getMilestonesByTeam(teamId);
 
 export const getDetailOfMilestoneByMilestoneId = async (milestoneId) => getMilestoneDetail(milestoneId);
+
+export const deleteTeamMilestoneById = async (teamMilestoneId) => deleteTeamMilestone(teamMilestoneId);
+
+export const updateTeamMilestoneById = async (teamMilestoneId, payload) => updateMilestone(teamMilestoneId, payload);
 
 export const patchMarkDoneMilestoneByMilestoneId = async (teamMilestoneId, isDone = true) => {
   try {

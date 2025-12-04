@@ -14,7 +14,8 @@ import {
   LayoutDashboard,
   GitBranch,
   MoreHorizontal,
-  AlertCircle
+  AlertCircle,
+  Folder
 } from 'lucide-react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { getClassDetail } from '../../services/userService';
@@ -237,6 +238,14 @@ const ClassDetailPage = () => {
             </div>
 
             <div className="flex items-center gap-3">
+              <Link
+                to="/lecturer/resources"
+                state={{ classId: numericClassId }}
+                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900"
+              >
+                <Folder className="h-4 w-4" />
+                Resources
+              </Link>
               <Link
                 to={`/lecturer/classes/${classId}/project-assignments`}
                 className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900"

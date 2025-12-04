@@ -1,6 +1,7 @@
-// CreateRoomForm.jsx
+// CreateRoomForm.jsx - Microsoft Word Style
 import React, { useState } from 'react'
 import { createDocumentRoom } from "../services/textEditorApi"
+import { Plus, AlertCircle } from "lucide-react"
 
 const CreateRoomForm = ({ teamId, onRoomCreated, existingRooms }) => {
     const [newRoomName, setNewRoomName] = useState("")
@@ -11,12 +12,12 @@ const CreateRoomForm = ({ teamId, onRoomCreated, existingRooms }) => {
         e.preventDefault();
         
         if (!newRoomName.trim()) {
-            setCreateError("Room name cannot be empty");
+            setCreateError("Document name cannot be empty");
             return;
         }
 
         if (existingRooms.some(room => room.roomName === newRoomName.trim())) {
-            setCreateError("Room name already exists");
+            setCreateError("Document name already exists");
             return;
         }
 
@@ -30,61 +31,82 @@ const CreateRoomForm = ({ teamId, onRoomCreated, existingRooms }) => {
             
         } catch (error) {
             console.error("Error creating room:", error);
-            setCreateError(error.message || "Failed to create room");
+            setCreateError(error.message || "Failed to create document");
         } finally {
             setIsCreating(false);
         }
     };
 
     return (
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-            <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
+        <div className="bg-white border-b border-gray-200">
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+                <div className="flex items-center gap-2">
+                    <Plus className="w-5 h-5 text-gray-600" />
+                    <h3 className="font-semibold text-gray-800">New Document</h3>
                 </div>
-                <h3 className="text-lg font-bold text-gray-800">Create New Room</h3>
             </div>
             
-            <form onSubmit={handleCreateRoom} className="space-y-3">
-                <div>
-                    <input
-                        type="text"
-                        value={newRoomName}
-                        onChange={(e) => {
-                            setNewRoomName(e.target.value);
-                            setCreateError("");
-                        }}
-                        placeholder="Enter room name..."
-                        disabled={isCreating}
-                        className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${
-                            createError 
-                                ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-                                : 'border-gray-200 focus:border-blue-500 focus:ring-blue-200'
-                        } focus:ring-4 focus:outline-none disabled:bg-gray-100`}
-                    />
-                    {createError && (
-                        <div className="mt-2 flex items-center gap-2 text-red-600 text-sm font-medium">
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                            </svg>
-                            {createError}
-                        </div>
-                    )}
+            {/* Form */}
+            <form onSubmit={handleCreateRoom} className="p-4">
+                <div className="space-y-3">
+                    {/* Input */}
+                    <div>
+                        <input
+                            type="text"
+                            value={newRoomName}
+                            onChange={(e) => {
+                                setNewRoomName(e.target.value);
+                                setCreateError("");
+                            }}
+                            placeholder="Enter document name..."
+                            disabled={isCreating}
+                            className={`
+                                w-full px-3 py-2 text-sm border rounded
+                                focus:outline-none focus:ring-2 transition-all
+                                ${createError 
+                                    ? 'border-red-300 focus:ring-red-200 focus:border-red-400' 
+                                    : 'border-gray-300 focus:ring-blue-200 focus:border-blue-400'
+                                }
+                                ${isCreating ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'}
+                            `}
+                        />
+                        
+                        {/* Error Message */}
+                        {createError && (
+                            <div className="mt-2 flex items-start gap-2 text-red-600 text-xs">
+                                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                                <span>{createError}</span>
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* Submit Button */}
+                    <button
+                        type="submit"
+                        disabled={isCreating || !newRoomName.trim()}
+                        className={`
+                            w-full px-4 py-2 rounded text-sm font-medium transition-all
+                            flex items-center justify-center gap-2
+                            ${isCreating || !newRoomName.trim()
+                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
+                            }
+                        `}
+                    >
+                        {isCreating ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                <span>Creating...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Plus className="w-4 h-4" />
+                                <span>Create Document</span>
+                            </>
+                        )}
+                    </button>
                 </div>
-                
-                <button
-                    type="submit"
-                    disabled={isCreating || !newRoomName.trim()}
-                    className={`w-full px-6 py-3 rounded-lg font-semibold text-white transition-all ${
-                        isCreating || !newRoomName.trim()
-                            ? 'bg-gray-300 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 hover:shadow-lg'
-                    }`}
-                >
-                    {isCreating ? "Creating..." : "Create Room"}
-                </button>
             </form>
         </div>
     );

@@ -30,6 +30,7 @@ import ClassManagementDashboard from '../pages/lecturer/ClassManagementDashboard
 import ClassDetailPage from '../pages/lecturer/ClassDetailPage';
 import ClassProjectOverview from '../pages/lecturer/ClassProjectOverview';
 import TeamProjectDetail from '../pages/lecturer/TeamProjectDetail';
+import TeamMilestoneDetail from '../pages/lecturer/TeamMilestoneDetail';
 import CreateProject from '../pages/lecturer/CreateProject';
 import CreateProjectAI from '../pages/lecturer/CreateProjectAI';
 import ProjectLibrary from '../pages/lecturer/ProjectLibrary';
@@ -45,6 +46,7 @@ import MilestoneDetailPage from '../pages/lecturer/evaluations/MilestoneDetailPa
 import MilestoneEvaluationPage from '../pages/lecturer/evaluations/MilestoneEvaluationPage';
 import LecturerGradingDashboard from '../pages/lecturer/grading/LecturerGradingDashboard';
 import CreateTeamPage from '../pages/lecturer/CreateTeamPage';
+import ResourcesHub from '../pages/lecturer/ResourcesHub';
 
 // academic services (staff) pages
 import StaffPage from '../pages/staff/StaffPage';
@@ -129,10 +131,12 @@ const sharedRoutes = [
 
 const lecturerRoutes = [
   { path: '/lecturer/classes', element: protectRoute(['LECTURER'], <ClassManagementDashboard />) },
+  { path: '/lecturer/resources', element: protectRoute(['LECTURER'], <ResourcesHub />) },
   { path: '/lecturer/classes/:classId', element: protectRoute(['LECTURER'], <ClassDetailPage />) },
   { path: '/lecturer/classes/:classId/projects', element: protectRoute(['LECTURER'], <ClassProjectOverview />) },
   { path: '/lecturer/classes/:classId/project-assignments', element: protectRoute(['LECTURER'], <ClassProjectAssignment />) },
   { path: '/lecturer/classes/:classId/team/:teamId', element: protectRoute(['LECTURER'], <TeamProjectDetail />) },
+  { path: '/lecturer/classes/:classId/team/:teamId/milestone/:milestoneId', element: protectRoute(['LECTURER'], <TeamMilestoneDetail />) },
   { path: '/lecturer/classes/:classId/create-team', element: protectRoute(['LECTURER'], <CreateTeamPage />) },
   { path: '/lecturer/create-project', element: protectRoute(['LECTURER'], <CreateProject />) },
   { path: '/lecturer/projects/create-with-ai', element: protectRoute(['LECTURER'], <CreateProjectAI />) },

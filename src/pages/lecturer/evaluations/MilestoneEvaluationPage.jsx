@@ -124,9 +124,7 @@ const MilestoneEvaluationPage = () => {
             ? milestoneList
             : [];
 
-      const filteredMilestones = normalizedMilestones.filter((m) => {
-        return m.statusString === 'Done' || m.status === 1;
-      });
+      const filteredMilestones = normalizedMilestones;
 
       setMilestones(filteredMilestones); 
       setEvaluations(Array.isArray(evaluationList) ? evaluationList : []);

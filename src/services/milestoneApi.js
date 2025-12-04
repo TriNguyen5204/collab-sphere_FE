@@ -1,11 +1,21 @@
 import apiClient from './apiClient';
 
 const normalizeError = (error) => {
-  if (error?.response?.data?.message) {
-    return error.response.data.message;
+  const data = error?.response?.data;
+  if (Array.isArray(data?.errorList) && data.errorList.length > 0) {
+    return data.errorList.map(err => {
+      if (typeof err === 'string') return err;
+      return err.message || err.description || JSON.stringify(err);
+    }).join('\n');
   }
-  if (typeof error?.response?.data?.error === 'string') {
-    return error.response.data.error;
+  if (typeof data?.error === 'string') {
+    return data.error;
+  }
+  if (typeof data?.message === 'string') {
+    return data.message;
+  }
+  if (typeof data === 'string') {
+    return data;
   }
   if (typeof error?.message === 'string') {
     return error.message;
@@ -20,6 +30,7 @@ export const getMilestonesByTeam = async (teamId) => {
 
   try {
     const response = await apiClient.get(`/milestone/team/${teamId}`);
+    console.log('Milestones by team response:', response.data);
     return response.data;
   } catch (error) {
     const status = error?.response?.status;
@@ -31,6 +42,19 @@ export const getMilestonesByTeam = async (teamId) => {
     }
 
     console.error(`Error fetching milestones for team ID ${teamId}:`, error);
+    throw new Error(normalizeError(error));
+  }
+};
+
+export const deleteTeamMilestone = async (teamMilestoneId) => {
+  if (!teamMilestoneId) {
+    throw new Error('teamMilestoneId is required to delete a milestone.');
+  }
+  try {
+    const response = await apiClient.delete(`/milestone/${teamMilestoneId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error deleting team milestone ${teamMilestoneId}:`, error);
     throw new Error(normalizeError(error));
   }
 };

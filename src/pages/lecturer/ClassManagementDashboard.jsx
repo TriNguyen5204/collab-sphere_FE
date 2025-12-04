@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { AcademicCapIcon, ClipboardDocumentListIcon, Squares2X2Icon, UserGroupIcon } from '@heroicons/react/24/outline';
 import { getLecturerClasses } from '../../services/classApi';
-import { Search } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const REQUIRED_CLASS_FIELDS = {
   classId: 'Used as the unique key for cards and navigation into class detail.',
@@ -161,6 +161,12 @@ const ClassManagementDashboard = () => {
   const [recentSearches, setRecentSearches] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [subjectFilter, setSubjectFilter] = useState('all');
+  const [pagination, setPagination] = useState({
+    pageNum: 1,
+    pageSize: 12,
+    pageCount: 1,
+    totalItems: 0
+  });
   const showClassSkeleton = isLoadingClasses && classes.length === 0;
 
   useEffect(() => {
@@ -177,7 +183,20 @@ const ClassManagementDashboard = () => {
       setError('');
 
       try {
-        const payload = await getLecturerClasses(lecturerId);
+        const payload = await getLecturerClasses(lecturerId, {
+          pageNum: pagination.pageNum,
+          pageSize: pagination.pageSize
+        });
+        console.log('Lecturer classes payload:', payload);
+
+        if (payload && payload.list) {
+          setPagination((prev) => ({
+            ...prev,
+            pageCount: payload.pageCount,
+            totalItems: payload.itemCount
+          }));
+        }
+
         const { classes: apiClasses, missingFields } = normaliseClassResponse(payload);
 
         if (!isMounted) {
@@ -214,7 +233,7 @@ const ClassManagementDashboard = () => {
     return () => {
       isMounted = false;
     };
-  }, [lecturerId]);
+  }, [lecturerId, pagination.pageNum, pagination.pageSize]);
 
   const orderedClasses = useMemo(() => {
     const toTimestamp = (value) => {
@@ -261,41 +280,6 @@ const ClassManagementDashboard = () => {
       averageClassSize
     };
   }, [classes]);
-
-  const classStatCards = [
-    {
-      id: 'activeClasses',
-      label: 'Active classes',
-      value: `${stats.activeClasses}/${stats.totalClasses || '—'}`,
-      description: 'Currently in delivery or grading.',
-      icon: AcademicCapIcon,
-      accent: 'from-indigo-500/40 to-sky-400/30 text-indigo-700'
-    },
-    {
-      id: 'totalStudents',
-      label: 'Students enrolled',
-      value: stats.totalStudents,
-      description: 'Active enrolments across classes.',
-      icon: UserGroupIcon,
-      accent: 'from-emerald-400/40 to-teal-300/20 text-emerald-700'
-    },
-    {
-      id: 'totalTeams',
-      label: 'Teams tracked',
-      value: stats.totalTeams,
-      description: 'Derived from team records.',
-      icon: Squares2X2Icon,
-      accent: 'from-sky-400/40 to-cyan-300/20 text-sky-700'
-    },
-    {
-      id: 'averageClassSize',
-      label: 'Average class size',
-      value: stats.averageClassSize,
-      description: 'Helps balance cohorts.',
-      icon: ClipboardDocumentListIcon,
-      accent: 'from-amber-300/40 to-orange-200/20 text-amber-700'
-    }
-  ];
 
   const handleViewClass = (classId) => {
     navigate(`/lecturer/classes/${classId}`);
@@ -353,30 +337,6 @@ const ClassManagementDashboard = () => {
             Create New Project
           </button>
         </header>
-
-        <section className="relative">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {showClassSkeleton
-              ? classStatCards.map((card) => renderClassStatSkeleton(card.id))
-              : classStatCards.map((card) => {
-                const Icon = card.icon;
-                return (
-                  <div key={card.id} className={`${glassPanelClass} rounded-2xl p-4`}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">{card.label}</p>
-                        <p className="mt-2 text-2xl font-semibold text-slate-900">{card.value}</p>
-                      </div>
-                      <div className={`rounded-xl bg-gradient-to-br ${card.accent} p-3`}>
-                        <Icon className="h-5 w-5" aria-hidden="true" />
-                      </div>
-                    </div>
-                    <p className="mt-2 text-xs text-slate-600">{card.description}</p>
-                  </div>
-                );
-              })}
-          </div>
-        </section>
 
         {error && (
           <div className="rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-sm text-rose-700">
@@ -528,6 +488,31 @@ const ClassManagementDashboard = () => {
                 {filteredClasses.map((cls) => (
                   <ClassCard key={cls.classId} cls={cls} onView={handleViewClass} subjectGradient={subjectGradient} />
                 ))}
+              </div>
+            )}
+
+            {!showClassSkeleton && pagination.pageCount > 1 && (
+              <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-6 pr-24">
+                <p className="text-sm text-slate-500">
+                  Showing page <span className="font-semibold text-slate-900">{pagination.pageNum}</span> of{' '}
+                  <span className="font-semibold text-slate-900">{pagination.pageCount}</span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPagination((prev) => ({ ...prev, pageNum: Math.max(1, prev.pageNum - 1) }))}
+                    disabled={pagination.pageNum === 1}
+                    className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => setPagination((prev) => ({ ...prev, pageNum: Math.min(pagination.pageCount, prev.pageNum + 1) }))}
+                    disabled={pagination.pageNum === pagination.pageCount}
+                    className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
             )}
           </div>

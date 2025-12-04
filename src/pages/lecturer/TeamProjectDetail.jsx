@@ -4,7 +4,7 @@ import {
    Users, Target, Calendar, Clock, CheckCircle2, MoreHorizontal,
    Plus, Trash2, Edit3, ArrowLeft, Github, Flag, AlertCircle,
    X, Mail, Phone, MapPin, GraduationCap, FileText, HelpCircle,
-   Paperclip, UploadCloud, Loader2, Download
+   Paperclip, UploadCloud, Loader2, Download, Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getTeamDetail } from '../../services/teamApi';
@@ -14,17 +14,11 @@ import {
    getMilestoneDetail,
    createMilestone,
    updateMilestone,
-   deleteMilestone,
-   patchGenerateNewMilestoneFile,
-   deleteMilestoneFile,
-   postMilestoneFile
+   deleteMilestone
 } from '../../services/milestoneApi';
-import {
-   postMilestoneQuestion,
-   deleteMilestoneQuestion
-} from '../../services/questionApi';
 import { getUserProfile } from '../../services/userService';
 import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
+import TeamResources from '../../features/lecturer/components/TeamResources';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useSecureFileHandler } from '../../hooks/useSecureFileHandler';
 import useFileSizeFormatter from '../../hooks/useFileSizeFormatter';
@@ -177,18 +171,14 @@ const TeamProjectDetail = () => {
 
    // Modals
    const [milestoneModal, setMilestoneModal] = useState(null);
-   const [milestoneDetail, setMilestoneDetail] = useState(null);
-   const [isMilestoneDetailLoading, setIsMilestoneDetailLoading] = useState(false);
+   const [activeTab, setActiveTab] = useState('overview');
 
    const [milestoneFormValues, setMilestoneFormValues] = useState(initialMilestoneForm);
    const [confirmState, setConfirmState] = useState(null);
    const [memberProfileModal, setMemberProfileModal] = useState(null);
    const [isSubmitting, setIsSubmitting] = useState(false);
 
-   // New Question/File Inputs
-   const [newQuestion, setNewQuestion] = useState('');
    const [openMilestoneMenuId, setOpenMilestoneMenuId] = useState(null);
-   const [activeFileKey, setActiveFileKey] = useState(null);
 
    // Hooks
    const { openSecureFile } = useSecureFileHandler();
@@ -240,22 +230,22 @@ const TeamProjectDetail = () => {
       }
    }, [teamId]);
 
-   const fetchFullMilestoneDetail = useCallback(async (mId) => {
-      setIsMilestoneDetailLoading(true);
-      try {
-         const detail = await getMilestoneDetail(mId);
-         if (isMountedRef.current) setMilestoneDetail(detail);
-      } catch (err) {
-         toast.error('Failed to load milestone details');
-      } finally {
-         if (isMountedRef.current) setIsMilestoneDetailLoading(false);
-      }
-   }, []);
-
    useEffect(() => {
       fetchTeamAndProject();
       fetchMilestonesList();
    }, [fetchTeamAndProject, fetchMilestonesList]);
+
+   useEffect(() => {
+      if (milestoneModal?.mode === 'edit' && milestoneModal.milestone) {
+         const m = milestoneModal.milestone;
+         setMilestoneFormValues({
+            title: m.title || '',
+            description: m.description || '',
+            startDate: toDateInputValue(m.startDate),
+            endDate: toDateInputValue(m.endDate)
+         });
+      }
+   }, [milestoneModal]);
 
    // --- Derived Data ---
 
@@ -321,15 +311,6 @@ const TeamProjectDetail = () => {
 
       if (mode === 'create') {
          setMilestoneFormValues(initialMilestoneForm);
-         setMilestoneDetail(null);
-      } else {
-         setMilestoneFormValues({
-            title: milestone.title || '',
-            description: milestone.description || '',
-            startDate: toDateInputValue(milestone.startDate),
-            endDate: toDateInputValue(milestone.endDate)
-         });
-         fetchFullMilestoneDetail(milestone.displayId || milestone.id);
       }
    };
 
@@ -360,6 +341,7 @@ const TeamProjectDetail = () => {
             const id = milestoneModal.milestone.displayId || milestoneModal.milestone.id;
             await updateMilestone(id, payload);
             toast.success('Milestone details updated');
+            setMilestoneModal(null);
          }
          fetchMilestonesList(true);
       } catch (err) {
@@ -380,90 +362,7 @@ const TeamProjectDetail = () => {
    };
 
    // --- Questions Handlers ---
-   const handleAddQuestion = async () => {
-      if (!newQuestion.trim()) return;
-      setIsSubmitting(true);
-      try {
-         const milestoneId = milestoneDetail?.teamMilestoneId || milestoneModal.milestone?.displayId;
-         console.log("Adding question to milestone ID:", milestoneId, "team:", teamId, "question:", newQuestion);
 
-         await postMilestoneQuestion(milestoneId, teamId, newQuestion);
-         toast.success('Question added');
-         setNewQuestion('');
-         fetchFullMilestoneDetail(milestoneId);
-      } catch (err) {
-         console.error(err);
-         toast.error('Failed to add question');
-      } finally {
-         setIsSubmitting(false);
-      }
-   };
-
-   const handleDeleteQuestion = async (qId) => {
-      if (!window.confirm('Delete this question?')) return;
-      try {
-         await deleteMilestoneQuestion(qId);
-         toast.success('Question deleted');
-         fetchFullMilestoneDetail(milestoneDetail.teamMilestoneId);
-      } catch (err) {
-         console.error(err);
-         toast.error('Failed to delete question');
-      }
-   };
-
-   // --- Files Handlers (using useSecureFileHandler) ---
-   const handleFileUpload = async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const toastId = toast.loading('Uploading file...');
-      try {
-         const milestoneId = milestoneDetail?.teamMilestoneId || milestoneModal.milestone?.displayId;
-         console.log("Uploading file to milestone ID:", milestoneId, file);
-         const formData = new FormData();
-         formData.append('formFile', file);
-         console.log([...formData]);
-
-         await postMilestoneFile(milestoneId, formData);
-         toast.dismiss(toastId);
-         toast.success('File uploaded');
-         fetchFullMilestoneDetail(milestoneId);
-      } catch (err) {
-         console.error(err);
-         toast.dismiss(toastId);
-         toast.error('Upload failed');
-      }
-   };
-
-   const handleDeleteFile = async (fileId) => {
-      if (!window.confirm('Delete this file?')) return;
-      try {
-         await deleteMilestoneFile(fileId);
-         toast.success('File deleted');
-         fetchFullMilestoneDetail(milestoneDetail.teamMilestoneId);
-      } catch (err) {
-         console.error(err);
-         toast.error('Failed to delete file');
-      }
-   };
-
-   const handleOpenFile = async (file) => {
-      if (!file) return;
-      const fallbackUrl = file.fileUrl || file.url;
-      const resolvedFileId = file.fileId || file.id;
-      const milestoneId = milestoneDetail?.teamMilestoneId || milestoneModal.milestone?.displayId;
-
-      const secureFetcher = async () => {
-         const refreshed = await patchGenerateNewMilestoneFile(milestoneId, resolvedFileId);
-         return extractUrlLike(refreshed) || fallbackUrl;
-      };
-
-      setActiveFileKey(resolvedFileId);
-      try {
-         await openSecureFile(fallbackUrl, secureFetcher, true);
-      } finally {
-         setActiveFileKey(null);
-      }
-   };
 
    const handleDeleteMilestone = async () => {
       if (!confirmState?.item?.id) return;
@@ -530,7 +429,34 @@ const TeamProjectDetail = () => {
                </div>
             </div>
 
+            {/* --- TABS --- */}
+            <div className="flex items-center gap-4 mb-8">
+               <button
+                  onClick={() => setActiveTab('overview')}
+                  className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${
+                     activeTab === 'overview'
+                        ? 'bg-orangeFpt-500 text-white shadow-lg shadow-orangeFpt-200 scale-105'
+                        : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
+                  }`}
+               >
+                  Overview
+               </button>
+               <button
+                  onClick={() => setActiveTab('resources')}
+                  className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${
+                     activeTab === 'resources'
+                        ? 'bg-orangeFpt-500 text-white shadow-lg shadow-orangeFpt-200 scale-105'
+                        : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
+                  }`}
+               >
+                  Resources
+               </button>
+            </div>
+
             {/* --- CONTENT --- */}
+            {activeTab === 'resources' ? (
+               <TeamResources teamId={teamId} />
+            ) : (
             <div className="mx-auto grid grid-cols-1 gap-8 lg:grid-cols-3">
 
                {/* LEFT: MILESTONES */}
@@ -573,8 +499,8 @@ const TeamProjectDetail = () => {
                                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${getStatusColor(milestone.statusToken)}`}>
                                                 {formatStatusLabel(milestone.statusToken)}
                                              </span>
-                                             {/* ALLOW EDITING IF LINKED & NOT DONE */}
-                                             {milestone.isLinked && !['done', 'completed'].includes(milestone.statusToken?.toLowerCase()) && (
+                                             {/* ALLOW EDITING IF LINKED */}
+                                             {milestone.isLinked && (
                                                 <div className="relative" tabIndex={-1} onBlur={handleMenuBlur}>
                                                    <button
                                                       onClick={() => toggleMilestoneMenu(milestone.displayId)}
@@ -585,10 +511,16 @@ const TeamProjectDetail = () => {
                                                    {openMilestoneMenuId === milestone.displayId && (
                                                       <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-xl border border-slate-100 py-1 z-10 animate-in fade-in zoom-in-95">
                                                          <button
+                                                            onClick={() => navigate(`/lecturer/classes/${classId}/team/${teamId}/milestone/${milestone.displayId || milestone.id}`)}
+                                                            className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+                                                         >
+                                                            <Eye size={14} /> View Details
+                                                         </button>
+                                                         <button
                                                             onClick={() => handleOpenMilestoneManager(milestone, 'edit')}
                                                             className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center gap-2"
                                                          >
-                                                            <Edit3 size={14} /> Edit Details
+                                                            <Edit3 size={14} /> Edit
                                                          </button>
                                                       </div>
                                                    )}
@@ -643,6 +575,12 @@ const TeamProjectDetail = () => {
                                        </button>
                                        {openMilestoneMenuId === milestone.displayId && (
                                           <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-xl border border-slate-100 py-1 z-10 animate-in fade-in zoom-in-95">
+                                             <button
+                                                onClick={() => navigate(`/lecturer/classes/${classId}/team/${teamId}/milestone/${milestone.displayId || milestone.id}`)}
+                                                className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+                                             >
+                                                <Eye size={14} /> View Details
+                                             </button>
                                              <button
                                                 onClick={() => handleOpenMilestoneManager(milestone, 'edit')}
                                                 className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center gap-2"
@@ -706,6 +644,7 @@ const TeamProjectDetail = () => {
                   </div>
                </aside>
             </div>
+            )}
          </div>
 
          {/* --- MILESTONE MANAGEMENT MODAL --- */}
@@ -715,181 +654,56 @@ const TeamProjectDetail = () => {
                onClose={() => setMilestoneModal(null)}
                maxWidth="max-w-3xl"
             >
-               <div className="flex border-b border-slate-200 mb-6">
-                  <button
-                     onClick={() => setMilestoneModal(prev => ({ ...prev, activeTab: 'details' }))}
-                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${milestoneModal.activeTab === 'details' ? 'border-orangeFpt-500 text-orangeFpt-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                  >
-                     Details
-                  </button>
-                  {milestoneModal.mode === 'edit' && (
-                     <>
-                        <button
-                           onClick={() => setMilestoneModal(prev => ({ ...prev, activeTab: 'questions' }))}
-                           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${milestoneModal.activeTab === 'questions' ? 'border-orangeFpt-500 text-orangeFpt-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                        >
-                           Questions ({milestoneDetail?.milestoneQuestions?.length || 0})
-                        </button>
-                        <button
-                           onClick={() => setMilestoneModal(prev => ({ ...prev, activeTab: 'files' }))}
-                           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${milestoneModal.activeTab === 'files' ? 'border-orangeFpt-500 text-orangeFpt-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                        >
-                           Files ({milestoneDetail?.milestoneFiles?.length || 0})
-                        </button>
-                     </>
-                  )}
-               </div>
-
-               {/* TAB CONTENT: DETAILS */}
-               {milestoneModal.activeTab === 'details' && (
-                  <form onSubmit={handleSaveMilestoneDetails} className="space-y-4">
+               <form onSubmit={handleSaveMilestoneDetails} className="space-y-4">
+                  <div>
+                     <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Title</label>
+                     <input
+                        type="text"
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                        value={milestoneFormValues.title}
+                        onChange={e => setMilestoneFormValues({ ...milestoneFormValues, title: e.target.value })}
+                        required
+                        disabled={milestoneModal.mode === 'edit' && !milestoneModal.milestone.isCustom}
+                     />
+                  </div>
+                  <div>
+                     <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Description</label>
+                     <textarea
+                        rows={3}
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                        value={milestoneFormValues.description}
+                        onChange={e => setMilestoneFormValues({ ...milestoneFormValues, description: e.target.value })}
+                        disabled={milestoneModal.mode === 'edit' && !milestoneModal.milestone.isCustom}
+                     />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
                      <div>
-                        <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Title</label>
+                        <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Start Date</label>
                         <input
-                           type="text"
-                           className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
-                           value={milestoneFormValues.title}
-                           onChange={e => setMilestoneFormValues({ ...milestoneFormValues, title: e.target.value })}
+                           type="date"
+                           className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none"
+                           value={milestoneFormValues.startDate}
+                           onChange={e => setMilestoneFormValues({ ...milestoneFormValues, startDate: e.target.value })}
                            required
-                           // DISABLED if editing a standard (not custom) milestone
-                           disabled={milestoneModal.mode === 'edit' && !milestoneModal.milestone.isCustom}
                         />
                      </div>
                      <div>
-                        <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Description</label>
-                        <textarea
-                           rows={3}
-                           className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
-                           value={milestoneFormValues.description}
-                           onChange={e => setMilestoneFormValues({ ...milestoneFormValues, description: e.target.value })}
-                           // DISABLED if editing a standard (not custom) milestone
-                           disabled={milestoneModal.mode === 'edit' && !milestoneModal.milestone.isCustom}
+                        <label className="block text-xs font-bold uppercase text-slate-500 mb-1">End Date</label>
+                        <input
+                           type="date"
+                           className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none"
+                           value={milestoneFormValues.endDate}
+                           onChange={e => setMilestoneFormValues({ ...milestoneFormValues, endDate: e.target.value })}
+                           required
                         />
                      </div>
-                     <div className="grid grid-cols-2 gap-4">
-                        <div>
-                           <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Start Date</label>
-                           <input
-                              type="date"
-                              className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none"
-                              value={milestoneFormValues.startDate}
-                              onChange={e => setMilestoneFormValues({ ...milestoneFormValues, startDate: e.target.value })}
-                              required
-                           />
-                        </div>
-                        <div>
-                           <label className="block text-xs font-bold uppercase text-slate-500 mb-1">End Date</label>
-                           <input
-                              type="date"
-                              className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none"
-                              value={milestoneFormValues.endDate}
-                              onChange={e => setMilestoneFormValues({ ...milestoneFormValues, endDate: e.target.value })}
-                              required
-                           />
-                        </div>
-                     </div>
-                     <div className="flex justify-end pt-4">
-                        <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-orangeFpt-500 text-white font-semibold rounded-xl hover:bg-orangeFpt-600 disabled:opacity-50">
-                           {isSubmitting ? 'Saving...' : 'Save Changes'}
-                        </button>
-                     </div>
-                  </form>
-               )}
-
-               {/* ... (Questions and Files tabs remain same as previous version) ... */}
-               {/* TAB CONTENT: QUESTIONS */}
-               {milestoneModal.activeTab === 'questions' && (
-                  <div className="space-y-6">
-                     {isMilestoneDetailLoading ? (
-                        <div className="text-center py-8 text-slate-500">Loading questions...</div>
-                     ) : (
-                        <>
-                           <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                              {milestoneDetail?.milestoneQuestions?.length > 0 ? (
-                                 milestoneDetail.milestoneQuestions.map((q) => (
-                                    <div key={q.milestoneQuestionId} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                       <span className="text-sm text-slate-700">{q.question}</span>
-                                       <button onClick={() => handleDeleteQuestion(q.milestoneQuestionId)} className="text-slate-400 hover:text-red-500 p-1">
-                                          <Trash2 size={16} />
-                                       </button>
-                                    </div>
-                                 ))
-                              ) : (
-                                 <div className="text-center py-6 text-sm text-slate-400 border border-dashed rounded-xl">No questions added yet.</div>
-                              )}
-                           </div>
-
-                           <div className="flex gap-2 pt-2 border-t border-slate-100">
-                              <input
-                                 type="text"
-                                 placeholder="Type a new question..."
-                                 className="flex-1 rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none"
-                                 value={newQuestion}
-                                 onChange={(e) => setNewQuestion(e.target.value)}
-                              />
-                              <button
-                                 onClick={handleAddQuestion}
-                                 disabled={!newQuestion.trim() || isSubmitting}
-                                 className="px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 disabled:opacity-50"
-                              >
-                                 Add
-                              </button>
-                           </div>
-                        </>
-                     )}
                   </div>
-               )}
-
-               {/* TAB CONTENT: FILES */}
-               {milestoneModal.activeTab === 'files' && (
-                  <div className="space-y-6">
-                     {isMilestoneDetailLoading ? (
-                        <div className="text-center py-8 text-slate-500">Loading files...</div>
-                     ) : (
-                        <>
-                           <div className="flex justify-center">
-                              <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-50 hover:border-orangeFpt-300 transition-colors">
-                                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <UploadCloud className="w-8 h-8 text-slate-400 mb-1" />
-                                    <p className="text-xs text-slate-500"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                 </div>
-                                 <input type="file" className="hidden" onChange={handleFileUpload} />
-                              </label>
-                           </div>
-
-                           <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                              {milestoneDetail?.milestoneFiles?.length > 0 ? (
-                                 milestoneDetail.milestoneFiles.map((f) => (
-                                    <div key={f.fileId} className="flex justify-between items-center p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
-                                       <div className="flex items-center gap-3 overflow-hidden">
-                                          <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><FileText size={18} /></div>
-                                          <div className="min-w-0">
-                                             <p className="text-sm font-medium text-slate-700 truncate">{f.fileName}</p>
-                                             <p className="text-xs text-slate-400">{(f.fileSize / 1024).toFixed(1)} KB • {formatDate(f.createdAt)}</p>
-                                          </div>
-                                       </div>
-                                       <div className="flex items-center gap-1">
-                                          <button onClick={() => handleOpenFile(f)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg">
-                                             {activeFileKey === (f.fileId || f.id) ? (
-                                                <Loader2 className="h-4 w-4 animate-spin text-orangeFpt-500" />
-                                             ) : (
-                                                <Download size={16} />
-                                             )}
-                                          </button>
-                                          <button onClick={() => handleDeleteFile(f.fileId)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
-                                             <Trash2 size={16} />
-                                          </button>
-                                       </div>
-                                    </div>
-                                 ))
-                              ) : (
-                                 <div className="text-center py-6 text-sm text-slate-400">No files uploaded.</div>
-                              )}
-                           </div>
-                        </>
-                     )}
+                  <div className="flex justify-end pt-4">
+                     <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-orangeFpt-500 text-white font-semibold rounded-xl hover:bg-orangeFpt-600 disabled:opacity-50">
+                        {isSubmitting ? 'Saving...' : 'Save Changes'}
+                     </button>
                   </div>
-               )}
+               </form>
             </Modal>
          )}
 
