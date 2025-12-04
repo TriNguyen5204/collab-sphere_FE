@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ProjectCard from "./ProjectCard";
 
-const PAGE_SIZE = 4;
+const PAGE_SIZE = 3;
 const SCROLL_COOLDOWN = 500; // ms to wait between page turns
 
 const TeamProjectsCarousel = ({ projects = [], onCardClick }) => {
@@ -50,7 +50,7 @@ const TeamProjectsCarousel = ({ projects = [], onCardClick }) => {
         onWheel={handleWheel}
         className="flex flex-col"
       >
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 justify-items-center">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 justify-items-center">
           {visibleProjects.map((project) => (
             <div key={project.teamId || project.projectId} className="w-full flex justify-center">
               <ProjectCard

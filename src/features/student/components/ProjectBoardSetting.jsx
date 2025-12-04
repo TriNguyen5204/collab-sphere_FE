@@ -16,7 +16,8 @@ import {
   EyeOff,
   Copy,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  MessageSquareWarning
 } from "lucide-react";
 import { toast } from "sonner";
 import useTeam from "../../../context/useTeam";
@@ -209,6 +210,17 @@ const ProjectBoardSetting = ({ archivedItems, onRestoreArchived, onDeleteArchive
         },
       ]
     },
+    {
+      section: "Report System",
+      items: [
+        {
+          icon: MessageSquareWarning,
+          label: "Report System",
+          action: () => {},
+          description: "Report system issues or bugs"
+        },
+      ]
+    }
   ];
 
 
@@ -251,7 +263,7 @@ const ProjectBoardSetting = ({ archivedItems, onRestoreArchived, onDeleteArchive
                   );
                 })}
                 {sectionIdx < menuItems.length - 1 && (
-                  <div className="border-t border-gray-100 my-2" />
+                  <div className="border-t border-gray-100 " />
                 )}
               </div>
             ))}

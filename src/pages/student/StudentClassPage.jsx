@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BookOpen, Users, Calendar, FileText } from 'lucide-react';
+import { BookOpen, Users, Calendar, FileText, Sparkles, RefreshCcw } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getClassesByStudentId, getClassDetailsById, getAssignedTeamByClassId, getDetailOfTeamByTeamId } from '../../services/studentApi';
@@ -159,6 +159,19 @@ const StudentClassPage = () => {
     }
   }, [location.state, classes]);
 
+  const classStats = useMemo(() => {
+    const total = classes.length;
+    const active = classes.filter((c) => c.isActive).length;
+    const members = classes.reduce((acc, curr) => acc + (curr.memberCount ?? 0), 0);
+    const teams = classes.reduce((acc, curr) => acc + (curr.teamCount ?? curr.teams?.length ?? 0), 0);
+    return [
+      { label: 'Total Classes', value: total },
+      { label: 'Active', value: active },
+      { label: 'Members', value: members },
+      { label: 'Teams', value: teams },
+    ];
+  }, [classes]);
+
   const handleAssignedTeamClick = async (team) => {
     const teamId = team?.teamId;
     const projectId = team?.projectId;
@@ -181,212 +194,212 @@ const StudentClassPage = () => {
   const isAssignedTeamLoading = loadingAssignedTeamId === selectedClassId && !assignedTeam;
   const assignedTeamCardData = assignedTeam
     ? {
-        ...assignedTeam,
-        className: assignedTeam.className ?? selectedDetails?.className,
-        lecturerName: assignedTeam.lecturerName ?? selectedDetails?.lecturerName,
-      }
+      ...assignedTeam,
+      className: assignedTeam.className ?? selectedDetails?.className,
+      lecturerName: assignedTeam.lecturerName ?? selectedDetails?.lecturerName,
+    }
     : null;
 
   return (
     <StudentLayout>
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">My Classes</h1>
-            <p className="text-gray-600 mt-1">View your assigned classes</p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-lg shadow-md p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <BookOpen className="w-5 h-5" />
-                    Assigned Classes ({classes.length})
-                  </h2>
-                  <button
-                    onClick={() =>
-                      toast.promise(fetchClasses(), {
-                        loading: 'Refreshing classes...',
-                        success: (list) => `Loaded ${list?.length ?? 0} classes`,
-                        error: 'Failed to refresh classes',
-                      })
-                    }
-                    className="text-sm text-blue-600 hover:text-blue-800 hover:underline disabled:opacity-50"
-                    disabled={loadingList}
-                  >
-                    {loadingList ? 'Loading…' : 'Refresh'}
-                  </button>
+      <div className="space-y-8">
+        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0f172a] via-[#111c33] to-[#1d263a] text-white shadow-2xl">
+          <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-orangeFpt-500/20 to-transparent" />
+          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top,_#ffffff3a,_transparent_55%)]" />
+          <div className="relative z-10 px-6 py-8 lg:px-10">
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-2xl space-y-4">
+                <div className="inline-flex items-center gap-2 rounded-full border border-orangeFpt-200/50 bg-orangeFpt-500/10 px-4 py-1 text-[11px] uppercase tracking-[0.3em] text-orangeFpt-100">
+                  <Sparkles className="h-4 w-4 text-orangeFpt-200" />
+                  Class Overview
                 </div>
-
-                {loadingList ? (
-                  <EnrolledClassesSkeleton count={3} />
-                ) : (
-                  <div className="space-y-3">
-                    {classes.map((c) => (
-                      <div
-                        key={c.classId}
-                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                          selectedClassId === c.classId
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-blue-300'
-                        }`}
-                        onClick={() => setSelectedClassId(c.classId)}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="font-semibold text-gray-900">{c.subjectCode}</h3>
-                            <p className="text-sm text-gray-600">{c.className}</p>
-                          </div>
-                          <span
-                            className={`text-xs px-2 py-1 rounded border font-semibold ${
-                              c.isActive
-                                ? 'text-green-900 bg-green-100 border-green-300'
-                                : 'text-gray-700 bg-gray-100 border-gray-300'
-                            }`}
-                          >
-                            {c.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
-                          <Users className="w-3 h-3" />
-                          <span>{c.memberCount ?? 0} members</span>
-                        </div>
-                      </div>
-                    ))}
-                    {!classes.length && !loadingList && (
-                      <div className="text-sm text-gray-500">No classes found.</div>
-                    )}
+                <h1 className="text-3xl font-semibold leading-snug sm:text-4xl">Master every class with ease</h1>
+                <p className="text-sm text-white/75 sm:text-base">Quickly switch classes, review lecturer details, and jump to teams or syllabi from one clean view.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 w-full max-w-xl">
+                {classStats.map((stat) => (
+                  <div key={stat.label} className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+                    <p className="text-[11px] uppercase tracking-wide text-white/70">{stat.label}</p>
+                    <p className="mt-1 text-2xl font-semibold text-orangeFpt-50">{stat.value}</p>
                   </div>
-                )}
+                ))}
               </div>
             </div>
+          </div>
+        </section>
 
-            {/* Right: Class details */}
-            <div className="lg:col-span-2">
-              {selectedClass ? (
-                loadingDetails && !selectedDetails ? (
-                  <ClassDetailsSkeleton />
-                ) : selectedDetails ? (
-                  <div className="bg-white rounded-lg shadow-md p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
-                      <div>
-                        <h2 className="text-2xl font-bold text-gray-900">{selectedDetails.className}</h2>
-                        <p className="text-gray-600">
-                          {selectedDetails.subjectCode} — {selectedDetails.subjectName}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={handleViewMembers}
-                          disabled={(selectedDetails?.classMembers?.length ?? 0) === 0}
-                          className="px-3 py-2 text-sm rounded-md border bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="View members"
-                        >
-                          <span className="inline-flex items-center gap-2">
-                            <Users className="w-4 h-4" />
-                            Members ({selectedDetails?.classMembers?.length ?? 0})
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleViewProjects}
-                          disabled={(selectedDetails?.projectAssignments?.length ?? 0) === 0}
-                          className="px-3 py-2 text-sm rounded-md border bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="View projects"
-                        >
-                          <span className="inline-flex items-center gap-2">
-                            <BookOpen className="w-4 h-4" />
-                            Projects ({selectedDetails?.projectAssignments?.length ?? 0})
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleViewSyllabus}
-                          disabled={!(selectedDetails?.subjectId || selectedDetails?.subject?.subjectId)}
-                          className="px-3 py-2 text-sm rounded-md border bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="View syllabus"
-                        >
-                          <span className="inline-flex items-center gap-2">
-                            <FileText className="w-4 h-4" />
-                            Syllabus
-                          </span>
-                        </button>
-                      </div>
-                    </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-1">
+            <div className="rounded-3xl border border-orangeFpt-100 bg-white/95 p-5 shadow-lg shadow-orangeFpt-100/40">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-orangeFpt-500" />
+                  Assigned Classes ({classes.length})
+                </h2>
+                <button
+                  onClick={() =>
+                    toast.promise(fetchClasses(), {
+                      loading: 'Refreshing classes...',
+                      success: (list) => `Loaded ${list?.length ?? 0} classes`,
+                      error: 'Failed to refresh classes',
+                    })
+                  }
+                  className="inline-flex items-center gap-1 rounded-full border border-orangeFpt-200 px-3 py-1 text-xs font-semibold text-orangeFpt-600 transition hover:bg-orangeFpt-50 disabled:opacity-50"
+                  disabled={loadingList}
+                >
+                  <RefreshCcw className="w-3.5 h-3.5" />
+                  {loadingList ? 'Loading…' : 'Refresh'}
+                </button>
+              </div>
 
-                    <div className="grid grid-cols-2 gap-4 py-4 border-t border-gray-200">
-                      {/* Lecturer */}
-                      <div>
-                        <p className="text-sm text-gray-500">Lecturer</p>
-                        <p className="font-medium text-gray-900">{selectedDetails.lecturerName} - {selectedDetails.lecturerCode}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Status</p>
-                        <p className="font-medium text-gray-900">
-                          {selectedDetails.isActive ? 'Active' : 'Inactive'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Members</p>
-                        <p className="font-medium text-gray-900">
-                          {selectedDetails?.classMembers?.length ?? 0}
-                        </p>
-                      </div>
-
-                      {/* Teams */}
-                      <div>
-                        <p className="text-sm text-gray-500">Teams</p>
-                        <p className="font-medium text-gray-900">{selectedDetails.teams?.length ?? 0}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Projects</p>
-                        <p className="font-medium text-gray-900">
-                          {selectedDetails?.projectAssignments?.length ?? 0}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-sm text-gray-500">Created</p>
-                        <p className="font-medium text-gray-900">
-                          <span className="inline-flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            {formatDate(selectedDetails.createdDate)}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Assigned Team</h3>
-                      {isAssignedTeamLoading ? (
-                        <div className="rounded-md border border-gray-200 p-4 animate-pulse text-sm text-gray-500">
-                          Loading assigned team...
-                        </div>
-                      ) : assignedTeamCardData ? (
-                        <div className="flex">
-                          <ProjectCard project={assignedTeamCardData} onClick={() => handleAssignedTeamClick(assignedTeam)} />
-                        </div>
-                      ) : (
-                        <div className="rounded-md border border-dashed border-gray-300 p-4 text-sm text-gray-500">
-                          No team assigned for this class.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-lg shadow-md p-6">
-                    <p className="text-gray-600">No details found for this class.</p>
-                  </div>
-                )
+              {loadingList ? (
+                <EnrolledClassesSkeleton count={3} />
               ) : (
-                <div className="bg-white rounded-lg shadow-md p-12 text-center">
-                  <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-medium text-gray-900 mb-2">Select a Class</h3>
-                  <p className="text-gray-600">Choose a class from the list to view details</p>
+                <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+                  {classes.map((c) => (
+                    <button
+                      key={c.classId}
+                      type="button"
+                      className={`w-full rounded-2xl border px-4 py-3 text-left transition-all ${selectedClassId === c.classId
+                        ? 'border-orangeFpt-300 bg-orangeFpt-50 shadow-inner'
+                        : 'border-slate-200 hover:border-orangeFpt-200 bg-white'
+                        }`}
+                      onClick={() => setSelectedClassId(c.classId)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{c.subjectCode}</p>
+                          <h3 className="text-base font-semibold text-slate-900">{c.className}</h3>
+                        </div>
+                        <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded-full border font-semibold ${c.isActive
+                          ? 'text-green-800 border-green-200 bg-green-50'
+                          : 'text-slate-600 border-slate-200 bg-slate-50'
+                          }`}>
+                          {c.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                        <Users className="w-3.5 h-3.5" />
+                        <span>{c.memberCount ?? 0} members</span>
+                      </div>
+                    </button>
+                  ))}
+                  {!classes.length && (
+                    <div className="rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+                      No classes found.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </div>
+
+          <div className="lg:col-span-2">
+            {selectedClass ? (
+              loadingDetails && !selectedDetails ? (
+                <ClassDetailsSkeleton />
+              ) : selectedDetails ? (
+                <div className="rounded-3xl border border-slate-100 bg-white/95 p-6 shadow-xl shadow-slate-200/60">
+                  {/* ... Header Section ... */}
+                  <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-orangeFpt-500">{selectedDetails.subjectCode}</p>
+                      <h2 className="text-3xl font-semibold text-slate-900">{selectedDetails.className}</h2>
+                      <p className="text-sm text-slate-500">{selectedDetails.subjectName}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={handleViewMembers}
+                        disabled={(selectedDetails?.classMembers?.length ?? 0) === 0}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-orangeFpt-200 hover:text-orangeFpt-600 disabled:opacity-50"
+                      >
+                        <Users className="w-4 h-4" />
+                        Members ({selectedDetails?.classMembers?.length ?? 0})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleViewProjects}
+                        disabled={(selectedDetails?.projectAssignments?.length ?? 0) === 0}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-orangeFpt-200 hover:text-orangeFpt-600 disabled:opacity-50"
+                      >
+                        <BookOpen className="w-4 h-4" />
+                        Projects ({selectedDetails?.projectAssignments?.length ?? 0})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleViewSyllabus}
+                        disabled={!(selectedDetails?.subjectId || selectedDetails?.subject?.subjectId)}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-orangeFpt-200 hover:text-orangeFpt-600 disabled:opacity-50"
+                      >
+                        <FileText className="w-4 h-4" />
+                        Syllabus
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ... Stats Grid ... */}
+                  <div className="grid grid-cols-1 gap-4 py-5 md:grid-cols-3">
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Lecturer</p>
+                      <p className="mt-1 text-sm font-medium text-slate-900">{selectedDetails.lecturerName}</p>
+                      <p className="text-xs text-slate-500">{selectedDetails.lecturerCode}</p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Status</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">{selectedDetails.isActive ? 'Active' : 'Inactive'}</p>
+                      <p className="text-xs text-slate-500">Created {formatDate(selectedDetails.createdDate)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Stats</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">{selectedDetails?.classMembers?.length ?? 0} members</p>
+                      <p className="text-xs text-slate-500">{selectedDetails.teams?.length ?? 0} teams</p>
+                    </div>
+                  </div>
+
+                  {/* ... Projects & Teams Counts ... */}
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="rounded-2xl border border-dashed border-slate-200 p-4">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Projects</p>
+                      <p className="mt-1 text-2xl font-semibold text-slate-900">{selectedDetails?.projectAssignments?.length ?? 0}</p>
+                      <p className="text-xs text-slate-500">Linked deliverables for this class</p>
+                    </div>
+                    <div className="rounded-2xl border border-dashed border-slate-200 p-4">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Teams</p>
+                      <p className="mt-1 text-2xl font-semibold text-slate-900">{selectedDetails.teams?.length ?? 0}</p>
+                      <p className="text-xs text-slate-500">Collaborating student groups</p>
+                    </div>
+                  </div>
+
+                  {/* ... Assigned Team Section ... */}
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-3">Assigned Team</h3>
+                    {isAssignedTeamLoading ? (
+                      <div className="rounded-2xl border border-slate-200 p-4 animate-pulse text-sm text-slate-500">
+                        Loading assigned team...
+                      </div>
+                    ) : assignedTeamCardData ? (
+                      <div className="flex">
+                        <ProjectCard project={assignedTeamCardData} onClick={() => handleAssignedTeamClick(assignedTeam)} />
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">
+                        No team assigned for this class.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : null
+            ) : (
+              <div className="rounded-3xl border border-slate-100 bg-white/95 p-12 text-center shadow">
+                <BookOpen className="w-16 h-16 text-slate-200 mx-auto mb-4" />
+                <h3 className="text-xl font-medium text-slate-900 mb-2">Select a Class</h3>
+                <p className="text-slate-500">Choose a class from the list to view details</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </StudentLayout>
   );
 };
