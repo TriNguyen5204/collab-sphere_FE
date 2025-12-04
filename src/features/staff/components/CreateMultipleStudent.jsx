@@ -1,515 +1,537 @@
-import React, { useState } from 'react';
-import {
-  Download,
-  Upload,
-  Users,
-  Check,
-  AlertCircle,
-  FileText,
-  User,
-  MapPin,
-  Phone,
-  Calendar,
-  GraduationCap,
-  Building2,
-  BookOpen,
-  Image,
-} from 'lucide-react';
+import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
+import {
+  Upload,
+  Download,
+  CheckCircle,
+  AlertCircle,
+  Users,
+  Send,
+  X,
+  FileSpreadsheet,
+  FileX,
+  AlertTriangle,
+} from 'lucide-react';
 import { importStudentList } from '../../../services/userService';
 import { toast } from 'sonner';
+import {
+  validateExcelStructure,
+  validateDataWithRules,
+  generateTemplate,
+  STUDENT_TEMPLATE,
+} from '../../../context/excelValidator';
+import { handleImportResponse } from '../../../context/responseMessageParser';
 
-const ImprovedStudentCreation = ({ onClose }) => {
+const CreateMultipleStudentForm = ({ onClose }) => {
   const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('idle');
   const [fileName, setFileName] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState('');
   const [errors, setErrors] = useState([]);
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const [apiErrors, setApiErrors] = useState([]);
+  const [structureErrors, setStructureErrors] = useState([]);
+  const fileInputRef = useRef(null);
 
-  // Download template function
+  // Download template
   const downloadTemplate = () => {
-    const template = [
-      {
-        Email: 'nguyenvana@university.edu.vn',
-        Password: '12345',
-        Fullname: 'Nguyễn Văn A',
-        Address: '123 Đường ABC, Quận 1, TP.HCM',
-        PhoneNumber: '84123456789',
-        YOB: 1980,
-        School: 'FPT University',
-        StudentCode: 'SE184727',
-        Major: 'Computer Science',
-      },
-    ];
-
+    const template = generateTemplate(
+      STUDENT_TEMPLATE.requiredColumns,
+      STUDENT_TEMPLATE.sampleData
+    );
     const ws = XLSX.utils.json_to_sheet(template);
-
-    const instructionData = [
-      ['HƯỚNG DẪN:'],
-      ['- Fullname: Họ và tên đầy đủ (bắt buộc)'],
-      ['- Address: Địa chỉ chi tiết (bắt buộc)'],
-      ['- PhoneNumber: Số điện thoại (10-11 số)'],
-      ['- Major: Ngành học (bắt buộc)'],
-      ['- Email: Email công việc (Bắt buộc)'],
-      ['- StudentCode: Mã sinh viên (bắt buộc)'],
-      ['- Password: Mật khẩu (mặc định là 12345, nên đổi sau khi đăng nhập)'],
-      ['- YOB: Năm sinh (bắt buộc)'],
-      ['- School: Trường (bắt buộc)'],
-    ];
-    const wsInstruction = XLSX.utils.aoa_to_sheet(instructionData);
-
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Student Template');
-    XLSX.utils.book_append_sheet(wb, wsInstruction, 'Instructions');
     XLSX.writeFile(wb, 'student_accounts_template.xlsx');
   };
 
+  // Validate file structure - sử dụng utility
+  const validateFileStructure = (parsedData) => {
+    return validateExcelStructure(parsedData, STUDENT_TEMPLATE.requiredColumns);
+  };
+
+  // Validate data - sử dụng utility
+  const validateData = (data) => {
+    return validateDataWithRules(data, STUDENT_TEMPLATE.validationRules);
+  };
+
+  // Check file type
+  const isValidExcelFile = (file) => {
+    const validExtensions = ['.xlsx', '.xls'];
+    const fileName = file.name.toLowerCase();
+    return validExtensions.some(ext => fileName.endsWith(ext));
+  };
+
   // Handle file upload
-  const handleFileUpload = event => {
-    const file = event.target.files[0];
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
     if (!file) return;
 
-    setUploadedFile(file);
+    setErrors([]);
+    setStructureErrors([]);
+
+    // Validate file type
+    if (!isValidExcelFile(file)) {
+      setUploadStatus('error');
+      setFileName('');
+      setStructureErrors([
+        {
+          type: 'structure',
+          message: '❌ Invalid file format!',
+          details: 'Only Excel files (.xlsx, .xls) are accepted',
+        },
+      ]);
+      toast.error('Invalid file format! Please select an Excel file.');
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    // Validate file size (10MB)
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setUploadStatus('error');
+      setFileName('');
+      setStructureErrors([
+        {
+          type: 'structure',
+          message: '❌ File too large!',
+          details: 'Maximum file size is 10MB',
+        },
+      ]);
+      toast.error('File too large! Maximum size is 10MB.');
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
     setFileName(file.name);
     setUploadStatus('processing');
+
     const reader = new FileReader();
 
-    reader.onload = e => {
+    reader.onerror = () => {
+      setUploadStatus('error');
+      setFileName('');
+      setStructureErrors([
+        {
+          type: 'structure',
+          message: '❌ Cannot read file!',
+          details: 'File may be corrupted or invalid.',
+        },
+      ]);
+      toast.error('Cannot read file. Please check the file.');
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    };
+
+    reader.onload = (evt) => {
       try {
-        const data = new Uint8Array(e.target.result);
+        const data = new Uint8Array(evt.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
+
+        if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+          throw new Error('File không có sheet dữ liệu');
+        }
+
         const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        const sheet = workbook.Sheets[sheetName];
 
-        // Filter out empty rows and instruction rows
-        const filteredData = jsonData.filter(
-          row =>
-            row.Fullname &&
-            row.Fullname !== 'HƯỚNG DẪN:' &&
-            !row.Fullname.toString().startsWith('-')
-        );
+        if (!sheet) {
+          throw new Error('Sheet dữ liệu trống');
+        }
 
-        // Process data to match expected format
-        const processedData = filteredData.map(row => ({
-          fullname: row.Fullname || '',
-          address: row.Address || '',
-          phone: row.PhoneNumber?.toString() || '',
-          yearOfBirth: row['YOB']?.toString() || '',
-          studentCode: row.StudentCode || '',
-          email: row.Email || '',
-          password: row.Password || '12345',
-          school: row.School || '',
-          major: row.Major || '',
-        }));
+        const parsedData = XLSX.utils.sheet_to_json(sheet);
 
-        // Validate data
-        const validationErrors = [];
-        processedData.forEach((student, index) => {
-          const rowErrors = [];
-          if (!student.fullname?.trim()) rowErrors.push('Thiếu họ tên');
-          if (!student.address?.trim()) rowErrors.push('Thiếu địa chỉ');
-          if (!student.phone?.trim()) rowErrors.push('Thiếu số điện thoại');
-          if (!student.school?.trim()) rowErrors.push('Thiếu trường học');
-          if (!student.major?.trim()) rowErrors.push('Thiếu chuyên ngành');
-          if (!student.yearOfBirth?.trim()) rowErrors.push('Thiếu năm sinh');
-          if (!student.email?.trim()) rowErrors.push('Thiếu email');
-          if (!student.studentCode?.trim())
-            rowErrors.push('Thiếu mã sinh viên');
+        if (!parsedData || parsedData.length === 0) {
+          setUploadStatus('empty');
+          setStructureErrors([
+            {
+              type: 'structure',
+              message: '❌ File has no data!',
+              details: 'Please add data to the Excel file.',
+            },
+          ]);
+          toast.warning('File has no data');
 
-          if (
-            student.phone &&
-            !/^[0-9]{10,11}$/.test(student.phone.replace(/\s/g, ''))
-          ) {
-            rowErrors.push('Số điện thoại không hợp lệ');
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
           }
+          return;
+        }
 
-          if (student.yearOfBirth && !/^\d{4}$/.test(student.yearOfBirth)) {
-            rowErrors.push('Năm sinh không hợp lệ');
+        // ✅ VALIDATE CẤU TRÚC FILE
+        const structureValidation = validateFileStructure(parsedData);
+
+        if (!structureValidation.isValid) {
+          setUploadStatus('error');
+          // Format errors cho UI
+          const formattedErrors = structureValidation.errors.map(err => ({
+            type: 'structure',
+            message: `❌ File KHÔNG ĐÚNG định dạng! ${err}`,
+            details: `File chuẩn phải có ${STUDENT_TEMPLATE.requiredColumns.length} cột: ${STUDENT_TEMPLATE.requiredColumns.join(', ')}`,
+          }));
+          setStructureErrors(formattedErrors);
+          setStudents([]);
+          toast.error('Invalid file structure! Please download the template.');
+
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
           }
+          return;
+        }
 
-          if (rowErrors.length > 0) {
-            validationErrors.push({
-              row: index + 1,
-              name: student.fullname || 'Không có tên',
-              errors: rowErrors,
-            });
-          }
-        });
+        // Show warnings nếu có
+        if (structureValidation.warnings && structureValidation.warnings.length > 0) {
+          structureValidation.warnings.forEach(warning => {
+            toast.warning(warning);
+            setStructureErrors(prev => [...prev, {
+              type: 'warning',
+              message: `⚠️ ${warning}`,
+              details: 'Các cột này sẽ bị bỏ qua khi import.',
+            }]);
+          });
+        }
 
-        setErrors(validationErrors);
-        setStudents(processedData);
-        setUploadStatus(processedData.length > 0 ? 'success' : 'empty');
+        // ✅ VALIDATE DỮ LIỆU
+        const dataErrors = validateData(parsedData);
+
+        setErrors(dataErrors);
+        setStudents(parsedData);
+        setUploadStatus('success');
+
+        if (dataErrors.length === 0) {
+          toast.success(`✅ Loaded ${parsedData.length} students from file`);
+        } else {
+          toast.warning(`⚠️ Found ${dataErrors.length} errors in file`);
+        }
+
       } catch (error) {
+        console.error('Error reading file:', error);
         setUploadStatus('error');
-        setErrors([
-          { general: 'Lỗi khi đọc file. Vui lòng kiểm tra định dạng file.' },
+        setFileName('');
+        setStructureErrors([
+          {
+            type: 'structure',
+            message: '❌ Error reading file!',
+            details: error.message || 'Please check the file format.',
+          },
         ]);
+        toast.error('Error reading file. Please check the file.');
+      } finally {
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
     };
 
     reader.readAsArrayBuffer(file);
   };
 
-  // Handle confirm
-  const handleConfirm = async () => {
-    if (errors.length > 0) {
-      alert('Vui lòng sửa các lỗi trước khi tạo tài khoản');
+  // Handle submit
+  const handleSubmit = async () => {
+    if (students.length === 0) {
+      toast.warning('Please upload Excel file first!');
       return;
     }
 
-    setIsLoading(true);
+    if (errors.length > 0) {
+      toast.error('Please fix errors in file before submitting!');
+      return;
+    }
+
     try {
-      setIsSubmitting(true);
-      setIsLoading(false);
+      setLoading(true);
 
-      const response = await importStudentList(uploadedFile);
+      // Create file from data
+      const ws = XLSX.utils.json_to_sheet(students);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Students');
 
-      if (response.isSuccess === true) {
-        setUploadStatus('success');
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const file = new File([blob], 'students.xlsx', { type: blob.type });
+
+      const response = await importStudentList(file);
+      
+      // Use response parser to handle message
+      const isSuccess = handleImportResponse(response, toast, 'students');
+      
+      if (isSuccess) {
+        resetForm();
         setTimeout(() => {
           if (onClose) onClose();
-        }, 1500);
-      } else if (response.errorList?.length) {
-        setApiErrors(response.errorList);
+        }, 2000); // Give time to read messages
       }
     } catch (error) {
-      setIsLoading(false);
-      const apiErrorList = error?.response?.data?.errorList || [];
-      setApiErrors(apiErrorList);
-
-      if (!apiErrorList.length) {
-        toast.error(error.message || 'Đã xảy ra lỗi khi import');
+      console.error('Error creating students:', error);
+      
+      const errorData = error?.response?.data;
+      
+      if (errorData?.errorList && errorData.errorList.length > 0) {
+        errorData.errorList.forEach(err => {
+          toast.error(`${err.field}: ${err.message}`);
+        });
+      } else if (errorData?.message) {
+        // Try to parse error message
+        const isSuccess = handleImportResponse(errorData, toast, 'students');
+        if (!isSuccess && errorData.message) {
+          toast.error(errorData.message);
+        }
+      } else {
+        toast.error('An error occurred while creating accounts. Please try again.');
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setStudents([]);
+    setUploadStatus('idle');
+    setFileName('');
+    setErrors([]);
+    setStructureErrors([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
   return (
-    <div className='max-w-7xl mx-auto p-6 bg-white'>
-      {/* Header */}
-      <div className='mb-8'>
-        <div className='flex items-center gap-3 mb-3'>
-          <div className='p-2 bg-green-100 rounded-lg'>
-            <GraduationCap className='w-6 h-6 text-green-600' />
-          </div>
-          <h2 className='text-2xl font-bold text-gray-900'>
+    <div className='max-w-7xl mx-auto p-6'>
+      <div className='bg-white rounded-lg shadow-lg overflow-hidden'>
+        {/* Header */}
+        <div className='bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5'>
+          <h2 className='text-2xl font-bold text-white flex items-center gap-2'>
+            <Users className='w-7 h-7' />
             Create Multiple Student Accounts
           </h2>
-        </div>
-        <p className='text-gray-600'>
-          Upload Excel file to create multiple student accounts at once
-        </p>
-      </div>
-
-      {/* Step indicator */}
-      <div className='mb-8'>
-        <div className='flex items-center justify-between text-sm'>
-          <div
-            className={`flex items-center gap-2 ${uploadStatus ? 'text-green-600' : 'text-green-600'}`}
-          >
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center ${uploadStatus ? 'bg-green-100 text-green-600' : 'bg-green-100 text-green-600'}`}
-            >
-              {uploadStatus ? <Check size={16} /> : '1'}
-            </div>
-            <span className='font-medium'>Download & Fill Template</span>
-          </div>
-          <div
-            className={`flex-1 h-px mx-4 ${uploadStatus ? 'bg-green-200' : 'bg-gray-200'}`}
-          ></div>
-          <div
-            className={`flex items-center gap-2 ${students.length > 0 ? 'text-green-600' : 'text-gray-400'}`}
-          >
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center ${students.length > 0 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}
-            >
-              {students.length > 0 ? <Check size={16} /> : '2'}
-            </div>
-            <span className='font-medium'>Upload & Review</span>
-          </div>
-          <div
-            className={`flex-1 h-px mx-4 ${isSubmitting ? 'bg-green-200' : 'bg-gray-200'}`}
-          ></div>
-          <div
-            className={`flex items-center gap-2 ${isSubmitting ? 'text-green-600' : 'text-gray-400'}`}
-          >
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center ${isSubmitting ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}
-            >
-              {isSubmitting ? <Check size={16} /> : '3'}
-            </div>
-            <span className='font-medium'>Create Accounts</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Action Cards */}
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mb-8'>
-        {/* Download Template Card */}
-        <div className='bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6'>
-          <div className='flex items-center gap-3 mb-4'>
-            <div className='p-2 bg-green-100 rounded-lg'>
-              <Download className='w-5 h-5 text-green-600' />
-            </div>
-            <h3 className='font-semibold text-green-900'>
-              Step 1: Download Template
-            </h3>
-          </div>
-          <p className='text-green-700 text-sm mb-4'>
-            Download the Excel template with sample student data and
-            instructions
+          <p className='text-blue-100 mt-1 text-sm'>
+            Upload Excel file to create multiple student accounts at once
           </p>
-          <button
-            onClick={downloadTemplate}
-            className='w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium'
-          >
-            <Download size={18} />
-            Download Student Template
-          </button>
         </div>
 
-        {/* Upload File Card */}
-        <div className='bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6'>
-          <div className='flex items-center gap-3 mb-4'>
-            <div className='p-2 bg-blue-100 rounded-lg'>
-              <Upload className='w-5 h-5 text-blue-600' />
-            </div>
-            <h3 className='font-semibold text-blue-900'>Step 2: Upload File</h3>
-          </div>
-          <p className='text-blue-700 text-sm mb-4'>
-            Upload your completed Excel file with student information
-          </p>
-          <div className='relative'>
-            <input
-              type='file'
-              accept='.xlsx,.xls,.csv'
-              onChange={handleFileUpload}
-              className='absolute inset-0 w-full h-full opacity-0 cursor-pointer'
-            />
-            <div className='w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium'>
-              <Upload size={18} />
-              Choose File to Upload
+        <div className='p-6'>
+          {/* Download Template */}
+          <div className='mb-6 p-4 bg-green-50 border border-green-200 rounded-lg'>
+            <div className='flex items-start gap-3'>
+              <Download className='w-5 h-5 text-green-600 mt-0.5 flex-shrink-0' />
+              <div className='flex-1'>
+                <h3 className='font-semibold text-gray-800 mb-1'>
+                  Step 1: Download Standard Template
+                </h3>
+                <button
+                  onClick={downloadTemplate}
+                  className='inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium text-sm shadow-sm'
+                >
+                  <Download className='w-4 h-4' />
+                  Download Template
+                </button>
+              </div>
             </div>
           </div>
-          {fileName && (
-            <div className='mt-2 text-blue-700 text-sm flex items-center gap-1'>
-              <FileText size={14} />
-              Selected: {fileName}
+
+          {/* Upload Section */}
+          <div className='mb-6'>
+            <div className='flex items-start gap-3 mb-3'>
+              <Upload className='w-5 h-5 text-gray-600 mt-0.5' />
+              <div>
+                <h3 className='font-semibold text-gray-800 mb-1'>
+                  Step 2: Upload Excel File (only .xlsx, .xls)
+                </h3>
+                <p className='text-sm text-gray-600'>
+                  File must have the same structure as template, maximum 10MB
+                </p>
+              </div>
             </div>
-          )}
+
+            <div className='relative'>
+              <input
+                ref={fileInputRef}
+                type='file'
+                id='file-upload'
+                accept='.xlsx,.xls'
+                onChange={handleFileUpload}
+                className='hidden'
+              />
+              <label
+                htmlFor='file-upload'
+                className='flex items-center justify-center gap-2 px-6 py-8 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors'
+              >
+                <FileSpreadsheet className='w-6 h-6 text-gray-400' />
+                <span className='text-gray-600'>
+                  {fileName || 'Click to select Excel file'}
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Processing */}
           {uploadStatus === 'processing' && (
-            <div className='mt-2 text-blue-600 text-sm'>Processing file...</div>
+            <div className='mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-3'>
+              <div className='animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-600'></div>
+              <span className='text-yellow-800 font-medium'>Processing file...</span>
+            </div>
+          )}
+
+          {/* Structure Errors */}
+          {structureErrors.length > 0 && (
+            <div className='mb-6 p-5 bg-red-50 border-2 border-red-300 rounded-lg'>
+              <div className='flex items-start gap-3'>
+                <FileX className='w-6 h-6 text-red-600 mt-0.5 flex-shrink-0' />
+                <div className='flex-1'>
+                  <h4 className='font-bold text-red-900 mb-3 text-lg'>
+                    ⛔ INVALID FILE STRUCTURE!
+                  </h4>
+                  {structureErrors.map((err, idx) => (
+                    <div key={idx} className='mb-3 last:mb-0'>
+                      <p className='text-red-800 font-semibold mb-1'>
+                        {err.message}
+                      </p>
+                      <p className='text-red-700 text-sm bg-red-100 p-2 rounded'>
+                        {err.details}
+                      </p>
+                    </div>
+                  ))}
+                  <div className='mt-4 pt-3 border-t border-red-200'>
+                    <p className='text-sm text-red-800 font-medium mb-2'>
+                      ✅ How to fix:
+                    </p>
+                    <ol className='list-decimal list-inside text-sm text-red-700 space-y-1'>
+                      <li>Download the standard template above</li>
+                      <li>Copy your data into the template file</li>
+                      <li>DO NOT add/remove/rename columns</li>
+                      <li>Upload the corrected file</li>
+                    </ol>
+                  </div>
+                  <button
+                    onClick={resetForm}
+                    className='mt-4 text-sm text-red-700 hover:text-red-800 font-medium underline'
+                  >
+                    Upload different file
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Data Errors */}
+          {errors.length > 0 && (
+            <div className='mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg'>
+              <div className='flex items-start gap-3'>
+                <AlertTriangle className='w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0' />
+                <div className='flex-1'>
+                  <h4 className='font-semibold text-orange-900 mb-2'>
+                    Data validation errors found ({errors.length} errors)
+                  </h4>
+                  <div className='space-y-2 max-h-60 overflow-y-auto'>
+                    {errors.map((err, idx) => (
+                      <div key={idx} className='text-sm bg-white p-2 rounded border border-orange-200'>
+                        <p className='text-orange-800'>
+                          <span className='font-medium'>Row {err.row}:</span> {err.name}
+                        </p>
+                        <p className='text-orange-700 ml-4'>
+                          • {err.errors.join(', ')}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={resetForm}
+                    className='mt-3 text-sm text-orange-700 hover:text-orange-800 font-medium underline'
+                  >
+                    Fix file and upload again
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Success - Student List */}
+          {uploadStatus === 'success' && students.length > 0 && errors.length === 0 && (
+            <div className='mb-6'>
+              <div className='flex items-center justify-between mb-3'>
+                <div className='flex items-center gap-2'>
+                  <CheckCircle className='w-5 h-5 text-green-600' />
+                  <h3 className='font-semibold text-gray-800'>
+                    ✅ Valid file! ({students.length} students)
+                  </h3>
+                </div>
+                <button
+                  onClick={resetForm}
+                  className='text-gray-500 hover:text-gray-700 p-1'
+                  title='Clear and upload again'
+                >
+                  <X className='w-5 h-5' />
+                </button>
+              </div>
+
+              <div className='bg-gray-50 rounded-lg border border-gray-200 overflow-hidden'>
+                <div className='max-h-96 overflow-auto'>
+                  <table className='w-full text-sm'>
+                    <thead className='bg-gray-100 sticky top-0'>
+                      <tr>
+                        <th className='px-3 py-2 text-left font-semibold text-gray-700'>No.</th>
+                        <th className='px-3 py-2 text-left font-semibold text-gray-700'>Email</th>
+                        <th className='px-3 py-2 text-left font-semibold text-gray-700'>Full Name</th>
+                        <th className='px-3 py-2 text-left font-semibold text-gray-700'>Student Code</th>
+                        <th className='px-3 py-2 text-left font-semibold text-gray-700'>Major</th>
+                        <th className='px-3 py-2 text-left font-semibold text-gray-700'>School</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {students.map((student, idx) => (
+                        <tr key={idx} className='border-t border-gray-200 hover:bg-gray-50'>
+                          <td className='px-3 py-2 text-gray-600'>{idx + 1}</td>
+                          <td className='px-3 py-2 text-blue-600'>{student.Email}</td>
+                          <td className='px-3 py-2 font-medium'>{student.Fullname}</td>
+                          <td className='px-3 py-2'>{student.StudentCode}</td>
+                          <td className='px-3 py-2'>{student.Major}</td>
+                          <td className='px-3 py-2'>{student.School}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Submit Button */}
+          {students.length > 0 && errors.length === 0 && (
+            <div className='flex items-center justify-between pt-4 border-t border-gray-200'>
+              <p className='text-sm text-gray-600'>
+                Ready to create <span className='font-semibold text-gray-800'>{students.length}</span> accounts
+              </p>
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className='inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg transition-all font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed'
+              >
+                {loading ? (
+                  <>
+                    <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Send className='w-4 h-4' />
+                    Submit to Server
+                  </>
+                )}
+              </button>
+            </div>
           )}
         </div>
       </div>
-
-      {/* Template Info */}
-      <div className='bg-amber-50 border border-amber-200 rounded-xl p-4 mb-8'>
-        <div className='flex items-start gap-3'>
-          <FileText className='w-5 h-5 text-amber-600 mt-0.5' />
-          <div>
-            <h4 className='font-medium text-amber-900 mb-2'>
-              Student Template Requirements:
-            </h4>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-amber-800'>
-              <div>
-                • <strong>Fullname:</strong> Full student name (required)
-              </div>
-              <div>
-                • <strong>Address:</strong> Complete address (required)
-              </div>
-              <div>
-                • <strong>Phone:</strong> Phone number 10-11 digits (required)
-              </div>
-              <div>
-                • <strong>Year of Birth:</strong> Birth year YYYY format
-                (optional)
-              </div>
-              <div>
-                • <strong>Avatar:</strong> Avatar image URL (optional)
-              </div>
-              <div>
-                • <strong>School:</strong> School name (required)
-              </div>
-              <div>
-                • <strong>Major:</strong> Field of study (required)
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Errors */}
-      {errors.length > 0 && (
-        <div className='bg-red-50 border border-red-200 rounded-xl p-4 mb-6'>
-          <div className='flex items-start gap-3'>
-            <AlertCircle className='w-5 h-5 text-red-600 mt-0.5' />
-            <div className='flex-1'>
-              <h4 className='font-medium text-red-900 mb-2'>
-                Please fix the following errors:
-              </h4>
-              <div className='space-y-1'>
-                {errors.map((error, idx) => (
-                  <div key={idx} className='text-sm text-red-700'>
-                    {error.general ? (
-                      <span>{error.general}</span>
-                    ) : (
-                      <span>
-                        <strong>Row {error.row}:</strong> {error.name} -{' '}
-                        {error.errors.join(', ')}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Preview Section */}
-      {students.length > 0 && (
-        <div className='bg-white border border-gray-200 rounded-xl overflow-hidden mb-6'>
-          <div className='bg-gray-50 px-6 py-4 border-b'>
-            <div className='flex items-center justify-between'>
-              <h3 className='text-lg font-semibold text-gray-900 flex items-center gap-2'>
-                <Users size={20} />
-                Student Preview ({students.length} students)
-              </h3>
-              <div className='flex items-center gap-2 text-sm'>
-                <div className='w-3 h-3 bg-green-400 rounded-full'></div>
-                <span className='text-gray-600'>Ready to create</span>
-              </div>
-            </div>
-          </div>
-
-          <div className='overflow-x-auto'>
-            <table className='w-full'>
-              <thead className='bg-gray-50 border-b'>
-                <tr>
-                  <th className='px-4 py-3 text-left text-sm font-medium text-gray-700'>
-                    Student Info
-                  </th>
-                  <th className='px-4 py-3 text-left text-sm font-medium text-gray-700'>
-                    Contact
-                  </th>
-                  <th className='px-4 py-3 text-left text-sm font-medium text-gray-700'>
-                    Academic
-                  </th>
-                  <th className='px-4 py-3 text-left text-sm font-medium text-gray-700'>
-                    Avatar
-                  </th>
-                </tr>
-              </thead>
-              <tbody className='divide-y divide-gray-100'>
-                {students.map((student, idx) => (
-                  <tr key={idx} className='hover:bg-gray-50 transition-colors'>
-                    <td className='px-4 py-4'>
-                      <div className='flex items-center gap-3'>
-                        <div className='w-8 h-8 bg-green-100 rounded-full flex items-center justify-center'>
-                          <User size={16} className='text-green-600' />
-                        </div>
-                        <div>
-                          <h4 className='font-semibold text-gray-900'>
-                            {student.fullname}
-                          </h4>
-                          <div className='flex items-center gap-1 text-sm text-gray-600 mt-1'>
-                            <Calendar size={12} />
-                            <span>{student.yearOfBirth || 'N/A'}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className='px-4 py-4'>
-                      <div className='space-y-1'>
-                        <div className='flex items-start gap-1 text-sm text-gray-600'>
-                          <MapPin size={14} className='mt-0.5 flex-shrink-0' />
-                          <span className='line-clamp-2'>
-                            {student.address}
-                          </span>
-                        </div>
-                        <div className='flex items-center gap-1 text-sm text-gray-600'>
-                          <Phone size={12} />
-                          <span>{student.phone}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className='px-4 py-4'>
-                      <div className='space-y-1'>
-                        <div className='flex items-center gap-1 text-sm font-medium text-gray-900'>
-                          <Building2 size={12} />
-                          <span className='line-clamp-1'>{student.school}</span>
-                        </div>
-                        <div className='flex items-center gap-1 text-sm text-gray-600'>
-                          <BookOpen size={12} />
-                          <span className='line-clamp-1'>{student.major}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className='px-4 py-4'>
-                      {student.avatar_img ? (
-                        <img
-                          src={student.avatar_img}
-                          alt='avatar'
-                          className='w-10 h-10 rounded-full object-cover border-2 border-gray-200'
-                          onError={e => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
-                        />
-                      ) : (
-                        <div className='w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center'>
-                          <Image size={16} className='text-gray-400' />
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Action Button */}
-      {students.length > 0 && !isSubmitting && (
-        <div className='flex justify-center'>
-          <button
-            onClick={handleConfirm}
-            disabled={isLoading || errors.length > 0}
-            className='px-8 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-semibold text-lg flex items-center gap-3 min-w-64 justify-center'
-          >
-            {isLoading ? (
-              <>
-                <div className='w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
-                Creating Student Accounts...
-              </>
-            ) : (
-              <>
-                <Check size={20} />
-                Confirm & Create {students.length} Student Accounts
-              </>
-            )}
-          </button>
-        </div>
-      )}
-      {apiErrors.length > 0 && (
-        <div className='mt-4 p-4 bg-red-50 border border-red-300 rounded-md'>
-          <h3 className='text-red-600 font-semibold mb-2'>Danh sách lỗi:</h3>
-          <ul className='list-disc list-inside text-red-700'>
-            {apiErrors.map((err, index) => (
-              <li key={index}>
-                <strong>{err.field}</strong>: {err.message}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
 };
 
-export default ImprovedStudentCreation;
+export default CreateMultipleStudentForm;

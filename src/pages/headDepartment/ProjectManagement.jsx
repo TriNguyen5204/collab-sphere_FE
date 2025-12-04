@@ -9,7 +9,6 @@ import {
 import {
   BookOpen,
   User,
-  ClipboardList,
   GraduationCap,
   Trash2,
   Eye,
