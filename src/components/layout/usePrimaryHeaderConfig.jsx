@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowRightOnRectangleIcon,
   BookOpenIcon,
-  ChevronDownIcon,
   FolderIcon,
   HomeIcon,
   PhoneIcon,
@@ -12,16 +11,21 @@ import {
   UserIcon,
   VideoCameraIcon,
 } from '@heroicons/react/24/outline';
+import { ChevronDown, LayoutDashboard, LogOut, User } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import logo from '../../assets/logov1.png';
 import { logout } from '../../store/slices/userSlice';
+import { useAvatar } from '../../hooks/useAvatar';
+import { getRoleLandingRoute } from '../../constants/roleRoutes';
 
 const usePrimaryHeaderConfig = () => {
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const token = useSelector(state => state.user.accessToken);
+  const { accessToken: token, fullName, avatar, roleName, userId } = useSelector(state => state.user);
   const dispatch = useDispatch();
+  
+  const { initials, colorClass, shouldShowImage, setImageError } = useAvatar(fullName, avatar);
 
   useEffect(() => {
     const handleClickOutside = event => {
@@ -82,43 +86,65 @@ const usePrimaryHeaderConfig = () => {
   const desktopRightContent = token
     ? (
         <div className='relative hidden items-center md:flex' ref={dropdownRef}>
-          <button
-            onClick={() => setDropdownOpen(prev => !prev)}
-            className='inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-blue-300 hover:text-blue-600 hover:shadow-md'
-          >
-            <UserCircleIcon className='h-5 w-5 text-blue-500' />
-            <span>My account</span>
-            <ChevronDownIcon className={`h-4 w-4 transition ${dropdownOpen ? 'rotate-180' : ''}`} />
-          </button>
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="flex items-center gap-3 pl-4 border-transparent border-2 rounded-full hover:border-orangeFpt-500 hover:rounded-full hover:border-2 hover:text-white hover:bg-orangeFpt-500 transition-all duration-300"
+            >
+              <div className='p-1 flex items-center gap-2'>
+                <div className="text-right hidden md:block">
+                  <p className="text-sm font-medium">{fullName}</p>
+                </div>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium text-white overflow-hidden ${colorClass} ring-2 ring-white shadow-sm`}>
+                  {shouldShowImage ? (
+                    <img
+                      src={avatar}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                      onError={() => setImageError(true)}
+                    />
+                  ) : (
+                    <span>{initials}</span>
+                  )}
+                </div>
+                <ChevronDown size={16} className={`transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+              </div>
+            </button>
           {dropdownOpen && (
-            <div className='absolute right-4 top-full mt-3 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl'>
-              <button
-                onClick={() => {
-                  navigate('/staff/lecturers');
-                  setDropdownOpen(false);
-                }}
-                className='flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-600 transition hover:bg-blue-50 hover:text-blue-600'
-              >
-                <UserIcon className='h-4 w-4 text-blue-500' />
-                Account
-              </button>
-              <button
-                onClick={() => {
-                  navigate('/staff/classes');
-                  setDropdownOpen(false);
-                }}
-                className='flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-600 transition hover:bg-blue-50 hover:text-blue-600'
-              >
-                <BookOpenIcon className='h-4 w-4 text-blue-500' />
-                Class
-              </button>
-              <button
-                onClick={handleLogout}
-                className='flex w-full items-center gap-2 border-t border-slate-100 px-4 py-2 text-sm text-rose-600 transition hover:bg-rose-50'
-              >
-                <PowerIcon className='h-4 w-4' />
-                Log out
-              </button>
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="px-4 py-3 border-b border-gray-50 mb-2">
+                  <p className="text-sm font-medium text-gray-900">Signed in as</p>
+                  <p className="text-sm text-gray-500 truncate">{fullName}</p>
+                </div>
+                
+                <button 
+                  onClick={() => navigate(getRoleLandingRoute(roleName))}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                >
+                  <LayoutDashboard size={16} />
+                  Dashboard
+                </button>
+
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    const profilePath = userId ? `/${userId}/profile` : '/profile';
+                    navigate(profilePath);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                >
+                  <User size={16} />
+                  Profile
+                </button>
+                
+                <div className="h-px bg-gray-50 my-2" />
+                
+                <button
+                  onClick={handleLogout}
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                >
+                  <LogOut size={16} />
+                  Sign out
+                </button>
             </div>
           )}
         </div>
