@@ -54,6 +54,7 @@ import AcademicList from '../pages/academic/AcademicList';
 import AcademicCreate from '../pages/academic/AcademicCreate';
 import AcademicDetail from '../pages/academic/AcademicDetail';
 import LecturerListStaff from '../pages/staff/LecturerListStaff';
+import AccountDetail from '../pages/staff/AccountDetail';
 import ClassListStaff from '../pages/staff/ClassListStaff';
 import ClassDetail from '../pages/staff/ClassDetail';
 
@@ -167,6 +168,7 @@ const staffRoutes = [
   { path: '/academic/new', element: protectRoute(['STAFF'], <AcademicCreate />) },
   { path: '/academic/:id', element: protectRoute(['STAFF'], <AcademicDetail />) },
   { path: '/staff/lecturers', element: protectRoute(['STAFF'], <LecturerListStaff />) },
+  { path: '/staff/lecturers/:accountId', element: protectRoute(['STAFF'], <AccountDetail />) },
   { path: '/staff/classes', element: protectRoute(['STAFF'], <ClassListStaff />) },
   { path: '/staff/classes/:classId', element: protectRoute(['STAFF'], <ClassDetail />) },
 ];

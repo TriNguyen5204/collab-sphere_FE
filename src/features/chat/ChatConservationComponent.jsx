@@ -2,7 +2,7 @@ import { SignalRChatProvider } from './hooks/SignalrChatProvider';
 import NotificationBell from './components/NotificationBell.jsx';
 import { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom'; // ✅ THÊM useNavigate
+import { useNavigate } from 'react-router-dom'; 
 import React from 'react';
 
 import ReactQuill from 'react-quill-new';
@@ -10,6 +10,9 @@ import 'react-quill-new/dist/quill.snow.css';
 import DOMPurify from 'dompurify';
 
 import * as ChatAPI from './services/chatApi';
+import { getClassesByStudentId } from '../../services/studentApi.js';
+import { getLecturerClasses } from '../../services/classApi.js';
+import { getSemester } from '../../services/userService.js';
 import useTeam from '../../context/useTeam.js';
 
 // Lucide React Icons
@@ -21,7 +24,15 @@ import {
   Check,
   CheckCheck,
   Calendar,
-  ArrowLeft, // ✅ THÊM icon Back
+  ArrowLeft,
+  Filter,
+  ChevronDown,
+  Info,
+  X,
+  Mail,
+  Phone,
+  UserCircle,
+  ArrowDown,
 } from 'lucide-react';
 
 export default function ChatComponent() {
@@ -30,11 +41,20 @@ export default function ChatComponent() {
   const [inputMessage, setInputMessage] = useState('');
   const { team } = useTeam();
 
-  // Get accessToken from Redux store
+  // Get accessToken, userId, and roleName from Redux store
   const accessToken = useSelector(state => state.user.accessToken);
   const userId = useSelector(state => state.user.userId);
+  const roleName = useSelector(state => state.user.roleName);
 
   const navigate = useNavigate();
+  
+  // Filter states
+  const [semesters, setSemesters] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [selectedSemesterId, setSelectedSemesterId] = useState(null);
+  const [selectedClassId, setSelectedClassId] = useState(null);
+  const [isLoadingFilters, setIsLoadingFilters] = useState(true);
+
   // Chat Conversations
   const [chatConversations, setChatConversations] = useState([]);
   const [connectedConversationIds, setConnectedConversationIds] = useState([]);
@@ -44,11 +64,88 @@ export default function ChatComponent() {
   // Create refs for the message list DOM element
   const messageListRef = useRef(null);
   const mainChatAreaRef = useRef(null);
-  const quillRef = useRef(null); // ✅ THÊM ref cho ReactQuill
+  const quillRef = useRef(null);
 
   // State for the unread count
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // State for detail sidebar
+  const [showDetailSidebar, setShowDetailSidebar] = useState(false);
+
+  // NEW: State to track if user manually scrolled up
+  const [userScrolledUp, setUserScrolledUp] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+
+  // Load semesters when component mounts
+  useEffect(() => {
+    if (!accessToken || !userId) return;
+
+    const fetchSemesters = async () => {
+      try {
+        setIsLoadingFilters(true);
+        const response = await getSemester();
+        
+        if (response) {
+          setSemesters(response);
+          
+          // Auto-select first semester if available
+          if (response.semesters && response.semesters.length > 0) {
+            setSelectedSemesterId(response.semesters[0].semesterId);
+          } else if (response.length > 0) {
+            setSelectedSemesterId(response[0].semesterId);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch semesters:', error);
+      } finally {
+        setIsLoadingFilters(false);
+      }
+    };
+
+    fetchSemesters();
+  }, [accessToken, userId]);
+
+  // Load classes when semester changes
+  useEffect(() => {
+    if (!accessToken || !userId || !selectedSemesterId || !roleName) return;
+
+    const fetchClasses = async () => {
+      try {
+        setIsLoadingFilters(true);
+        let response;
+
+        if (roleName === 'LECTURER') {
+          response = await getLecturerClasses(userId);
+        } else if (roleName === 'STUDENT') {
+          response = await getClassesByStudentId(userId);
+        } else {
+          console.warn('Unknown role:', roleName);
+          return;
+        }
+
+        if (response) {
+          // Filter classes by selected semester
+          const filteredClasses = response.filter(
+            cls => cls.semesterId === selectedSemesterId
+          );
+          setClasses(filteredClasses);
+          
+          // Auto-select first class if available
+          if (filteredClasses.length > 0) {
+            setSelectedClassId(filteredClasses[0].classId);
+          } else {
+            setSelectedClassId(null);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch classes:', error);
+      } finally {
+        setIsLoadingFilters(false);
+      }
+    };
+
+    fetchClasses();
+  }, [accessToken, userId, selectedSemesterId, roleName]);
 
   // Initialize SignalR connection
   useEffect(() => {
@@ -258,47 +355,92 @@ export default function ChatComponent() {
     loadConversationDetails();
   }, [provider, currentConversationId, team, accessToken]);
 
-  // Handle auto-scrolling
+  // ✨ IMPROVED: Handle scroll detection to show "Scroll to bottom" button
   useEffect(() => {
-    if (!messageListRef.current) return;
+    const element = messageListRef.current;
+    if (!element) return;
+
+    const handleScroll = () => {
+      const { scrollHeight, scrollTop, clientHeight } = element;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      
+      // User scrolled up if more than 100px from bottom
+      const hasScrolledUp = distanceFromBottom > 100;
+      setUserScrolledUp(hasScrolledUp);
+      setShowScrollToBottom(hasScrolledUp);
+    };
+
+    element.addEventListener('scroll', handleScroll);
+    return () => element.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // ✨ IMPROVED: Auto-scroll when messages change (only if user hasn't scrolled up)
+  useEffect(() => {
+    if (!messageListRef.current || !currentConvDetail) return;
 
     const element = messageListRef.current;
-    const isScrolledToBottom =
-      element.scrollHeight - element.scrollTop - element.clientHeight < 500;
-
-    if (isScrolledToBottom) {
-      setTimeout(() => {
-        element.scrollTop = element.scrollHeight;
-      }, 0);
+    
+    // Only auto-scroll if user hasn't manually scrolled up
+    if (!userScrolledUp) {
+      // Use requestAnimationFrame for smoother scrolling
+      requestAnimationFrame(() => {
+        if (messageListRef.current) {
+          messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
+        }
+      });
     }
-  }, [currentConvDetail]);
+  }, [currentConvDetail?.chatMessages, userScrolledUp]);
 
+  // ✨ IMPROVED: Force scroll to bottom when switching conversations
   useEffect(() => {
-    if (!accessToken) return;
+    if (!messageListRef.current || currentConversationId === -1 || !currentConvDetail) return;
+
+    // Reset user scroll state when switching conversations
+    setUserScrolledUp(false);
+    setShowScrollToBottom(false);
+
+    // Always scroll to bottom when loading a new conversation
+    // Add delay to ensure DOM is fully rendered with messages
+    const timer = setTimeout(() => {
+      if (messageListRef.current) {
+        messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
+      }
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [currentConversationId, currentConvDetail?.conversationId]);
+
+  // Fetch conversations when semester and class are selected
+  useEffect(() => {
+    if (!accessToken || !selectedSemesterId || !selectedClassId) {
+      setChatConversations([]);
+      setConnectedConversationIds([]);
+      return;
+    }
 
     const fetchConversations = async () => {
       try {
-        if (team.teamId) {
-          const response = await ChatAPI.getChat(team.teamId);
+        const response = await ChatAPI.getChat(selectedSemesterId, selectedClassId);
 
-          if (response && response.isSuccess && response.chatConversations) {
-            setChatConversations(response.chatConversations);
-            const conversationIds = response.chatConversations.map(
-              c => c.conversationId
-            );
-            setConnectedConversationIds(conversationIds);
-          }
+        if (response && response.isSuccess && response.chatConversations) {
+          setChatConversations(response.chatConversations);
+          const conversationIds = response.chatConversations.map(
+            c => c.conversationId
+          );
+          setConnectedConversationIds(conversationIds);
         } else {
           setChatConversations([]);
+          setConnectedConversationIds([]);
         }
       } catch (error) {
         console.error('Failed to fetch chat conversations:', error);
         setChatConversations([]);
+        setConnectedConversationIds([]);
       }
     };
 
     fetchConversations();
-  }, [team, accessToken]);
+  }, [selectedSemesterId, selectedClassId, accessToken]);
 
   const handleSendMessage = () => {
     const isEmptyInput = !getMessagePreview(inputMessage).trim();
@@ -306,15 +448,28 @@ export default function ChatComponent() {
       const safeHtml = DOMPurify.sanitize(inputMessage.trim());
       provider.sendMessage(currentConversationId, safeHtml);
       setInputMessage('');
+      
+      // Reset scroll state when user sends message
+      setUserScrolledUp(false);
     }
   };
 
-  // ✅ THÊM: Handle Enter key press
   const handleKeyPress = event => {
-    // Check if Enter is pressed WITHOUT Shift (Shift+Enter = new line)
     if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault(); // Prevent new line
+      event.preventDefault();
       handleSendMessage();
+    }
+  };
+
+  // ✨ NEW: Function to scroll to bottom manually
+  const scrollToBottom = () => {
+    if (messageListRef.current) {
+      messageListRef.current.scrollTo({
+        top: messageListRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+      setUserScrolledUp(false);
+      setShowScrollToBottom(false);
     }
   };
 
@@ -369,9 +524,8 @@ export default function ChatComponent() {
     setUnreadCount(0);
   };
 
-  // ✅ THÊM: Handle back navigation
   const handleBack = () => {
-    navigate(-1); // Go back to previous page
+    navigate(-1);
   };
 
   const toolbarOptions = [
@@ -405,7 +559,6 @@ export default function ChatComponent() {
       <div className='bg-white border-b border-gray-200 shadow-sm z-10'>
         <div className='flex items-center justify-between px-6 py-4'>
           <div className='flex items-center space-x-3'>
-            {/* ✅ THÊM: Back Button */}
             <button
               onClick={handleBack}
               className='flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 active:bg-gray-200 transition-all duration-200 group'
@@ -426,6 +579,61 @@ export default function ChatComponent() {
             onOpen={handleNotificationOpen}
           />
         </div>
+
+        {/* Filter Section */}
+        <div className='px-6 py-3 bg-gradient-to-r from-gray-50 to-blue-50 border-t border-gray-200'>
+          <div className='flex items-center space-x-4'>
+            <div className='flex items-center text-sm font-medium text-gray-700'>
+              <Filter className='w-4 h-4 mr-2 text-blue-500' />
+              Filters:
+            </div>
+
+            {/* Semester Dropdown */}
+            <div className='relative'>
+              <select
+                value={selectedSemesterId || ''}
+                onChange={(e) => setSelectedSemesterId(Number(e.target.value))}
+                disabled={isLoadingFilters || semesters.length === 0}
+                className='appearance-none bg-white border-2 border-gray-300 rounded-lg px-4 py-2 pr-10 text-sm font-medium text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]'
+              >
+                <option value='' disabled>Select Semester</option>
+                {semesters.map(semester => (
+                  <option key={semester.semesterId} value={semester.semesterId}>
+                    {semester.semesterName}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className='absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none' />
+            </div>
+
+            {/* Class Dropdown */}
+            <div className='relative'>
+              <select
+                value={selectedClassId || ''}
+                onChange={(e) => setSelectedClassId(Number(e.target.value))}
+                disabled={isLoadingFilters || classes.length === 0 || !selectedSemesterId}
+                className='appearance-none bg-white border-2 border-gray-300 rounded-lg px-4 py-2 pr-10 text-sm font-medium text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]'
+              >
+                <option value='' disabled>
+                  {classes.length === 0 ? 'No classes available' : 'Select Class'}
+                </option>
+                {classes.map(cls => (
+                  <option key={cls.classId} value={cls.classId}>
+                    {cls.className}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className='absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none' />
+            </div>
+
+            {isLoadingFilters && (
+              <div className='flex items-center text-sm text-gray-500'>
+                <div className='animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent mr-2'></div>
+                Loading...
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -440,7 +648,17 @@ export default function ChatComponent() {
           </div>
 
           <div className='flex-1 overflow-y-auto'>
-            {chatConversations.length === 0 ? (
+            {!selectedSemesterId || !selectedClassId ? (
+              <div className='flex flex-col items-center justify-center h-full text-gray-400 px-4 py-12'>
+                <Filter className='w-12 h-12 mb-3 text-gray-300' />
+                <p className='text-sm text-center text-gray-500'>
+                  Please select a semester and class
+                </p>
+                <p className='text-xs text-center text-gray-400 mt-1'>
+                  to view conversations
+                </p>
+              </div>
+            ) : chatConversations.length === 0 ? (
               <div className='flex flex-col items-center justify-center h-full text-gray-400 px-4 py-12'>
                 <MessageCircle className='w-12 h-12 mb-3 text-gray-300' />
                 <p className='text-sm text-center text-gray-500'>
@@ -503,7 +721,7 @@ export default function ChatComponent() {
         </div>
 
         {/* Chat Window */}
-        <div className='flex-1 flex flex-col bg-white'>
+        <div className='flex-1 flex flex-col bg-white relative'>
           {currentConversationId === -1 ? (
             <div className='flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50'>
               <div className='text-center max-w-md px-6'>
@@ -524,17 +742,30 @@ export default function ChatComponent() {
               {/* Chat Header */}
               {currentConvDetail && (
                 <div className='border-b border-gray-200 bg-gradient-to-r from-white to-blue-50 px-6 py-4 shadow-sm'>
-                  <h2 className='text-lg font-bold text-gray-900 flex items-center'>
-                    <MessageCircle className='w-5 h-5 mr-2 text-blue-500' />
-                    {currentConvDetail.conversationName}
-                  </h2>
-                  <div className='flex items-center mt-1 text-sm text-gray-600'>
-                    <Users className='w-4 h-4 mr-1' />
-                    <span>{currentConvDetail.teamName}</span>
-                    <span className='mx-2'>•</span>
-                    <span className='text-xs text-gray-500'>
-                      {currentConvDetail.teamMembers?.length + 1} members
-                    </span>
+                  <div className='flex items-center justify-between'>
+                    <div>
+                      <h2 className='text-lg font-bold text-gray-900 flex items-center'>
+                        <MessageCircle className='w-5 h-5 mr-2 text-blue-500' />
+                        {currentConvDetail.conversationName}
+                      </h2>
+                      <div className='flex items-center mt-1 text-sm text-gray-600'>
+                        <Users className='w-4 h-4 mr-1' />
+                        <span>{currentConvDetail.teamName}</span>
+                        <span className='mx-2'>•</span>
+                        <span className='text-xs text-gray-500'>
+                          {currentConvDetail.teamMembers?.length + 1} members
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Info Button */}
+                    <button
+                      onClick={() => setShowDetailSidebar(!showDetailSidebar)}
+                      className='flex items-center justify-center w-10 h-10 rounded-full hover:bg-blue-100 active:bg-blue-200 transition-all duration-200 group'
+                      title='Conversation details'
+                    >
+                      <Info className='w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors' />
+                    </button>
                   </div>
                 </div>
               )}
@@ -542,7 +773,7 @@ export default function ChatComponent() {
               {/* Messages Area */}
               <div
                 ref={messageListRef}
-                className='flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-gradient-to-b from-gray-50 to-white'
+                className='flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-gradient-to-b from-gray-50 to-white relative'
                 style={{
                   scrollbarWidth: 'thin',
                   scrollbarColor: '#cbd5e1 transparent',
@@ -636,21 +867,21 @@ export default function ChatComponent() {
 
                                   if (
                                     currentConvDetail.lecturer &&
-                                    currentConvDetail.lecturer.lecturerId ===
+                                    currentConvDetail.lecturer.userId ===
                                       readUserId
                                   ) {
                                     avatarUrl =
                                       currentConvDetail.lecturer.avatarImg;
                                     fullName =
-                                      currentConvDetail.lecturer.lecturerName;
+                                      currentConvDetail.lecturer.fullName;
                                   } else {
                                     let teamMember =
                                       currentConvDetail.teamMembers.find(
-                                        x => x.studentId == readUserId
+                                        x => x.userId == readUserId
                                       );
                                     if (teamMember) {
                                       avatarUrl = teamMember.avatarImg;
-                                      fullName = teamMember.fullname;
+                                      fullName = teamMember.fullName;
                                     } else {
                                       return null;
                                     }
@@ -674,6 +905,17 @@ export default function ChatComponent() {
                     );
                   })
                 )}
+                
+                {/* ✨ NEW: Scroll to bottom button */}
+                {showScrollToBottom && (
+                  <button
+                    onClick={scrollToBottom}
+                    className='fixed bottom-24 right-8 z-50 flex items-center justify-center w-12 h-12 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110 animate-bounce'
+                    title='Scroll to bottom'
+                  >
+                    <ArrowDown className='w-5 h-5' />
+                  </button>
+                )}
               </div>
 
               {/* Input Area */}
@@ -681,48 +923,48 @@ export default function ChatComponent() {
                 <div className='flex items-end space-x-3'>
                   <div
                     className='flex-1 bg-gray-50 rounded-2xl border-2 border-gray-200 overflow-hidden hover:border-blue-300 transition-colors duration-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100'
-                    onKeyDown={handleKeyPress} // ✅ THÊM: Handle Enter key
+                    onKeyDown={handleKeyPress}
                   >
                     <style>{`
-                                            .quill-wrapper .ql-container {
-                                                border: none !important;
-                                                font-size: 14px;
-                                                font-family: inherit;
-                                            }
-                                            .quill-wrapper .ql-editor {
-                                                min-height: 60px;
-                                                max-height: 120px;
-                                                overflow-y: auto;
-                                                padding: 12px 16px;
-                                            }
-                                            .quill-wrapper .ql-editor.ql-blank::before {
-                                                color: #9ca3af;
-                                                font-style: normal;
-                                                left: 16px;
-                                            }
-                                            .quill-wrapper .ql-toolbar {
-                                                border: none !important;
-                                                border-bottom: 2px solid #e5e7eb !important;
-                                                background-color: #f9fafb;
-                                                padding: 8px;
-                                            }
-                                            .quill-wrapper .ql-stroke { stroke: #6b7280; }
-                                            .quill-wrapper .ql-fill { fill: #6b7280; }
-                                            .quill-wrapper .ql-picker-label { color: #6b7280; }
-                                            .quill-wrapper .ql-toolbar button:hover .ql-stroke,
-                                            .quill-wrapper .ql-toolbar button.ql-active .ql-stroke { stroke: #3b82f6; }
-                                            .quill-wrapper .ql-toolbar button:hover .ql-fill,
-                                            .quill-wrapper .ql-toolbar button.ql-active .ql-fill { fill: #3b82f6; }
-                                            .quill-wrapper .ql-toolbar button:hover,
-                                            .quill-wrapper .ql-toolbar button.ql-active {
-                                                background-color: #dbeafe;
-                                                border-radius: 4px;
-                                            }
-                                            @keyframes fadeIn {
-                                                from { opacity: 0; transform: translateY(10px); }
-                                                to { opacity: 1; transform: translateY(0); }
-                                            }
-                                        `}</style>
+                      .quill-wrapper .ql-container {
+                        border: none !important;
+                        font-size: 14px;
+                        font-family: inherit;
+                      }
+                      .quill-wrapper .ql-editor {
+                        min-height: 60px;
+                        max-height: 120px;
+                        overflow-y: auto;
+                        padding: 12px 16px;
+                      }
+                      .quill-wrapper .ql-editor.ql-blank::before {
+                        color: #9ca3af;
+                        font-style: normal;
+                        left: 16px;
+                      }
+                      .quill-wrapper .ql-toolbar {
+                        border: none !important;
+                        border-bottom: 2px solid #e5e7eb !important;
+                        background-color: #f9fafb;
+                        padding: 8px;
+                      }
+                      .quill-wrapper .ql-stroke { stroke: #6b7280; }
+                      .quill-wrapper .ql-fill { fill: #6b7280; }
+                      .quill-wrapper .ql-picker-label { color: #6b7280; }
+                      .quill-wrapper .ql-toolbar button:hover .ql-stroke,
+                      .quill-wrapper .ql-toolbar button.ql-active .ql-stroke { stroke: #3b82f6; }
+                      .quill-wrapper .ql-toolbar button:hover .ql-fill,
+                      .quill-wrapper .ql-toolbar button.ql-active .ql-fill { fill: #3b82f6; }
+                      .quill-wrapper .ql-toolbar button:hover,
+                      .quill-wrapper .ql-toolbar button.ql-active {
+                        background-color: #dbeafe;
+                        border-radius: 4px;
+                      }
+                      @keyframes fadeIn {
+                        from { opacity: 0; transform: translateY(10px); }
+                        to { opacity: 1; transform: translateY(0); }
+                      }
+                    `}</style>
                     <div className='quill-wrapper'>
                       <ReactQuill
                         ref={quillRef}
@@ -743,7 +985,6 @@ export default function ChatComponent() {
                   </button>
                 </div>
 
-                {/* ✅ THÊM: Keyboard hint */}
                 <div className='mt-2 text-xs text-gray-400 text-center'>
                   Press{' '}
                   <kbd className='px-1.5 py-0.5 bg-gray-200 rounded text-gray-600 font-mono'>
@@ -759,6 +1000,120 @@ export default function ChatComponent() {
             </>
           )}
         </div>
+
+        {/* Detail Sidebar */}
+        {showDetailSidebar && currentConvDetail && (
+          <div className='w-80 bg-white border-l border-gray-200 flex flex-col shadow-xl overflow-y-auto'>
+            {/* Header */}
+            <div className='p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-between'>
+              <h3 className='text-lg font-semibold text-gray-800 flex items-center'>
+                <Info className='w-5 h-5 mr-2 text-blue-500' />
+                Conversation Details
+              </h3>
+              <button
+                onClick={() => setShowDetailSidebar(false)}
+                className='flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200 transition-all duration-200'
+              >
+                <X className='w-5 h-5 text-gray-600' />
+              </button>
+            </div>
+
+            {/* Conversation Info */}
+            <div className='p-4 border-b border-gray-200'>
+              <div className='text-center'>
+                <div className='inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 mb-3 shadow-lg'>
+                  <MessageCircle className='w-8 h-8 text-white' />
+                </div>
+                <h4 className='text-lg font-bold text-gray-900'>
+                  {currentConvDetail.conversationName}
+                </h4>
+                <p className='text-sm text-gray-500 mt-1'>
+                  {currentConvDetail.teamName}
+                </p>
+              </div>
+            </div>
+
+            {/* Lecturer Section */}
+            {currentConvDetail.lecturer && (
+              <div className='p-4 border-b border-gray-200'>
+                <h5 className='text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3'>
+                  Lecturer
+                </h5>
+                <div className='flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors'>
+                  <img
+                    src={currentConvDetail.lecturer.avatarImg}
+                    alt={currentConvDetail.lecturer.fullName}
+                    className='w-12 h-12 rounded-full border-2 border-blue-200 shadow-sm'
+                  />
+                  <div className='flex-1'>
+                    <p className='font-semibold text-gray-900'>
+                      {currentConvDetail.lecturer.fullName}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Team Members Section */}
+            <div className='p-4'>
+              <div className='flex items-center justify-between mb-3'>
+                <h5 className='text-xs font-semibold text-gray-500 uppercase tracking-wide'>
+                  Team Members
+                </h5>
+                <span className='text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-medium'>
+                  {currentConvDetail.teamMembers?.length || 0}
+                </span>
+              </div>
+              
+              <div className='space-y-2'>
+                {currentConvDetail.teamMembers && currentConvDetail.teamMembers.length > 0 ? (
+                  currentConvDetail.teamMembers.map(member => (
+                    <div
+                      key={member.userId}
+                      className='flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer'
+                    >
+                      <img
+                        src={member.avatarImg}
+                        alt={member.fullName}
+                        className='w-10 h-10 rounded-full border-2 border-gray-200 shadow-sm'
+                      />
+                      <div className='flex-1 min-w-0'>
+                        <p className='font-medium text-gray-900 truncate'>
+                          {member.fullName}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className='text-center py-8 text-gray-400'>
+                    <Users className='w-12 h-12 mx-auto mb-2 text-gray-300' />
+                    <p className='text-sm'>No team members</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Additional Info */}
+            <div className='p-4 border-t border-gray-200 bg-gray-50 mt-auto'>
+              <div className='space-y-2 text-xs text-gray-600'>
+                <div className='flex items-center justify-between'>
+                  <span className='text-gray-500'>Conversation ID:</span>
+                  <span className='font-mono font-medium'>
+                    {currentConvDetail.conversationId}
+                  </span>
+                </div>
+                {currentConvDetail.latestMessage && (
+                  <div className='flex items-center justify-between'>
+                    <span className='text-gray-500'>Last activity:</span>
+                    <span className='font-medium'>
+                      {new Date(currentConvDetail.latestMessage.sendAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

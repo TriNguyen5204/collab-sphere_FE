@@ -32,11 +32,10 @@ const ProjectBoardHeader = ({
 
   // Fetch conversation IDs
   useEffect(() => {
-    if (!team?.teamId) return;
 
     const fetchConversationId = async () => {
       try {
-        const response = await getChat(team.teamId);
+        const response = await getChat();
         if (response && response.chatConversations) {
           const conversationIds = response.chatConversations.map(
             c => c.conversationId
@@ -49,7 +48,7 @@ const ProjectBoardHeader = ({
     };
 
     fetchConversationId();
-  }, [team?.teamId]);
+  }, []);
 
   // Initialize SignalR provider
   useEffect(() => {

@@ -10,7 +10,9 @@ import {
   GraduationCap,
   ChevronLeft,
   ChevronRight,
+  EyeIcon
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import ModalWrapper from '../../components/layout/ModalWrapper';
 import CreateLecturerForm from '../../features/staff/components/CreateLecturerForm';
 import CreateMultipleLecturerForm from '../../features/staff/components/CreateMultipleLecturerForm';
@@ -21,6 +23,7 @@ import StaffDashboardLayout from '../../components/layout/StaffDashboardLayout';
 import { getAllLecturer, getAllStudent } from '../../services/userService';
 
 export default function ImprovedAccountsTable() {
+  const navigate = useNavigate();
   const [showLecturerDropdown, setShowLecturerDropdown] = useState(false);
   const [showStudentDropdown, setShowStudentDropdown] = useState(false);
   const [accountType, setAccountType] = useState('lecturer');
@@ -326,6 +329,14 @@ export default function ImprovedAccountsTable() {
                             }}
                           >
                             <Edit3 className='w-4 h-4' />
+                          </button>
+                          <button
+                            className='p-2 rounded-xl bg-blue-50/50 backdrop-blur-sm border border-blue-200/50 hover:bg-blue-100 hover:shadow-md text-blue-600 transition-all'
+                            onClick={() => {
+                              navigate(`/staff/lecturers/${acc.uId}`);
+                            }}
+                          >
+                            <EyeIcon className='w-4 h-4' />
                           </button>
                         </td>
                       </tr>
