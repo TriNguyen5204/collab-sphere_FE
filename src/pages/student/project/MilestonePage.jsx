@@ -480,12 +480,15 @@ const MilestonePage = () => {
       const milestoneId = getMilestoneId(selectedMilestone);
       if (!milestoneId) return;
       await patchMarkDoneMilestoneByMilestoneId(milestoneId, true);
+      const normalizedCompleteStatus = normalizeMilestoneStatus('completed');
+      const completionTimestamp = new Date().toISOString();
       const updatedMilestones = milestones.map(milestone => {
         if (getMilestoneId(milestone) === milestoneId) {
           return {
             ...milestone,
-            status: "completed",
-            completedDate: new Date().toISOString(),
+            status: normalizedCompleteStatus,
+            statusString: normalizedCompleteStatus,
+            completedDate: completionTimestamp,
             progress: 100
           };
         }
@@ -531,8 +534,15 @@ const MilestonePage = () => {
     return { total, completed, percent: total ? Math.round((completed / total) * 100) : 0 };
   }, [selectedCheckpoints]);
 
+  const isSelectedMilestoneCompleted = normalizeMilestoneStatus(selectedMilestone?.status ?? selectedMilestone?.statusString) === 'Completed';
+
   const handleCreateCheckpoint = async () => {
     if (!selectedMilestone) return;
+    const isMilestoneCompleted = normalizeMilestoneStatus(selectedMilestone?.status ?? selectedMilestone?.statusString) === 'Completed';
+    if (isMilestoneCompleted) {
+      toast.error('Cannot create checkpoints for a completed milestone');
+      return;
+    }
     if (!newCheckpoint.title || !newCheckpoint.dueDate) {
       alert("Please fill in all required fields");
       return;
@@ -883,7 +893,7 @@ const MilestonePage = () => {
             ) : (
               <MilestoneHeader
                 milestone={selectedMilestone}
-                readOnly={false}
+                readOnly={isSelectedMilestoneCompleted}
                 onComplete={handleCompleteMilestone}
                 onUploadMilestoneFiles={handleUploadMilestoneReturns}
                 onDeleteMilestoneReturn={handleDeleteMilestoneReturn}
@@ -906,8 +916,14 @@ const MilestonePage = () => {
                 <span className="text-sm text-gray-600">{checkpointProgress.completed}/{checkpointProgress.total} completed ({checkpointProgress.percent}%)</span>
               </div>
               <button
-                onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 px-3 py-2 bg-orangeFpt-500 text-white rounded-lg hover:bg-orangeFpt-600 transition"
+                onClick={() => {
+                  if (!isSelectedMilestoneCompleted) {
+                    setShowCreateModal(true);
+                  }
+                }}
+                disabled={isSelectedMilestoneCompleted}
+                title={isSelectedMilestoneCompleted ? 'This milestone is completed. Create checkpoint is disabled.' : undefined}
+                className="flex items-center gap-2 px-3 py-2 bg-orangeFpt-500 text-white rounded-lg hover:bg-orangeFpt-600 transition disabled:bg-gray-300 disabled:text-gray-500 disabled:hover:bg-gray-300 disabled:cursor-not-allowed"
               >
                 <Plus size={18} />
                 Create Checkpoint
@@ -952,17 +968,18 @@ const MilestonePage = () => {
                 ) : (
                   (checkpointGroups[activeTab] || []).map((checkpoint) => {
                     const isCheckpointCompleted = getCheckpointUiStatus(checkpoint) === 'completed';
+                    const checkpointReadOnly = isCheckpointCompleted || isSelectedMilestoneCompleted;
                     return (
                       <CheckpointCard
                         key={checkpoint.id}
                         checkpoint={checkpoint}
-                        readOnly={isCheckpointCompleted}
-                        onEdit={(cpId, payload) => !isCheckpointCompleted && handleUpdateCheckpoint(cpId, payload)}
-                        onDelete={(id) => !isCheckpointCompleted && handleDeleteCheckpoint(id)}
-                        onUploadFiles={(id, files) => !isCheckpointCompleted && handleUploadCheckpointFiles(id, files)}
-                        onMarkComplete={(id) => !isCheckpointCompleted && handleMarkComplete(id)}
-                        onDeleteSubmission={(cpId, subId) => !isCheckpointCompleted && handleDeleteSubmission(cpId, subId)}
-                        onAssign={(cpId, memberIds) => openAssignModal(cpId, memberIds)}
+                        readOnly={checkpointReadOnly}
+                        onEdit={(cpId, payload) => checkpointReadOnly ? null : handleUpdateCheckpoint(cpId, payload)}
+                        onDelete={(id) => checkpointReadOnly ? null : handleDeleteCheckpoint(id)}
+                        onUploadFiles={(id, files) => checkpointReadOnly ? null : handleUploadCheckpointFiles(id, files)}
+                        onMarkComplete={(id) => checkpointReadOnly ? null : handleMarkComplete(id)}
+                        onDeleteSubmission={(cpId, subId) => checkpointReadOnly ? null : handleDeleteSubmission(cpId, subId)}
+                        onAssign={(cpId, memberIds) => checkpointReadOnly ? null : openAssignModal(cpId, memberIds)}
                       />
                     );
                   })

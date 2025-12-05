@@ -9,6 +9,7 @@ import logo from '../../assets/logov1.png';
 import { useAvatar } from '../../hooks/useAvatar';
 import { useQueryClient } from '@tanstack/react-query';
 import useTeam from '../../context/useTeam';
+import ReportSystemModal from '../../features/student/components/ReportSystemModal';
 
 const StudentHeader = () => {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ const StudentHeader = () => {
   const [projects, setProjects] = useState([]);
   const [openSearch, setOpenSearch] = useState(false);
   const [openProfile, setOpenProfile] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const avatar = useSelector((state) => state.user.avatar);
   const fullname = useSelector((state) => state.user.fullName);
   const queryClient = useQueryClient();
@@ -212,6 +214,10 @@ const StudentHeader = () => {
                 </button>
                 <button
                   type="button"
+                  onClick={() => {
+                    setOpenProfile(false);
+                    setShowReportModal(true);
+                  }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-200"
                 >
                   <MessageSquareWarning className="w-4 h-4" />
@@ -230,6 +236,11 @@ const StudentHeader = () => {
           </div>
         </div>
       </div>
+      <ReportSystemModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        userId={userId}
+      />
     </header>
   );
 };

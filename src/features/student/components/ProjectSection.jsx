@@ -56,14 +56,16 @@ const ProjectSection = ({
   }, [resetSignal]);
 
   return (
-    <div className="relative rounded-3xl border border-orangeFpt-100 bg-white/95 p-6 shadow-xl shadow-orangeFpt-100/60 backdrop-blur">
-      <div className="flex flex-col gap-5 border-b border-orangeFpt-50 pb-6 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex flex-wrap items-center gap-3 text-slate-900">
+    <div className="relative rounded-3xl border  bg-white/95 shadow-xl shadow-orangeFpt-100/60 backdrop-blur">
+      <div className="flex flex-col gap-5 border-b border-orangeFpt-50 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-wrap items-center gap-3 text-slate-900 p-6">
           {Icon ? <Icon className="h-7 w-7 text-orangeFpt-500" /> : null}
           <div>
             <h2 className="text-2xl font-semibold">{title}</h2>
-            {projects.length > 0 && (
+            {projects.length > 0 ? (
               <p className="text-sm text-slate-500">{projects.length} project{projects.length === 1 ? '' : 's'} available</p>
+            ) : (
+              <p className="text-sm text-slate-500">No projects to display</p>
             )}
           </div>
         </div>
@@ -84,7 +86,7 @@ const ProjectSection = ({
       {projects.length > 0 ? (
         <div
           ref={scrollRef}
-          className="mt-6 max-h-[70vh] overflow-y-auto pr-2"
+          className=" max-h-[70vh] overflow-y-auto p-4"
         >
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
             {projects.map((project, idx) => (

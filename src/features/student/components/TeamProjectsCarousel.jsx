@@ -45,14 +45,14 @@ const TeamProjectsCarousel = ({ projects = [], onCardClick }) => {
   };
 
   return (
-    <div className="w-full mx-auto px-10">
+    <div className="w-full mx-auto">
       <div 
         onWheel={handleWheel}
         className="flex flex-col"
       >
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 justify-items-center">
           {visibleProjects.map((project) => (
-            <div key={project.teamId || project.projectId} className="w-full flex justify-center">
+            <div key={project.teamId || project.projectId} className="w-full flex justify-center h-fit">
               <ProjectCard
                 project={project}
                 onClick={() => onCardClick?.(project)}
@@ -69,7 +69,7 @@ const TeamProjectsCarousel = ({ projects = [], onCardClick }) => {
 
         {/* Pagination Controls */}
         {projects.length > PAGE_SIZE && (
-          <div className="mt-8 flex items-center justify-center gap-4">
+          <div className="mt-4 flex items-center justify-center gap-4">
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}

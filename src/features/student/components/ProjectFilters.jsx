@@ -84,7 +84,7 @@ const ProjectFilters = ({
   }
 
   return (
-    <div className={`${containerClasses} p-5`}>
+    <div className='p-4'>
       {controls}
     </div>
   );

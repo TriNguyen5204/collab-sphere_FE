@@ -81,10 +81,11 @@ const StudentClassPage = () => {
       setLoadingAssignedTeamId(classId);
       const response = await getAssignedTeamByClassId(classId);
       const team = response?.studentTeam ?? null;
+      console.log('Fetched assigned team for classId', classId, response);
       setAssignedTeamByClassId((prev) => ({ ...prev, [classId]: team }));
       return team;
     } catch (error) {
-      // toast.error(error.response?.data?.errorList?.[0]?.message || 'Failed to load assigned team');
+      toast.error(error.response?.data?.errorList?.[0]?.message || 'Failed to load assigned team');
       setAssignedTeamByClassId((prev) => {
         const next = { ...prev };
         delete next[classId];
@@ -203,30 +204,32 @@ const StudentClassPage = () => {
   return (
     <StudentLayout>
       <div className="space-y-8">
-        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0f172a] via-[#111c33] to-[#1d263a] text-white shadow-2xl">
-          <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-orangeFpt-500/20 to-transparent" />
-          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top,_#ffffff3a,_transparent_55%)]" />
+        <div className="relative overflow-hidden rounded-3xl border border-orangeFpt-50 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white shadow-md shadow-orangeFpt-100/60 backdrop-blur">
           <div className="relative z-10 px-6 py-8 lg:px-10">
             <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
               <div className="max-w-2xl space-y-4">
-                <div className="inline-flex items-center gap-2 rounded-full border border-orangeFpt-200/50 bg-orangeFpt-500/10 px-4 py-1 text-[11px] uppercase tracking-[0.3em] text-orangeFpt-100">
-                  <Sparkles className="h-4 w-4 text-orangeFpt-200" />
-                  Class Overview
-                </div>
-                <h1 className="text-3xl font-semibold leading-snug sm:text-4xl">Master every class with ease</h1>
-                <p className="text-sm text-white/75 sm:text-base">Quickly switch classes, review lecturer details, and jump to teams or syllabi from one clean view.</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Class Overview</p>
+                <h1 className="mt-2 text-3xl font-semibold text-slate-900">Master every class with ease</h1>
+                <p className="mt-1 text-sm text-slate-600">
+                  Quickly switch classes, review lecturer details, and jump to teams or syllabi from one clean view.
+                </p>
               </div>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 w-full max-w-xl">
-                {classStats.map((stat) => (
-                  <div key={stat.label} className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
-                    <p className="text-[11px] uppercase tracking-wide text-white/70">{stat.label}</p>
-                    <p className="mt-1 text-2xl font-semibold text-orangeFpt-50">{stat.value}</p>
-                  </div>
-                ))}
+              <div className="w-full max-w-xl">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {classStats.map((stat) => (
+                    <div
+                      key={stat.label}
+                      className="rounded-2xl border border-orangeFpt-100 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white px-4 py-3 shadow-sm shadow-orangeFpt-100/60 backdrop-blur"
+                    >
+                      <p className="text-[11px] uppercase tracking-wide text-slate-900 flex justify-end">{stat.label}</p>
+                      <p className="mt-1 text-xl font-semibold text-orangeFpt-500 flex justify-end">{stat.value}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </section>
+        </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-1">
@@ -236,20 +239,6 @@ const StudentClassPage = () => {
                   <BookOpen className="w-5 h-5 text-orangeFpt-500" />
                   Assigned Classes ({classes.length})
                 </h2>
-                <button
-                  onClick={() =>
-                    toast.promise(fetchClasses(), {
-                      loading: 'Refreshing classes...',
-                      success: (list) => `Loaded ${list?.length ?? 0} classes`,
-                      error: 'Failed to refresh classes',
-                    })
-                  }
-                  className="inline-flex items-center gap-1 rounded-full border border-orangeFpt-200 px-3 py-1 text-xs font-semibold text-orangeFpt-600 transition hover:bg-orangeFpt-50 disabled:opacity-50"
-                  disabled={loadingList}
-                >
-                  <RefreshCcw className="w-3.5 h-3.5" />
-                  {loadingList ? 'Loading…' : 'Refresh'}
-                </button>
               </div>
 
               {loadingList ? (
@@ -261,8 +250,8 @@ const StudentClassPage = () => {
                       key={c.classId}
                       type="button"
                       className={`w-full rounded-2xl border px-4 py-3 text-left transition-all ${selectedClassId === c.classId
-                        ? 'border-orangeFpt-300 bg-orangeFpt-50 shadow-inner'
-                        : 'border-slate-200 hover:border-orangeFpt-200 bg-white'
+                        ? 'border-orangeFpt-200 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white shadow-inner'
+                        : 'border-slate-200 hover:border-orangeFpt-00 bg-white'
                         }`}
                       onClick={() => setSelectedClassId(c.classId)}
                     >
@@ -358,7 +347,7 @@ const StudentClassPage = () => {
                   </div>
 
                   {/* ... Projects & Teams Counts ... */}
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {/* <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div className="rounded-2xl border border-dashed border-slate-200 p-4">
                       <p className="text-xs uppercase tracking-wide text-slate-500">Projects</p>
                       <p className="mt-1 text-2xl font-semibold text-slate-900">{selectedDetails?.projectAssignments?.length ?? 0}</p>
@@ -369,7 +358,7 @@ const StudentClassPage = () => {
                       <p className="mt-1 text-2xl font-semibold text-slate-900">{selectedDetails.teams?.length ?? 0}</p>
                       <p className="text-xs text-slate-500">Collaborating student groups</p>
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* ... Assigned Team Section ... */}
                   <div className="mt-6">

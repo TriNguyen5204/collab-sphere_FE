@@ -58,6 +58,7 @@ const StudentProjectPage = () => {
         });
         const container = response?.paginatedTeams ?? response ?? {};
         const list = Array.isArray(container?.list) ? container.list : [];
+        console.log("Fetched teams:", list);
         setTeams((prev) => (reset ? list : [...prev, ...list]));
 
         const totalPages = Number(container?.totalPages);
@@ -175,11 +176,11 @@ const StudentProjectPage = () => {
   const quickStats = useMemo(() => {
     const avgProgress = teams.length
       ? Math.round(
-          teams.reduce((sum, current) => {
-            const value = Number(current?.progress);
-            return sum + (Number.isFinite(value) ? value : 0);
-          }, 0) / teams.length
-        )
+        teams.reduce((sum, current) => {
+          const value = Number(current?.progress);
+          return sum + (Number.isFinite(value) ? value : 0);
+        }, 0) / teams.length
+      )
       : 0;
     return [
       { label: "Total Projects", value: teams.length || 0 },
@@ -192,23 +193,14 @@ const StudentProjectPage = () => {
   return (
     <StudentLayout>
       <div className="space-y-8">
-        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0b1220] via-[#111a2c] to-[#1c2536] text-white shadow-2xl">
-          <div className="absolute inset-0">
-            <div className="absolute -top-10 right-0 h-48 w-48 bg-orangeFpt-500/10 blur-3xl" />
-            <div className="absolute bottom-0 left-0 h-56 w-56 bg-orangeFpt-400/5 blur-3xl" />
-            <div className="absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-orangeFpt-500/15 to-transparent" />
-            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top,_#ffffff3a,_transparent_55%)]" />
-          </div>
+        <div className="relative overflow-hidden rounded-3xl border border-orangeFpt-50 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white shadow-md shadow-orangeFpt-100/60 backdrop-blur">
           <div className="relative z-10 px-6 py-8 lg:px-10">
             <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
               <div className="max-w-2xl space-y-4">
-                <div className="inline-flex items-center gap-2 rounded-full border border-orangeFpt-200/50 bg-orangeFpt-500/10 px-4 py-1 text-[11px] uppercase tracking-[0.3em] text-orangeFpt-100">
-                  <Sparkles className="h-4 w-4 text-orangeFpt-200" />
-                  Project Workspace
-                </div>
-                <h1 className="text-3xl font-semibold leading-snug sm:text-4xl">Navigate Every Project With Clarity</h1>
-                <p className="text-sm text-white/75 sm:text-base">
-                  Monitor your teams, filter by class or semester, and jump back into collaboration instantly. This dashboard keeps your academic workload organized and easy to explore.
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Project Overview</p>
+                <h1 className="mt-2 text-3xl font-semibold text-slate-900">Navigate Every Project With Clarity</h1>
+                <p className="mt-1 text-sm text-slate-600">
+                  Monitor your teams, filter by class or semester, and jump back into collaboration instantly.
                 </p>
               </div>
               <div className="w-full max-w-xl">
@@ -216,22 +208,22 @@ const StudentProjectPage = () => {
                   {quickStats.map((stat) => (
                     <div
                       key={stat.label}
-                      className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur"
+                      className="rounded-2xl border border-orangeFpt-100 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white px-4 py-3 shadow-sm shadow-orangeFpt-100/60 backdrop-blur"
                     >
-                      <p className="text-[11px] uppercase tracking-wide text-white/70">{stat.label}</p>
-                      <p className="mt-1 text-xl font-semibold text-orangeFpt-50">{stat.value}</p>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-900 flex justify-end">{stat.label}</p>
+                      <p className="mt-1 text-xl font-semibold text-orangeFpt-500 flex justify-end">{stat.value}</p>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
           </div>
-        </section>
+        </div>
 
         {/* Loading */}
         {loading && (
-          <div className="rounded-md border p-6 animate-pulse text-sm text-gray-500">
-            Loading projects...
+          <div className="flex h-96 items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orangeFpt-500"></div>
           </div>
         )}
 
@@ -265,9 +257,9 @@ const StudentProjectPage = () => {
             emptyMessage={
               filteredTeams.length === 0
                 ? {
-                    title: "No Projects Found",
-                    description: "Try adjusting your filters or search query.",
-                  }
+                  title: "No Projects Found",
+                  description: "Try adjusting your filters or search query.",
+                }
                 : null
             }
           />

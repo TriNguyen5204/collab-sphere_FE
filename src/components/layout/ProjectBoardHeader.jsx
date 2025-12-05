@@ -104,7 +104,7 @@ const ProjectBoardHeader = ({
   };
 
   const handleExitProject = async () => {
-    await navigate('/student/projects');
+    await navigate(-1);
     clearTeam();
   };
 
@@ -152,11 +152,7 @@ const ProjectBoardHeader = ({
 
         <ProjectResourcesMenu />
 
-        <ProjectBoardSetting
-          archivedItems={archivedItems}
-          onRestoreArchived={onRestoreArchived}
-          onDeleteArchived={onDeleteArchived}
-        />
+        <ProjectBoardSetting />
 
         <div className='h-6 w-px bg-gray-300'></div>
 
