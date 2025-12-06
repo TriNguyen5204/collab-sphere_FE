@@ -1,10 +1,9 @@
 import MeetingHomePage from './MeetingHomePage';
 import ProjectBoardHeader from '../../components/layout/ProjectBoardHeader';
-import useTeam from '../../context/useTeam';
+import { useParams } from 'react-router-dom';
 
 const HomeLayout = ({ children }) => {
-  const { team } = useTeam();
-  const teamId = team?.teamId ?? '';
+  const { teamId } = useParams();
   return (
     <main className='relative'>
       <ProjectBoardHeader />

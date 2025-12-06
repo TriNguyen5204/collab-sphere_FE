@@ -377,8 +377,6 @@ export default function ChatComponent() {
   // ✨ IMPROVED: Auto-scroll when messages change (only if user hasn't scrolled up)
   useEffect(() => {
     if (!messageListRef.current || !currentConvDetail) return;
-
-    const element = messageListRef.current;
     
     // Only auto-scroll if user hasn't manually scrolled up
     if (!userScrolledUp) {

@@ -10,9 +10,11 @@ import { useMeetingRecorder } from '../../features/meeting/hooks/useMeetingRecor
 import ChatBox from '../../features/meeting/components/ChatBox';
 import { useNavigate } from 'react-router-dom';
 import { updateMeeting } from '../../features/meeting/services/meetingApi';
+import { toast } from 'sonner';
 
 function MeetingRoom() {
   const { roomId } = useParams();
+  const { teamId } = useParams();
   const location = useLocation();
   const myName = location.state?.myName || 'Anonymous';
   const title = location.state?.title || '';
@@ -42,10 +44,10 @@ function MeetingRoom() {
       });
 
       console.log('✅ Meeting updated successfully:', response.data);
-      alert('Video đã được lưu và cập nhật vào meeting!');
+      toast.success('Video đã được lưu và cập nhật vào meeting!');
     } catch (error) {
       console.error('❌ Failed to update meeting:', error);
-      alert('Video đã được upload nhưng không thể cập nhật meeting. Vui lòng kiểm tra lại.');
+      toast.error('Video đã được upload nhưng không thể cập nhật meeting. Vui lòng kiểm tra lại.');
     }
   };
 
@@ -99,7 +101,7 @@ function MeetingRoom() {
   };
 
   const handleLeave = () => {
-    navigate('/student/projects', { replace: true });
+    navigate(`/meeting/${teamId}`, { replace: true });
   };
 
   // Tìm người đang share màn hình

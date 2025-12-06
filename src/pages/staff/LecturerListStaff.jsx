@@ -52,6 +52,7 @@ export default function ImprovedAccountsTable() {
       let response;
       if (accountType === 'lecturer') {
         response = await getAllLecturer(
+          false,
           appliedFilters.Email,
           appliedFilters.FullName,
           appliedFilters.Yob,
@@ -62,6 +63,7 @@ export default function ImprovedAccountsTable() {
         );
       } else {
         response = await getAllStudent(
+          false,
           appliedFilters.Email,
           appliedFilters.FullName,
           appliedFilters.Yob,

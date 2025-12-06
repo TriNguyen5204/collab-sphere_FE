@@ -9,6 +9,7 @@ import {
   ArrowRightOnRectangleIcon,
   UserPlusIcon,
   FolderIcon,
+  VideoCameraIcon,
 } from '@heroicons/react/24/outline';
 import {
   Search,
@@ -19,7 +20,7 @@ import {
   MessageCircleMoreIcon,
 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, href } from 'react-router-dom';
 import AppSidebar from './AppSidebar';
 import logo from '../../assets/logov1.png';
 import { logout } from '../../store/slices/userSlice';
@@ -436,6 +437,13 @@ const DashboardLayout = ({ children }) => {
       icon: ClipboardDocumentListIcon,
       match: path =>
         path === '/lecturer/grading' || path.startsWith('/lecturer/grading/'),
+    },
+    {
+      label: "Chat",
+      href: '/chat',
+      icon: MessageCircleMoreIcon,
+      match: path =>
+        path === '/chat' || path.startsWith('/chat/'),
     },
     // {
     //   label: 'Analytics',

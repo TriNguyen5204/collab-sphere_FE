@@ -50,7 +50,7 @@ export default function ClassListStaff() {
       try {
         const [subjects, lecturers] = await Promise.all([
           getAllSubject(),
-          getAllLecturer(),
+          getAllLecturer(true),
         ]);
         setSubjectOptions(subjects || []);
         setLecturerOptions(lecturers.list || []);

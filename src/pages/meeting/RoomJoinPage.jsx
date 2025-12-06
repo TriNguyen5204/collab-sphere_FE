@@ -1,21 +1,20 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { LogIn, Video, Plus, Users, Clock } from 'lucide-react';
 import { createMeeting } from '../../features/meeting/services/meetingApi';
 import { toast } from 'sonner';
 import ClipLoader from 'react-spinners/ClipLoader';
-import useTeam from '../../context/useTeam';
 
 function JoinPage() {
   const myName = useSelector(state => state.user.fullName);
+  // const roleName = useSelector(state => state.user.roleName);
   const [groupId, setGroupId] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const { team } = useTeam();
-  const teamId = team?.teamId || '';
+  const { teamId } = useParams();
 
   // 🔧 Hàm điều hướng
   const cleanupAndNavigate = (path, navState) => {
@@ -44,7 +43,7 @@ function JoinPage() {
       teamId: teamId,
       title,
       description,
-      meetingUrl: `https://collabsphere.space/room/${newRoomId}`,
+      meetingUrl: `https://collabsphere.space/room/${newRoomId}/${teamId}`,
       scheduleTime: new Date(now.getTime() + vnOffsetMs).toISOString(),
     };
 
@@ -54,7 +53,7 @@ function JoinPage() {
         toast.success('✅ Meeting created successfully!');
         const idMatch = response.message.match(/ID:\s*(\d+)/);
         const meetingId = idMatch ? parseInt(idMatch[1], 10) : null;
-        cleanupAndNavigate(`/room/${newRoomId}`, {
+        cleanupAndNavigate(`/room/${newRoomId}/${teamId}`, {
           myName,
           title,
           description,
@@ -64,7 +63,7 @@ function JoinPage() {
       }
     } catch (error) {
       console.error('❌ Failed to create meeting:', error);
-      toast.error('Error creating meeting, please try again.');
+      toast.error('Error creating meeting, please try again.', error);
     } finally {
       setLoading(false);
     }
@@ -91,7 +90,7 @@ function JoinPage() {
             Welcome back, {myName || 'Guest'}
           </h1>
           <p className='text-gray-600 text-lg'>
-            Start a new meeting or join an existing one
+            Start a new meeting or join an existing one for Team #{teamId}
           </p>
         </div>
 
