@@ -10,7 +10,7 @@ import {
   UserPlusIcon,
   FolderIcon,
 } from '@heroicons/react/24/outline';
-import { Search, User, LogOut, ChevronDown, MessageSquareWarning } from 'lucide-react';
+import { Search, User, LogOut, ChevronDown, MessageSquareWarning, LayoutDashboard } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AppSidebar from './AppSidebar';
@@ -19,6 +19,7 @@ import { logout } from '../../store/slices/userSlice';
 import useClickOutside from '../../hooks/useClickOutside';
 import { useAvatar } from '../../hooks/useAvatar';
 import AIChatAssistant from '../../features/ai/components/AIChatAssistant';
+import { getRoleLandingRoute } from '../../constants/roleRoutes';
 
 
 const LecturerHeader = ({
@@ -38,6 +39,7 @@ const LecturerHeader = ({
   const profileRef = useRef(null);
   const navigate = useNavigate();
   const { initials, colorClass, imageError, setImageError, shouldShowImage } = useAvatar(fullName, avatar);
+  const roleName = useSelector((state) => state.user.roleName);
   useClickOutside(searchRef, () => setOpenSearch(false));
   useClickOutside(profileRef, () => setOpenProfile(false));
 
@@ -111,38 +113,57 @@ const LecturerHeader = ({
             {isAuthenticated ? (
               <>
                 <button
-                  type="button"
-                  onClick={() => setOpenProfile(prev => !prev)}
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  onClick={() => setOpenProfile(!openProfile)}
+                  className="flex items-center gap-3 pl-4 border-transparent border-2 rounded-full hover:border-orangeFpt-500 hover:rounded-full hover:border-2 hover:text-white hover:bg-orangeFpt-500 transition-all duration-300"
                 >
-                  {shouldShowImage ? (
-                    <img
-                      src={avatar}
-                      alt="Profile"
-                      onError={() => setImageError(true)}
-                      className="w-7 h-7 rounded-full object-cover border border-slate-200"
-                    />
-                  ) : (
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold ${colorClass}`}>
-                      {initials}
+                  <div className='p-1 flex items-center gap-2'>
+                    <div className="text-right hidden md:block">
+                      <p className="text-sm font-medium">{fullName}</p>
                     </div>
-                  )}
-                  <span className="hidden sm:inline max-w-[160px] truncate">{fullName || 'Lecturer'}</span>
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium text-white overflow-hidden ${colorClass} ring-2 ring-white shadow-sm`}>
+                      {shouldShowImage ? (
+                        <img
+                          src={avatar}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                          onError={() => setImageError(true)}
+                        />
+                      ) : (
+                        <span>{initials}</span>
+                      )}
+                    </div>
+                    <ChevronDown size={16} className={`transition-transform duration-200 ${openProfile ? 'rotate-180' : ''}`} />
+                  </div>
                 </button>
                 {openProfile && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden z-[80]">
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="px-4 py-3 border-b border-gray-50 mb-2">
+                      <p className="text-sm font-medium text-gray-900">Signed in as</p>
+                      <p className="text-sm text-gray-500 truncate">{fullName}</p>
+                    </div>
+                    
+                    <button 
+                      onClick={() => navigate(getRoleLandingRoute(roleName))}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                    >
+                      <LayoutDashboard size={16} />
+                      Dashboard
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => {
                         setOpenProfile(false);
                         onProfile();
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50"
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
                     >
-                      <User className="w-4 h-4" />
+                      <User size={16} />
                       Profile
                     </button>
+                    
+                    <div className="h-px bg-gray-50 my-2" />
+                    
                     <button
                       type="button"
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-200"
@@ -156,9 +177,9 @@ const LecturerHeader = ({
                         setOpenProfile(false);
                         onLogout();
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50"
+                      className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
                     >
-                      <LogOut className="w-4 h-4" />
+                      <LogOut size={16} />
                       Logout
                     </button>
                   </div>
