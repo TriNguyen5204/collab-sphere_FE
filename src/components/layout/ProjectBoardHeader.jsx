@@ -104,7 +104,7 @@ const ProjectBoardHeader = ({
   };
 
   const handleExitProject = async () => {
-    await navigate(-1);
+    await navigate('/student/projects');
     clearTeam();
   };
 
