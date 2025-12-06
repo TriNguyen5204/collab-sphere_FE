@@ -26,6 +26,7 @@ import {
 import { normalizeMilestoneStatus } from '../../../utils/milestoneHelpers';
 import { toast } from 'sonner';
 import useTeam from '../../../context/useTeam';
+import useToastConfirmation from '../../../hooks/useToastConfirmation.jsx';
 
 const MilestonePage = () => {
   const [milestones, setMilestones] = useState([]);
@@ -39,6 +40,7 @@ const MilestonePage = () => {
   const [activeTab, setActiveTab] = useState('all');
   const { team } = useTeam();
   const teamId = team?.teamId ?? null;
+  const confirmWithToast = useToastConfirmation();
 
   const normalizeCheckpointStatus = (statusValue) => {
     if (statusValue === null || statusValue === undefined) return 'PROCESSING';
@@ -476,6 +478,17 @@ const MilestonePage = () => {
       return;
     }
 
+    const milestoneName = selectedMilestone?.title ?? 'this milestone';
+    const confirmed = await confirmWithToast({
+      message: `Mark ${milestoneName} as completed? This will lock further edits.`,
+      confirmLabel: 'Mark complete',
+      cancelLabel: 'Cancel',
+      variant: 'warning',
+    });
+    if (!confirmed) {
+      return;
+    }
+
     try {
       const milestoneId = getMilestoneId(selectedMilestone);
       if (!milestoneId) return;
@@ -497,7 +510,7 @@ const MilestonePage = () => {
       setMilestones(updatedMilestones);
       setSelectedMilestone(updatedMilestones.find(m => getMilestoneId(m) === milestoneId));
     } catch (error) {
-      const msg = error?.response?.data?.message || 'Only leader can mark milestone as done';
+      toast.error(error?.response?.data?.errorList?.[0].message || 'Failed to mark milestone as complete');
       alert(msg);
     }
   };
