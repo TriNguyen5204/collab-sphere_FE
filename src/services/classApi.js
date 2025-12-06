@@ -81,3 +81,23 @@ export const patchRefreshClassFileUrl = async (classId, fileId) => {
     throw error;
   }
 };
+
+export const getClassFiles = async (classId) => {
+  try {
+    const response = await apiClient.get(`/class/${classId}/files`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching files for class ID ${classId}:`, error);
+    throw error;
+  }
+};
+
+export const patchGenerateNewClassFileUrl = async (classId, fileId) => {
+  try {
+    const response = await apiClient.patch(`/class/${classId}/files/${fileId}/new-url`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error generating new URL for class ID ${classId} and file ID ${fileId}:`, error);
+    throw error;
+  }
+};

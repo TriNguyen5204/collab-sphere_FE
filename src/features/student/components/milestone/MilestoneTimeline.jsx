@@ -9,7 +9,7 @@ const iconMap = {
   Flag: Flag
 };
 
-const MilestoneTimeline = ({ milestones, selectedMilestone, onSelectMilestone, onDeleteMilestone, onUpdateMilestone }) => {
+const MilestoneTimeline = ({ milestones, selectedMilestone, onSelectMilestone}) => {
   return (
     <div className="bg-white rounded-lg shadow-md p-6 w-full">
       <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -57,35 +57,6 @@ const MilestoneTimeline = ({ milestones, selectedMilestone, onSelectMilestone, o
                       )}
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-1">
-                    {onUpdateMilestone && (
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onUpdateMilestone(milestone);
-                        }}
-                        className="p-1 text-gray-400 hover:text-blue-500 transition-colors rounded-full hover:bg-blue-50"
-                        title="Update Milestone"
-                      >
-                        <Pencil size={18} />
-                      </div>
-                    )}
-
-                    {onDeleteMilestone && (
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteMilestone(milestone);
-                        }}
-                        className="p-1 text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50"
-                        title="Delete Milestone"
-                      >
-                        <Trash2 size={18} />
-                      </div>
-                    )}
-                  </div>
-
                   {isActive && <ChevronRight className="text-orangeFpt-500 flex-shrink-0 self-center" size={20} />}
               </button>
             </div>

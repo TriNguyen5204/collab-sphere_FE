@@ -116,32 +116,6 @@ const ProfileInformation = ({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Profile Information</h2>
-        {canEdit && isDirty && (
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orangeFpt-500 text-white transition hover:bg-orangeFpt-600 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <span>Save Changes</span>
-              )}
-            </button>
-          </div>
-        )}
       </div>
 
       <div className="flex items-center gap-6">
@@ -251,6 +225,34 @@ const ProfileInformation = ({
             className={`w-full px-4 py-2 border rounded-lg transition ${appliedEditableClasses}`}
           />
         </div>
+      </div>
+      <div className="flex justify-end">
+        {canEdit && isDirty && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orangeFpt-500 text-white transition hover:bg-orangeFpt-600 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>Save Changes</span>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
