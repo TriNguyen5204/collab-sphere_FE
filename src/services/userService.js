@@ -512,3 +512,15 @@ export const getWhiteboardId = async (teamId) => {
     throw error
   }
 }
+
+export const postSystemReport = async (data) => {
+  try {
+    const response = await apiClient.post('/system-reports', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error submitting system report:', error);
+    throw error;
+  }
+};

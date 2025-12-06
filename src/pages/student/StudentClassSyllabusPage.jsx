@@ -49,7 +49,7 @@ const StudentClassSyllabusPage = () => {
   return (
     <div className="p-6">
       <div className="mb-4">
-        <Link to="/student/classes" className="text-blue-600 hover:underline">
+        <Link to="/student/classes" className="text-orangeFpt-500 hover:underline">
           ← Back to classes
         </Link>
       </div>

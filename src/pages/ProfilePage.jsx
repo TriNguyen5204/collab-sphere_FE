@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
-import { useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { User, Settings } from "lucide-react";
 import StudentLayout from "../components/layout/StudentLayout";
 import DashboardLayout from "../components/layout/DashboardLayout";
@@ -55,8 +55,8 @@ const ProfilePage = () => {
 				console.error("Failed to fetch user profile:", error);
 				toast.error(
 					error?.response?.data?.message ||
-						error?.message ||
-						"Unable to load the requested profile."
+					error?.message ||
+					"Unable to load the requested profile."
 				);
 			} finally {
 				if (withLoader) {
@@ -296,11 +296,10 @@ const ProfilePage = () => {
 									key={tab.id}
 									type="button"
 									onClick={() => setActiveTab(tab.id)}
-									className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition ${
-										activeTab === tab.id
+									className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition ${activeTab === tab.id
 											? "border-brand-600 text-brand-600"
 											: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-									}`}
+										}`}
 								>
 									<Icon size={18} />
 									{tab.label}
@@ -318,8 +317,21 @@ const ProfilePage = () => {
 	if (LayoutComponent === React.Fragment) {
 		return <>{pageContent}</>;
 	}
+	const navigate = useNavigate();
 
-	return <LayoutComponent>{pageContent}</LayoutComponent>;
+	return (
+		<div className="p-6">
+			<div className="mb-4">
+				<button
+					onClick={() => navigate(-1)}
+					className="text-orangeFpt-500 hover:underline"
+				>
+					← Back
+				</button>
+			</div>
+			{pageContent}
+		</div>
+	);
 };
 
 export default ProfilePage;

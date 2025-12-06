@@ -1,13 +1,15 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import StudentLayout from "../../components/layout/StudentLayout";
 import ProjectFilters from "../../features/student/components/ProjectFilters";
 import ProjectSection from "../../features/student/components/ProjectSection";
-import { History } from "lucide-react";
+import { History, Sparkles } from "lucide-react";
 import { getListOfTeamsByStudentId, getDetailOfTeamByTeamId } from "../../services/studentApi";
 import useTeam from "../../context/useTeam";
 import { useQueryClient } from "@tanstack/react-query";
+
+const PAGE_SIZE = 9;
 
 const StudentProjectPage = () => {
   const navigate = useNavigate();
@@ -18,32 +20,89 @@ const StudentProjectPage = () => {
 
   // Data
   const [teams, setTeams] = useState([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const nextPageRef = useRef(1);
+  const hasMoreRef = useRef(true);
+  const isFetchingMoreRef = useRef(false);
 
   // Filters state
   const [selectedClass, setSelectedClass] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [semesterFilter, setSemesterFilter] = useState("all");
 
-  const fetchTeams = async () => {
-    if (!studentId) return;
-    setLoading(true);
+  const fetchTeams = useCallback(
+    async ({ reset = false } = {}) => {
+      if (!studentId) return;
 
-    try {
-      const response = await getListOfTeamsByStudentId(studentId);
-      const list = response?.paginatedTeams?.list ?? [];
-      setTeams(list);
-      console.log("Fetched teams:", list);
-    } catch (e) {
-      console.error("Error fetching teams:", e);
-      setTeams([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (reset) {
+        setLoading(true);
+        setTeams([]);
+        setHasMore(true);
+        setIsFetchingMore(false);
+        nextPageRef.current = 1;
+        hasMoreRef.current = true;
+        isFetchingMoreRef.current = false;
+      } else {
+        if (!hasMoreRef.current || isFetchingMoreRef.current) return;
+        setIsFetchingMore(true);
+        isFetchingMoreRef.current = true;
+      }
+
+      const pageToLoad = reset ? 1 : nextPageRef.current;
+
+      try {
+        const response = await getListOfTeamsByStudentId(studentId, {
+          pageNum: pageToLoad,
+          pageSize: PAGE_SIZE,
+        });
+        const container = response?.paginatedTeams ?? response ?? {};
+        const list = Array.isArray(container?.list) ? container.list : [];
+        console.log("Fetched teams:", list);
+        setTeams((prev) => (reset ? list : [...prev, ...list]));
+
+        const totalPages = Number(container?.totalPages);
+        const currentPage = Number(container?.pageNum ?? pageToLoad);
+        const loadedFullPage = list.length === PAGE_SIZE;
+        const more = Number.isFinite(totalPages)
+          ? currentPage < totalPages
+          : loadedFullPage;
+
+        hasMoreRef.current = more;
+        setHasMore(more);
+        nextPageRef.current = currentPage + 1;
+      } catch (e) {
+        console.error("Error fetching teams:", e);
+        if (reset) {
+          setTeams([]);
+        }
+        hasMoreRef.current = false;
+        setHasMore(false);
+      } finally {
+        if (reset) {
+          setLoading(false);
+        } else {
+          setIsFetchingMore(false);
+          isFetchingMoreRef.current = false;
+        }
+      }
+    },
+    [studentId]
+  );
 
   useEffect(() => {
-    fetchTeams();
-  }, [studentId]);
+    if (!studentId) {
+      setLoading(false);
+      setTeams([]);
+      setHasMore(false);
+      return;
+    }
+    fetchTeams({ reset: true });
+  }, [studentId, fetchTeams]);
+
+  const handleLoadMore = useCallback(() => {
+    fetchTeams({ reset: false });
+  }, [fetchTeams]);
 
   const handleCardClick = async (team) => {
     if (team?.teamId) {
@@ -112,30 +171,59 @@ const StudentProjectPage = () => {
   }, [teams, selectedClass, semesterFilter, searchQuery]);
 
 
+  const filterResetKey = `${selectedClass}|${semesterFilter}|${searchQuery}`;
+
+  const quickStats = useMemo(() => {
+    const avgProgress = teams.length
+      ? Math.round(
+        teams.reduce((sum, current) => {
+          const value = Number(current?.progress);
+          return sum + (Number.isFinite(value) ? value : 0);
+        }, 0) / teams.length
+      )
+      : 0;
+    return [
+      { label: "Total Projects", value: teams.length || 0 },
+      { label: "Classes", value: classes.length || 0 },
+      { label: "Semesters", value: semesters.length || 0 },
+      { label: "Avg. Progress", value: `${avgProgress}%` },
+    ];
+  }, [teams, classes, semesters]);
+
   return (
     <StudentLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">My Projects</h1>
-
-          {/* Filters */}
-          <ProjectFilters
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            selectedClass={selectedClass}
-            onClassChange={setSelectedClass}
-            semesterFilter={semesterFilter}
-            onSemesterChange={setSemesterFilter}
-            classes={classes}
-            semesters={semesters}
-          />
+      <div className="space-y-8">
+        <div className="relative overflow-hidden rounded-3xl border border-orangeFpt-50 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white shadow-md shadow-orangeFpt-100/60 backdrop-blur">
+          <div className="relative z-10 px-6 py-8 lg:px-10">
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-2xl space-y-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Project Overview</p>
+                <h1 className="mt-2 text-3xl font-semibold text-slate-900">Navigate Every Project With Clarity</h1>
+                <p className="mt-1 text-sm text-slate-600">
+                  Monitor your teams, filter by class or semester, and jump back into collaboration instantly.
+                </p>
+              </div>
+              <div className="w-full max-w-xl">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {quickStats.map((stat) => (
+                    <div
+                      key={stat.label}
+                      className="rounded-2xl border border-orangeFpt-100 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white px-4 py-3 shadow-sm shadow-orangeFpt-100/60 backdrop-blur"
+                    >
+                      <p className="text-[11px] uppercase tracking-wide text-slate-900 flex justify-end">{stat.label}</p>
+                      <p className="mt-1 text-xl font-semibold text-orangeFpt-500 flex justify-end">{stat.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Loading */}
         {loading && (
-          <div className="rounded-md border p-6 animate-pulse text-sm text-gray-500">
-            Loading projects...
+          <div className="flex h-96 items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orangeFpt-500"></div>
           </div>
         )}
 
@@ -150,12 +238,28 @@ const StudentProjectPage = () => {
             icon={History}
             projects={filteredTeams}
             onCardClick={handleCardClick}
+            onLoadMore={handleLoadMore}
+            hasMore={hasMore}
+            isLoadingMore={isFetchingMore}
+            resetSignal={filterResetKey}
+            filtersContent={
+              <ProjectFilters
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                selectedClass={selectedClass}
+                onClassChange={setSelectedClass}
+                semesterFilter={semesterFilter}
+                onSemesterChange={setSemesterFilter}
+                classes={classes}
+                semesters={semesters}
+              />
+            }
             emptyMessage={
               filteredTeams.length === 0
                 ? {
-                    title: "No Projects Found",
-                    description: "Try adjusting your filters or search query.",
-                  }
+                  title: "No Projects Found",
+                  description: "Try adjusting your filters or search query.",
+                }
                 : null
             }
           />

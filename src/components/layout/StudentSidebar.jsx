@@ -28,12 +28,6 @@ const StudentSidebar = () => {
                 icon: School,
                 match: path => path.startsWith('/student/classes'),
             },
-            {
-                label: 'Profile',
-                href: profileHref,
-                icon: User,
-                match: path => path === profileHref || path.startsWith('/student/profile'),
-            },
         ],
         [profileHref],
     );
@@ -48,7 +42,7 @@ const StudentSidebar = () => {
                 boxShadow: 'none',
             }}
             itemClassName="rounded-md px-3"
-            activeItemClassName="bg-blue-200 border border-blue-500"
+            activeItemClassName="bg-orangeFpt-50/60 text-orangeFpt-600 font-semibold shadow-inner"
             sections={[
                 {
                     items: navItems.map(item => ({

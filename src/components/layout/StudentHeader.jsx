@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Search, BookOpen, FolderKanban, User, LogOut, ChevronDown, LayoutDashboard } from 'lucide-react';
+import { Search, BookOpen, FolderKanban, User, LogOut, ChevronDown, MessageSquareWarning, LayoutDashboard } from 'lucide-react';
 import { getClassesByStudentId, getListOfTeamsByStudentId, getDetailOfTeamByTeamId } from '../../services/studentApi';
 import { logout } from '../../store/slices/userSlice';
 import useClickOutside from '../../hooks/useClickOutside';
@@ -9,6 +9,7 @@ import logo from '../../assets/logov1.png';
 import { useAvatar } from '../../hooks/useAvatar';
 import { useQueryClient } from '@tanstack/react-query';
 import useTeam from '../../context/useTeam';
+import ReportSystemModal from '../../features/student/components/ReportSystemModal';
 import { getRoleLandingRoute } from '../../constants/roleRoutes';
 
 const StudentHeader = () => {
@@ -22,6 +23,7 @@ const StudentHeader = () => {
   const [projects, setProjects] = useState([]);
   const [openSearch, setOpenSearch] = useState(false);
   const [openProfile, setOpenProfile] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const avatar = useSelector((state) => state.user.avatar);
   const fullname = useSelector((state) => state.user.fullName);
   const queryClient = useQueryClient();
@@ -227,10 +229,20 @@ const StudentHeader = () => {
                   <User size={16} />
                   Profile
                 </button>
-                
-                <div className="h-px bg-gray-50 my-2" />
-                
                 <button
+                  type="button"
+                  onClick={() => {
+                    setOpenProfile(false);
+                    setShowReportModal(true);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                >
+                  <MessageSquareWarning size={16} />
+                  Report System
+                </button>
+                <div className="h-px bg-gray-50 my-2" />
+                <button
+                  type="button"
                   onClick={handleLogout}
                   className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
                 >
@@ -242,6 +254,11 @@ const StudentHeader = () => {
           </div>
         </div>
       </div>
+      <ReportSystemModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        userId={userId}
+      />
     </header>
   );
 };
