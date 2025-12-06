@@ -100,12 +100,12 @@ const ClassProjectAssignment = () => {
          }
 
          let candidateQuery = {
-            pageNum: pagination.pageNum,
-            pageSize: pagination.pageSize,
-            searchTerm: searchTerm,
+            pageNum: 1,
+            pageSize: 1000, // Fetch all for client-side filtering
+            // searchTerm: searchTerm, // Don't filter on server
             status: 'APPROVED'
          };
-         
+
          switch (filterMode) {
             case 'MY':
                candidateQuery = { ...candidateQuery, lecturerIds: lecturerId };
@@ -124,13 +124,13 @@ const ClassProjectAssignment = () => {
 
          setClassDetail(classResponse);
          setAssignedProjects(extractArray(assignedData).map(normaliseProject).filter(Boolean));
-         
+
          const candidateList = extractArray(candidateData);
-         setPagination(prev => ({
-            ...prev,
-            pageCount: candidateData?.pageCount || 1,
-            totalItems: candidateData?.itemCount || candidateList.length
-         }));
+         // setPagination(prev => ({
+         //    ...prev,
+         //    pageCount: candidateData?.pageCount || 1,
+         //    totalItems: candidateData?.itemCount || candidateList.length
+         // }));
 
          const allCandidates = candidateList.map(normaliseProject).filter(Boolean);
          const approvedCandidates = allCandidates.filter(p => p.status === 'APPROVED');
@@ -142,9 +142,14 @@ const ClassProjectAssignment = () => {
       } finally {
          setIsInitialising(false);
       }
-   }, [classId, lecturerId, filterMode, pagination.pageNum, pagination.pageSize, searchTerm]);
+   }, [classId, lecturerId, filterMode]); // Removed pagination/search dependencies
 
    useEffect(() => { loadData(); }, [loadData]);
+
+   // Reset pagination when filters change
+   useEffect(() => {
+      setPagination(prev => ({ ...prev, pageNum: 1 }));
+   }, [searchTerm, filterMode]);
 
    const availableProjects = useMemo(() => {
       const assignedIds = new Set(assignedProjects.map(p => p.id));
@@ -158,6 +163,14 @@ const ClassProjectAssignment = () => {
          [p.name, p.subjectName, p.description, p.lecturerName].join(' ').toLowerCase().includes(term)
       );
    }, [availableProjects, searchTerm]);
+
+   const paginatedAvailableProjects = useMemo(() => {
+      const start = (pagination.pageNum - 1) * pagination.pageSize;
+      const end = start + pagination.pageSize;
+      return filteredAvailableProjects.slice(start, end);
+   }, [filteredAvailableProjects, pagination.pageNum, pagination.pageSize]);
+
+   const totalPages = Math.ceil(filteredAvailableProjects.length / pagination.pageSize) || 1;
    const stats = useMemo(() => ({
       assignedCount: assignedProjects.length,
       selectedCount: selectedProjectIds.size,
@@ -246,7 +259,7 @@ const ClassProjectAssignment = () => {
             setProjectErrors(newProjectErrors);
             toast.warning('Some projects could not be updated. Please check the highlighted items.');
          }
-         
+
          if (Array.isArray(errorList) && errorList.length > 0) {
             toast.error('Assignment Failed', {
                description: (
@@ -337,7 +350,7 @@ const ClassProjectAssignment = () => {
                         </span>
                      )}
                   </div>
-                  
+
                   {isInitialising ? (
                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {Array.from({ length: 2 }).map((_, i) => renderSkeletonCard(`assigned-skel-${i}`))}
@@ -372,7 +385,7 @@ const ClassProjectAssignment = () => {
                                        {project.name}
                                     </h3>
                                     <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{project.description}</p>
-                                    
+
                                     {error && (
                                        <div className="mt-2 rounded-lg bg-red-100 p-2 text-xs text-red-700 font-medium border border-red-200">
                                           <div className="flex gap-1.5 items-start">
@@ -464,22 +477,22 @@ const ClassProjectAssignment = () => {
                   <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                      {isInitialising ? (
                         Array.from({ length: 3 }).map((_, i) => renderSkeletonCard(`avail-skel-${i}`))
-                     ) : filteredAvailableProjects.length > 0 ? (
-                        filteredAvailableProjects.map(project => {
+                     ) : paginatedAvailableProjects.length > 0 ? (
+                        paginatedAvailableProjects.map((project) => {
                            const isSelected = selectedProjectIds.has(project.id);
                            return (
                               <div
                                  key={project.id}
                                  onClick={() => handleToggleProject(project.id)}
                                  className={`group relative cursor-pointer flex flex-col justify-between rounded-2xl border p-5 transition-all duration-200 hover:shadow-md ${isSelected
-                                       ? 'border-orangeFpt-500 bg-orangeFpt-50/40 ring-1 ring-orangeFpt-500'
-                                       : 'border-slate-200 bg-white hover:border-orangeFpt-300'
+                                    ? 'border-orangeFpt-500 bg-orangeFpt-50/40 ring-1 ring-orangeFpt-500'
+                                    : 'border-slate-200 bg-white hover:border-orangeFpt-300'
                                     }`}
                               >
                                  <div className="absolute top-4 right-4">
                                     <div className={`h-6 w-6 rounded-full border flex items-center justify-center transition-all ${isSelected
-                                          ? 'bg-orangeFpt-500 border-orangeFpt-500 text-white'
-                                          : 'bg-white border-slate-300 text-transparent group-hover:border-orangeFpt-300'
+                                       ? 'bg-orangeFpt-500 border-orangeFpt-500 text-white'
+                                       : 'bg-white border-slate-300 text-transparent group-hover:border-orangeFpt-300'
                                        }`}>
                                        <CheckCircleSolidIcon className="h-4 w-4" />
                                     </div>
@@ -530,7 +543,7 @@ const ClassProjectAssignment = () => {
 
                   <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200 pt-6">
                      <div className="text-sm text-slate-500">
-                        Showing <span className="font-medium text-slate-900">{filteredAvailableProjects.length}</span> of <span className="font-medium text-slate-900">{Math.max(0, pagination.totalItems - assignedMatchingCount)}</span> available projects
+                        Showing <span className="font-medium text-slate-900">{paginatedAvailableProjects.length}</span> of <span className="font-medium text-slate-900">{filteredAvailableProjects.length}</span> available projects
                      </div>
                      <div className="flex items-center gap-2">
                         <button
@@ -541,14 +554,14 @@ const ClassProjectAssignment = () => {
                            <ChevronLeftIcon className="h-4 w-4" />
                            Previous
                         </button>
-                        
+
                         <span className="text-sm font-medium text-slate-600 px-2">
-                           Page {pagination.pageNum} of {pagination.pageCount}
+                           Page {pagination.pageNum} of {totalPages}
                         </span>
 
                         <button
-                           onClick={() => setPagination(prev => ({ ...prev, pageNum: Math.min(pagination.pageCount, prev.pageNum + 1) }))}
-                           disabled={pagination.pageNum === pagination.pageCount || isInitialising}
+                           onClick={() => setPagination(prev => ({ ...prev, pageNum: Math.min(totalPages, prev.pageNum + 1) }))}
+                           disabled={pagination.pageNum === totalPages || isInitialising}
                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                            Next

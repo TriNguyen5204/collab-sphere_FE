@@ -154,6 +154,9 @@ const ProfilePage = () => {
 				toast.success(response?.message || "Profile updated successfully.");
 				await refreshProfile();
 			} catch (error) {
+				if (error?.response?.data?.errors) {
+					throw error;
+				}
 				const message =
 					error?.response?.data?.message ||
 					error?.message ||

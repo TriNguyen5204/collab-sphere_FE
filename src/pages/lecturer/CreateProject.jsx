@@ -115,6 +115,14 @@ const CreateProject = () => {
 
    const dateFormatter = useMemo(() => new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }), []);
 
+   const todayStr = useMemo(() => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+   }, []);
+
    // Readiness Logic
    const readinessChecklist = useMemo(() => {
       const projectNameReady = Boolean(formState.projectName.trim());
@@ -153,7 +161,22 @@ const CreateProject = () => {
    const hasMinimumData = readinessProgress === 100;
 
    // Handlers
-   const handleBaseFieldChange = (field, value) => setFormState(prev => ({ ...prev, [field]: value }));
+   const handleBaseFieldChange = (field, value) => {
+      setFormState(prev => ({ ...prev, [field]: value }));
+      if (formErrors[field]) {
+         setFormErrors(prev => {
+            const next = { ...prev };
+            delete next[field];
+            return next;
+         });
+      }
+   };
+
+   const handleFieldBlur = (field, value) => {
+      if (!String(value).trim()) {
+         setFormErrors(prev => ({ ...prev, [field]: "This field is required." }));
+      }
+   };
 
    const handleObjectiveChange = (objId, key, value) => {
       setFormState(prev => ({
@@ -219,6 +242,8 @@ const CreateProject = () => {
             if (!m.title.trim()) mIssue.title = "Required";
             if (!m.startDate) mIssue.startDate = "Required";
             if (!m.endDate) mIssue.endDate = "Required";
+            if (m.startDate && m.startDate < todayStr) mIssue.startDate = "Cannot be in the past";
+            if (m.endDate && m.endDate < todayStr) mIssue.endDate = "Cannot be in the past";
             if (m.startDate && m.endDate && m.startDate > m.endDate) mIssue.endDate = "Invalid range";
             if (Object.keys(mIssue).length) mErrors[m.id] = mIssue;
          });
@@ -331,10 +356,13 @@ const CreateProject = () => {
                            <label className="text-sm font-semibold text-slate-700">Project Name <span className="text-red-500">*</span></label>
                            <input
                               type="text"
-                              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-4 focus:ring-orangeFpt-500/10"
+                              className={`w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-orangeFpt-500/10 ${
+                                 formErrors.projectName ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-orangeFpt-500'
+                              }`}
                               placeholder="e.g. E-Commerce Microservices Architecture"
                               value={formState.projectName}
                               onChange={(e) => handleBaseFieldChange("projectName", e.target.value)}
+                              onBlur={(e) => handleFieldBlur("projectName", e.target.value)}
                            />
                            {formErrors.projectName && <p className="text-xs text-red-500">{formErrors.projectName}</p>}
                         </div>
@@ -346,9 +374,12 @@ const CreateProject = () => {
                               <div className="h-11 w-full animate-pulse rounded-xl bg-slate-100"></div>
                            ) : (
                               <select
-                                 className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-4 focus:ring-orangeFpt-500/10"
+                                 className={`w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-orangeFpt-500/10 ${
+                                    formErrors.subjectId ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-orangeFpt-500'
+                                 }`}
                                  value={formState.subjectId}
                                  onChange={(e) => handleBaseFieldChange("subjectId", e.target.value)}
+                                 onBlur={(e) => handleFieldBlur("subjectId", e.target.value)}
                               >
                                  <option value="">Select a subject...</option>
                                  {subjects.map((s) => (
@@ -364,10 +395,13 @@ const CreateProject = () => {
                            <label className="text-sm font-semibold text-slate-700">Description <span className="text-red-500">*</span></label>
                            <textarea
                               rows={5}
-                              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-4 focus:ring-orangeFpt-500/10"
+                              className={`w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-orangeFpt-500/10 ${
+                                 formErrors.description ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-orangeFpt-500'
+                              }`}
                               placeholder="Describe the project goals, scope, and expected outcomes..."
                               value={formState.description}
                               onChange={(e) => handleBaseFieldChange("description", e.target.value)}
+                              onBlur={(e) => handleFieldBlur("description", e.target.value)}
                            />
                            {formErrors.description && <p className="text-xs text-red-500">{formErrors.description}</p>}
                         </div>
@@ -519,20 +553,37 @@ const CreateProject = () => {
                                                    <div className="flex-1">
                                                       <input
                                                          type="date"
-                                                         className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+                                                         min={todayStr}
+                                                         className={`w-full rounded-lg border px-2 py-1.5 text-xs focus:outline-none ${
+                                                            mErr.startDate ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-blue-500'
+                                                         }`}
                                                          value={milestone.startDate}
                                                          onChange={(e) => handleMilestoneChange(objective.id, milestone.id, "startDate", e.target.value)}
                                                       />
                                                       {mErr.startDate && <p className="text-[10px] text-red-500">{mErr.startDate}</p>}
+                                                      {!mErr.startDate && milestone.startDate && milestone.startDate < todayStr && (
+                                                         <p className="text-[10px] text-red-500">Cannot be in the past</p>
+                                                      )}
                                                    </div>
                                                    <div className="flex-1">
                                                       <input
                                                          type="date"
-                                                         className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+                                                         min={todayStr}
+                                                         className={`w-full rounded-lg border px-2 py-1.5 text-xs focus:outline-none ${
+                                                            mErr.endDate || (milestone.startDate && milestone.endDate && milestone.startDate > milestone.endDate)
+                                                               ? 'border-red-500 focus:border-red-500'
+                                                               : 'border-slate-200 focus:border-blue-500'
+                                                         }`}
                                                          value={milestone.endDate}
                                                          onChange={(e) => handleMilestoneChange(objective.id, milestone.id, "endDate", e.target.value)}
                                                       />
                                                       {mErr.endDate && <p className="text-[10px] text-red-500">{mErr.endDate}</p>}
+                                                      {!mErr.endDate && milestone.endDate && milestone.endDate < todayStr && (
+                                                         <p className="text-[10px] text-red-500">Cannot be in the past</p>
+                                                      )}
+                                                      {!mErr.endDate && milestone.startDate && milestone.endDate && milestone.startDate > milestone.endDate && (
+                                                         <p className="text-[10px] text-red-500">Must be after start date</p>
+                                                      )}
                                                    </div>
                                                 </div>
                                              </div>

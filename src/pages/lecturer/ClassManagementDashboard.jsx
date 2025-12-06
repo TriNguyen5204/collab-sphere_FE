@@ -183,19 +183,20 @@ const ClassManagementDashboard = () => {
       setError('');
 
       try {
+        // Fetch all classes for client-side filtering/pagination
         const payload = await getLecturerClasses(lecturerId, {
-          pageNum: pagination.pageNum,
-          pageSize: pagination.pageSize
+          pageNum: 1,
+          pageSize: 1000
         });
         console.log('Lecturer classes payload:', payload);
 
-        if (payload && payload.list) {
-          setPagination((prev) => ({
-            ...prev,
-            pageCount: payload.pageCount,
-            totalItems: payload.itemCount
-          }));
-        }
+        // if (payload && payload.list) {
+        //   setPagination((prev) => ({
+        //     ...prev,
+        //     pageCount: payload.pageCount,
+        //     totalItems: payload.itemCount
+        //   }));
+        // }
 
         const { classes: apiClasses, missingFields } = normaliseClassResponse(payload);
 
@@ -233,7 +234,12 @@ const ClassManagementDashboard = () => {
     return () => {
       isMounted = false;
     };
-  }, [lecturerId, pagination.pageNum, pagination.pageSize]);
+  }, [lecturerId]); // Removed pagination dependencies
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, pageNum: 1 }));
+  }, [searchTerm, statusFilter, subjectFilter]);
 
   const orderedClasses = useMemo(() => {
     const toTimestamp = (value) => {
@@ -265,6 +271,14 @@ const ClassManagementDashboard = () => {
       return matchesSearch && matchesStatus && matchesSubject;
     });
   }, [orderedClasses, searchTerm, statusFilter, subjectFilter]);
+
+  const paginatedClasses = useMemo(() => {
+    const start = (pagination.pageNum - 1) * pagination.pageSize;
+    const end = start + pagination.pageSize;
+    return filteredClasses.slice(start, end);
+  }, [filteredClasses, pagination.pageNum, pagination.pageSize]);
+
+  const totalPages = Math.ceil(filteredClasses.length / pagination.pageSize) || 1;
 
   const stats = useMemo(() => {
     const totalStudents = classes.reduce((acc, cls) => acc + (cls.memberCount || 0), 0);
@@ -414,8 +428,8 @@ const ClassManagementDashboard = () => {
                     key={option.id}
                     onClick={() => setStatusFilter(option.id)}
                     className={`relative rounded-lg px-4 py-1.5 text-sm font-semibold transition-all duration-200 ${statusFilter === option.id
-                        ? 'bg-white text-orange-600 shadow-sm ring-1 ring-black/5'
-                        : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
+                      ? 'bg-white text-orange-600 shadow-sm ring-1 ring-black/5'
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
                       }`}
                   >
                     {option.label}
@@ -429,8 +443,8 @@ const ClassManagementDashboard = () => {
                 <button
                   onClick={() => setSubjectFilter('all')}
                   className={`rounded-full border px-3 py-1 text-xs font-medium transition ${subjectFilter === 'all'
-                      ? 'border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-200'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-600'
+                    ? 'border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-200'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-600'
                     }`}
                 >
                   All
@@ -440,8 +454,8 @@ const ClassManagementDashboard = () => {
                     key={code}
                     onClick={() => setSubjectFilter(code)}
                     className={`rounded-full border px-3 py-1 text-xs font-medium transition ${subjectFilter === code
-                        ? 'border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-200'
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-600'
+                      ? 'border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-200'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-600'
                       }`}
                   >
                     {code}
@@ -483,19 +497,19 @@ const ClassManagementDashboard = () => {
               </div>
             )}
 
-            {!showClassSkeleton && filteredClasses.length > 0 && (
+            {!showClassSkeleton && paginatedClasses.length > 0 && (
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {filteredClasses.map((cls) => (
+                {paginatedClasses.map((cls) => (
                   <ClassCard key={cls.classId} cls={cls} onView={handleViewClass} subjectGradient={subjectGradient} />
                 ))}
               </div>
             )}
 
-            {!showClassSkeleton && pagination.pageCount > 1 && (
+            {!showClassSkeleton && totalPages > 1 && (
               <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-6 pr-24">
                 <p className="text-sm text-slate-500">
                   Showing page <span className="font-semibold text-slate-900">{pagination.pageNum}</span> of{' '}
-                  <span className="font-semibold text-slate-900">{pagination.pageCount}</span>
+                  <span className="font-semibold text-slate-900">{totalPages}</span>
                 </p>
                 <div className="flex items-center gap-2">
                   <button
@@ -506,8 +520,8 @@ const ClassManagementDashboard = () => {
                     <ChevronLeft className="h-5 w-5" />
                   </button>
                   <button
-                    onClick={() => setPagination((prev) => ({ ...prev, pageNum: Math.min(pagination.pageCount, prev.pageNum + 1) }))}
-                    disabled={pagination.pageNum === pagination.pageCount}
+                    onClick={() => setPagination((prev) => ({ ...prev, pageNum: Math.min(totalPages, prev.pageNum + 1) }))}
+                    disabled={pagination.pageNum === totalPages}
                     className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronRight className="h-5 w-5" />

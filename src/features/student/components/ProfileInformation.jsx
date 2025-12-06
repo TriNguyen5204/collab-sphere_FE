@@ -29,6 +29,7 @@ const ProfileInformation = ({
   }), [avatar, resolvedFullname, user]);
 
   const [profileData, setProfileData] = useState(computeInitialState);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     setProfileData((prev) => ({
@@ -61,6 +62,10 @@ const ProfileInformation = ({
       ...prev,
       [name]: value,
     }));
+    // Clear error when user types
+    if (errors[name === 'phone' ? 'PhoneNumber' : 'Address']) {
+      setErrors(prev => ({ ...prev, [name === 'phone' ? 'PhoneNumber' : 'Address']: null }));
+    }
   };
 
   const handleCancel = () => {
@@ -70,19 +75,25 @@ const ProfileInformation = ({
       phone: initialEditable.phone,
       address: initialEditable.address,
     }));
+    setErrors({});
   };
 
   const handleSave = async () => {
     if (!onUpdateProfile || !canEdit) return;
+    setErrors({});
     try {
       await onUpdateProfile({
         phoneNumber: profileData.phone,
         address: profileData.address,
       });
     } catch (error) {
-      toast.error(
-        error?.message || "An error occurred while updating profile."
-      );
+      if (error?.response?.data?.errors) {
+        setErrors(error.response.data.errors);
+      } else {
+        toast.error(
+          error?.message || "An error occurred while updating profile."
+        );
+      }
     }
   };
 
@@ -229,6 +240,11 @@ const ProfileInformation = ({
             disabled={!canEdit}
             className={`w-full px-4 py-2 border rounded-lg transition ${appliedEditableClasses}`}
           />
+          {(errors.PhoneNumber || errors.phoneNumber) && (
+            <p className="mt-1 text-sm text-red-500">
+              {(errors.PhoneNumber || errors.phoneNumber).join(", ")}
+            </p>
+          )}
         </div>
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">School</label>
@@ -250,6 +266,11 @@ const ProfileInformation = ({
             disabled={!canEdit}
             className={`w-full px-4 py-2 border rounded-lg transition ${appliedEditableClasses}`}
           />
+          {(errors.Address || errors.address) && (
+            <p className="mt-1 text-sm text-red-500">
+              {(errors.Address || errors.address).join(", ")}
+            </p>
+          )}
         </div>
       </div>
     </div>

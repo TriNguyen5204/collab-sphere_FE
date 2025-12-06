@@ -87,12 +87,12 @@ const CreateAccountForm = ({ onClose }) => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={6}
+            minLength={5}
             disabled={isLoading}
           />
           <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
         </div>
-        <p className="text-xs text-gray-500 mt-1 ml-1">Minimum 6 characters</p>
+        <p className="text-xs text-gray-500 mt-1 ml-1">Minimum 5 characters</p>
       </div>
 
       {/* Account Type */}
