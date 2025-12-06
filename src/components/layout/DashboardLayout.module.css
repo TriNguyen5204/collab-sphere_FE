@@ -126,7 +126,7 @@
 .logoIcon {
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, var(--accent-blue), #764ba2);
+  background: linear-gradient(135deg, #ea792d, #764ba2);
   border-radius: 8px;
   display: grid;
   place-items: center;
@@ -245,8 +245,8 @@
 }
 
 .navItemActive {
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--accent-blue);
+  background: #fef3e9;
+  color: #ea792d;
   position: relative;
 }
 
@@ -258,12 +258,12 @@
   transform: translateY(-50%);
   width: 4px;
   height: 4px;
-  background: var(--accent-blue);
+  background: #ea792d;
   border-radius: 50%;
 }
 
 .sidebar:not(.sidebarCollapsed) .navItemActive {
-  border-left: 3px solid var(--accent-blue);
+  border-left: 3px solid #ea792d;
   margin-left: -3px;
   padding-left: 15px;
 }
@@ -279,7 +279,7 @@
 }
 
 .navItemActive .navIcon {
-  color: var(--accent-blue);
+  color: #ea792d;
 }
 
 .navText {
@@ -299,8 +299,8 @@
 
 .navBadge {
   margin-left: auto;
-  background: rgba(59, 130, 246, 0.12);
-  color: var(--accent-blue);
+  background: rgba(234, 121, 45, 0.12);
+  color: #ea792d;
   font-size: 11px;
   font-weight: 600;
   padding: 2px 6px;
@@ -439,7 +439,7 @@
 }
 
 .menuButton:hover .menuIcon {
-  color: var(--accent-blue);
+  color: #ea792d;
 }
 
 /* Hide menu button on desktop */
@@ -459,7 +459,7 @@
 .headerLogoIcon {
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, var(--accent-blue), #764ba2);
+  background: linear-gradient(135deg, #ea792d, #764ba2);
   border-radius: 8px;
   display: grid;
   place-items: center;
@@ -544,7 +544,7 @@
 }
 
 .searchWrapper:hover .searchIcon {
-  color: var(--accent-blue);
+  color: #ea792d;
 }
 
 .actions {
@@ -560,7 +560,7 @@
   position: relative;
   overflow: hidden;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--accent-blue), #764ba2);
+  background: linear-gradient(135deg, #ea792d, #764ba2);
   background-size: 200% 100%;
   border: none;
   cursor: pointer;
@@ -623,7 +623,7 @@
 }
 
 .notificationBtn:hover .notificationIcon {
-  color: var(--accent-blue);
+  color: #ea792d;
 }
 
 .notificationBadge {
@@ -649,7 +649,7 @@
 .profileBorder {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, var(--accent-blue), #764ba2, #ec4899);
+  background: linear-gradient(135deg, #ea792d, #764ba2, #ec4899);
   border-radius: 12px;
   opacity: 0.75;
   transition: opacity var(--duration-slow) var(--ease-out);
@@ -677,7 +677,7 @@
 .profileAvatar {
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, var(--accent-blue), #764ba2, #ec4899);
+  background: linear-gradient(135deg, #ea792d, #764ba2, #ec4899);
   border-radius: 8px;
   display: grid;
   place-items: center;

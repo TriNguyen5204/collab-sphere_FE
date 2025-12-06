@@ -16,13 +16,15 @@ import {
   EyeOff,
   Copy,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  MessageSquareWarning
 } from "lucide-react";
 import { toast } from "sonner";
 import useTeam from "../../../context/useTeam";
 import { putUpdateTeamByTeamId, postAvatarOfTeam } from "../../../services/studentApi";
+import ReportSystemModal from "./ReportSystemModal";
 
-const ProjectBoardSetting = ({ archivedItems, onRestoreArchived, onDeleteArchived }) => {
+const ProjectBoardSetting = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showModal, setShowModal] = useState(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
@@ -209,6 +211,20 @@ const ProjectBoardSetting = ({ archivedItems, onRestoreArchived, onDeleteArchive
         },
       ]
     },
+    {
+      section: "Report System",
+      items: [
+        {
+          icon: MessageSquareWarning,
+          label: "Report System",
+          action: () => {
+            setShowModal('report');
+            setIsOpen(false);
+          },
+          description: "Report system issues or bugs"
+        },
+      ]
+    }
   ];
 
 
@@ -251,7 +267,7 @@ const ProjectBoardSetting = ({ archivedItems, onRestoreArchived, onDeleteArchive
                   );
                 })}
                 {sectionIdx < menuItems.length - 1 && (
-                  <div className="border-t border-gray-100 my-2" />
+                  <div className="border-t border-gray-100 " />
                 )}
               </div>
             ))}
@@ -268,6 +284,11 @@ const ProjectBoardSetting = ({ archivedItems, onRestoreArchived, onDeleteArchive
         onAvatarUpload={handleAvatarUpload}
         isSaving={isSavingSettings}
         isUploading={isUploadingAvatar}
+      />
+      <ReportSystemModal
+        isOpen={showModal === 'report'}
+        onClose={() => setShowModal(null)}
+        userId={userId}
       />
     </div>
   );

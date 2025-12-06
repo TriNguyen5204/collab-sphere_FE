@@ -11,14 +11,7 @@ import {
   FolderIcon,
   VideoCameraIcon,
 } from '@heroicons/react/24/outline';
-import {
-  Search,
-  User,
-  LogOut,
-  ChevronDown,
-  LayoutDashboard,
-  MessageCircleMoreIcon,
-} from 'lucide-react';
+import { Search, User, LogOut, ChevronDown, LayoutDashboard, MessageCircleMoreIcon, MessageSquareWarning } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation, href } from 'react-router-dom';
 import AppSidebar from './AppSidebar';
@@ -26,7 +19,6 @@ import logo from '../../assets/logov1.png';
 import { logout } from '../../store/slices/userSlice';
 import useClickOutside from '../../hooks/useClickOutside';
 import { useAvatar } from '../../hooks/useAvatar';
-import { generateAvatarFromName } from '../../utils/avatar';
 import AIChatAssistant from '../../features/ai/components/AIChatAssistant';
 import { getRoleLandingRoute } from '../../constants/roleRoutes';
 import { SignalRChatProvider } from '../../features/chat/hooks/SignalrChatProvider';
@@ -279,9 +271,16 @@ const LecturerHeader = ({
                       <User size={16} />
                       Profile
                     </button>
-
-                    <div className='h-px bg-gray-50 my-2' />
-
+                    
+                    <div className="h-px bg-gray-50 my-2" />
+                    
+                    <button
+                      type="button"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-200"
+                    >
+                      <MessageSquareWarning className="w-4 h-4" />
+                      Report System
+                    </button>
                     <button
                       type='button'
                       onClick={() => {
@@ -445,12 +444,12 @@ const DashboardLayout = ({ children }) => {
       match: path =>
         path === '/chat' || path.startsWith('/chat/'),
     },
-    // {
-    //   label: 'Analytics',
-    //   href: '/lecturer/analytics',
-    //   icon: ChartBarIcon,
-    //   match: path => path === '/lecturer/analytics' || path.startsWith('/lecturer/analytics/')
-    // },
+    {
+      label: 'Analytics',
+      href: '/lecturer/analytics',
+      icon: ChartBarIcon,
+      match: path => path === '/lecturer/analytics' || path.startsWith('/lecturer/analytics/')
+    },
     // {
     //   label: 'Meetings',
     //   href: '/lecturer/meetings',
@@ -463,13 +462,6 @@ const DashboardLayout = ({ children }) => {
     //   icon: WrenchScrewdriverIcon,
     //   match: path => path === '/lecturer/tools' || path.startsWith('/lecturer/tools/')
     // },
-    {
-      label: 'Profile',
-      href: userId ? `/${userId}/profile` : '/lecturer/profile',
-      icon: User,
-      match: path =>
-        path === `/${userId}/profile` || path.startsWith('/lecturer/profile'),
-    },
   ];
 
   const computedNavigationItems = useMemo(
@@ -495,14 +487,13 @@ const DashboardLayout = ({ children }) => {
     []
   );
 
-  const sidebarSections = useMemo(
-    () => [
-      {
-        items: computedNavigationItems,
-      },
-    ],
-    [computedNavigationItems]
-  );
+  const sidebarSections = useMemo(() => ([
+    {
+      items: computedNavigationItems,
+    },
+  ]), [computedNavigationItems]);
+
+
 
   const handleLogin = useCallback(() => navigate('/login'), [navigate]);
   const handleSignup = useCallback(() => navigate('/register'), [navigate]);
