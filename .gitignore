@@ -25,7 +25,7 @@ dist-ssr
 *.sw?
 
 .github/instructions/*
-# *.md
+*.md
 *.tfvars
 
 .env*

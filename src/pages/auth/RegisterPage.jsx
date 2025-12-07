@@ -136,9 +136,14 @@ const RegisterPage = () => {
         toast.error('Failed to send OTP');
       }
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.item2 || error.message || 'An error occurred';
-      toast.error(errorMessage);
+      const errors = error.response?.data?.errors;
+      if (errors && typeof errors === 'object') {
+        Object.values(errors).flat().forEach(err => toast.error(err));
+      } else {
+        const errorMessage =
+          error.response?.data?.item2 || error.message || 'An error occurred';
+        toast.error(errorMessage);
+      }
     } finally {
       setIsSendingOtp(false);
     }
