@@ -4,23 +4,21 @@ import StatCard from './StatCard';
 
 /**
  * SubjectStats Component
- * Displays statistics cards for subjects
- * 
- * @param {Object} props
- * @param {number} props.total - Total number of subjects
- * @param {number} props.active - Number of active subjects
- * @param {number} props.inactive - Number of inactive subjects
- * @param {number} props.categories - Number of subject categories
+ * Style: Soft Minimalism
+ * Branding: FPT Orange context
  */
 export default function SubjectStats({ total, active, inactive, categories }) {
   return (
-    <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
+    <div className='grid grid-cols-1 md:grid-cols-4 gap-6 mb-8'>
+      {/* Primary Stat - FPT Orange */}
       <StatCard
         icon={BookOpen}
         label='Total Subjects'
         value={total}
-        color='blue'
+        color='orange' // Chuyển từ blue sang orange theo yêu cầu FPT
       />
+      
+      {/* Secondary Stats - Soft Muted Colors */}
       <StatCard
         icon={Package}
         label='Active Courses'

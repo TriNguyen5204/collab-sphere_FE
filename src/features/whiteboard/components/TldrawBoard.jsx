@@ -23,47 +23,32 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
   const tildrawKey = import.meta.env.VITE_TILDRAW_LICENSE_KEY;
   const defaultTldrawPageId = 'page:page';
 
-  // 🔧 FIX: Setup non-passive event listeners BEFORE React attaches them
   useEffect(() => {
     if (!containerRef.current) return;
 
     const container = containerRef.current;
 
-    // Store original addEventListener
-    const originalAddEventListener = EventTarget.prototype.addEventListener;
-
-    // Override addEventListener for this container
-    const addNonPassiveListener = (type, listener, options) => {
-      let modifiedOptions = options;
-
-      // Force non-passive for touch and wheel events
-      if (
-        type === 'touchstart' ||
-        type === 'touchmove' ||
-        type === 'touchend' ||
-        type === 'wheel'
-      ) {
-        if (typeof options === 'object') {
-          modifiedOptions = { ...options, passive: false };
-        } else if (typeof options === 'boolean') {
-          modifiedOptions = { capture: options, passive: false };
-        } else {
-          modifiedOptions = { passive: false };
-        }
+    // âœ… FIX: Giảm độ nhạy cuộn chuột (zoom)
+    const handleWheel = (e) => {
+      if (e.cancelable) {
+        // Giảm tốc độ zoom xuống 40%
+        Object.defineProperty(e, 'deltaY', {
+          value: e.deltaY * 0.4,
+          writable: false
+        });
+        Object.defineProperty(e, 'deltaX', {
+          value: e.deltaX * 0.4,
+          writable: false
+        });
       }
-
-      return originalAddEventListener.call(
-        this,
-        type,
-        listener,
-        modifiedOptions
-      );
     };
 
-    // Temporarily override
-    EventTarget.prototype.addEventListener = addNonPassiveListener;
+    container.addEventListener('wheel', handleWheel, {
+      passive: false,
+      capture: true,
+    });
 
-    // Add our own handlers with {passive: false}
+    // Touch handlers
     const preventDefaultHandler = e => {
       if (e.cancelable) {
         e.preventDefault();
@@ -85,6 +70,9 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
 
     // Cleanup
     return () => {
+      container.removeEventListener('wheel', handleWheel, {
+        capture: true,
+      });
       container.removeEventListener('touchstart', preventDefaultHandler, {
         capture: true,
       });
@@ -94,9 +82,6 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
       container.removeEventListener('touchend', preventDefaultHandler, {
         capture: true,
       });
-
-      // Restore original
-      EventTarget.prototype.addEventListener = originalAddEventListener;
     };
   }, []);
 
