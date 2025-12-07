@@ -197,7 +197,6 @@ const StudentHeader = () => {
                   )}
                 </div>
                 <div className="text-right hidden md:block">
-
                   <p className="text-sm font-medium">{fullname}</p>
                 </div>
 

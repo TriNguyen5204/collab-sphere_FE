@@ -7,7 +7,7 @@ import {
    Paperclip, UploadCloud, Loader2, Download, Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getTeamDetail } from '../../services/teamApi';
+import { getTeamDetail, updateTeam } from '../../services/teamApi';
 import { getProjectDetail } from '../../services/projectApi';
 import {
    getMilestonesByTeam,
@@ -16,7 +16,7 @@ import {
    updateMilestone,
    deleteMilestone
 } from '../../services/milestoneApi';
-import { getUserProfile } from '../../services/userService';
+import { getClassDetail, getUserProfile } from '../../services/userService';
 import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
 import TeamResources from '../../features/lecturer/components/TeamResources';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -101,6 +101,55 @@ const extractUrlLike = (payload) => {
    return null;
 };
 
+const normalizeMemberRecord = (member, fallbackClassId) => {
+   if (!member) return null;
+   const rawId =
+      member.studentId ??
+      member.userId ??
+      member.id ??
+      member.memberId ??
+      member.student?.studentId;
+   const parsedId = Number(rawId);
+   if (!Number.isFinite(parsedId)) return null;
+
+   const rawClassId =
+      member.classId ??
+      member.classID ??
+      member.student?.classId ??
+      fallbackClassId;
+   const parsedClassId = Number(rawClassId ?? fallbackClassId ?? 0);
+
+   const name =
+      member.studentName ??
+      member.fullName ??
+      member.fullname ??
+      member.name ??
+      member.student?.fullName ??
+      'Student';
+   const code =
+      member.studentCode ??
+      member.code ??
+      member.student?.studentCode ??
+      '';
+   const avatar =
+      member.avatar ??
+      member.avatarImg ??
+      member.profileImage ??
+      member.student?.avatar ??
+      null;
+
+   const roleToken = Number(member.teamRole ?? (member.isLeader ? 1 : 0));
+
+   return {
+      studentId: parsedId,
+      classId: Number.isFinite(parsedClassId) ? parsedClassId : Number(fallbackClassId ?? 0),
+      studentName: name,
+      studentCode: code,
+      avatar,
+      teamRole: Number.isFinite(roleToken) ? roleToken : 0,
+   };
+};
+
 const initialMilestoneForm = { title: '', description: '', startDate: '', endDate: '' };
 const MAX_VISIBLE_CHECKPOINTS = 3;
 
@@ -159,6 +208,7 @@ const Modal = ({ title, onClose, children, disableClose = false, maxWidth = 'max
 const TeamProjectDetail = () => {
    const { classId, teamId } = useParams();
    const navigate = useNavigate();
+   const classIdNumber = Number.isFinite(Number(classId)) ? Number(classId) : 0;
 
    // --- State ---
    const [teamDetail, setTeamDetail] = useState(null);
@@ -180,12 +230,164 @@ const TeamProjectDetail = () => {
 
    const [openMilestoneMenuId, setOpenMilestoneMenuId] = useState(null);
 
+   const [rosterModalOpen, setRosterModalOpen] = useState(false);
+   const [rosterDraft, setRosterDraft] = useState([]);
+   const [benchStudents, setBenchStudents] = useState([]);
+   const [rosterLeaderId, setRosterLeaderId] = useState(null);
+   const [rosterTab, setRosterTab] = useState('current');
+   const [rosterSearch, setRosterSearch] = useState('');
+   const [rosterLoading, setRosterLoading] = useState(false);
+   const [rosterSaving, setRosterSaving] = useState(false);
+
    // Hooks
    const { openSecureFile } = useSecureFileHandler();
    const { formatFileSize } = useFileSizeFormatter();
 
    const isMountedRef = useRef(true);
    useEffect(() => () => { isMountedRef.current = false; }, []);
+
+   const buildNormalizedMembers = useCallback(
+      (records) =>
+         (Array.isArray(records) ? records : [])
+            .map((record) => normalizeMemberRecord(record, classIdNumber))
+            .filter(Boolean),
+      [classIdNumber]
+   );
+
+   const handleOpenRosterModal = useCallback(async () => {
+      const normalizedRoster = buildNormalizedMembers(teamMembersRaw);
+      setRosterDraft(normalizedRoster);
+      setRosterLeaderId(
+         normalizedRoster.find((member) => member.teamRole === 1)?.studentId ??
+         normalizedRoster[0]?.studentId ??
+         null
+      );
+      setBenchStudents([]);
+      setRosterTab('current');
+      setRosterSearch('');
+      setRosterModalOpen(true);
+      setRosterLoading(true);
+      try {
+         const detail = await getClassDetail(classId);
+         const benchRaw = (detail?.classMembers || []).filter((member) => {
+            const assignedTeam = Number(member?.teamId ?? member?.teamID ?? member?.team?.teamId);
+            return !assignedTeam || assignedTeam === 0;
+         });
+         const normalizedBench = buildNormalizedMembers(benchRaw).filter(
+            (student) => !normalizedRoster.some((member) => member.studentId === student.studentId)
+         );
+         setBenchStudents(normalizedBench);
+      } catch (error) {
+         console.error('Failed to load class roster', error);
+         toast.error('Unable to load class roster.');
+         setBenchStudents([]);
+      } finally {
+         setRosterLoading(false);
+      }
+   }, [buildNormalizedMembers, classId, teamMembersRaw]);
+
+   const handleCloseRosterModal = (force = false) => {
+      if (rosterSaving && !force) return;
+      setRosterModalOpen(false);
+      setBenchStudents([]);
+      setRosterDraft([]);
+      setRosterLeaderId(null);
+      setRosterSearch('');
+   };
+
+   const handleAddStudentToRoster = (student) => {
+      if (!student) return;
+      setBenchStudents((prev) => prev.filter((candidate) => candidate.studentId !== student.studentId));
+      setRosterDraft((prev) => {
+         if (prev.some((member) => member.studentId === student.studentId)) {
+            return prev;
+         }
+         return [...prev, { ...student, teamRole: student.teamRole ?? 0 }];
+      });
+      setRosterLeaderId((current) => current ?? student.studentId);
+   };
+
+   const handleRemoveStudentFromRoster = (studentId) => {
+      setRosterDraft((prev) => {
+         if (prev.length <= 1) {
+            toast.error('A team must keep at least one member.');
+            return prev;
+         }
+         const target = prev.find((member) => member.studentId === studentId);
+         if (!target) return prev;
+         setBenchStudents((bench) => {
+            if (bench.some((student) => student.studentId === studentId)) {
+               return bench;
+            }
+            return [...bench, { ...target, teamRole: 0 }];
+         });
+         if (studentId === rosterLeaderId) {
+            setRosterLeaderId(null);
+            toast.info('Leader removed. Please pick a new leader before saving.');
+         }
+         return prev.filter((member) => member.studentId !== studentId);
+      });
+   };
+
+   const handleChooseLeader = (studentId) => {
+      setRosterLeaderId(studentId);
+      setRosterDraft((prev) =>
+         prev.map((member) => ({
+            ...member,
+            teamRole: member.studentId === studentId ? 1 : 0,
+         }))
+      );
+   };
+
+   const filteredBench = useMemo(() => {
+      const query = rosterSearch.trim().toLowerCase();
+      const sorted = [...benchStudents].sort((a, b) => a.studentName.localeCompare(b.studentName));
+      if (!query) return sorted;
+      return sorted.filter((student) =>
+         student.studentName.toLowerCase().includes(query) ||
+         (student.studentCode || '').toLowerCase().includes(query)
+      );
+   }, [benchStudents, rosterSearch]);
+
+   const handleSaveRoster = async () => {
+      if (!rosterDraft.length) {
+         toast.error('Add at least one member to the team.');
+         return;
+      }
+      if (!rosterLeaderId || !rosterDraft.some((member) => member.studentId === rosterLeaderId)) {
+         toast.error('Select a leader before saving.');
+         return;
+      }
+      setRosterSaving(true);
+      let shouldClose = false;
+      try {
+         const payload = {
+            teamId: Number(teamId),
+            teamName: teamDetail?.teamName ?? '',
+            leaderId: Number(rosterLeaderId),
+            studentList: rosterDraft.map((member) => ({
+               studentId: Number(member.studentId),
+               classId: Number(member.classId || classIdNumber || 0),
+            })),
+         };
+         await updateTeam(Number(teamId), payload);
+         toast.success('Team roster updated.');
+         shouldClose = true;
+         await fetchTeamAndProject();
+      } catch (error) {
+         const payload = error?.response?.data;
+         if (payload?.errorList && Array.isArray(payload.errorList) && payload.errorList.length) {
+            toast.error(payload.errorList.map((item) => item.message).join('\n'));
+         } else {
+            toast.error(payload?.message || error?.message || 'Unable to update team roster.');
+         }
+      } finally {
+         setRosterSaving(false);
+         if (shouldClose) {
+            handleCloseRosterModal(true);
+         }
+      }
+   };
 
    // --- Fetch Data ---
 
@@ -297,12 +499,12 @@ const TeamProjectDetail = () => {
    }, [projectRaw, milestones]);
 
    const breadcrumbItems = useMemo(() => [
-       { label: 'Classes', href: '/lecturer/classes' },
-       { label: teamDetail?.classInfo?.className, href: `/lecturer/classes/${classId}` },
-       { label: teamDetail?.teamName || 'Team Project' }
-   
-     ], [classId, teamDetail]);
-     
+      { label: 'Classes', href: '/lecturer/classes' },
+      { label: teamDetail?.classInfo?.className, href: `/lecturer/classes/${classId}` },
+      { label: teamDetail?.teamName || 'Team Project' }
+
+   ], [classId, teamDetail]);
+
    // --- Handlers ---
 
    const handleOpenMilestoneManager = (milestone, mode = 'edit', tab = 'details') => {
@@ -387,7 +589,7 @@ const TeamProjectDetail = () => {
          </div>
       </DashboardLayout>
    );
-   
+
 
    return (
       <DashboardLayout>
@@ -429,25 +631,24 @@ const TeamProjectDetail = () => {
                </div>
             </div>
 
+            {/* --- MILESTONE MANAGEMENT MODAL --- */}
             {/* --- TABS --- */}
             <div className="flex items-center gap-4 mb-8">
                <button
                   onClick={() => setActiveTab('overview')}
-                  className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${
-                     activeTab === 'overview'
-                        ? 'bg-orangeFpt-500 text-white shadow-lg shadow-orangeFpt-200 scale-105'
-                        : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
-                  }`}
+                  className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${activeTab === 'overview'
+                     ? 'bg-orangeFpt-500 text-white shadow-lg shadow-orangeFpt-200 scale-105'
+                     : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
+                     }`}
                >
                   Overview
                </button>
                <button
                   onClick={() => setActiveTab('resources')}
-                  className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${
-                     activeTab === 'resources'
-                        ? 'bg-orangeFpt-500 text-white shadow-lg shadow-orangeFpt-200 scale-105'
-                        : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
-                  }`}
+                  className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${activeTab === 'resources'
+                     ? 'bg-orangeFpt-500 text-white shadow-lg shadow-orangeFpt-200 scale-105'
+                     : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
+                     }`}
                >
                   Resources
                </button>
@@ -457,195 +658,356 @@ const TeamProjectDetail = () => {
             {activeTab === 'resources' ? (
                <TeamResources teamId={teamId} />
             ) : (
-            <div className="mx-auto grid grid-cols-1 gap-8 lg:grid-cols-3">
+               <div className="mx-auto grid grid-cols-1 gap-8 lg:grid-cols-3">
 
-               {/* LEFT: MILESTONES */}
-               <div className="space-y-8 lg:col-span-2">
+                  {/* LEFT: MILESTONES */}
+                  <div className="space-y-8 lg:col-span-2">
 
-                  {/* 1. Objectives & Linked Milestones */}
-                  <section className="space-y-6">
-                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-orangeFpt-100 text-orangeFpt-600"><Target size={20} /></div>
-                        <h2 className="text-lg font-bold text-slate-800">Project Objectives</h2>
-                     </div>
+                     {/* 1. Objectives & Linked Milestones */}
+                     <section className="space-y-6">
+                        <div className="flex items-center gap-3">
+                           <div className="p-2 rounded-lg bg-orangeFpt-100 text-orangeFpt-600"><Target size={20} /></div>
+                           <h2 className="text-lg font-bold text-slate-800">Project Objectives</h2>
+                        </div>
 
-                     <div className="space-y-6">
-                        {viewData.objectives.map((obj, idx) => (
-                           <div key={obj.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                              <div className="mb-4 flex items-start justify-between">
-                                 <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500">{idx + 1}</span>
-                                       <h3 className="font-bold text-slate-800">{obj.title}</h3>
+                        <div className="space-y-6">
+                           {viewData.objectives.map((obj, idx) => (
+                              <div key={obj.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                 <div className="mb-4 flex items-start justify-between">
+                                    <div>
+                                       <div className="flex items-center gap-2 mb-1">
+                                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500">{idx + 1}</span>
+                                          <h3 className="font-bold text-slate-800">{obj.title}</h3>
+                                       </div>
+                                       <p className="text-sm text-slate-500 pl-7">{obj.description}</p>
                                     </div>
-                                    <p className="text-sm text-slate-500 pl-7">{obj.description}</p>
+                                    {obj.priority && (
+                                       <span className={`px-2 py-1 rounded-lg text-xs font-bold uppercase border ${getPriorityColor(obj.priority)}`}>{obj.priority}</span>
+                                    )}
                                  </div>
-                                 {obj.priority && (
-                                    <span className={`px-2 py-1 rounded-lg text-xs font-bold uppercase border ${getPriorityColor(obj.priority)}`}>{obj.priority}</span>
-                                 )}
-                              </div>
 
-                              <div className="space-y-3 pl-7">
-                                 {obj.milestones.map((milestone) => (
-                                    <div key={milestone.id} className="group flex flex-col gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-4 transition-all hover:bg-white hover:shadow-sm">
-                                       <div className="flex items-start justify-between">
-                                          <div>
-                                             <h4 className="font-semibold text-slate-700 text-sm">{milestone.title}</h4>
-                                             <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
-                                                <span className="flex items-center gap-1"><Calendar size={12} /> {milestone.isLinked ? `${formatDate(milestone.startDate)} — ${formatDate(milestone.endDate)}` : 'Not scheduled'}</span>
+                                 <div className="space-y-3 pl-7">
+                                    {obj.milestones.map((milestone) => (
+                                       <div key={milestone.id} className="group flex flex-col gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-4 transition-all hover:bg-white hover:shadow-sm">
+                                          <div className="flex items-start justify-between">
+                                             <div>
+                                                <h4 className="font-semibold text-slate-700 text-sm">{milestone.title}</h4>
+                                                <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                                                   <span className="flex items-center gap-1"><Calendar size={12} /> {milestone.isLinked ? `${formatDate(milestone.startDate)} — ${formatDate(milestone.endDate)}` : 'Not scheduled'}</span>
+                                                </div>
+                                             </div>
+                                             <div className="flex items-center gap-2">
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${getStatusColor(milestone.statusToken)}`}>
+                                                   {formatStatusLabel(milestone.statusToken)}
+                                                </span>
+                                                {/* ALLOW EDITING IF LINKED */}
+                                                {milestone.isLinked && (
+                                                   <div className="relative" tabIndex={-1} onBlur={handleMenuBlur}>
+                                                      <button
+                                                         onClick={() => toggleMilestoneMenu(milestone.displayId)}
+                                                         className="p-1.5 rounded-lg text-slate-400 hover:text-orangeFpt-600 hover:bg-orangeFpt-50 transition-colors"
+                                                      >
+                                                         <MoreHorizontal size={16} />
+                                                      </button>
+                                                      {openMilestoneMenuId === milestone.displayId && (
+                                                         <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-xl border border-slate-100 py-1 z-10 animate-in fade-in zoom-in-95">
+                                                            <button
+                                                               onClick={() => navigate(`/lecturer/classes/${classId}/team/${teamId}/milestone/${milestone.displayId || milestone.id}`)}
+                                                               className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+                                                            >
+                                                               <Eye size={14} /> View Details
+                                                            </button>
+                                                            <button
+                                                               onClick={() => handleOpenMilestoneManager(milestone, 'edit')}
+                                                               className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+                                                            >
+                                                               <Edit3 size={14} /> Edit
+                                                            </button>
+                                                         </div>
+                                                      )}
+                                                   </div>
+                                                )}
                                              </div>
                                           </div>
-                                          <div className="flex items-center gap-2">
-                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${getStatusColor(milestone.statusToken)}`}>
-                                                {formatStatusLabel(milestone.statusToken)}
-                                             </span>
-                                             {/* ALLOW EDITING IF LINKED */}
-                                             {milestone.isLinked && (
-                                                <div className="relative" tabIndex={-1} onBlur={handleMenuBlur}>
-                                                   <button
-                                                      onClick={() => toggleMilestoneMenu(milestone.displayId)}
-                                                      className="p-1.5 rounded-lg text-slate-400 hover:text-orangeFpt-600 hover:bg-orangeFpt-50 transition-colors"
-                                                   >
-                                                      <MoreHorizontal size={16} />
-                                                   </button>
-                                                   {openMilestoneMenuId === milestone.displayId && (
-                                                      <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-xl border border-slate-100 py-1 z-10 animate-in fade-in zoom-in-95">
-                                                         <button
-                                                            onClick={() => navigate(`/lecturer/classes/${classId}/team/${teamId}/milestone/${milestone.displayId || milestone.id}`)}
-                                                            className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center gap-2"
-                                                         >
-                                                            <Eye size={14} /> View Details
-                                                         </button>
-                                                         <button
-                                                            onClick={() => handleOpenMilestoneManager(milestone, 'edit')}
-                                                            className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center gap-2"
-                                                         >
-                                                            <Edit3 size={14} /> Edit
-                                                         </button>
-                                                      </div>
-                                                   )}
-                                                </div>
-                                             )}
-                                          </div>
+                                       </div>
+                                    ))}
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+                     </section>
+
+                     {/* 2. Custom Milestones */}
+                     <section className="space-y-4">
+                        <div className="flex items-center justify-between">
+                           <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-lg bg-blue-100 text-blue-600"><Flag size={20} /></div>
+                              <h2 className="text-lg font-bold text-slate-800">Custom Milestones</h2>
+                           </div>
+                           <button
+                              onClick={() => handleOpenMilestoneManager(null, 'create')}
+                              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 text-sm font-semibold text-slate-600 hover:bg-orangeFpt-50 hover:text-orangeFpt-600 transition-colors"
+                           >
+                              <Plus size={16} /> Add
+                           </button>
+                        </div>
+
+                        <div className="grid gap-4">
+                           {viewData.customMilestones.map(milestone => (
+                              <div key={milestone.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                                 <div className="flex justify-between items-start">
+                                    <div>
+                                       <div className="flex items-center gap-2">
+                                          <h4 className="font-bold text-slate-800">{milestone.title}</h4>
+                                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-600 uppercase">Custom</span>
+                                       </div>
+                                       <p className="text-sm text-slate-500 mt-1">{milestone.description}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${getStatusColor(milestone.statusToken)}`}>
+                                          {formatStatusLabel(milestone.statusToken)}
+                                       </span>
+                                       <div className="relative" tabIndex={-1} onBlur={handleMenuBlur}>
+                                          <button
+                                             onClick={() => toggleMilestoneMenu(milestone.displayId)}
+                                             className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                          >
+                                             <MoreHorizontal size={16} />
+                                          </button>
+                                          {openMilestoneMenuId === milestone.displayId && (
+                                             <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-xl border border-slate-100 py-1 z-10 animate-in fade-in zoom-in-95">
+                                                <button
+                                                   onClick={() => navigate(`/lecturer/classes/${classId}/team/${teamId}/milestone/${milestone.displayId || milestone.id}`)}
+                                                   className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+                                                >
+                                                   <Eye size={14} /> View Details
+                                                </button>
+                                                <button
+                                                   onClick={() => handleOpenMilestoneManager(milestone, 'edit')}
+                                                   className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+                                                >
+                                                   <Edit3 size={14} /> Edit
+                                                </button>
+                                                <button
+                                                   onClick={() => setConfirmState({ item: milestone })}
+                                                   className="w-full text-left px-4 py-2 text-xs hover:bg-red-50 text-red-600 flex items-center gap-2"
+                                                >
+                                                   <Trash2 size={14} /> Delete
+                                                </button>
+                                             </div>
+                                          )}
                                        </div>
                                     </div>
-                                 ))}
+                                 </div>
+                                 <div className="flex items-center gap-4 text-xs text-slate-500 pt-3 border-t border-slate-100">
+                                    <span className="flex items-center gap-1"><Calendar size={12} /> {formatDate(milestone.startDate)} — {formatDate(milestone.endDate)}</span>
+                                 </div>
                               </div>
-                           </div>
-                        ))}
-                     </div>
-                  </section>
-
-                  {/* 2. Custom Milestones */}
-                  <section className="space-y-4">
-                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                           <div className="p-2 rounded-lg bg-blue-100 text-blue-600"><Flag size={20} /></div>
-                           <h2 className="text-lg font-bold text-slate-800">Custom Milestones</h2>
+                           ))}
+                           {viewData.customMilestones.length === 0 && (
+                              <div className="py-6 text-center text-sm text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                                 No custom milestones added.
+                              </div>
+                           )}
                         </div>
-                        <button
-                           onClick={() => handleOpenMilestoneManager(null, 'create')}
-                           className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 text-sm font-semibold text-slate-600 hover:bg-orangeFpt-50 hover:text-orangeFpt-600 transition-colors"
-                        >
-                           <Plus size={16} /> Add
-                        </button>
-                     </div>
-
-                     <div className="grid gap-4">
-                        {viewData.customMilestones.map(milestone => (
-                           <div key={milestone.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                              <div className="flex justify-between items-start">
-                                 <div>
-                                    <div className="flex items-center gap-2">
-                                       <h4 className="font-bold text-slate-800">{milestone.title}</h4>
-                                       <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-600 uppercase">Custom</span>
-                                    </div>
-                                    <p className="text-sm text-slate-500 mt-1">{milestone.description}</p>
-                                 </div>
-                                 <div className="flex items-center gap-2">
-                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${getStatusColor(milestone.statusToken)}`}>
-                                       {formatStatusLabel(milestone.statusToken)}
-                                    </span>
-                                    <div className="relative" tabIndex={-1} onBlur={handleMenuBlur}>
-                                       <button
-                                          onClick={() => toggleMilestoneMenu(milestone.displayId)}
-                                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                       >
-                                          <MoreHorizontal size={16} />
-                                       </button>
-                                       {openMilestoneMenuId === milestone.displayId && (
-                                          <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-xl border border-slate-100 py-1 z-10 animate-in fade-in zoom-in-95">
-                                             <button
-                                                onClick={() => navigate(`/lecturer/classes/${classId}/team/${teamId}/milestone/${milestone.displayId || milestone.id}`)}
-                                                className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center gap-2"
-                                             >
-                                                <Eye size={14} /> View Details
-                                             </button>
-                                             <button
-                                                onClick={() => handleOpenMilestoneManager(milestone, 'edit')}
-                                                className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center gap-2"
-                                             >
-                                                <Edit3 size={14} /> Edit
-                                             </button>
-                                             <button
-                                                onClick={() => setConfirmState({ item: milestone })}
-                                                className="w-full text-left px-4 py-2 text-xs hover:bg-red-50 text-red-600 flex items-center gap-2"
-                                             >
-                                                <Trash2 size={14} /> Delete
-                                             </button>
-                                          </div>
-                                       )}
-                                    </div>
-                                 </div>
-                              </div>
-                              <div className="flex items-center gap-4 text-xs text-slate-500 pt-3 border-t border-slate-100">
-                                 <span className="flex items-center gap-1"><Calendar size={12} /> {formatDate(milestone.startDate)} — {formatDate(milestone.endDate)}</span>
-                              </div>
-                           </div>
-                        ))}
-                        {viewData.customMilestones.length === 0 && (
-                           <div className="py-6 text-center text-sm text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-                              No custom milestones added.
-                           </div>
-                        )}
-                     </div>
-                  </section>
-               </div>
-
-               {/* RIGHT: TEAM ROSTER */}
-               <aside className="space-y-6">
-                  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sticky top-6">
-                     <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 rounded-lg bg-emerald-100 text-emerald-600"><Users size={20} /></div>
-                        <h3 className="font-bold text-slate-800">Team Roster</h3>
-                     </div>
-                     <div className="space-y-4">
-                        {teamMembersRaw.map((member, idx) => (
-                           <div key={idx} className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50 hover:bg-white hover:shadow-sm transition-all cursor-pointer" onClick={() => setMemberProfileModal(member)}>
-                              <div className="flex items-center gap-3">
-                                 <Avatar
-                                    src={member.avatar}
-                                    name={member.name}
-                                    className="h-9 w-9 rounded-full border border-slate-200 shadow-sm"
-                                 />
-                                 <div>
-                                    <p className="font-semibold text-slate-900">{member.studentName}</p>
-                                    {member.teamRole === 1 && (
-                                       <span className="inline-flex items-center gap-1 text-xs font-medium text-orangeFpt-600">
-                                          <GraduationCap className="h-3 w-3" /> Leader
-                                       </span>
-                                    )}
-                                    {member.teamRole === 0 && <span className="text-slate-500">Member</span>}
-                                 </div>
-                              </div>
-                           </div>
-                        ))}
-                     </div>
+                     </section>
                   </div>
-               </aside>
-            </div>
+
+                  {/* RIGHT: TEAM ROSTER */}
+                  <aside className="space-y-6">
+                     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sticky top-6">
+                        <div className="flex items-center gap-3 mb-6">
+                           <div className="p-2 rounded-lg bg-emerald-100 text-emerald-600"><Users size={20} /></div>
+                           <h3 className="font-bold text-slate-800">Team Roster</h3>
+                           <button
+                              type="button"
+                              onClick={handleOpenRosterModal}
+                              className="ml-auto inline-flex items-center gap-2 rounded-full border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                           >
+                              Manage
+                           </button>
+                        </div>
+                        <div className="space-y-4">
+                           {teamMembersRaw.map((member, idx) => (
+                              <div key={idx} className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50 hover:bg-white hover:shadow-sm transition-all cursor-pointer" onClick={() => setMemberProfileModal(member)}>
+                                 <div className="flex items-center gap-3">
+                                    <Avatar
+                                       src={member.avatar}
+                                       name={member.name}
+                                       className="h-9 w-9 rounded-full border border-slate-200 shadow-sm"
+                                    />
+                                    <div>
+                                       <p className="font-semibold text-slate-900">{member.studentName}</p>
+                                       {member.teamRole === 1 && (
+                                          <span className="inline-flex items-center gap-1 text-xs font-medium text-orangeFpt-600">
+                                             <GraduationCap className="h-3 w-3" /> Leader
+                                          </span>
+                                       )}
+                                       {member.teamRole === 0 && <span className="text-slate-500">Member</span>}
+                                    </div>
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+                     </div>
+                  </aside>
+               </div>
             )}
          </div>
+
+         {/* --- ROSTER MANAGEMENT MODAL --- */}
+         {rosterModalOpen && (
+            <Modal
+               title="Manage Team Roster"
+               onClose={handleCloseRosterModal}
+               disableClose={rosterSaving}
+               maxWidth="max-w-2xl"
+            >
+               <div className="space-y-5">
+                  <div className=" flex rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                     <p>
+                        Adjust the members of <span className="font-semibold text-slate-900">{teamDetail?.teamName || 'this team'}</span>. Keep at least one member and make sure a leader is selected before saving.
+                     </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 rounded-2xl bg-slate-100 p-1 text-sm font-semibold text-slate-500">
+                     {['current', 'available'].map((tab) => (
+                        <button
+                           key={tab}
+                           type="button"
+                           onClick={() => setRosterTab(tab)}
+                           className={`flex-1 rounded-2xl px-4 py-2 transition ${rosterTab === tab
+                              ? 'bg-white text-slate-900 shadow'
+                              : 'hover:text-slate-700'
+                              }`}
+                        >
+                           {tab === 'current' ? 'Current Roster' : 'Available Students'}
+                        </button>
+                     ))}
+                  </div>
+
+                  {rosterLoading ? (
+                     <div className="flex min-h-[220px] items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-orangeFpt-500" />
+                     </div>
+                  ) : rosterTab === 'current' ? (
+                     <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                        {rosterDraft.length === 0 ? (
+                           <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 px-4 py-10 text-center text-sm text-slate-500">
+                              No team members selected. Add students from the Available tab.
+                           </div>
+                        ) : (
+                           rosterDraft.map((member) => (
+                              <div
+                                 key={member.studentId}
+                                 className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm"
+                              >
+                                 <div className="flex items-center gap-3">
+                                    <Avatar
+                                       src={member.avatar}
+                                       name={member.studentName}
+                                       className="h-10 w-10 rounded-full border border-slate-200"
+                                    />
+                                    <div>
+                                       <p className="font-semibold text-slate-900">{member.studentName}</p>
+                                    </div>
+                                 </div>
+                                 <div className="flex items-center gap-2">
+                                    <button
+                                       type="button"
+                                       onClick={() => handleChooseLeader(member.studentId)}
+                                       className={`rounded-full px-3 py-1 text-xs font-semibold border transition ${rosterLeaderId === member.studentId
+                                          ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                          : 'border-slate-200 text-slate-500 hover:border-amber-200 hover:text-amber-600'
+                                          }`}
+                                    >
+                                       {rosterLeaderId === member.studentId ? 'Leader' : 'Make Leader'}
+                                    </button>
+                                    <button
+                                       type="button"
+                                       onClick={() => handleRemoveStudentFromRoster(member.studentId)}
+                                       className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                                    >
+                                       Remove
+                                    </button>
+                                 </div>
+                              </div>
+                           ))
+                        )}
+                     </div>
+                  ) : (
+                     <div className="space-y-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                           <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                              <input
+                                 type="text"
+                                 value={rosterSearch}
+                                 onChange={(e) => setRosterSearch(e.target.value)}
+                                 placeholder="Search by name or code"
+                                 className="w-full bg-transparent text-slate-700 placeholder:text-slate-400 focus:outline-none"
+                              />
+                           </div>
+                           <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                              {filteredBench.length} student{filteredBench.length === 1 ? '' : 's'} available
+                           </span>
+                        </div>
+                        <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                           {filteredBench.length === 0 ? (
+                              <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 px-4 py-10 text-center text-sm text-slate-500">
+                                 No unassigned students for this class.
+                              </div>
+                           ) : (
+                              filteredBench.map((student) => (
+                                 <div
+                                    key={student.studentId}
+                                    className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white px-4 py-3"
+                                 >
+                                    <div className="flex items-center gap-3">
+                                       <Avatar
+                                          src={student.avatar}
+                                          name={student.studentName}
+                                          className="h-10 w-10 rounded-full border border-slate-200"
+                                       />
+                                       <div>
+                                          <p className="font-semibold text-slate-900">{student.studentName}</p>
+                                          <p className="text-xs text-slate-500">{student.studentCode || '—'}</p>
+                                       </div>
+                                    </div>
+                                    <button
+                                       type="button"
+                                       onClick={() => handleAddStudentToRoster(student)}
+                                       className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                                    >
+                                       Add
+                                    </button>
+                                 </div>
+                              ))
+                           )}
+                        </div>
+                     </div>
+                  )}
+
+                  <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
+                     <button
+                        type="button"
+                        onClick={handleCloseRosterModal}
+                        disabled={rosterSaving}
+                        className="rounded-2xl border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                     >
+                        Cancel
+                     </button>
+                     <button
+                        type="button"
+                        onClick={handleSaveRoster}
+                        disabled={rosterSaving || rosterLoading}
+                        className="rounded-2xl bg-emerald-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:opacity-50"
+                     >
+                        {rosterSaving ? 'Saving...' : 'Save Changes'}
+                     </button>
+                  </div>
+               </div>
+            </Modal>
+         )}
 
          {/* --- MILESTONE MANAGEMENT MODAL --- */}
          {milestoneModal && (

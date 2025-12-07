@@ -29,3 +29,22 @@ export const getTeamDetail = async (teamId) => {
   }
   return payload;
 };
+
+export const updateTeam = async (teamId, payload = {}) => {
+  if (!teamId) {
+    throw new Error('teamId is required to update team.');
+  }
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('A payload object is required to update a team.');
+  }
+  try {
+    console.log(`Updating team ${teamId} with payload:`, payload);
+    const response = await apiClient.put(`/team/${teamId}`, payload);
+    console.log('Team updated successfully:', response.data);
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.message || "An error occurred while updating the team."
+    );
+  }
+};

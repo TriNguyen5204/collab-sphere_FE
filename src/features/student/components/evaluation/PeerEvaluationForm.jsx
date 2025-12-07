@@ -21,6 +21,8 @@ const buildInitialRatings = (members) => {
 
 const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
   const { userId } = useSelector((s) => s.user);
+  console.log('PeerEvaluationForm userId:', userId);
+  console.log('PeerEvaluationForm teamMembers:', teamMembers);
 
   const evaluableMembers = useMemo(
     () =>
