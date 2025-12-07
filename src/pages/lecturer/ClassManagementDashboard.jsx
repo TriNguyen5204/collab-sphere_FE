@@ -161,6 +161,7 @@ const ClassManagementDashboard = () => {
   const [recentSearches, setRecentSearches] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [subjectFilter, setSubjectFilter] = useState('all');
+  const [semesterFilter, setSemesterFilter] = useState('all');
   const [pagination, setPagination] = useState({
     pageNum: 1,
     pageSize: 12,
@@ -239,7 +240,7 @@ const ClassManagementDashboard = () => {
   // Reset pagination when filters change
   useEffect(() => {
     setPagination(prev => ({ ...prev, pageNum: 1 }));
-  }, [searchTerm, statusFilter, subjectFilter]);
+  }, [searchTerm, statusFilter, subjectFilter, semesterFilter]);
 
   const orderedClasses = useMemo(() => {
     const toTimestamp = (value) => {
@@ -256,21 +257,32 @@ const ClassManagementDashboard = () => {
     [classes]
   );
 
+  const semesters = useMemo(
+    () => Array.from(new Set(classes.map((cls) => cls.semesterName).filter(Boolean))),
+    [classes]
+  );
+
   const filteredClasses = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
+    const searchTerms = normalizedSearch.split(/\s+/).filter(Boolean);
 
     return orderedClasses.filter((cls) => {
       const matchesSearch =
-        !normalizedSearch.length ||
-        cls.className?.toLowerCase().includes(normalizedSearch) ||
-        cls.subjectName?.toLowerCase().includes(normalizedSearch) ||
-        cls.subjectCode?.toLowerCase().includes(normalizedSearch);
+        searchTerms.length === 0 ||
+        searchTerms.some((term) =>
+          cls.className?.toLowerCase().includes(term) ||
+          cls.subjectName?.toLowerCase().includes(term) ||
+          cls.subjectCode?.toLowerCase().includes(term) ||
+          cls.semesterName?.toLowerCase().includes(term)
+        );
+
       const matchesStatus =
         statusFilter === 'all' || (statusFilter === 'active' ? cls.isActive : !cls.isActive);
       const matchesSubject = subjectFilter === 'all' || cls.subjectCode === subjectFilter;
-      return matchesSearch && matchesStatus && matchesSubject;
+      const matchesSemester = semesterFilter === 'all' || cls.semesterName === semesterFilter;
+      return matchesSearch && matchesStatus && matchesSubject && matchesSemester;
     });
-  }, [orderedClasses, searchTerm, statusFilter, subjectFilter]);
+  }, [orderedClasses, searchTerm, statusFilter, subjectFilter, semesterFilter]);
 
   const paginatedClasses = useMemo(() => {
     const start = (pagination.pageNum - 1) * pagination.pageSize;
@@ -343,13 +355,6 @@ const ClassManagementDashboard = () => {
                 : 'No classes are assigned to you yet.'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={handleCreateProject}
-            className="inline-flex items-center justify-center rounded-2xl bg-orangeFpt-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orangeFpt-500/30 transition hover:-translate-y-0.5 hover:bg-orangeFpt-600"
-          >
-            Create New Project
-          </button>
         </header>
 
         {error && (
@@ -437,30 +442,58 @@ const ClassManagementDashboard = () => {
                 ))}
               </div>
 
-              {/* Subject Pills */}
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="mr-1 text-xs font-bold uppercase tracking-wider text-slate-400">Subject:</span>
-                <button
-                  onClick={() => setSubjectFilter('all')}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium transition ${subjectFilter === 'all'
-                    ? 'border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-200'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-600'
-                    }`}
-                >
-                  All
-                </button>
-                {subjects.map((code) => (
+              <div className="flex flex-wrap items-center gap-4">
+                {/* Semester Pills */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="mr-1 text-xs font-bold uppercase tracking-wider text-slate-400">Semester:</span>
                   <button
-                    key={code}
-                    onClick={() => setSubjectFilter(code)}
-                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${subjectFilter === code
+                    onClick={() => setSemesterFilter('all')}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${semesterFilter === 'all'
                       ? 'border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-200'
                       : 'border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-600'
                       }`}
                   >
-                    {code}
+                    All
                   </button>
-                ))}
+                  {semesters.map((sem) => (
+                    <button
+                      key={sem}
+                      onClick={() => setSemesterFilter(sem)}
+                      className={`rounded-full border px-3 py-1 text-xs font-medium transition ${semesterFilter === sem
+                        ? 'border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-200'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-600'
+                        }`}
+                    >
+                      {sem}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Subject Pills */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="mr-1 text-xs font-bold uppercase tracking-wider text-slate-400">Subject:</span>
+                  <button
+                    onClick={() => setSubjectFilter('all')}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${subjectFilter === 'all'
+                      ? 'border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-200'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-600'
+                      }`}
+                  >
+                    All
+                  </button>
+                  {subjects.map((code) => (
+                    <button
+                      key={code}
+                      onClick={() => setSubjectFilter(code)}
+                      className={`rounded-full border px-3 py-1 text-xs font-medium transition ${subjectFilter === code
+                        ? 'border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-200'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-600'
+                        }`}
+                    >
+                      {code}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -489,7 +522,7 @@ const ClassManagementDashboard = () => {
                   We couldn't find any classes matching "{searchTerm}" with the selected filters.
                 </p>
                 <button
-                  onClick={() => { setSearchTerm(''); setStatusFilter('all'); setSubjectFilter('all'); }}
+                  onClick={() => { setSearchTerm(''); setStatusFilter('all'); setSubjectFilter('all'); setSemesterFilter('all'); }}
                   className="mt-6 rounded-xl bg-orange-500 px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-200 transition hover:bg-orange-600 hover:shadow-orange-300"
                 >
                   Clear Filters

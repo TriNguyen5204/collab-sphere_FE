@@ -70,6 +70,7 @@ const mapApiProjectToViewModel = (rawProject = {}) => {
       lecturerName: rawProject.lecturerName ?? rawProject.lecturer?.fullName ?? '—',
       subjectCode: rawProject.subjectCode ?? rawProject.subject?.code ?? '—',
       subjectName: rawProject.subjectName ?? rawProject.subject?.name ?? '—',
+      semesterName: rawProject.semesterName ?? rawProject.semester?.name ?? '',
       status: statusValue,
       statusLabel: STATUS_LABELS[statusValue] ?? statusValue,
       objectives,
@@ -150,11 +151,17 @@ const ProjectLibrary = () => {
 
    // --- Derived State ---
    const filteredProjects = useMemo(() => {
-      const lowerSearch = searchTerm.toLowerCase();
+      const lowerSearch = searchTerm.trim().toLowerCase();
+      const searchTerms = lowerSearch.split(/\s+/).filter(Boolean);
+
       return projects.filter(p => {
          const matchSearch =
-            p.projectName.toLowerCase().includes(lowerSearch) ||
-            p.subjectCode.toLowerCase().includes(lowerSearch);
+            searchTerms.length === 0 ||
+            searchTerms.some((term) =>
+               p.projectName.toLowerCase().includes(term) ||
+               p.subjectCode.toLowerCase().includes(term) ||
+               p.semesterName.toLowerCase().includes(term)
+            );
          const matchStatus = statusFilter === 'all' || p.status === statusFilter;
          return matchSearch && matchStatus;
       });
@@ -421,6 +428,11 @@ const ProjectLibrary = () => {
                                              <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-600">
                                                 {project.subjectCode}
                                              </span>
+                                             {project.semesterName && (
+                                                <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-600 border border-blue-100">
+                                                   {project.semesterName}
+                                                </span>
+                                             )}
                                              {project.lecturerName && (
                                                 <span className="inline-flex items-center gap-1 text-[10px] text-slate-500" title={`Created by ${project.lecturerName}`}>
                                                    <UserIcon className="h-3 w-3" />
@@ -472,6 +484,11 @@ const ProjectLibrary = () => {
                                           <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-600">
                                              {project.subjectCode}
                                           </span>
+                                          {project.semesterName && (
+                                             <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-600 border border-blue-100">
+                                                {project.semesterName}
+                                             </span>
+                                          )}
                                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${getStatusColor(project.status)}`}>
                                              {project.statusLabel}
                                           </span>

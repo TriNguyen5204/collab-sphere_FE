@@ -319,12 +319,6 @@ const DashboardLayout = ({ children }) => {
       match: path => path === '/lecturer/grading' || path.startsWith('/lecturer/grading/')
     },
     {
-      label: 'Analytics',
-      href: '/lecturer/analytics',
-      icon: ChartBarIcon,
-      match: path => path === '/lecturer/analytics' || path.startsWith('/lecturer/analytics/')
-    },
-    {
       label: 'Meetings',
       href: '/lecturer/meetings',
       icon: CalendarDaysIcon,
