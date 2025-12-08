@@ -40,7 +40,7 @@ const MilestonePage = () => {
   const [activeTab, setActiveTab] = useState('all');
   const { team } = useTeam();
   const teamId = team?.teamId ?? null;
-  const { confirmWithToast } = useToastConfirmation();
+  const confirmWithToast = useToastConfirmation();
 
   const normalizeCheckpointStatus = (statusValue) => {
     if (statusValue === null || statusValue === undefined) return 'PROCESSING';

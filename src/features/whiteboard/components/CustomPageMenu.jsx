@@ -16,7 +16,7 @@ export default function CustomPageMenu({
   websocket
 }) {
   const editor = useEditor();
-  const { confirmWithToast } = useToastConfirmation();
+  const confirmWithToast = useToastConfirmation();
   const [open, setOpen] = useState(false);
   const [editingPageId, setEditingPageId] = useState(null);
   const [editingValue, setEditingValue] = useState('');

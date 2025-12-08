@@ -30,7 +30,7 @@ import useToastConfirmation from '../../hooks/useToastConfirmation';
 const MeetingManagement = () => {
   const { teamId } = useParams();
   const teamIdNumber = parseInt(teamId) || 2;
-  const { confirmWithToast } = useToastConfirmation();
+  const confirmWithToast = useToastConfirmation();
   
   const [meetings, setMeetings] = useState([]);
   const [filters, setFilters] = useState({

@@ -265,7 +265,7 @@ export function useWhiteboardSync(
     drawerName: string,
     editor: Editor | null
 ) {
-    const { confirmWithToast } = useToastConfirmation();
+    const confirmWithToast = useToastConfirmation();
     const socketRef = useRef<WebSocket | null>(null)
     const batcherRef = useRef<OptimizedRAFBatcher | null>(null)
     const presenceRef = useRef<PresenceThrottler | null>(null)

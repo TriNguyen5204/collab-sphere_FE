@@ -22,7 +22,7 @@ import CreateAccountForm from '../../features/admin/components/CreateAccountForm
 import ModalWrapper from '../../components/layout/ModalWrapper'
 
 export default function AccountManagement() {
-  const { confirmWithToast } = useToastConfirmation();
+  const confirmWithToast = useToastConfirmation();
   const [selectedRole, setSelectedRole] = useState('HeadDepartment');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
