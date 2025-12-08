@@ -50,7 +50,6 @@ import ResourcesHub from '../pages/lecturer/ResourcesHub';
 import LecturerMeetings from '../pages/lecturer/LecturerMeetings';
 
 // academic services (staff) pages
-import StaffPage from '../pages/staff/StaffPage';
 import AcademicList from '../pages/academic/AcademicList';
 import AcademicCreate from '../pages/academic/AcademicCreate';
 import AcademicDetail from '../pages/academic/AcademicDetail';
@@ -61,7 +60,6 @@ import ClassDetail from '../pages/staff/ClassDetail';
 
 
 // head department pages
-import DepartmentDashboard from '../pages/headDepartment/Dashboard';
 import SubjectManagement from '../pages/headDepartment/SubjectAndSyllabusManagement';
 import SubjectDetail from '../pages/headDepartment/SubjectDetail';
 import ProjectManagement from '../pages/headDepartment/ProjectManagement';
@@ -104,7 +102,6 @@ const studentRoutes = [
   { path: '/student/projects', element: protectRoute(['STUDENT'], <StudentProjectPage />) },
   { path: '/student/classes', element: protectRoute(['STUDENT'], <StudentClassPage />) },
   { path: '/student/profile', element: protectRoute(['STUDENT'], <StudentProfile />) },
-  { path: '/student/project/task-board', element: protectRoute(['STUDENT', 'LECTURER'], <ProjectBoard />) },
   { path: '/student/project/milestones&checkpoints', element: protectRoute(['STUDENT', 'LECTURER'], <MilestoneCheckpointPage />) },
   { path: '/student/project/team-workspace', element: protectRoute(['STUDENT', 'LECTURER'], <TeamWorkspace />) },
   { path: '/student/project/pr-analysis/:analysisId', element: protectRoute(['STUDENT'], <ProfessionalAnalysisView />) },
@@ -115,13 +112,14 @@ const studentRoutes = [
   { path: '/student/:className/syllabus', element: protectRoute(['STUDENT'], <StudentClassSyllabusPage />) },
   { path: '/student/project/peer-evaluation', element: protectRoute(['STUDENT'], <PeerEvaluationPage />) },
 
+  { path: '/task-board', element: protectRoute(['STUDENT', 'LECTURER'], <ProjectBoard />) },
   { path: '/meeting/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <Layout/>) },
   { path: '/join-room/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <RoomJoinPage/>)},
   { path: '/room/:roomId/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingRoomTest/>)},
   { path: '/meeting/history/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingManagement/> )},
   { path: '/meeting/schedule/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingSchedulerFull/> )},
-  { path: '/student/project/whiteboard',  element: protectRoute(['STUDENT', 'LECTURER'], <Whiteboard/>)},
-  { path: '/student/project/text-editor', element: protectRoute(['STUDENT', 'LECTURER'], <CollabEditor/>)},
+  { path: '/whiteboard',  element: protectRoute(['STUDENT', 'LECTURER'], <Whiteboard/>)},
+  { path: '/text-editor', element: protectRoute(['STUDENT', 'LECTURER'], <CollabEditor/>)},
   { path: '/chat', element: protectRoute(['STUDENT', 'LECTURER'], <ChatComponent/>)},
 ];
 
@@ -176,7 +174,6 @@ const staffRoutes = [
 ];
 
 const headDepartmentRoutes = [
-  { path: '/head-department', element: protectRoute(['HEAD_DEPARTMENT'], <DepartmentDashboard />) },
   { path: '/head-department/subject-management', element: protectRoute(['HEAD_DEPARTMENT'], <SubjectManagement />) },
   { path: '/head-department/subject-management/:id', element: protectRoute(['HEAD_DEPARTMENT'], <SubjectDetail />) },
   { path: '/head-department/project-approvals', element: protectRoute(['HEAD_DEPARTMENT'], <ProjectApprovals />) },

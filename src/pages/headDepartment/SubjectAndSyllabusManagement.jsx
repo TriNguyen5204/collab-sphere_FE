@@ -4,7 +4,6 @@ import ModalWrapper from '../../components/layout/ModalWrapper';
 import CreateMultipleSubjectForm from '../../features/staff/components/CreateMultipleSubjectForm';
 import UpdateSubjectForm from '../../features/head-department/components/UpdateSubjectForm';
 import { getAllSubject } from '../../services/userService';
-import HeadDepartmentSidebar from '../../components/layout/HeadDepartmentSidebar';
 
 // Import sub-components
 import {
@@ -135,7 +134,7 @@ export default function SubjectManagement() {
 
   return (
     <HeadDashboardLayout>
-      <div className='flex h-screen bg-gray-50 overflow-hidden'>
+      <div className='max-w-7xl mx-auto space-y-6'>
         {/* Main Content Area - Scroll độc lập */}
         <div className='flex-1 flex flex-col min-w-0 overflow-hidden'>
           {/* Scrollable Container */}

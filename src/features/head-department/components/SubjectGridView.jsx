@@ -11,7 +11,7 @@ import SubjectCard from './SubjectCard';
  * @param {Function} props.onEdit - Callback when edit button clicked
  * @param {Function} props.onDelete - Callback when delete button clicked
  */
-export default function SubjectGridView({ subjects, onView, onEdit, onDelete }) {
+export default function SubjectGridView({ subjects, onView, onDelete }) {
   return (
     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
       {subjects.map((subject) => (
@@ -19,7 +19,6 @@ export default function SubjectGridView({ subjects, onView, onEdit, onDelete }) 
           key={subject.subjectId}
           subject={subject}
           onView={onView}
-          onEdit={onEdit}
           onDelete={onDelete}
         />
       ))}

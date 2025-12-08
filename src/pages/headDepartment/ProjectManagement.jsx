@@ -135,7 +135,7 @@ export default function ProjectManagement() {
 
   return (
     <HeadDashboardLayout>
-      <div className='flex h-screen bg-gray-50 overflow-hidden font-sans'>
+      <div className=' bg-gray-50 overflow-hidden font-sans'>
         {/* Main Content */}
         <div className='flex-1 flex flex-col min-w-0 overflow-hidden'>
           <main className='flex-1 overflow-y-auto p-4 md:p-8'>

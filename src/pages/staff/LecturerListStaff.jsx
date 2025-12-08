@@ -203,7 +203,7 @@ export default function LecturerListStaff() {
   return (
     <>
       <StaffDashboardLayout>
-        <div className='min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50'>
+        {/* <div className='bg-gradient-to-br from-orange-50 via-white to-amber-50'> */}
           <div className='max-w-7xl mx-auto'>
             {/* Header */}
             <div className='mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4'>
@@ -475,7 +475,7 @@ export default function LecturerListStaff() {
               </div>
             )}
           </div>
-        </div>
+        {/* </div> */}
 
         {/* Modals */}
         <ModalWrapper
@@ -489,7 +489,6 @@ export default function LecturerListStaff() {
         <ModalWrapper
           isOpen={isMultipleOpen}
           onClose={() => setIsMultipleOpen(false)}
-          title='Create multiple lecturer'
         >
           <CreateMultipleLecturerForm
             onClose={() => setIsMultipleOpen(false)}
@@ -507,7 +506,6 @@ export default function LecturerListStaff() {
         <ModalWrapper
           isOpen={isMultipleStudentOpen}
           onClose={() => setIsMultipleStudentOpen(false)}
-          title='Create multiple student'
         >
           <CreateMultipleStudentForm
             onClose={() => setIsMultipleStudentOpen(false)}
