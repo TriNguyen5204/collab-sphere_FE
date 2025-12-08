@@ -239,7 +239,7 @@ const CreateClassForm = ({ onClose }) => {
       setApiErrors(apiErrorList);
 
       if (!apiErrorList.length) {
-        toast.error(error.message || 'Đã xảy ra lỗi khi tạo lớp');
+        toast.error(error.message || 'An error occurred while creating the class');
       }
     }
   };
@@ -848,7 +848,7 @@ const CreateClassForm = ({ onClose }) => {
       {/* errorList */}
       {apiErrors.length > 0 && (
         <div className='mt-4 p-4 bg-red-50 border border-red-300 rounded-md'>
-          <h3 className='text-red-600 font-semibold mb-2'>Danh sách lỗi:</h3>
+          <h3 className='text-red-600 font-semibold mb-2'>Error list:</h3>
           <ul className='list-disc list-inside text-red-700'>
             {apiErrors.map((err, index) => (
               <li key={index}>

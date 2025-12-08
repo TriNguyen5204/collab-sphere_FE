@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import {
   Upload,
@@ -10,7 +11,6 @@ import {
   X,
 } from 'lucide-react';
 import { createMultipleClasses } from '../../../services/userService';
-import { toast } from 'sonner';
 
 const CreateMultipleClassForm = ({ onClose }) => {
   const [classes, setClasses] = useState([]);
@@ -60,17 +60,17 @@ const CreateMultipleClassForm = ({ onClose }) => {
         const validationErrors = [];
         filteredData.forEach((cls, index) => {
           const rowErrors = [];
-          if (!cls.ClassName?.trim()) rowErrors.push('Thiếu ClassName');
-          if (!cls.SubjectCode?.trim()) rowErrors.push('Thiếu SubjectCode');
-          if (!cls.SemesterCode?.trim()) rowErrors.push('Thiếu SemesterCode');
-          if (!cls.LecturerCode?.trim()) rowErrors.push('Thiếu LecturerCode');
+          if (!cls.ClassName?.trim()) rowErrors.push('Missing ClassName');
+          if (!cls.SubjectCode?.trim()) rowErrors.push('Missing SubjectCode');
+          if (!cls.SemesterCode?.trim()) rowErrors.push('Missing SemesterCode');
+          if (!cls.LecturerCode?.trim()) rowErrors.push('Missing LecturerCode');
 
           if (
             cls.StudentCodes &&
             typeof cls.StudentCodes === 'string' &&
             !/^[A-Za-z0-9,;\s]+$/.test(cls.StudentCodes)
           ) {
-            rowErrors.push('StudentCodes không hợp lệ');
+            rowErrors.push('Invalid StudentCodes');
           }
 
           if (
@@ -79,13 +79,13 @@ const CreateMultipleClassForm = ({ onClose }) => {
             cls.IsActive !== 'true' &&
             cls.IsActive !== 'false'
           ) {
-            rowErrors.push('IsActive phải là true/false');
+            rowErrors.push('IsActive must be true/false');
           }
 
           if (rowErrors.length > 0) {
             validationErrors.push({
               row: index + 2,
-              name: cls.ClassName || 'Không có tên lớp',
+              name: cls.ClassName || 'No class name',
               errors: rowErrors,
             });
           }
@@ -98,7 +98,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
         console.error('File read error:', error);
         setUploadStatus('error');
         setErrors([
-          { general: 'Lỗi khi đọc file. Vui lòng kiểm tra định dạng file.' },
+          { general: 'Error reading file. Please check the file format.' },
         ]);
       }
     };
@@ -108,7 +108,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
 
   const handleSubmit = async () => {
     if (!fileName) {
-      alert('Vui lòng tải lên file Excel trước khi gửi.');
+      toast.error('Please upload an Excel file before submitting.');
       return;
     }
 
@@ -118,7 +118,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
 
       const response = await createMultipleClasses(file);
       if (response.isSuccess) {
-        toast.success('Tạo lớp thành công!');
+        toast.success('Classes created successfully!');
         setTimeout(() => {
           if (onClose) onClose();
         }, 1500);
@@ -130,7 +130,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
       setApiErrors(apiErrorList);
 
       if (!apiErrorList.length) {
-        toast.error(error.message || 'Đã xảy ra lỗi khi import');
+        toast.error(error.message || 'An error occurred during import');
       }
     }
   };
@@ -149,10 +149,10 @@ const CreateMultipleClassForm = ({ onClose }) => {
         <div className='bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5'>
           <h2 className='text-2xl font-bold text-white flex items-center gap-2'>
             <FileSpreadsheet className='w-7 h-7' />
-            Tạo nhiều lớp học từ Excel
+            Create multiple classes from Excel
           </h2>
           <p className='text-blue-100 mt-1 text-sm'>
-            Tải lên file Excel để tạo nhiều lớp học cùng lúc
+            Upload Excel file to create multiple classes at once
           </p>
         </div>
 
@@ -163,18 +163,17 @@ const CreateMultipleClassForm = ({ onClose }) => {
               <Download className='w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0' />
               <div className='flex-1'>
                 <h3 className='font-semibold text-gray-800 mb-1'>
-                  Bước 1: Tải file mẫu
+                  Step 1: Download template
                 </h3>
                 <p className='text-sm text-gray-600 mb-3'>
-                  Tải xuống file Excel mẫu và điền thông tin lớp học theo định
-                  dạng
+                  Download the Excel template and fill in the class information according to the format
                 </p>
                 <button
                   onClick={downloadTemplate}
                   className='inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium text-sm shadow-sm'
                 >
                   <Download className='w-4 h-4' />
-                  Tải file mẫu
+                  Download template
                 </button>
               </div>
             </div>
@@ -186,10 +185,10 @@ const CreateMultipleClassForm = ({ onClose }) => {
               <Upload className='w-5 h-5 text-gray-600 mt-0.5' />
               <div>
                 <h3 className='font-semibold text-gray-800 mb-1'>
-                  Bước 2: Tải lên file Excel
+                  Step 2: Upload Excel file
                 </h3>
-                <p className='text-sm text-gray-600'>
-                  Chọn file Excel đã điền thông tin để tải lên
+                <p className='text-sm text-gray-600 mb-3'>
+                  Select the filled Excel file to upload
                 </p>
               </div>
             </div>
@@ -208,7 +207,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
               >
                 <Upload className='w-6 h-6 text-gray-400' />
                 <span className='text-gray-600'>
-                  {fileName || 'Nhấn để chọn file hoặc kéo thả file vào đây'}
+                  {fileName || 'Click to select file or drag and drop file here'}
                 </span>
               </label>
             </div>
@@ -219,7 +218,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
             <div className='mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-3'>
               <div className='animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-600'></div>
               <span className='text-yellow-800 font-medium'>
-                Đang xử lý file...
+                Processing file...
               </span>
             </div>
           )}
@@ -231,13 +230,13 @@ const CreateMultipleClassForm = ({ onClose }) => {
                 <div className='flex items-center gap-2'>
                   <CheckCircle className='w-5 h-5 text-green-600' />
                   <h3 className='font-semibold text-gray-800'>
-                    Danh sách lớp đã tải ({classes.length} lớp)
+                    Uploaded class list ({classes.length} classes)
                   </h3>
                 </div>
                 <button
                   onClick={resetForm}
                   className='text-gray-500 hover:text-gray-700 p-1'
-                  title='Xóa và tải lại'
+                  title='Clear and reload'
                 >
                   <X className='w-5 h-5' />
                 </button>
@@ -249,19 +248,19 @@ const CreateMultipleClassForm = ({ onClose }) => {
                     <thead className='bg-gray-100 sticky top-0'>
                       <tr>
                         <th className='px-4 py-2 text-left font-semibold text-gray-700'>
-                          STT
+                          No.
                         </th>
                         <th className='px-4 py-2 text-left font-semibold text-gray-700'>
-                          Tên lớp
+                          Class Name
                         </th>
                         <th className='px-4 py-2 text-left font-semibold text-gray-700'>
-                          Mã môn học
+                          Subject Code
                         </th>
                         <th className='px-4 py-2 text-left font-semibold text-gray-700'>
-                          Giảng viên
+                          Lecturer
                         </th>
                         <th className='px-4 py-2 text-left font-semibold text-gray-700'>
-                          Trạng thái
+                          Status
                         </th>
                       </tr>
                     </thead>
@@ -290,8 +289,8 @@ const CreateMultipleClassForm = ({ onClose }) => {
                               }`}
                             >
                               {cls.IsActive === true || cls.IsActive === 'true'
-                                ? 'Hoạt động'
-                                : 'Không hoạt động'}
+                                ? 'Active'
+                                : 'Inactive'}
                             </span>
                           </td>
                         </tr>
@@ -310,7 +309,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
                 <AlertCircle className='w-5 h-5 text-red-600 mt-0.5 flex-shrink-0' />
                 <div className='flex-1'>
                   <h4 className='font-semibold text-red-800 mb-2'>
-                    Phát hiện lỗi dữ liệu ({errors.length} lỗi)
+                    Data errors detected ({errors.length} errors)
                   </h4>
                   <div className='space-y-2'>
                     {errors.map((err, idx) => (
@@ -319,7 +318,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
                           <p className='text-red-700'>{err.general}</p>
                         ) : (
                           <p className='text-red-700'>
-                            <span className='font-medium'>Dòng {err.row}</span>{' '}
+                            <span className='font-medium'>Row {err.row}</span>{' '}
                             ({err.name}):{' '}
                             <span className='text-red-600'>
                               {err.errors.join(', ')}
@@ -338,7 +337,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
           {uploadStatus === 'empty' && (
             <div className='mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg text-center'>
               <p className='text-gray-600'>
-                Không tìm thấy dữ liệu hợp lệ trong file
+                No valid data found in file
               </p>
             </div>
           )}
@@ -347,18 +346,18 @@ const CreateMultipleClassForm = ({ onClose }) => {
           {classes.length > 0 && errors.length === 0 && (
             <div className='flex items-center justify-between pt-4 border-t border-gray-200'>
               <p className='text-sm text-gray-600'>
-                Sẵn sàng tạo{' '}
+                Ready to create{' '}
                 <span className='font-semibold text-gray-800'>
                   {classes.length}
                 </span>{' '}
-                lớp học
+                classes
               </p>
               <button
                 onClick={handleSubmit}
                 className='inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium shadow-sm'
               >
                 <Send className='w-4 h-4' />
-                Gửi lên server
+                Submit to server
               </button>
             </div>
           )}
@@ -367,7 +366,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
       {/* errorList */}
       {apiErrors.length > 0 && (
         <div className='mt-4 p-4 bg-red-50 border border-red-300 rounded-md'>
-          <h3 className='text-red-600 font-semibold mb-2'>Danh sách lỗi:</h3>
+          <h3 className='text-red-600 font-semibold mb-2'>Error list:</h3>
           <ul className='list-disc list-inside text-red-700'>
             {apiErrors.map((err, index) => (
               <li key={index}>

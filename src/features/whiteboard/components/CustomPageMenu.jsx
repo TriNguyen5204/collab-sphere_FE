@@ -6,6 +6,8 @@ import {
   updatePageTitle,
   deletePage,
 } from '../services/whiteboardService';
+import { toast } from 'sonner';
+import useToastConfirmation from '../../../hooks/useToastConfirmation';
 
 export default function CustomPageMenu({
   whiteboardId,
@@ -14,6 +16,7 @@ export default function CustomPageMenu({
   websocket
 }) {
   const editor = useEditor();
+  const { confirmWithToast } = useToastConfirmation();
   const [open, setOpen] = useState(false);
   const [editingPageId, setEditingPageId] = useState(null);
   const [editingValue, setEditingValue] = useState('');
@@ -58,7 +61,7 @@ export default function CustomPageMenu({
     };
 
     const handleMouseLeave = (e) => {
-      // Kiểm tra nếu chuột rời khỏi cả button và menu
+      // Check if mouse leaves both button and menu
       const menuRect = menuRef.current?.getBoundingClientRect();
       const buttonRect = buttonRef.current?.getBoundingClientRect();
       
@@ -67,7 +70,7 @@ export default function CustomPageMenu({
       const mouseX = e.clientX;
       const mouseY = e.clientY;
       
-      // Tạo vùng "buffer" 20px để tránh đóng quá nhanh khi di chuyển giữa button và menu
+      // Create 20px "buffer" zone to prevent closing too fast when moving between button and menu
       const buffer = 20;
       const inMenuArea = (
         mouseX >= menuRect.left - buffer &&
@@ -89,7 +92,7 @@ export default function CustomPageMenu({
       }
     };
 
-    // Add timeout để delay việc check mouse leave (tránh đóng quá nhanh)
+    // Add timeout to delay mouse leave check (prevent closing too fast)
     let leaveTimeout;
     const delayedMouseLeave = (e) => {
       clearTimeout(leaveTimeout);
@@ -147,7 +150,7 @@ export default function CustomPageMenu({
   const startEdit = page => {
     // ✅ Prevent editing default page
     if (page.id === DEFAULT_TLDRAW_PAGE_ID) {
-      alert('Không thể đổi tên page mặc định của hệ thống.');
+      toast.error('Cannot rename the system default page.');
       return;
     }
     setEditingPageId(page.id);
@@ -171,7 +174,7 @@ export default function CustomPageMenu({
     
     // ✅ Extra safety check
     if (!numericPageId || numericPageId === 'page') {
-      alert('Không thể đổi tên page mặc định.');
+      toast.error('Cannot rename default page.');
       cancelEdit();
       return;
     }
@@ -203,7 +206,7 @@ export default function CustomPageMenu({
       }
     } catch (err) {
       console.error('💥 Rename page failed:', err);
-      alert('Failed to rename page: ' + err.message);
+      toast.error('Failed to rename page: ' + err.message);
     } finally {
       cancelEdit();
     }
@@ -214,7 +217,7 @@ export default function CustomPageMenu({
 
     // ✅ CRITICAL FIX: Prevent deleting the default Tldraw page (fake page)
     if (page.id === DEFAULT_TLDRAW_PAGE_ID) {
-      alert('⛔ Không thể xóa page mặc định của hệ thống.\n\nVui lòng tạo page mới trước khi xóa page này.');
+      toast.error('⛔ Cannot delete the system default page.\n\nPlease create a new page before deleting this one.');
       return;
     }
 
@@ -223,7 +226,7 @@ export default function CustomPageMenu({
     
     // ✅ Additional validation: Check if this is a real page from database
     if (!numericPageId || numericPageId === 'page') {
-      alert('⛔ Không thể xóa page này. Đây là page mặc định của hệ thống.');
+      toast.error('⛔ Cannot delete this page. It is the system default page.');
       return;
     }
 
@@ -232,14 +235,16 @@ export default function CustomPageMenu({
       r => r.typeName === 'page'
     );
     if (pageList.length <= 1) {
-      alert('⛔ Không thể xóa page cuối cùng.\n\nPhải có ít nhất 1 page trong whiteboard.');
+      toast.error('⛔ Cannot delete the last page.\n\nThere must be at least 1 page in the whiteboard.');
       return;
     }
 
-    const confirmDelete = window.confirm(
-      `⚠️ Xóa page "${page.name ?? 'Untitled'}"?\n\nHành động này không thể hoàn tác.`
-    );
-    if (!confirmDelete) return;
+    const confirmed = await confirmWithToast({
+      message: `⚠️ Delete page "${page.name ?? 'Untitled'}"?\n\nThis action cannot be undone.`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     try {
       // 1. Delete from API
@@ -284,14 +289,14 @@ export default function CustomPageMenu({
       }
     } catch (err) {
       console.error('💥 Delete error', err);
-      alert('❌ Lỗi khi xóa page: ' + err.message);
+      toast.error('❌ Error deleting page: ' + err.message);
     }
   };
 
   const handleCreatePage = async () => {
     const defaultTitle = 'New Page';
     const title =
-      window.prompt('📝 Nhập tên page mới:', defaultTitle) ?? defaultTitle;
+      window.prompt('📝 Enter new page name:', defaultTitle) ?? defaultTitle;
     const trimmed = title.trim();
     if (!trimmed) return;
 
@@ -337,7 +342,7 @@ export default function CustomPageMenu({
       setOpen(false);
     } catch (err) {
       console.error('💥 Create page error:', err);
-      alert('❌ Lỗi khi tạo page: ' + err.message);
+      toast.error('❌ Error creating page: ' + err.message);
     }
   };
 
@@ -429,7 +434,7 @@ export default function CustomPageMenu({
               padding: '4px 6px',
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 600 }}>Các trang ({pages.length})</div>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>Pages ({pages.length})</div>
             <div style={{ display: 'flex', gap: 6 }}>
               <button
                 onClick={handleCreatePage}
@@ -523,7 +528,7 @@ export default function CustomPageMenu({
                           }}
                         >
                           {p.name ?? 'Untitled'}
-                          {isFake && <span style={{ marginLeft: 6, fontSize: 11, color: '#999' }}>(mặc định)</span>}
+                          {isFake && <span style={{ marginLeft: 6, fontSize: 11, color: '#999' }}>(default)</span>}
                         </div>
                       </div>
                     )}
@@ -536,7 +541,7 @@ export default function CustomPageMenu({
                           e.stopPropagation();
                           startEdit(p);
                         }}
-                        title={isFake ? 'Không thể đổi tên page mặc định' : 'Rename'}
+                        title={isFake ? 'Cannot rename default page' : 'Rename'}
                         disabled={isFake}
                         style={{
                           border: 'none',
@@ -559,7 +564,7 @@ export default function CustomPageMenu({
                           e.stopPropagation();
                           handleDelete(p);
                         }}
-                        title={isFake ? 'Không thể xóa page mặc định' : 'Delete'}
+                        title={isFake ? 'Cannot delete default page' : 'Delete'}
                         disabled={isFake}
                         style={{
                           border: 'none',

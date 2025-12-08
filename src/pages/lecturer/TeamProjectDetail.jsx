@@ -451,16 +451,6 @@ const TeamProjectDetail = () => {
                >
                   Resources
                </button>
-               <button
-                  onClick={() => navigate(`/meeting/${teamId}`)}
-                  className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${
-                     activeTab === 'resources'
-                        ? 'bg-orangeFpt-500 text-white shadow-lg shadow-orangeFpt-200 scale-105'
-                        : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
-                  }`}
-               >
-                  Meeting
-               </button>
             </div>
 
             {/* --- CONTENT --- */}

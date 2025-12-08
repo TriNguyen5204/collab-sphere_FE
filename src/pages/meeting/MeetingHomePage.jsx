@@ -76,13 +76,6 @@ const MeetingHomePage = ({ teamId }) => {
                   {currentTime.toLocaleDateString('en-US', { weekday: 'long' })}
                 </span>
               </div>
-              
-              <div className='flex items-center gap-2 px-4 py-2 bg-indigo-500/20 backdrop-blur-sm rounded-full border border-indigo-400/30'>
-                <Clock className='w-4 h-4 text-indigo-300' />
-                <span className='text-indigo-100 text-sm font-medium'>
-                  Team #{teamId}
-                </span>
-              </div>
             </div>
           </div>
 

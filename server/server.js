@@ -27,7 +27,7 @@ io.on('connection', socket => {
       console.log(`${socket.name} (${socket.id}) disconnected from ${roomId}`);
       socket.to(roomId).emit('userLeft', socket.id);
       const clientsInRoom = io.sockets.adapter.rooms.get(roomId);
-      // Xóa lịch sử nếu không còn ai trong room
+      // Delete history if no one is left in the room
       if (!clientsInRoom || clientsInRoom.size === 0) {
         console.log(`🗑️ Room ${roomId} is empty, cleaning up chat history`);
         delete chatHistory[roomId];
@@ -50,19 +50,19 @@ io.on('connection', socket => {
       userId: socket.id,
     };
 
-    // Lưu vào lịch sử
+    // Save to history
     if (!chatHistory[roomId]) {
       chatHistory[roomId] = [];
     }
     chatHistory[roomId].push(chatMsg);
 
-    // Giới hạn số lượng (optional)
+    // Limit quantity (optional)
     const MAX_MESSAGES = 100;
     if (chatHistory[roomId].length > MAX_MESSAGES) {
       chatHistory[roomId] = chatHistory[roomId].slice(-MAX_MESSAGES);
     }
 
-    // Broadcast đến tất cả
+    // Broadcast to all
     io.to(roomId).emit('chatMessage', chatMsg);
   });
   socket.on('requestChatHistory', roomId => {
@@ -102,7 +102,7 @@ io.on('connection', socket => {
 
     socket.emit('allUsers', { usersInRoom, usersSharing });
 
-    // Thông báo cho những người cũ trong phòng biết có user mới
+    // Notify existing users in the room about the new user
     socket.to(roomId).emit('userJoined', {
       id: socket.id,
       name: socket.name,
@@ -119,7 +119,7 @@ io.on('connection', socket => {
     }
   });
 
-  // ✅ Handler mới: Yêu cầu screen track
+  // ✅ New Handler: Request screen track
   socket.on('requestScreenTrack', ({ targetId }) => {
     console.log(`${socket.id} requesting screen track from ${targetId}`);
     io.to(targetId).emit('requestScreenTrack', {
@@ -140,7 +140,7 @@ io.on('connection', socket => {
     });
   });
   socket.on('requestStartRecord', (roomId, callback) => {
-    // Nếu đã có người record thì từ chối, không thì cho phép và lưu lại ID người record
+    // If someone is already recording, deny; otherwise allow and save recorder ID
     if (recorders[roomId]) {
       callback({ success: false, message: 'Someone is already recording.' });
       return;

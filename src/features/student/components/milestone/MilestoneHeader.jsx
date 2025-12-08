@@ -176,7 +176,7 @@ const MilestoneHeader = ({
                 {/* Top Row: Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-12 border-b border-orange-100">
 
-                  {/* Left: Score (Điểm số - Quan trọng nhất) */}
+                  {/* Left: Score (Most important) */}
                   <div className="md:col-span-3 bg-orange-50/50 p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-orange-100">
                     <span className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Score</span>
                     <div className="relative">

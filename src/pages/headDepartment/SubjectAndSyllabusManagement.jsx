@@ -136,7 +136,7 @@ export default function SubjectManagement() {
   return (
     <HeadDashboardLayout>
       <div className='flex h-screen bg-gray-50 overflow-hidden'>
-        {/* Main Content Area - Scroll độc lập */}
+        {/* Main Content Area - Independent Scroll */}
         <div className='flex-1 flex flex-col min-w-0 overflow-hidden'>
           {/* Scrollable Container */}
           <main
@@ -159,7 +159,7 @@ export default function SubjectManagement() {
 
               {/* Main Data Card */}
               <div className='bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col'>
-                {/* Toolbar/Filters Area - Có border dưới để ngăn cách */}
+                {/* Toolbar/Filters Area - With bottom border for separation */}
                 <div className='p-5 border-b border-gray-100'>
                   <SubjectFilters
                     searchQuery={searchQuery}
@@ -194,7 +194,7 @@ export default function SubjectManagement() {
                   )}
                 </div>
 
-                {/* Pagination Footer - Background xám nhẹ để tách biệt */}
+                {/* Pagination Footer - Light gray background for separation */}
                 {totalPages > 1 && (
                   <div className='p-4 border-t border-gray-100 bg-gray-50/50 rounded-b-xl'>
                     <Pagination

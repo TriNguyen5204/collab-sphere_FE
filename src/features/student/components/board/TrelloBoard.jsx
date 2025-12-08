@@ -1,4 +1,5 @@
 import React, { useMemo, useState, forwardRef, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import {
   DndContext,
   DragOverlay,
@@ -43,9 +44,9 @@ const TrelloBoard = forwardRef(function TrelloBoard(
   const [isAddingList, setIsAddingList] = useState(false);
   const [newListTitle, setNewListTitle] = useState('');
 
-  // ✅ Ref để lưu trữ snapshot trước khi drag
+  // ✅ Ref to store snapshot before drag
   const dragSnapshotRef = useRef(null);
-  // ref để track đã init chưa
+  // ref to track if initialized
   const isInitializedRef = useRef(false);
 
   // Initialize lists from workspace data
@@ -57,11 +58,11 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     isInitializedRef.current = true;
 
     const convertedLists = workspaceData.lists.map(list => ({
-      id: String(list.id), // ✅ Đảm bảo là string
+      id: String(list.id), // ✅ Ensure it is string
       title: list.title,
       position: list.position,
       cards: list.cards.map(card => ({
-        id: String(card.id), // ✅ Đảm bảo là string
+        id: String(card.id), // ✅ Ensure it is string
         title: card.title,
         description: card.description ?? '',
         riskLevel: card.riskLevel,
@@ -107,7 +108,7 @@ const TrelloBoard = forwardRef(function TrelloBoard(
           const updated = [
             ...prev,
             {
-              id: String(data.ListId), // ✅ Đảm bảo là string
+              id: String(data.ListId), // ✅ Ensure it is string
               title: data.Title,
               position: data.Position,
               cards: [],
@@ -156,7 +157,7 @@ const TrelloBoard = forwardRef(function TrelloBoard(
                   cards: [
                     ...l.cards,
                     {
-                      id: String(cardData.CardId), // ✅ Đảm bảo là string
+                      id: String(cardData.CardId), // ✅ Ensure it is string
                       title: cardData.Title,
                       description: cardData.Description ?? '',
                       riskLevel: cardData.RiskLevel,
@@ -679,7 +680,7 @@ const TrelloBoard = forwardRef(function TrelloBoard(
   const orderedLists = useMemo(() => sortListsByPosition(lists), [lists]);
   const listIds = useMemo(() => orderedLists.map(l => l.id), [orderedLists]);
 
-  // ✅ Helper function với String comparison
+  // ✅ Helper function with String comparison
   const findCard = cardId => {
     console.log('🔍 findCard called with:', cardId, 'type:', typeof cardId);
 
@@ -707,7 +708,7 @@ const TrelloBoard = forwardRef(function TrelloBoard(
       dataType: data?.type,
     });
 
-    // ✅ Lưu snapshot trước khi drag để rollback nếu cần
+    // ✅ Save snapshot before drag to rollback if needed
     dragSnapshotRef.current = structuredClone(lists);
 
     if (data?.type === 'card') {
@@ -716,7 +717,7 @@ const TrelloBoard = forwardRef(function TrelloBoard(
       setActiveCard(found?.card || null);
       setActiveList(null);
     } else if (data?.type === 'list') {
-      // ✅ FIX: So sánh string
+      // ✅ FIX: Compare string
       const list = lists.find(l => String(l.id) === String(active.id));
       setActiveList(list || null);
       setActiveCard(null);
@@ -739,18 +740,18 @@ const TrelloBoard = forwardRef(function TrelloBoard(
 
     if (overData?.type === 'add-card') return;
 
-    // ✅ Optimistic UI update CHỈ cho card (để UX mượt hơn)
+    // ✅ Optimistic UI update ONLY for card (for smoother UX)
     if (activeData?.type === 'card' && overData?.type === 'card') {
       const from = findCard(active.id);
       const to = findCard(over.id);
       if (!from || !to) return;
 
-      // ✅ FIX: So sánh string
+      // ✅ FIX: Compare string
       if (String(from.listId) !== String(to.listId)) {
         setLists(prev => {
           const draft = structuredClone(prev);
 
-          // ✅ FIX: So sánh string
+          // ✅ FIX: Compare string
           const sourceList = draft.find(
             l => String(l.id) === String(from.listId)
           );
@@ -772,14 +773,14 @@ const TrelloBoard = forwardRef(function TrelloBoard(
       const from = findCard(active.id);
       const toListId = overData.listId;
 
-      // ✅ FIX: So sánh string
+      // ✅ FIX: Compare string
       if (from && toListId && String(from.listId) !== String(toListId)) {
         const toList = lists.find(l => String(l.id) === String(toListId));
         if (toList) {
           setLists(prev => {
             const draft = structuredClone(prev);
 
-            // ✅ FIX: So sánh string
+            // ✅ FIX: Compare string
             const sourceList = draft.find(
               l => String(l.id) === String(from.listId)
             );
@@ -832,7 +833,7 @@ const TrelloBoard = forwardRef(function TrelloBoard(
     if (activeData?.type === 'list' && overData?.type === 'list') {
       console.log('✅ List to List move detected');
 
-      // ✅ FIX: So sánh string
+      // ✅ FIX: Compare string
       const activeListItem = orderedLists.find(
         l => String(l.id) === String(active.id)
       );
@@ -848,8 +849,8 @@ const TrelloBoard = forwardRef(function TrelloBoard(
         return;
       }
 
-      // Tính toán position mới
-      // ✅ FIX: So sánh string
+      // Calculate new position
+      // ✅ FIX: Compare string
       const tempLists = orderedLists
         .filter(l => String(l.id) !== String(active.id))
         .sort((a, b) => a.position - b.position);
@@ -889,7 +890,7 @@ const TrelloBoard = forwardRef(function TrelloBoard(
         console.log('✅ MoveList request sent successfully');
       } catch (error) {
         console.error('❌ Error moving list:', error);
-        alert('Failed to move list');
+        toast.error('Failed to move list');
       }
 
       return;
@@ -910,14 +911,14 @@ const TrelloBoard = forwardRef(function TrelloBoard(
         return;
       }
 
-      // ✅ FIX: So sánh string
+      // ✅ FIX: Compare string
       const targetList = lists.find(l => String(l.id) === String(to.listId));
       if (!targetList) {
         console.log('❌ Target list not found - returning');
         return;
       }
 
-      // Tính position mới
+      // Calculate new position
       let tempCards =
         String(from.listId) === String(to.listId)
           ? targetList.cards.filter(c => String(c.id) !== String(active.id))
@@ -972,7 +973,7 @@ const TrelloBoard = forwardRef(function TrelloBoard(
       const from = findCard(active.id);
       const toListId = overData.listId;
 
-      // ✅ FIX: So sánh string
+      // ✅ FIX: Compare string
       const targetList = lists.find(l => String(l.id) === String(toListId));
       if (!targetList || !from) {
         console.log('❌ targetList or from is null - returning');
@@ -1035,7 +1036,7 @@ const TrelloBoard = forwardRef(function TrelloBoard(
       setIsAddingList(false);
     } catch (error) {
       console.error('Error creating list:', error);
-      alert('Failed to create list');
+      toast.error('Failed to create list');
     }
   };
 

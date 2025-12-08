@@ -10,7 +10,7 @@ export default function SubjectHeader({ onAddClick }) {
   return (
     // Implementation Notes: Rounded containers, light elevation (shadow-sm), generous whitespace
     <div className='bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden'>
-      <div className='p-8'> {/* Tăng padding để tạo generous whitespace */}
+      <div className='p-8'> {/* Increased padding to create generous whitespace */}
         <div className='flex items-center justify-between'>
           
           {/* Left Side: Icon & Title */}

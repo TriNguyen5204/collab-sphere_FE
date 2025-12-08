@@ -17,10 +17,12 @@ import {
 import AdminSidebar from '../../components/layout/AdminSidebar';
 import { getAllAccount, deactivateAccount } from '../../services/userService';
 import { toast } from 'sonner';
+import useToastConfirmation from '../../hooks/useToastConfirmation';
 import CreateAccountForm from '../../features/admin/components/CreateAccountForm';
 import ModalWrapper from '../../components/layout/ModalWrapper'
 
 export default function AccountManagement() {
+  const { confirmWithToast } = useToastConfirmation();
   const [selectedRole, setSelectedRole] = useState('HeadDepartment');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -160,13 +162,13 @@ export default function AccountManagement() {
     return roleMap[roleName] || roleName;
   };
 
-  const handleDeactivate = user => {
+  const handleDeactivate = async user => {
     if (selectedRole === 'HeadDepartment' || selectedRole === 'Staff') {
       toast.error('This role cannot be deactivated.');
       return;
     }
 
-    // Xác định loại ID tương ứng
+    // Determine corresponding ID type
     let id = null;
     if (selectedRole === 'Lecturer') id = user.lecturerId;
     else if (selectedRole === 'Student') id = user.studentId;
@@ -176,10 +178,14 @@ export default function AccountManagement() {
       return;
     }
 
-    // Nếu đang inactive → hỏi để active lại
+    // If inactive -> ask to activate
     if (user.isActive === false) {
-      const confirm = window.confirm('Do you want to activate this account?');
-      if (!confirm) return;
+      const confirmed = await confirmWithToast({
+        message: 'Do you want to activate this account?',
+        confirmLabel: 'Activate',
+        variant: 'info',
+      });
+      if (!confirmed) return;
 
       deactivateAccount(id)
         .then(() => {
@@ -204,11 +210,13 @@ export default function AccountManagement() {
       return;
     }
 
-    // Nếu đang active → hỏi để deactivate
-    const confirm = window.confirm(
-      'Are you sure you want to deactivate this account?'
-    );
-    if (!confirm) return;
+    // If active -> ask to deactivate
+    const confirmed = await confirmWithToast({
+      message: 'Are you sure you want to deactivate this account?',
+      confirmLabel: 'Deactivate',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     deactivateAccount(id)
       .then(() => {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
-import { LogIn, Video, Plus, Users, Clock } from 'lucide-react';
+import { LogIn, Video, Plus, Users, Clock, ArrowLeft } from 'lucide-react';
 import { createMeeting } from '../../features/meeting/services/meetingApi';
 import { toast } from 'sonner';
 import ClipLoader from 'react-spinners/ClipLoader';
@@ -11,12 +11,11 @@ function JoinPage() {
   // const roleName = useSelector(state => state.user.roleName);
   const [groupId, setGroupId] = useState('');
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const { teamId } = useParams();
 
-  // 🔧 Hàm điều hướng
+  // 🔧 Navigation function
   const cleanupAndNavigate = (path, navState) => {
     setTimeout(() => {
       navigate(path, {
@@ -27,7 +26,7 @@ function JoinPage() {
     }, 100);
   };
 
-  // 🆕 Hàm tạo meeting + room
+  // 🆕 Function to create meeting + room
   const createRoom = async () => {
     if (!title.trim()) {
       toast.error('Please enter a meeting title');
@@ -42,7 +41,7 @@ function JoinPage() {
     const payload = {
       teamId: teamId,
       title,
-      description,
+      description: '',
       meetingUrl: `https://collabsphere.space/room/${newRoomId}/${teamId}`,
       scheduleTime: new Date(now.getTime() + vnOffsetMs).toISOString(),
     };
@@ -56,7 +55,7 @@ function JoinPage() {
         cleanupAndNavigate(`/room/${newRoomId}/${teamId}`, {
           myName,
           title,
-          description,
+          description: '',
           meetingId,
           isHost: true,
         });
@@ -69,7 +68,7 @@ function JoinPage() {
     }
   };
 
-  // 🟢 Join room có sẵn
+  // 🟢 Join existing room
   const joinRoom = () => {
     if (groupId.trim()) {
       cleanupAndNavigate(`/room/${groupId}`, { myName, isHost: false });
@@ -78,140 +77,149 @@ function JoinPage() {
     }
   };
 
+  const handleBack = () => {
+    navigate(`/lecturer/meetings?teamId=${teamId}`);
+  };
+
   return (
-    <div className='min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-6'>
-      <div className='w-full max-w-5xl'>
+    <div className='min-h-screen bg-gradient-to-br from-indigo-50 via-white to-orange-50 flex items-center justify-center p-6 relative overflow-hidden'>
+      {/* Abstract Background Elements */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-orange-400/20 blur-[120px]" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/20 blur-[120px]" />
+
+      {/* Back Button */}
+      <button 
+        onClick={handleBack}
+        className="absolute top-8 left-8 flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-medium z-10"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        Back to Hub
+      </button>
+
+      <div className='w-full max-w-6xl relative z-10'>
         {/* Header Section */}
-        <div className='text-center mb-8'>
-          <div className='inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg'>
-            <Video className='w-8 h-8 text-white' />
-          </div>
-          <h1 className='text-4xl font-bold text-gray-900 mb-2'>
+        <div className='text-center mb-16'>
+          <h1 className='text-5xl font-bold text-slate-800 mb-4 tracking-tight'>
             Welcome back, {myName || 'Guest'}
           </h1>
-          <p className='text-gray-600 text-lg'>
-            Start a new meeting or join an existing one for Team #{teamId}
+          <p className='text-slate-500 text-xl font-light'>
+            Start a new meeting or join an existing one
           </p>
         </div>
 
-        {/* Main Content - Two Cards Side by Side */}
-        <div className='grid md:grid-cols-2 gap-6'>
-          {/* Create New Meeting Card */}
-          <div className='bg-white rounded-2xl shadow-xl p-8 border border-gray-100 hover:shadow-2xl transition-shadow duration-300'>
-            <div className='flex items-center gap-3 mb-6'>
-              <div className='p-2 bg-blue-100 rounded-lg'>
-                <Plus className='w-6 h-6 text-blue-600' />
-              </div>
-              <h2 className='text-2xl font-bold text-gray-900'>
-                Create Meeting
-              </h2>
-            </div>
-
-            <div className='space-y-4'>
-              {/* Title Input */}
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  Meeting Title *
-                </label>
-                <input
-                  type='text'
-                  placeholder='e.g., Team Standup'
-                  value={title}
-                  onChange={e => setTitle(e.target.value)}
-                  className='w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors bg-gray-50 focus:bg-white'
-                />
+        {/* Main Content - Two Glass Panels */}
+        <div className='grid md:grid-cols-2 gap-12'>
+          
+          {/* Create New Meeting Panel (Warm/Orange) */}
+          <div className='group relative h-full'>
+            <div className="absolute inset-0 bg-gradient-to-br from-white/80 to-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] transition-all duration-500 group-hover:shadow-[0_20px_60px_-15px_rgba(249,115,22,0.15)] group-hover:border-orange-200/50" />
+            
+            <div className="relative p-12 h-full flex flex-col">
+              {/* 3D Icon Container */}
+              <div className='mb-10'>
+                <div className='w-20 h-20 rounded-3xl bg-gradient-to-br from-orange-300 to-orange-600 shadow-[inset_0_-4px_8px_rgba(0,0,0,0.2),0_12px_24px_rgba(249,115,22,0.3)] flex items-center justify-center'>
+                  <Plus className='w-10 h-10 text-white drop-shadow-md' />
+                </div>
               </div>
 
-              {/* Description Input */}
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  Description (Optional)
-                </label>
-                <textarea
-                  placeholder='Add meeting details...'
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  className='w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors resize-none bg-gray-50 focus:bg-white'
-                  rows='4'
-                ></textarea>
-              </div>
+              <h2 className='text-3xl font-bold text-slate-800 mb-2'>Create Meeting</h2>
+              <p className="text-slate-500 mb-8">Start a new session instantly.</p>
 
-              {/* Create Button */}
-              <button
-                onClick={createRoom}
-                className='w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3.5 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 group'
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <ClipLoader size={20} color='white' />
-                    <span>Loading...</span>
-                  </>
-                ) : (
-                  <>
-                    <Plus className='w-5 h-5 group-hover:rotate-90 transition-transform duration-200' />
-                    <span>Create New Meeting</span>
-                  </>
-                )}
-              </button>
+              <div className='flex-1 flex flex-col space-y-6'>
+                <div>
+                  <label className='block text-sm font-semibold text-slate-600 mb-3 ml-1 uppercase tracking-wider text-xs'>
+                    Meeting Title
+                  </label>
+                  <input
+                    type='text'
+                    placeholder='e.g., Team Standup'
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    className='w-full px-6 py-5 rounded-2xl bg-white/50 border border-white/60 focus:border-orange-400/50 focus:ring-4 focus:ring-orange-100/50 focus:outline-none transition-all text-slate-800 placeholder:text-slate-400 backdrop-blur-sm shadow-inner'
+                  />
+                </div>
 
-              {/* Info Badge */}
-              <div className='flex items-center gap-2 text-sm text-gray-500 bg-blue-50 px-4 py-2 rounded-lg'>
-                <Clock className='w-4 h-4' />
-                <span>Meeting starts instantly</span>
+                <button
+                  onClick={createRoom}
+                  className='w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-5 rounded-2xl font-bold shadow-lg shadow-orange-500/30 hover:shadow-orange-500/40 transition-all duration-300 flex items-center justify-center gap-3 group/btn mt-4'
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <ClipLoader size={20} color='white' />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-lg">Create New Meeting</span>
+                      <Plus className='w-5 h-5 group-hover/btn:rotate-90 transition-transform duration-300' />
+                    </>
+                  )}
+                </button>
+
+                <div className='mt-auto pt-4'>
+                  <div className='flex items-center gap-3 text-sm text-slate-500 bg-white/30 px-5 py-4 rounded-2xl border border-white/40 backdrop-blur-md'>
+                    <Clock className='w-4 h-4 text-orange-500' />
+                    <span>Ready to launch instantly</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Join Existing Meeting Card */}
-          <div className='bg-white rounded-2xl shadow-xl p-8 border border-gray-100 hover:shadow-2xl transition-shadow duration-300'>
-            <div className='flex items-center gap-3 mb-6'>
-              <div className='p-2 bg-green-100 rounded-lg'>
-                <Users className='w-6 h-6 text-green-600' />
-              </div>
-              <h2 className='text-2xl font-bold text-gray-900'>Join Meeting</h2>
-            </div>
-
-            <div className='space-y-4'>
-              {/* Room ID Input */}
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  Room ID *
-                </label>
-                <input
-                  type='text'
-                  placeholder='Enter meeting code'
-                  value={groupId}
-                  onChange={e => setGroupId(e.target.value)}
-                  className='w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-green-500 focus:outline-none transition-colors bg-gray-50 focus:bg-white text-lg tracking-wider font-mono'
-                />
+          {/* Join Meeting Panel (Cool/Blue) */}
+          <div className='group relative h-full'>
+            <div className="absolute inset-0 bg-gradient-to-br from-white/80 to-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] transition-all duration-500 group-hover:shadow-[0_20px_60px_-15px_rgba(59,130,246,0.15)] group-hover:border-blue-200/50" />
+            
+            <div className="relative p-12 h-full flex flex-col">
+              {/* 3D Icon Container */}
+              <div className='mb-10'>
+                <div className='w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-400 to-blue-700 shadow-[inset_0_-4px_8px_rgba(0,0,0,0.2),0_12px_24px_rgba(59,130,246,0.3)] flex items-center justify-center'>
+                  <Users className='w-10 h-10 text-white drop-shadow-md' />
+                </div>
               </div>
 
-              {/* Join Button */}
-              <button
-                onClick={joinRoom}
-                className='w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-3.5 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 group'
-              >
-                <LogIn className='w-5 h-5 group-hover:translate-x-1 transition-transform duration-200' />
-                Join Meeting
-              </button>
+              <h2 className='text-3xl font-bold text-slate-800 mb-2'>Join Meeting</h2>
+              <p className="text-slate-500 mb-8">Connect with your team via code.</p>
 
-              {/* Spacer to align with create card */}
-              <div className='h-24'></div>
+              <div className='flex-1 flex flex-col space-y-6'>
+                <div>
+                  <label className='block text-sm font-semibold text-slate-600 mb-3 ml-1 uppercase tracking-wider text-xs'>
+                    Room ID
+                  </label>
+                  <input
+                    type='text'
+                    placeholder='Enter meeting code'
+                    value={groupId}
+                    onChange={e => setGroupId(e.target.value)}
+                    className='w-full px-6 py-5 rounded-2xl bg-white/50 border border-white/60 focus:border-blue-400/50 focus:ring-4 focus:ring-blue-100/50 focus:outline-none transition-all text-lg tracking-wider font-mono text-slate-800 placeholder:text-slate-400 backdrop-blur-sm shadow-inner'
+                  />
+                </div>
 
-              {/* Info Badge */}
-              <div className='flex items-center gap-2 text-sm text-gray-500 bg-green-50 px-4 py-2 rounded-lg'>
-                <Users className='w-4 h-4' />
-                <span>Connect with your team instantly</span>
+                <button
+                  onClick={joinRoom}
+                  className='w-full bg-slate-800 hover:bg-slate-900 text-white px-6 py-5 rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-3 group/btn mt-4'
+                >
+                  <span className="text-lg">Join Meeting</span>
+                  <LogIn className='w-5 h-5 group-hover/btn:translate-x-1 transition-transform duration-300' />
+                </button>
+                
+                <div className='mt-auto pt-4'>
+                  <div className='flex items-center gap-3 text-sm text-slate-500 px-2'>
+                    <div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_10px_rgba(74,222,128,0.5)] animate-pulse"></div>
+                    <span>Secure connection established</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+
         </div>
 
         {/* Footer Info */}
-        <div className='mt-8 text-center'>
-          <p className='text-sm text-gray-500'>
-            Your meetings are secure and private • End-to-end encrypted
+        <div className='mt-16 text-center'>
+          <p className='text-sm text-slate-400 font-medium tracking-wide uppercase opacity-60'>
+            End-to-end encrypted • Secure • Private
           </p>
         </div>
       </div>

@@ -1,28 +1,28 @@
 // Utility function to validate Excel file structure
-// Dùng cho các component upload Excel
+// Used for Excel upload components
 
 /**
- * Validate xem file Excel có đúng template không
- * @param {Array} parsedData - Data đã parse từ XLSX
- * @param {Array} requiredColumns - Danh sách cột bắt buộc
+ * Validate if Excel file matches the template
+ * @param {Array} parsedData - Data parsed from XLSX
+ * @param {Array} requiredColumns - List of required columns
  * @returns {Object} { isValid: boolean, errors: Array }
  */
 export const validateExcelStructure = (parsedData, requiredColumns) => {
   const errors = [];
 
-  // 1. Kiểm tra file có data không
+  // 1. Check if file has data
   if (!parsedData || parsedData.length === 0) {
     return {
       isValid: false,
-      errors: ['File không có dữ liệu. Vui lòng thêm dữ liệu vào file Excel.'],
+      errors: ['File has no data. Please add data to the Excel file.'],
     };
   }
 
-  // 2. Lấy headers từ dòng đầu tiên
+  // 2. Get headers from the first row
   const firstRow = parsedData[0];
   const actualColumns = Object.keys(firstRow);
 
-  // 3. Kiểm tra từng cột bắt buộc
+  // 3. Check each required column
   const missingColumns = [];
   requiredColumns.forEach(col => {
     if (!actualColumns.includes(col)) {
@@ -32,11 +32,11 @@ export const validateExcelStructure = (parsedData, requiredColumns) => {
 
   if (missingColumns.length > 0) {
     errors.push(
-      `File thiếu các cột bắt buộc: ${missingColumns.join(', ')}`
+      `File is missing required columns: ${missingColumns.join(', ')}`
     );
   }
 
-  // 4. Kiểm tra có cột thừa không (optional warning)
+  // 4. Check for extra columns (optional warning)
   const extraColumns = actualColumns.filter(
     col => !requiredColumns.includes(col)
   );
@@ -45,7 +45,7 @@ export const validateExcelStructure = (parsedData, requiredColumns) => {
     isValid: errors.length === 0,
     errors,
     warnings: extraColumns.length > 0 
-      ? [`File có các cột không cần thiết: ${extraColumns.join(', ')}`]
+      ? [`File has unnecessary columns: ${extraColumns.join(', ')}`]
       : [],
     actualColumns,
     missingColumns,
@@ -54,9 +54,9 @@ export const validateExcelStructure = (parsedData, requiredColumns) => {
 };
 
 /**
- * Generate template mẫu để download
- * @param {Array} columns - Danh sách cột
- * @param {Object} sampleData - Dữ liệu mẫu
+ * Generate sample template for download
+ * @param {Array} columns - List of columns
+ * @param {Object} sampleData - Sample data
  * @returns {Array} Template data
  */
 export const generateTemplate = (columns, sampleData) => {
@@ -68,10 +68,10 @@ export const generateTemplate = (columns, sampleData) => {
 };
 
 // ==========================================
-// TEMPLATES CHO CÁC LOẠI FILE
+// TEMPLATES FOR FILE TYPES
 // ==========================================
 
-// Template cho Student Accounts
+// Template for Student Accounts
 export const STUDENT_TEMPLATE = {
   requiredColumns: [
     'Email',
@@ -85,10 +85,10 @@ export const STUDENT_TEMPLATE = {
     'Major',
   ],
   sampleData: {
-    Email: 'nguyenvana@university.edu.vn',
+    Email: 'johndoe@university.edu.vn',
     Password: '12345',
-    Fullname: 'Nguyễn Văn A',
-    Address: '123 Đường ABC, Quận 1, TP.HCM',
+    Fullname: 'John Doe',
+    Address: '123 ABC Street, District 1, HCMC',
     PhoneNumber: '84123456789',
     YOB: 1980,
     School: 'FPT University',
@@ -99,50 +99,50 @@ export const STUDENT_TEMPLATE = {
     Email: {
       required: true,
       pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-      errorMessage: 'Email không hợp lệ',
+      errorMessage: 'Invalid Email',
     },
     Password: {
       required: true,
       minLength: 5,
-      errorMessage: 'Password phải có ít nhất 5 ký tự',
+      errorMessage: 'Password must be at least 5 characters',
     },
     Fullname: {
       required: true,
       minLength: 3,
-      errorMessage: 'Fullname phải có ít nhất 3 ký tự',
+      errorMessage: 'Fullname must be at least 3 characters',
     },
     Address: {
       required: true,
-      errorMessage: 'Address là bắt buộc',
+      errorMessage: 'Address is required',
     },
     PhoneNumber: {
       required: true,
       pattern: /^[0-9]{10,11}$/,
-      errorMessage: 'PhoneNumber phải là 10-11 chữ số',
+      errorMessage: 'PhoneNumber must be 10-11 digits',
     },
     YOB: {
       required: true,
       type: 'number',
       min: 1950,
       max: 2010,
-      errorMessage: 'YOB phải là số từ 1950-2010',
+      errorMessage: 'YOB must be a number between 1950-2010',
     },
     School: {
       required: true,
-      errorMessage: 'School là bắt buộc',
+      errorMessage: 'School is required',
     },
     StudentCode: {
       required: true,
-      errorMessage: 'StudentCode là bắt buộc',
+      errorMessage: 'StudentCode is required',
     },
     Major: {
       required: true,
-      errorMessage: 'Major là bắt buộc',
+      errorMessage: 'Major is required',
     },
   },
 };
 
-// Template cho Lecturer Accounts
+// Template for Lecturer Accounts
 export const LECTURER_TEMPLATE = {
   requiredColumns: [
     'Email',
@@ -156,10 +156,10 @@ export const LECTURER_TEMPLATE = {
     'Major',
   ],
   sampleData: {
-    Email: 'nguyenvana@university.edu.vn',
+    Email: 'johndoe@university.edu.vn',
     Password: '12345',
-    FullName: 'Nguyễn Văn A',
-    Address: '123 Đường ABC, Quận 1, TP.HCM',
+    FullName: 'John Doe',
+    Address: '123 ABC Street, District 1, HCMC',
     PhoneNumber: '84123456789',
     YOB: 1980,
     School: 'FPT University',
@@ -170,50 +170,50 @@ export const LECTURER_TEMPLATE = {
     Email: {
       required: true,
       pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-      errorMessage: 'Email không hợp lệ',
+      errorMessage: 'Invalid Email',
     },
     Password: {
       required: true,
       minLength: 5,
-      errorMessage: 'Password phải có ít nhất 5 ký tự',
+      errorMessage: 'Password must be at least 5 characters',
     },
     FullName: {
       required: true,
       minLength: 3,
-      errorMessage: 'FullName phải có ít nhất 3 ký tự',
+      errorMessage: 'FullName must be at least 3 characters',
     },
     Address: {
       required: true,
-      errorMessage: 'Address là bắt buộc',
+      errorMessage: 'Address is required',
     },
     PhoneNumber: {
       required: true,
       pattern: /^[0-9]{10,11}$/,
-      errorMessage: 'PhoneNumber phải là 10-11 chữ số',
+      errorMessage: 'PhoneNumber must be 10-11 digits',
     },
     YOB: {
       required: true,
       type: 'number',
       min: 1950,
       max: 1980,
-      errorMessage: 'YOB phải là số từ 1950-1980',
+      errorMessage: 'YOB must be a number between 1950-1980',
     },
     School: {
       required: true,
-      errorMessage: 'School là bắt buộc',
+      errorMessage: 'School is required',
     },
     LecturerCode: {
       required: true,
-      errorMessage: 'LecturerCode là bắt buộc',
+      errorMessage: 'LecturerCode is required',
     },
     Major: {
       required: true,
-      errorMessage: 'Major là bắt buộc',
+      errorMessage: 'Major is required',
     },
   },
 };
 
-// Template cho Subjects
+// Template for Subjects
 export const SUBJECT_TEMPLATE = {
   requiredColumns: [
     'SubjectCode',
@@ -238,9 +238,9 @@ export const SUBJECT_TEMPLATE = {
 };
 
 /**
- * Validate data theo rules
+ * Validate data according to rules
  * @param {Array} data - Parsed data
- * @param {Object} validationRules - Rules để validate
+ * @param {Object} validationRules - Rules to validate
  * @returns {Array} Validation errors
  */
 export const validateDataWithRules = (data, validationRules) => {
@@ -255,29 +255,29 @@ export const validateDataWithRules = (data, validationRules) => {
 
       // Check required
       if (rule.required && (!value || String(value).trim() === '')) {
-        rowErrors.push(`${field} là bắt buộc`);
+        rowErrors.push(`${field} is required`);
         return;
       }
 
-      // Skip validation nếu value trống và không required
+      // Skip validation if value is empty and not required
       if (!value && !rule.required) return;
 
       // Check type
       if (rule.type === 'number' && isNaN(Number(value))) {
-        rowErrors.push(`${field} phải là số`);
+        rowErrors.push(`${field} must be a number`);
         return;
       }
 
       // Check pattern
       if (rule.pattern && !rule.pattern.test(String(value))) {
-        rowErrors.push(rule.errorMessage || `${field} không hợp lệ`);
+        rowErrors.push(rule.errorMessage || `${field} is invalid`);
       }
 
       // Check minLength
       if (rule.minLength && String(value).length < rule.minLength) {
         rowErrors.push(
           rule.errorMessage ||
-            `${field} phải có ít nhất ${rule.minLength} ký tự`
+            `${field} must be at least ${rule.minLength} characters`
         );
       }
 
@@ -286,12 +286,12 @@ export const validateDataWithRules = (data, validationRules) => {
         const numValue = Number(value);
         if (rule.min && numValue < rule.min) {
           rowErrors.push(
-            rule.errorMessage || `${field} phải lớn hơn hoặc bằng ${rule.min}`
+            rule.errorMessage || `${field} must be greater than or equal to ${rule.min}`
           );
         }
         if (rule.max && numValue > rule.max) {
           rowErrors.push(
-            rule.errorMessage || `${field} phải nhỏ hơn hoặc bằng ${rule.max}`
+            rule.errorMessage || `${field} must be less than or equal to ${rule.max}`
           );
         }
       }
@@ -299,8 +299,8 @@ export const validateDataWithRules = (data, validationRules) => {
 
     if (rowErrors.length > 0) {
       errors.push({
-        row: index + 2, // +2 vì excel có header ở dòng 1
-        name: row.Fullname || row.FullName || row.SubjectCode || 'Không có tên',
+        row: index + 2, // +2 because excel has header at row 1
+        name: row.Fullname || row.FullName || row.SubjectCode || 'No name',
         errors: rowErrors,
       });
     }

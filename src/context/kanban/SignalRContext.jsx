@@ -1,7 +1,7 @@
 import React, { createContext, useEffect, useState } from 'react';
 import * as signalR from '@microsoft/signalr';
 
-// ✅ Export context để hook có thể dùng
+// ✅ Export context so hook can use it
 export const SignalRContext = createContext(null);
 
 export const SignalRProvider = ({ children, hubUrl, token, workspaceId }) => {

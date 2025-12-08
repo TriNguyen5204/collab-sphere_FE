@@ -105,10 +105,10 @@ export const ParticipantVideo = ({ peer, userId, userName, isSharing, isMainView
     };
   }, [peer, userId, userName]);
 
-  // Hiển thị tên user
+  // Display user name
   const displayName = userName || `User ${userId.slice(0, 6)}`;
 
-  // Main view (khi đang share màn hình - view lớn)
+  // Main view (when sharing screen - large view)
   if (isMainView) {
     return (
       <div className="relative w-full h-full flex items-center justify-center bg-black">
@@ -140,7 +140,7 @@ export const ParticipantVideo = ({ peer, userId, userName, isSharing, isMainView
     );
   }
 
-  // Thumbnail view (sidebar nhỏ)
+  // Thumbnail view (small sidebar)
   if (isThumbnail) {
     return (
       <div className="relative bg-[#3c4043] rounded-xl overflow-hidden aspect-video group hover:ring-2 hover:ring-[#8ab4f8] transition-all shadow-lg">
@@ -169,7 +169,7 @@ export const ParticipantVideo = ({ peer, userId, userName, isSharing, isMainView
     );
   }
 
-  // Default grid view (layout bình thường) - Google Meet Style
+  // Default grid view (normal layout) - Google Meet Style
   return (
     <div className="relative group h-full">
       <div className="relative h-full rounded-2xl overflow-hidden bg-[#3c4043] shadow-xl hover:shadow-2xl transition-all">

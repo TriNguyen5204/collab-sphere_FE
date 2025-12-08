@@ -1,5 +1,6 @@
 // CollabEditor.jsx - Microsoft Word Style Layout (FIXED VERSION)
 import React, { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { useSelector } from 'react-redux';
 import * as Y from 'yjs';
 import { SignalRYjsProvider } from './hooks/SignalRYjsProvider';
@@ -256,7 +257,7 @@ const CollabEditor = () => {
     const blob = new Blob([htmlContent], { type });
     const data = [new ClipboardItem({ [type]: blob })];
     navigator.clipboard.write(data).then(() => {
-      alert('Copied to clipboard!');
+      toast.success('Copied to clipboard!');
     });
   };
 

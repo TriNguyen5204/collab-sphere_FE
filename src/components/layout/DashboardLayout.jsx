@@ -21,9 +21,6 @@ import useClickOutside from '../../hooks/useClickOutside';
 import { useAvatar } from '../../hooks/useAvatar';
 import AIChatAssistant from '../../features/ai/components/AIChatAssistant';
 import { getRoleLandingRoute } from '../../constants/roleRoutes';
-import { SignalRChatProvider } from '../../features/chat/hooks/SignalrChatProvider';
-import { getChat } from '../../features/chat/services/chatApi';
-import NotificationBell from '../../features/chat/components/NotificationBell';
 
 const LecturerHeader = ({
   fullName,
@@ -46,85 +43,6 @@ const LecturerHeader = ({
   const roleName = useSelector(state => state.user.roleName);
   useClickOutside(searchRef, () => setOpenSearch(false));
   useClickOutside(profileRef, () => setOpenProfile(false));
-
-  //state for notification
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [provider, setProvider] = useState(null);
-
-  const accessToken = useSelector(state => state.user.accessToken);
-  const [connectedConversationIds, setConnectedConversationIds] = useState([]);
-
-  // Fetch conversation IDs
-  useEffect(() => {
-    const fetchConversationId = async () => {
-      try {
-        const response = await getChat();
-        if (response && response.chatConversations) {
-          const conversationIds = response.chatConversations.map(
-            c => c.conversationId
-          );
-          setConnectedConversationIds(conversationIds);
-        }
-      } catch (error) {
-        console.error('Failed to fetch chat conversations:', error);
-      }
-    };
-
-    fetchConversationId();
-  }, []);
-
-  // Initialize SignalR provider
-  useEffect(() => {
-    if (!accessToken || connectedConversationIds.length === 0) {
-      return;
-    }
-
-    const chatProvider = new SignalRChatProvider(
-      connectedConversationIds,
-      accessToken
-    );
-
-    chatProvider.connect();
-    setProvider(chatProvider);
-
-    return () => {
-      chatProvider.disconnect();
-      setProvider(null);
-    };
-  }, [accessToken, connectedConversationIds]);
-
-  // Set up notification listeners
-  useEffect(() => {
-    if (!provider) return;
-
-    const onReceiveNoti = receivedNoti => {
-      console.log('New notification:', receivedNoti);
-      setNotifications(prev => [...prev, receivedNoti]);
-      setUnreadCount(prev => prev + 1);
-    };
-
-    const onReceiveAllNoti = receivedNotis => {
-      console.log('All notifications:', receivedNotis);
-      setNotifications(receivedNotis);
-
-      // Count unread
-      const unread = receivedNotis.filter(n => !n.isRead).length;
-      setUnreadCount(unread);
-    };
-
-    provider.onNotiReceived(onReceiveNoti);
-    provider.onNotiHistoryReceived(onReceiveAllNoti);
-
-    return () => {
-      provider.offNotiReceived(onReceiveNoti);
-      provider.offNotiHistoryReceived(onReceiveAllNoti);
-    };
-  }, [provider]);
-
-  const handleNotificationOpen = () => {
-    setUnreadCount(0);
-  };
 
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -200,16 +118,6 @@ const LecturerHeader = ({
               </div>
             )}
           </div>
-          <MessageCircleMoreIcon
-            size={45}
-            onClick={() => navigate('/student/project/chat')}
-            className='text-gray-500 cursor-pointer transition-all duration-200 hover:text-blue-700 hover:bg-blue-50 hover:border-blue-300 hover:shadow-md hover:rotate-3 active:scale-95 p-2 rounded-lg border border-transparent'
-          />
-          <NotificationBell
-            notifications={notifications}
-            unreadCount={unreadCount}
-            onOpen={handleNotificationOpen}
-          />
           <div className='relative ml-auto' ref={profileRef}>
             {isAuthenticated ? (
               <>
@@ -445,23 +353,11 @@ const DashboardLayout = ({ children }) => {
         path === '/chat' || path.startsWith('/chat/'),
     },
     {
-      label: 'Analytics',
-      href: '/lecturer/analytics',
-      icon: ChartBarIcon,
-      match: path => path === '/lecturer/analytics' || path.startsWith('/lecturer/analytics/')
+      label: 'Meetings',
+      href: '/lecturer/meetings',
+      icon: CalendarDaysIcon,
+      match: path => path === '/lecturer/meetings' || path.startsWith('/lecturer/meetings/')
     },
-    // {
-    //   label: 'Meetings',
-    //   href: '/lecturer/meetings',
-    //   icon: CalendarDaysIcon,
-    //   match: path => path === '/lecturer/meetings' || path.startsWith('/lecturer/meetings/')
-    // },
-    // {
-    //   label: 'Tools',
-    //   href: '/lecturer/tools',
-    //   icon: WrenchScrewdriverIcon,
-    //   match: path => path === '/lecturer/tools' || path.startsWith('/lecturer/tools/')
-    // },
   ];
 
   const computedNavigationItems = useMemo(

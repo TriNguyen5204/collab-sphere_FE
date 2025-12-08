@@ -315,7 +315,7 @@ export const getAllProject = async (params = {}) => {
         PageSize: 9,
       },
       paramsSerializer: {
-        indexes: null, // quan trọng: giúp Axios format array như ?SubjectIds=10&SubjectIds=11
+        indexes: null, // Important: helps Axios format array like ?SubjectIds=10&SubjectIds=11
       },
     });
 

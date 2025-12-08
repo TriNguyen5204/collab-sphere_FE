@@ -690,7 +690,7 @@ export default function ClassDetail() {
                   <Table
                     headers={['Select', 'Avatar', 'Student Code', 'Full Name']}
                     rows={studentList.map(s => [
-                      // Checkbox chọn
+                      // Selection checkbox
                       <input
                         type='checkbox'
                         checked={selectedStudents.some(

@@ -1,15 +1,27 @@
 // RoomList.jsx - Microsoft Word Style
 import React, { useState } from 'react'
+import { toast } from 'sonner';
+import useToastConfirmation from '../../../hooks/useToastConfirmation';
 import { deleteDocumentRoom } from "../services/textEditorApi"
 import { Folder, Clock, Trash2, FileText, AlertCircle } from "lucide-react"
 
 const RoomList = ({ rooms, currentRoomName, onRoomSelect, onRoomDeleted, teamId }) => {
+    const confirmWithToast = useToastConfirmation();
     const [deletingRoom, setDeletingRoom] = useState(null);
 
     const handleDeleteRoom = async (roomName, e) => {
         e.stopPropagation();
         
-        if (!window.confirm(`Delete "${roomName}"?\n\nThis action cannot be undone.`)) {
+        const confirmed = await confirmWithToast(
+            `Delete "${roomName}"?`,
+            {
+                description: "This action cannot be undone.",
+                confirmText: "Delete",
+                cancelText: "Cancel"
+            }
+        );
+
+        if (!confirmed) {
             return;
         }
 
@@ -18,9 +30,10 @@ const RoomList = ({ rooms, currentRoomName, onRoomSelect, onRoomDeleted, teamId 
         try {
             await deleteDocumentRoom(teamId, roomName);
             onRoomDeleted(roomName);
+            toast.success(`Deleted "${roomName}"`);
         } catch (error) {
             console.error("Error deleting room:", error);
-            alert("Failed to delete room. Please try again.");
+            toast.error("Failed to delete room. Please try again.");
         } finally {
             setDeletingRoom(null);
         }

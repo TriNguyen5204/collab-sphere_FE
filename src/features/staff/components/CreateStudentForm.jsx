@@ -47,7 +47,7 @@ const CreateStudentForm = ({ onClose }) => {
     setMessage('');
 
     try {
-      // chuẩn bị FormData (nếu backend nhận file upload)
+      // Prepare FormData (if backend accepts file upload)
       const formData = new FormData();
       formData.append('email', student.email);
       formData.append('password', student.password);
