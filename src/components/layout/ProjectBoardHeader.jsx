@@ -32,11 +32,10 @@ const ProjectBoardHeader = ({
 
   // Fetch conversation IDs
   useEffect(() => {
-    if (!team?.teamId) return;
 
     const fetchConversationId = async () => {
       try {
-        const response = await getChat(team.teamId);
+        const response = await getChat();
         if (response && response.chatConversations) {
           const conversationIds = response.chatConversations.map(
             c => c.conversationId
@@ -49,7 +48,7 @@ const ProjectBoardHeader = ({
     };
 
     fetchConversationId();
-  }, [team?.teamId]);
+  }, []);
 
   // Initialize SignalR provider
   useEffect(() => {
@@ -134,7 +133,7 @@ const ProjectBoardHeader = ({
       <div className='flex items-center space-x-3'>
         <MessageCircleMoreIcon
           size={45}
-          onClick={() => navigate('/student/project/chat')}
+          onClick={() => navigate('/chat')}
           className='text-gray-500 cursor-pointer transition-all duration-200 hover:text-blue-700 hover:bg-blue-50 hover:border-blue-300 hover:shadow-md hover:rotate-3 active:scale-95 p-2 rounded-lg border border-transparent'
         />
 

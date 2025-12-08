@@ -23,7 +23,6 @@ const CreateMultipleClassForm = ({ onClose }) => {
     const template = [
       {
         ClassName: 'SE1234',
-        EnrolKey: 'ENR123',
         SubjectCode: 'CS101',
         SemesterCode: 'FA252',
         LecturerCode: 'GV001',
@@ -55,14 +54,13 @@ const CreateMultipleClassForm = ({ onClose }) => {
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
         const filteredData = jsonData.filter(
-          row => row.ClassName && row.EnrolKey && row.SubjectCode
+          row => row.ClassName && row.SubjectCode
         );
 
         const validationErrors = [];
         filteredData.forEach((cls, index) => {
           const rowErrors = [];
           if (!cls.ClassName?.trim()) rowErrors.push('Thiếu ClassName');
-          if (!cls.EnrolKey?.trim()) rowErrors.push('Thiếu EnrolKey');
           if (!cls.SubjectCode?.trim()) rowErrors.push('Thiếu SubjectCode');
           if (!cls.SemesterCode?.trim()) rowErrors.push('Thiếu SemesterCode');
           if (!cls.LecturerCode?.trim()) rowErrors.push('Thiếu LecturerCode');

@@ -6,7 +6,7 @@ export const getLecturerClasses = async (lecturerId, params = {}) => {
   }
 
   const response = await apiClient.get(`/class/lecturer/${lecturerId}`, { params });
-  return response.data;
+  return response.data.list;
 };
 
 export const getClassTeams = async (classId, params = {}) => {

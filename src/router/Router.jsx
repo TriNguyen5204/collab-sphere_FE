@@ -55,6 +55,7 @@ import AcademicList from '../pages/academic/AcademicList';
 import AcademicCreate from '../pages/academic/AcademicCreate';
 import AcademicDetail from '../pages/academic/AcademicDetail';
 import LecturerListStaff from '../pages/staff/LecturerListStaff';
+import AccountDetail from '../pages/staff/AccountDetail';
 import ClassListStaff from '../pages/staff/ClassListStaff';
 import ClassDetail from '../pages/staff/ClassDetail';
 
@@ -114,14 +115,14 @@ const studentRoutes = [
   { path: '/student/:className/syllabus', element: protectRoute(['STUDENT'], <StudentClassSyllabusPage />) },
   { path: '/student/project/peer-evaluation', element: protectRoute(['STUDENT'], <PeerEvaluationPage />) },
 
-  { path: '/student/project/meeting-room', element: protectRoute(['STUDENT', 'LECTURER'], <Layout/>) },
-  { path: '/student/project/join-room/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <RoomJoinPage/>)},
-  { path: '/room/:roomId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingRoomTest/>)},
+  { path: '/meeting/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <Layout/>) },
+  { path: '/join-room/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <RoomJoinPage/>)},
+  { path: '/room/:roomId/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingRoomTest/>)},
   { path: '/meeting/history/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingManagement/> )},
   { path: '/meeting/schedule/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingSchedulerFull/> )},
   { path: '/student/project/whiteboard',  element: protectRoute(['STUDENT', 'LECTURER'], <Whiteboard/>)},
   { path: '/student/project/text-editor', element: protectRoute(['STUDENT', 'LECTURER'], <CollabEditor/>)},
-  { path: '/student/project/chat', element: protectRoute(['STUDENT', 'LECTURER'], <ChatComponent/>)},
+  { path: '/chat', element: protectRoute(['STUDENT', 'LECTURER'], <ChatComponent/>)},
 ];
 
 const authenticatedRoles = ['STUDENT', 'LECTURER', 'STAFF', 'HEAD_DEPARTMENT', 'ADMIN'];
@@ -165,11 +166,11 @@ const lecturerRoutes = [
 ];
 
 const staffRoutes = [
-  { path: '/staff', element: protectRoute(['STAFF'], <StaffPage />) },
   { path: '/academic', element: protectRoute(['STAFF'], <AcademicList />) },
   { path: '/academic/new', element: protectRoute(['STAFF'], <AcademicCreate />) },
   { path: '/academic/:id', element: protectRoute(['STAFF'], <AcademicDetail />) },
   { path: '/staff/lecturers', element: protectRoute(['STAFF'], <LecturerListStaff />) },
+  { path: '/staff/lecturers/:accountId', element: protectRoute(['STAFF'], <AccountDetail />) },
   { path: '/staff/classes', element: protectRoute(['STAFF'], <ClassListStaff />) },
   { path: '/staff/classes/:classId', element: protectRoute(['STAFF'], <ClassDetail />) },
 ];

@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { Kanban, Flag, CheckSquare, MessageSquare, ClipboardList, ChevronDown, UsersRound, VideoIcon, CircuitBoardIcon, FileText  } from 'lucide-react';
 import useClickOutside from '../../../hooks/useClickOutside';
+import useTeam from '../../../context/useTeam';
 
 const ProjectBoardViewMenu = () => {
   const [open, setOpen] = useState(false);
@@ -11,13 +12,14 @@ const ProjectBoardViewMenu = () => {
 
   const encodedProjectName = encodeURIComponent(projectName ?? '');
   const effectiveTeamId = teamId || legacyTeamId;
+  const { team } = useTeam();
 
   const menuItems = [
     { name: 'Team Workspace', icon: UsersRound, path: `/student/project/team-workspace` },
     { name: 'Task Board', icon: Kanban, path: `/student/project/task-board` },
     { name: 'Milestones & Checkpoints', icon: Flag, path: `/student/project/milestones&checkpoints` },
     { name: 'Peer Evaluation', icon: UsersRound, path: `/student/project/peer-evaluation` },
-    { name: 'Meeting room', icon: VideoIcon, path: `/student/project/meeting-room`},
+    { name: 'Meeting room', icon: VideoIcon, path: `/meeting/${team?.teamId}`},
     { name: 'Whiteboard', icon: CircuitBoardIcon, path: `/student/project/whiteboard`},
     { name: 'Text Editor', icon: FileText, path: `/student/project/text-editor`},
   ];
