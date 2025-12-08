@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Calendar, Clock, X, AlertCircle, FileText, Loader2, Trash2, History, User, Upload, CheckCircle, ChevronRight } from 'lucide-react';
-import useClickOutside from '../../../../hooks/useClickOutside';
 import useTeam from '../../../../context/useTeam';
 import { useSecureFileHandler } from '../../../../hooks/useSecureFileHandler';
 import useIsoToLocalTime from '../../../../hooks/useIsoToLocalTime';
@@ -197,6 +196,7 @@ const CheckpointCardModal = ({
     const [isEditMenuOpen, setIsEditMenuOpen] = useState(false);
     const [isSavingEdit, setIsSavingEdit] = useState(false);
     const [editError, setEditError] = useState(null);
+    const [editErrors, setEditErrors] = useState({});
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState(null);
     const [activeSubmissionKey, setActiveSubmissionKey] = useState(null);
@@ -253,6 +253,7 @@ const CheckpointCardModal = ({
         if (!isEditMenuOpen) {
             setEditFormState(defaultEditForm);
             setEditError(null);
+            setEditErrors({});
             setIsSavingEdit(false);
         }
     }, [defaultEditForm, isEditMenuOpen]);
@@ -303,24 +304,6 @@ const CheckpointCardModal = ({
             setDeleteError(null);
         }
     }, [isOpen]);
-
-    useClickOutside(modalRef, () => {
-        if (isOpen) {
-            onClose?.();
-        }
-    });
-
-    useClickOutside(assignContainerRef, () => {
-        if (isAssignMenuOpen) {
-            setIsAssignMenuOpen(false);
-        }
-    });
-
-    useClickOutside(editContainerRef, () => {
-        if (isEditMenuOpen) {
-            setIsEditMenuOpen(false);
-        }
-    });
 
     useEffect(() => {
         if (!isOpen) {
@@ -431,26 +414,41 @@ const CheckpointCardModal = ({
         setIsSavingEdit(false);
     };
 
+    const handleEditFormChange = (field, value) => {
+        setEditFormState(prev => ({ ...prev, [field]: value }));
+
+        // Clear specific error when user types
+        if (editErrors[field]) {
+            setEditErrors(prev => {
+                const next = { ...prev };
+                delete next[field];
+                return next;
+            });
+        }
+    };
+
     const handleConfirmEdit = async () => {
         if (!canEdit || checkpointId == null || typeof onUpdateCheckpoint !== 'function') {
             return;
         }
 
+        // Reset all errors
+        setEditErrors({});
+        setEditError(null);
+
         const trimmedTitle = (editFormState.title ?? '').trim();
-        if (!trimmedTitle) {
-            setEditError('Title is required.');
-            return;
-        }
-
+        const trimmedDescription = (editFormState.description ?? '').trim();
         const dueDateValue = editFormState.dueDate ?? '';
-        if (!dueDateValue) {
-            setEditError('Due date is required.');
-            return;
-        }
-
         const normalizedComplexity = (editFormState.complexity ?? 'LOW').toString().toUpperCase();
-        if (!['LOW', 'MEDIUM', 'HIGH'].includes(normalizedComplexity)) {
-            setEditError('Complexity must be Low, Medium, or High.');
+
+        // Frontend Validation
+        const newErrors = {};
+        if (!trimmedTitle) newErrors.title = 'Title is required.';
+        if (!trimmedDescription) newErrors.description = 'Description is required.';
+        if (!dueDateValue) newErrors.dueDate = 'Due date is required.';
+
+        if (Object.keys(newErrors).length > 0) {
+            setEditErrors(newErrors);
             return;
         }
 
@@ -473,29 +471,55 @@ const CheckpointCardModal = ({
         const payload = {
             teamMilestoneId,
             title: trimmedTitle,
-            description: (editFormState.description ?? '').trim(),
+            description: trimmedDescription,
             complexity: normalizedComplexity,
             startDate: editFormState.startDate ? editFormState.startDate : null,
             dueDate: dueDateValue,
         };
 
         setIsSavingEdit(true);
-        setEditError(null);
 
         try {
             await onUpdateCheckpoint(checkpointId, payload);
             setIsEditMenuOpen(false);
-        } catch (submitError) {
-            const responseData = submitError?.response?.data;
-            let message = submitError?.message ?? 'Failed to update checkpoint.';
-            if (typeof responseData === 'string') {
-                message = responseData;
-            } else if (responseData && typeof responseData === 'object' && responseData.message) {
-                message = responseData.message;
-            } else if (Array.isArray(responseData) && responseData.length > 0) {
-                message = responseData[0]?.message ?? message;
+        } catch (error) {
+            const data = error?.response?.data;
+            const apiErrors = {};
+            let genericMsg = null;
+
+            // CASE 1: Validation Errors (Title, Description) - Object format
+            if (data?.errors) {
+                Object.keys(data.errors).forEach((key) => {
+                    const message = data.errors[key][0];
+                    const fieldName = key.charAt(0).toLowerCase() + key.slice(1);
+                    apiErrors[fieldName] = message;
+                });
             }
-            setEditError(message);
+            // CASE 2: Logic Errors (Dates) - Array format
+            else if (Array.isArray(data)) {
+                data.forEach((err) => {
+                    if (err.field && err.message) {
+                        const fieldName = err.field.charAt(0).toLowerCase() + err.field.slice(1);
+                        apiErrors[fieldName] = err.message;
+                    } else if (typeof err === 'string') {
+                        genericMsg = err;
+                    } else if (err.message) {
+                        genericMsg = err.message;
+                    }
+                });
+            }
+            // CASE 3: Fallback / Generic
+            else {
+                genericMsg = data?.message || error?.message || 'Please check your input and try again.';
+            }
+
+            // Set state
+            if (Object.keys(apiErrors).length > 0) {
+                setEditErrors(apiErrors);
+            }
+            if (genericMsg) {
+                setEditError(genericMsg);
+            }
         } finally {
             setIsSavingEdit(false);
         }
@@ -718,10 +742,11 @@ const CheckpointCardModal = ({
                                 onToggleMenu={handleToggleEditMenu}
                                 onCloseMenu={handleCloseEditMenu}
                                 formState={editFormState}
-                                onChange={setEditFormState}
+                                onChange={handleEditFormChange}
                                 onSubmit={handleConfirmEdit}
                                 isSubmitting={isSavingEdit}
                                 errorMessage={editError}
+                                errors={editErrors}
                             />
                             <button
                                 type="button"
@@ -882,19 +907,10 @@ const CheckpointCardModal = ({
                                                                 </div>
                                                                 <div className="min-w-0 space-y-1">
                                                                     <div className="flex items-center gap-2">
-                                                                        <p className="truncate text-sm font-semibold text-orangeFpt-500 max-w-[26rem]">
-                                                                            {submission.name}
-                                                                        </p>
-                                                                        <ChevronRight size={16} className="text-gray-400" />
-                                                                        <span className="text-xs text-gray-500">
-                                                                            {submission.sizeLabel}
-                                                                        </span>
+                                                                        <p className={'truncate text-sm font-semibold max-w-[30rem] text-orangeFpt-500'}>{submission.name}</p>
+                                                                        <span className="text-xs font-medium text-gray-400">{submission.sizeLabel}</span>
                                                                     </div>
-                                                                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                                                                        <span className="flex items-center gap-2">
-                                                                            Submitted by {submission.studentName || submission.uploadedBy || "Student"} • {submission.submittedAtLabel}
-                                                                        </span>
-                                                                    </div>
+                                                                    <p className="text-xs text-gray-500">{submission.studentName || "Student"} • {submission.submittedAtLabel}</p>
                                                                 </div>
                                                             </button>
                                                             {!readOnly && typeof onDeleteSubmission === 'function' && (

@@ -111,22 +111,12 @@ const MilestoneFilesModal = ({ isOpen, files = [], milestoneId = null, onClose =
                       <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-orangeFpt-100 text-orangeFpt-500">
                         {isOpening ? <Loader2 className="h-6 w-6 animate-spin" /> : <FileText size={20} />}
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-orangeFpt-500 flex items-center gap-2">
-                          <span className="truncate" title={file?.name || 'File'}>
-                            {file?.name || 'File'}
-                          </span>
-                          {sizeLabel && (
-                            <span className="flex-shrink-0 text-xs text-gray-500">
-                              &gt; {sizeLabel}
-                            </span>
-                          )}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                              <span className="flex items-center gap-2">
-                                  Uploaded by {file?.owner || 'Lecturer'} • {formattedCreatedAt}
-                              </span>
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <p className={'truncate text-sm font-semibold max-w-[30rem] text-orangeFpt-500'}>{file?.name || 'File'}</p>
+                          <span className="text-xs font-medium text-gray-400">{sizeLabel}</span>
                         </div>
+                        <p className="text-xs text-gray-500">{file?.owner || 'Lecturer'} • {formattedCreatedAt}</p>
                       </div>
                     </button>
                   </li>

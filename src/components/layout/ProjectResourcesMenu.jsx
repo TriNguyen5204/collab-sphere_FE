@@ -210,11 +210,19 @@ const ProjectResourcesMenu = () => {
     }
   }, [currentFolder, activeTab]);
 
+  // --- UPDATED: CLICK HANDLER ---
   const closeMenuOnOutsideClick = useCallback((event) => {
+    // 1. Existing checks for menu elements
     if (overflowMenuRef.current?.contains(event.target)) return;
     if (overflowButtonRef.current?.contains(event.target)) return;
     if (menuRef.current?.contains(event.target)) return;
     if (buttonRef.current?.contains(event.target)) return;
+
+    // 2. NEW CHECK: Detect interactions with Sonner Toasts
+    // This looks for the toast container or individual toast elements in the DOM
+    if (event.target.closest('[data-sonner-toaster]')) return;
+    if (event.target.closest('[data-sonner-toast]')) return;
+
     setIsOpen(false);
   }, []);
 
@@ -258,28 +266,23 @@ const ProjectResourcesMenu = () => {
   // --- IMPROVED OVERFLOW LOGIC (OffsetTop Detection) ---
   const recalcFolderOverflow = useCallback(() => {
     const measureContainer = folderMeasureRef.current;
-    // CRITICAL FIX: If container width is 0 (hidden/animating), do NOT run calculation yet.
     if (!measureContainer || measureContainer.clientWidth < 50) {
       return;
     }
 
     const containerWidth = measureContainer.clientWidth;
-    // Get Styles to measure gap
     const computedStyle = typeof window !== "undefined" ? window.getComputedStyle(measureContainer) : null;
     const gapValue = computedStyle ? parseFloat(computedStyle.columnGap || computedStyle.gap || "8") : 8;
     const ellipsisWidth = ellipsisMeasureRef.current?.offsetWidth || 34;
 
-    // 1. Group Keys by Row using OffsetTop
     const rows = [];
     let currentTop = -1;
     let currentRow = [];
 
-    // Keys must be iterated in DOM order. folderKeys array order matches render order.
     folderKeys.forEach((key) => {
         const el = folderRefs.current[key];
         if (!el) return;
         
-        // If top changes significantly (> 5px tolerance), it's a new row
         if (currentTop === -1) {
             currentTop = el.offsetTop;
             currentRow.push(key);
@@ -293,7 +296,6 @@ const ProjectResourcesMenu = () => {
     });
     if (currentRow.length > 0) rows.push(currentRow);
 
-    // 2. If fits within limit, show all
     if (rows.length <= MAX_FOLDER_ROWS) {
         setHasFolderOverflow(false);
         setOverflowFolderKeys([]);
@@ -301,19 +303,12 @@ const ProjectResourcesMenu = () => {
         return;
     }
 
-    // 3. Handle Overflow
-    // Rows 0 to MAX-2 are safe (e.g., Row 0, Row 1)
     const safeRows = rows.slice(0, MAX_FOLDER_ROWS - 1);
     const visibleKeys = safeRows.flat();
     
-    // Row MAX-1 (e.g., Row 2) is the "Candidate Row" where we fit the ellipsis
     let candidateRowKeys = [...rows[MAX_FOLDER_ROWS - 1]]; 
-    
-    // Collect everything else into overflow
     let overflowKeys = rows.slice(MAX_FOLDER_ROWS).flat();
 
-    // 4. Shrink candidate row until ellipsis fits
-    // We measure widths manually for the candidate row to ensure precision
     const getRowWidth = (keys) => {
         let w = 0;
         keys.forEach((k, i) => {
@@ -328,12 +323,10 @@ const ProjectResourcesMenu = () => {
         const currentW = getRowWidth(candidateRowKeys);
         const gapForEllipsis = candidateRowKeys.length > 0 ? gapValue : 0;
         
-        // If (Items Width + Gap + Ellipsis Width) fits in container
         if (currentW + gapForEllipsis + ellipsisWidth <= containerWidth) {
-            break; // It fits!
+            break; 
         }
         
-        // Does not fit, move last item to overflow
         const popped = candidateRowKeys.pop();
         if (popped) overflowKeys.unshift(popped);
     }
@@ -342,16 +335,14 @@ const ProjectResourcesMenu = () => {
     setVisibleFolderKeys([...visibleKeys, ...candidateRowKeys]);
     setOverflowFolderKeys(overflowKeys);
 
-  }, [folderKeys, isOpen]); // Rerun when keys change or menu opens
+  }, [folderKeys, isOpen]); 
 
-  // Trigger calculation when menu opens and DOM settles
   useLayoutEffect(() => {
     if (!isOpen) return;
-    const timer = setTimeout(() => recalcFolderOverflow(), 0); // Next tick
+    const timer = setTimeout(() => recalcFolderOverflow(), 0); 
     return () => clearTimeout(timer);
   }, [isOpen, recalcFolderOverflow]);
 
-  // Resize Observer for robust responsiveness
   useEffect(() => {
     if (!isOpen || !folderMeasureRef.current) return;
     const ro = new ResizeObserver(() => recalcFolderOverflow());
@@ -388,19 +379,33 @@ const ProjectResourcesMenu = () => {
     }
     setIsUploading(true);
     const normalizedPath = ensurePathPrefix(pendingFolder);
+    const remainingFiles = [...pendingFiles];
+    let uploadedCount = 0;
     try {
       for (const file of pendingFiles) {
         const formData = new FormData();
         formData.append("pathPrefix", normalizedPath);
-        formData.append("file", file);
-        await postTeamResourceFilebyTeamId(teamId, formData);
+        formData.append("file", file, file.name);
+        try {
+          await postTeamResourceFilebyTeamId(teamId, formData);
+          uploadedCount += 1;
+          const removalIndex = remainingFiles.findIndex((item) => item === file);
+          if (removalIndex > -1) remainingFiles.splice(removalIndex, 1);
+        } catch (error) {
+          console.error("Failed to upload resource", file.name, error);
+          toast.error(error?.response?.data?.errorList?.[0]?.message || "Upload failed.");
+        }
       }
-      toast.success("Uploaded successfully.");
-      setPendingFiles([]);
-      await fetchResources({ showSpinner: false });
+
+      if (uploadedCount > 0) {
+        toast.success(`Uploaded ${uploadedCount} file${uploadedCount > 1 ? "s" : ""}.`);
+        await fetchResources({ showSpinner: false });
+      }
     } catch (error) {
-      toast.error("Upload failed.");
+      console.error("Unexpected error while uploading files", error);
+      toast.error(error?.response?.data?.errorList?.[0]?.message || "Upload failed.");
     } finally {
+      setPendingFiles(remainingFiles);
       setIsUploading(false);
     }
   };
@@ -520,7 +525,6 @@ const ProjectResourcesMenu = () => {
               <div
                 ref={folderContainerRef}
                 className="flex flex-wrap gap-2 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 px-2 py-2"
-                // No max-height needed here if logic works, but kept for safety
                 style={{ minHeight: '3rem' }} 
               >
                 {visibleFolderKeys.map((folderKey) => (
@@ -593,7 +597,6 @@ const ProjectResourcesMenu = () => {
               )}
 
               {/* --- MEASUREMENT CONTAINER (Invisible Clone) --- */}
-              {/* This sits behind the real one, has exact same width/padding, and renders ALL keys */}
               <div 
                   ref={folderMeasureRef} 
                   className="absolute top-0 left-0 w-full flex flex-wrap gap-2 px-2 py-2 invisible pointer-events-none -z-10"
@@ -693,6 +696,27 @@ const ProjectResourcesMenu = () => {
                      {isUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />} Upload
                    </button>
                 </div>
+                {pendingFiles.length > 0 && (
+                  <div className="max-h-32 overflow-y-auto rounded-lg border border-dashed border-orangeFpt-200 bg-white px-3 py-2">
+                    <ul className="space-y-2 text-xs text-gray-600">
+                      {pendingFiles.map((file, index) => (
+                        <li key={`${file.name}-${index}`} className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-gray-800">{file.name}</p>
+                            <p className="text-[11px] text-gray-400">{formatFileSize(file.size)}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePendingFile(index)}
+                            className="text-xs font-semibold text-red-500 hover:text-red-600"
+                          >
+                            Remove
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
           )}

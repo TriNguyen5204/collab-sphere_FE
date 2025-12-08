@@ -20,6 +20,7 @@ import useClickOutside from '../../hooks/useClickOutside';
 import { useAvatar } from '../../hooks/useAvatar';
 import AIChatAssistant from '../../features/ai/components/AIChatAssistant';
 import { getRoleLandingRoute } from '../../constants/roleRoutes';
+import ReportSystemModal from '../../features/student/components/ReportSystemModal';
 
 
 const LecturerHeader = ({
@@ -28,6 +29,7 @@ const LecturerHeader = ({
   isAuthenticated,
   onProfile,
   onLogout,
+  onOpenReport,
   navItems,
 }) => {
   const [query, setQuery] = useState('');
@@ -156,6 +158,10 @@ const LecturerHeader = ({
 
                     <button
                       type="button"
+                      onClick={() => {
+                        setOpenProfile(false);
+                        onOpenReport?.();
+                      }}
                       className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-200 flex items-center gap-2 transition-colors"
                     >
                       <MessageSquareWarning size={16} />
@@ -262,6 +268,7 @@ const DashboardLayout = ({ children }) => {
   }, [location.pathname]);
 
   const { accessToken, userId, fullName, avatar } = useSelector(state => state.user);
+  const [showReportModal, setShowReportModal] = useState(false);
   const isAuthenticated = Boolean(accessToken);
   const navigationItems = [
     {
@@ -354,6 +361,7 @@ const DashboardLayout = ({ children }) => {
         onLogin={handleLogin}
         onSignup={handleSignup}
         navItems={isAuthenticated ? computedNavigationItems : []}
+        onOpenReport={() => setShowReportModal(true)}
       />
       <div className='flex'>
         <aside className='fixed top-16 left-0 h-[calc(100vh-4rem)] overflow-y-auto bg-slate-50 border-r border-slate-200'>
@@ -369,6 +377,11 @@ const DashboardLayout = ({ children }) => {
         </main>
       </div>
       {showChatAssistant && <AIChatAssistant />}
+      <ReportSystemModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        userId={userId}
+      />
     </div>
   );
 };

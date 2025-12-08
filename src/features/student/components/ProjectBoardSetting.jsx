@@ -452,7 +452,7 @@ const ProjectSettingsModal = ({
                 </div>
               </div>
               <div className="col-span-2">
-                <div>
+                <div className="mb-2">
                   <label className="block text-sm font-medium mb-2 text-gray-700">Team Name</label>
                   <input
                     type="text"
@@ -462,7 +462,7 @@ const ProjectSettingsModal = ({
                     placeholder="Enter team name"
                   />
                 </div>
-                <div>
+                <div className="mb-2">
                   <label className="block text-sm font-medium mb-2 text-gray-700">Description</label>
                   <textarea
                     value={formValues.description}
