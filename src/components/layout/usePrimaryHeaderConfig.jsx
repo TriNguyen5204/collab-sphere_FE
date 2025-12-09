@@ -47,7 +47,6 @@ const usePrimaryHeaderConfig = () => {
   const navLinks = useMemo(
     () => [
       { label: 'Home', href: '/staff', icon: HomeIcon },
-      { label: 'Connect room', href: '/test/meeting', icon: VideoCameraIcon },
     ],
     [],
   );

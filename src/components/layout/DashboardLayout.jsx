@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useCallback } from 'react';
+import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import {
   AcademicCapIcon,
   BookOpenIcon,
@@ -9,10 +9,11 @@ import {
   ArrowRightOnRectangleIcon,
   UserPlusIcon,
   FolderIcon,
+  VideoCameraIcon,
 } from '@heroicons/react/24/outline';
-import { Search, User, LogOut, ChevronDown, MessageSquareWarning, LayoutDashboard } from 'lucide-react';
+import { Search, User, LogOut, ChevronDown, LayoutDashboard, MessageCircleMoreIcon, MessageSquareWarning } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, href } from 'react-router-dom';
 import AppSidebar from './AppSidebar';
 import logo from '../../assets/logov1.png';
 import { logout } from '../../store/slices/userSlice';
@@ -21,7 +22,6 @@ import { useAvatar } from '../../hooks/useAvatar';
 import AIChatAssistant from '../../features/ai/components/AIChatAssistant';
 import { getRoleLandingRoute } from '../../constants/roleRoutes';
 import ReportSystemModal from '../../features/student/components/ReportSystemModal';
-
 
 const LecturerHeader = ({
   fullName,
@@ -38,8 +38,9 @@ const LecturerHeader = ({
   const searchRef = useRef(null);
   const profileRef = useRef(null);
   const navigate = useNavigate();
-  const { initials, colorClass, imageError, setImageError, shouldShowImage } = useAvatar(fullName, avatar);
-  const roleName = useSelector((state) => state.user.roleName);
+  const { initials, colorClass, imageError, setImageError, shouldShowImage } =
+    useAvatar(fullName, avatar);
+  const roleName = useSelector(state => state.user.roleName);
   useClickOutside(searchRef, () => setOpenSearch(false));
   useClickOutside(profileRef, () => setOpenProfile(false));
 
@@ -52,54 +53,63 @@ const LecturerHeader = ({
       .map(item => ({ href: item.href, label: item.label, Icon: item.icon }));
   }, [query, navItems]);
 
-  const handleSelectSuggestion = useCallback((suggestion) => {
-    setOpenSearch(false);
-    setQuery('');
-    navigate(suggestion.href);
-  }, [navigate]);
+  const handleSelectSuggestion = useCallback(
+    suggestion => {
+      setOpenSearch(false);
+      setQuery('');
+      navigate(suggestion.href);
+    },
+    [navigate]
+  );
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-slate-200">
-      <div className="mx-auto px-4 py-3 md:px-6 lg:px-8">
-        <div className="flex items-center gap-10 w-full">
-          <div className="flex items-center gap-3 min-w-0">
-            <img src={logo} alt="CollabSphere" className="w-8 h-8 rounded" />
-            <div className="leading-tight">
-              <div className="text-sm font-bold text-slate-900">CollabSphere</div>
-              <div className="text-xs text-slate-500">Lecturer Hub</div>
+    <header className='sticky top-0 z-40 bg-white border-b border-slate-200'>
+      <div className='mx-auto px-4 py-3 md:px-6 lg:px-8'>
+        <div className='flex items-center gap-10 w-full'>
+          <div className='flex items-center gap-3 min-w-0'>
+            <img src={logo} alt='CollabSphere' className='w-8 h-8 rounded' />
+            <div className='leading-tight'>
+              <div className='text-sm font-bold text-slate-900'>
+                CollabSphere
+              </div>
+              <div className='text-xs text-slate-500'>Lecturer Hub</div>
             </div>
           </div>
 
-          <div className="flex-1 relative" ref={searchRef}>
-            <div className="relative w-full md:w-1/2">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <div className='flex-1 relative' ref={searchRef}>
+            <div className='relative w-full md:w-1/2'>
+              <Search className='w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2' />
               <input
-                type="text"
-                placeholder="Search workspace sections..."
+                type='text'
+                placeholder='Search workspace sections...'
                 value={query}
                 disabled={!isAuthenticated}
                 onFocus={() => setOpenSearch(true)}
-                onChange={(e) => {
+                onChange={e => {
                   setQuery(e.target.value);
                   setOpenSearch(true);
                 }}
-                className="w-full rounded-lg border border-slate-200 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-400"
+                className='w-full rounded-lg border border-slate-200 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-400'
               />
             </div>
             {openSearch && suggestions.length > 0 && (
-              <div className="absolute mt-2 w-full md:w-1/2 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden z-[80]">
-                <ul className="max-h-72 overflow-y-auto">
+              <div className='absolute mt-2 w-full md:w-1/2 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden z-[80]'>
+                <ul className='max-h-72 overflow-y-auto'>
                   {suggestions.map((suggestion, idx) => {
                     const Icon = suggestion.Icon;
                     return (
                       <li key={`${suggestion.href}-${idx}`}>
                         <button
-                          type="button"
+                          type='button'
                           onClick={() => handleSelectSuggestion(suggestion)}
-                          className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-slate-50"
+                          className='w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-slate-50'
                         >
-                          {Icon ? <Icon className="w-4 h-4 text-blue-600" /> : null}
-                          <span className="text-sm font-medium text-slate-900">{suggestion.label}</span>
+                          {Icon ? (
+                            <Icon className='w-4 h-4 text-blue-600' />
+                          ) : null}
+                          <span className='text-sm font-medium text-slate-900'>
+                            {suggestion.label}
+                          </span>
                         </button>
                       </li>
                     );
@@ -119,8 +129,8 @@ const LecturerHeader = ({
                       {shouldShowImage ? (
                         <img
                           src={avatar}
-                          alt="Profile"
-                          className="w-full h-full object-cover"
+                          alt='Profile'
+                          className='w-full h-full object-cover'
                           onError={() => setImageError(true)}
                         />
                       ) : (
@@ -145,7 +155,7 @@ const LecturerHeader = ({
                     </button>
 
                     <button
-                      type="button"
+                      type='button'
                       onClick={() => {
                         setOpenProfile(false);
                         onProfile();
@@ -169,7 +179,7 @@ const LecturerHeader = ({
                     </button>
                     <div className="h-px bg-gray-50 my-2" />
                     <button
-                      type="button"
+                      type='button'
                       onClick={() => {
                         setOpenProfile(false);
                         onLogout();
@@ -189,26 +199,28 @@ const LecturerHeader = ({
 };
 
 const LecturerSidebar = ({ sections, isAuthenticated, onLogin, onSignup }) => (
-  <div className="h-full">
+  <div className='h-full'>
     {!isAuthenticated && (
-      <div className="px-4 pt-6">
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center">
-          <p className="text-sm font-medium text-slate-700">Sign in to access lecturer tools</p>
-          <div className="mt-3 flex flex-col gap-2">
+      <div className='px-4 pt-6'>
+        <div className='rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center'>
+          <p className='text-sm font-medium text-slate-700'>
+            Sign in to access lecturer tools
+          </p>
+          <div className='mt-3 flex flex-col gap-2'>
             <button
-              type="button"
+              type='button'
               onClick={onLogin}
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-blue-300 hover:text-blue-600"
+              className='inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-blue-300 hover:text-blue-600'
             >
-              <ArrowRightOnRectangleIcon className="h-4 w-4" />
+              <ArrowRightOnRectangleIcon className='h-4 w-4' />
               Login
             </button>
             <button
-              type="button"
+              type='button'
               onClick={onSignup}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-500"
+              className='inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-500'
             >
-              <UserPlusIcon className="h-4 w-4" />
+              <UserPlusIcon className='h-4 w-4' />
               Sign up
             </button>
           </div>
@@ -216,7 +228,7 @@ const LecturerSidebar = ({ sections, isAuthenticated, onLogin, onSignup }) => (
       </div>
     )}
 
-    <div className="h-full">
+    <div className='h-full'>
       <AppSidebar
         showBrand={false}
         style={{
@@ -253,13 +265,13 @@ const DashboardLayout = ({ children }) => {
       '/student',
       '/lecturer/classes',
       '/lecturer/projects',
-      '/lecturer/monitoring'
+      '/lecturer/monitoring',
     ];
 
     const excludedPaths = [
       '/lecturer/projects/create-with-ai',
       '/lecturer/create-project',
-      '/lecturer/projects/create'
+      '/lecturer/projects/create',
     ];
 
     if (excludedPaths.some(p => path.startsWith(p))) return false;
@@ -275,31 +287,37 @@ const DashboardLayout = ({ children }) => {
       label: 'Classes',
       href: '/lecturer/classes',
       icon: AcademicCapIcon,
-      match: path => path === '/lecturer/classes' || path.startsWith('/lecturer/classes/')
+      match: path =>
+        path === '/lecturer/classes' || path.startsWith('/lecturer/classes/'),
     },
     {
       label: 'Resources Hub',
       href: '/lecturer/resources',
       icon: FolderIcon,
-      match: path => path === '/lecturer/resources' || path.startsWith('/lecturer/resources/')
+      match: path =>
+        path === '/lecturer/resources' ||
+        path.startsWith('/lecturer/resources/'),
     },
     {
       label: 'Project Library',
       href: '/lecturer/projects',
       icon: BookOpenIcon,
-      match: path => path === '/lecturer/projects' || path.startsWith('/lecturer/projects/')
+      match: path =>
+        path === '/lecturer/projects' || path.startsWith('/lecturer/projects/'),
     },
     {
       label: 'Grading',
       href: '/lecturer/grading',
       icon: ClipboardDocumentListIcon,
-      match: path => path === '/lecturer/grading' || path.startsWith('/lecturer/grading/')
+      match: path =>
+        path === '/lecturer/grading' || path.startsWith('/lecturer/grading/'),
     },
     {
-      label: 'Analytics',
-      href: '/lecturer/analytics',
-      icon: ChartBarIcon,
-      match: path => path === '/lecturer/analytics' || path.startsWith('/lecturer/analytics/')
+      label: "Chat",
+      href: '/chat',
+      icon: MessageCircleMoreIcon,
+      match: path =>
+        path === '/chat' || path.startsWith('/chat/'),
     },
     {
       label: 'Meetings',
@@ -307,29 +325,30 @@ const DashboardLayout = ({ children }) => {
       icon: CalendarDaysIcon,
       match: path => path === '/lecturer/meetings' || path.startsWith('/lecturer/meetings/')
     },
-    {
-      label: 'Tools',
-      href: '/lecturer/tools',
-      icon: WrenchScrewdriverIcon,
-      match: path => path === '/lecturer/tools' || path.startsWith('/lecturer/tools/')
-    },
   ];
 
-  const computedNavigationItems = useMemo(() => navigationItems.map(item => {
-    const normalizedHref = normalizePath(item.href);
-    const originalMatch = item.match;
-    return {
-      ...item,
-      href: normalizedHref,
-      match: path => {
-        const normalizedPath = normalizePath(path);
-        if (typeof originalMatch === 'function') {
-          return originalMatch(normalizedPath);
-        }
-        return normalizedPath === normalizedHref || normalizedPath.startsWith(`${normalizedHref}/`);
-      }
-    };
-  }), []);
+  const computedNavigationItems = useMemo(
+    () =>
+      navigationItems.map(item => {
+        const normalizedHref = normalizePath(item.href);
+        const originalMatch = item.match;
+        return {
+          ...item,
+          href: normalizedHref,
+          match: path => {
+            const normalizedPath = normalizePath(path);
+            if (typeof originalMatch === 'function') {
+              return originalMatch(normalizedPath);
+            }
+            return (
+              normalizedPath === normalizedHref ||
+              normalizedPath.startsWith(`${normalizedHref}/`)
+            );
+          },
+        };
+      }),
+    []
+  );
 
   const sidebarSections = useMemo(() => ([
     {

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ModalWrapper from '../../components/layout/ModalWrapper';
 import CreateMultipleSubjectForm from '../../features/staff/components/CreateMultipleSubjectForm';
-import UpdateSubjectForm from '../../features/staff/components/UpdateSubjectForm';
+import UpdateSubjectForm from '../../features/head-department/components/UpdateSubjectForm';
 import { getAllSubject } from '../../services/userService';
 import HeadDepartmentSidebar from '../../components/layout/HeadDepartmentSidebar';
 
@@ -16,36 +16,37 @@ import {
   EmptyState,
   Pagination,
 } from '../../features/head-department/components';
+import HeadDashboardLayout from '../../components/layout/HeadDashboardLayout';
 
 const ITEMS_PER_PAGE = 9;
 
 /**
  * SubjectManagement Component
- * Main component for managing subjects with pagination, filtering, and multiple views
+ * Main component for managing subjects with updated Dashboard UI
  */
 export default function SubjectManagement() {
   // ==================== STATE MANAGEMENT ====================
-  
+
   // Data state
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
-  
+
   // Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  
+
   // UI state
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState('grid');
-  
+
   // Modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  
+
   const navigate = useNavigate();
 
   // ==================== DATA FETCHING ====================
-  
+
   useEffect(() => {
     fetchSubjects();
   }, []);
@@ -61,13 +62,13 @@ export default function SubjectManagement() {
   };
 
   // ==================== FILTERING ====================
-  
-  const filteredSubjects = subjects.filter((sub) => {
+
+  const filteredSubjects = subjects.filter(sub => {
     // Search filter
     const matchesSearch =
       sub.subjectName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sub.subjectCode?.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     // Status filter
     const matchesStatus =
       statusFilter === 'all' ||
@@ -78,7 +79,7 @@ export default function SubjectManagement() {
   });
 
   // ==================== PAGINATION ====================
-  
+
   const totalPages = Math.ceil(filteredSubjects.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
@@ -90,34 +91,36 @@ export default function SubjectManagement() {
   }, [searchQuery, statusFilter]);
 
   // ==================== STATISTICS ====================
-  
+
   const stats = {
     total: subjects.length,
-    active: subjects.filter((s) => s.isActive).length,
-    inactive: subjects.filter((s) => !s.isActive).length,
-    categories: new Set(subjects.map((s) => s.subjectCode?.substring(0, 3)))
-      .size,
+    active: subjects.filter(s => s.isActive).length,
+    inactive: subjects.filter(s => !s.isActive).length,
+    categories: new Set(subjects.map(s => s.subjectCode?.substring(0, 3))).size,
   };
 
   // ==================== EVENT HANDLERS ====================
-  
-  const handleViewSubject = (subject) => {
+
+  const handleViewSubject = subject => {
     navigate(`/head-department/subject-management/${subject.subjectId}`);
   };
 
-  const handleEditSubject = (subject) => {
+  const handleEditSubject = subject => {
     setSelectedSubject(subject);
     setIsUpdateModalOpen(true);
   };
 
-  const handleDeleteSubject = (subject) => {
+  const handleDeleteSubject = subject => {
     // TODO: Implement delete logic with confirmation
     console.log('Delete subject:', subject);
   };
 
-  const handlePageChange = (page) => {
+  const handlePageChange = page => {
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Scroll to top of the table/grid container instead of window
+    document
+      .getElementById('subjects-container')
+      ?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleModalClose = (shouldRefresh = false) => {
@@ -129,92 +132,108 @@ export default function SubjectManagement() {
   };
 
   // ==================== RENDER ====================
-  
+
   return (
-    <div className='min-h-screen flex bg-gray-50'>
-      <HeadDepartmentSidebar />
+    <HeadDashboardLayout>
+      <div className='flex h-screen bg-gray-50 overflow-hidden'>
+        {/* Main Content Area - Independent Scroll */}
+        <div className='flex-1 flex flex-col min-w-0 overflow-hidden'>
+          {/* Scrollable Container */}
+          <main
+            id='subjects-container'
+            className='flex-1 overflow-y-auto p-4 md:p-6 lg:p-8'
+          >
+            <div className='max-w-7xl mx-auto space-y-6'>
+              {/* Header Section */}
+              <div className='flex flex-col gap-6'>
+                <SubjectHeader onAddClick={() => setIsCreateModalOpen(true)} />
 
-      <div className='flex-1 flex flex-col'>
-        <div className='p-6 space-y-6'>
-          <div className='max-w-7xl mx-auto w-full space-y-6'>
-            
-            {/* Header */}
-            <SubjectHeader onAddClick={() => setIsCreateModalOpen(true)} />
-
-            {/* Statistics */}
-            <SubjectStats
-              total={stats.total}
-              active={stats.active}
-              inactive={stats.inactive}
-              categories={stats.categories}
-            />
-
-            {/* Filters */}
-            <SubjectFilters
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              statusFilter={statusFilter}
-              onStatusChange={setStatusFilter}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-              currentCount={currentSubjects.length}
-              totalCount={filteredSubjects.length}
-            />
-
-            {/* Subject List */}
-            <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'>
-              {currentSubjects.length === 0 ? (
-                <EmptyState searchQuery={searchQuery} />
-              ) : viewMode === 'grid' ? (
-                <SubjectGridView
-                  subjects={currentSubjects}
-                  onView={handleViewSubject}
-                  onEdit={handleEditSubject}
-                  onDelete={handleDeleteSubject}
+                {/* Statistics */}
+                <SubjectStats
+                  total={stats.total}
+                  active={stats.active}
+                  inactive={stats.inactive}
+                  categories={stats.categories}
                 />
-              ) : (
-                <SubjectListView
-                  subjects={currentSubjects}
-                  onView={handleViewSubject}
-                  onEdit={handleEditSubject}
-                  onDelete={handleDeleteSubject}
-                />
-              )}
+              </div>
+
+              {/* Main Data Card */}
+              <div className='bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col'>
+                {/* Toolbar/Filters Area - With bottom border for separation */}
+                <div className='p-5 border-b border-gray-100'>
+                  <SubjectFilters
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    statusFilter={statusFilter}
+                    onStatusChange={setStatusFilter}
+                    viewMode={viewMode}
+                    onViewModeChange={setViewMode}
+                    currentCount={currentSubjects.length}
+                    totalCount={filteredSubjects.length}
+                  />
+                </div>
+
+                {/* Content Area */}
+                <div className='p-5 min-h-[400px]'>
+                  {currentSubjects.length === 0 ? (
+                    <EmptyState searchQuery={searchQuery} />
+                  ) : viewMode === 'grid' ? (
+                    <SubjectGridView
+                      subjects={currentSubjects}
+                      onView={handleViewSubject}
+                      onEdit={handleEditSubject}
+                      onDelete={handleDeleteSubject}
+                    />
+                  ) : (
+                    <SubjectListView
+                      subjects={currentSubjects}
+                      onView={handleViewSubject}
+                      onEdit={handleEditSubject}
+                      onDelete={handleDeleteSubject}
+                    />
+                  )}
+                </div>
+
+                {/* Pagination Footer - Light gray background for separation */}
+                {totalPages > 1 && (
+                  <div className='p-4 border-t border-gray-100 bg-gray-50/50 rounded-b-xl'>
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={handlePageChange}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom spacer for comfortable scrolling */}
+              <div className='h-6'></div>
             </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-              />
-            )}
-          </div>
+          </main>
         </div>
+
+        {/* Modals */}
+        <ModalWrapper
+          isOpen={isCreateModalOpen}
+          onClose={() => handleModalClose(false)}
+          title='Add Multiple Subjects'
+        >
+          <CreateMultipleSubjectForm
+            onClose={shouldRefresh => handleModalClose(shouldRefresh)}
+          />
+        </ModalWrapper>
+
+        <ModalWrapper
+          isOpen={isUpdateModalOpen}
+          onClose={() => handleModalClose(false)}
+          title='Update Subject'
+        >
+          <UpdateSubjectForm
+            subject={selectedSubject}
+            onClose={() => handleModalClose(true)}
+          />
+        </ModalWrapper>
       </div>
-
-      {/* Modals */}
-      <ModalWrapper
-        isOpen={isCreateModalOpen}
-        onClose={() => handleModalClose(false)}
-        title='Add Multiple Subjects'
-      >
-        <CreateMultipleSubjectForm
-          onClose={(shouldRefresh) => handleModalClose(shouldRefresh)}
-        />
-      </ModalWrapper>
-
-      <ModalWrapper
-        isOpen={isUpdateModalOpen}
-        onClose={() => handleModalClose(false)}
-        title='Update Subject'
-      >
-        <UpdateSubjectForm
-          subject={selectedSubject}
-          onClose={() => handleModalClose(true)}
-        />
-      </ModalWrapper>
-    </div>
+    </HeadDashboardLayout>
   );
 }

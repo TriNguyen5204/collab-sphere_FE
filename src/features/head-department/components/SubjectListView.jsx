@@ -9,9 +9,8 @@ import { BookOpen, Eye, Edit, Trash2 } from 'lucide-react';
  * @param {Array} props.subjects - Array of subject objects
  * @param {Function} props.onView - Callback when view button clicked
  * @param {Function} props.onEdit - Callback when edit button clicked
- * @param {Function} props.onDelete - Callback when delete button clicked
  */
-export default function SubjectListView({ subjects, onView, onEdit, onDelete }) {
+export default function SubjectListView({ subjects, onView, onEdit }) {
   return (
     <div className='overflow-x-auto'>
       <table className='w-full'>
@@ -83,13 +82,6 @@ export default function SubjectListView({ subjects, onView, onEdit, onDelete }) 
                     title='Edit'
                   >
                     <Edit className='w-4 h-4' />
-                  </button>
-                  <button
-                    onClick={() => onDelete(subject)}
-                    className='p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors'
-                    title='Delete'
-                  >
-                    <Trash2 className='w-4 h-4' />
                   </button>
                 </div>
               </td>

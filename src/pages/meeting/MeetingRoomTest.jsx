@@ -10,9 +10,11 @@ import { useMeetingRecorder } from '../../features/meeting/hooks/useMeetingRecor
 import ChatBox from '../../features/meeting/components/ChatBox';
 import { useNavigate } from 'react-router-dom';
 import { updateMeeting } from '../../features/meeting/services/meetingApi';
+import { toast } from 'sonner';
 
 function MeetingRoom() {
   const { roomId } = useParams();
+  const { teamId } = useParams();
   const location = useLocation();
   const myName = location.state?.myName || 'Anonymous';
   const title = location.state?.title || '';
@@ -42,10 +44,10 @@ function MeetingRoom() {
       });
 
       console.log('✅ Meeting updated successfully:', response.data);
-      alert('Video đã được lưu và cập nhật vào meeting!');
+      toast.success('Video has been saved and updated to the meeting!');
     } catch (error) {
       console.error('❌ Failed to update meeting:', error);
-      alert('Video đã được upload nhưng không thể cập nhật meeting. Vui lòng kiểm tra lại.');
+      toast.error('Video has been uploaded but could not update the meeting. Please check again.');
     }
   };
 
@@ -82,11 +84,11 @@ function MeetingRoom() {
   // Update my video source
   useEffect(() => {
     if (myVideo.current && stream) {
-      // Khi KHÔNG share màn hình -> hiển thị camera
+      // When NOT sharing screen -> show camera
       if (!isSharing) {
         myVideo.current.srcObject = stream;
       }
-      // Khi share màn hình -> hiển thị màn hình
+      // When sharing screen -> show screen
       else if (currentScreenStream) {
         myVideo.current.srcObject = currentScreenStream;
       }
@@ -95,14 +97,14 @@ function MeetingRoom() {
 
   const copyToClipboard = text => {
     navigator.clipboard.writeText(text);
-    alert('Copied: ' + text);
+    toast.success('Copied: ' + text);
   };
 
   const handleLeave = () => {
-    navigate('/student/projects', { replace: true });
+    navigate(`/meeting/${teamId}`, { replace: true });
   };
 
-  // Tìm người đang share màn hình
+  // Find person sharing screen
   const sharingPeer = groupPeers.find(({ id }) => peersSharingScreen.has(id));
   const hasScreenShare = isSharing || sharingPeer;
 
@@ -124,8 +126,8 @@ function MeetingRoom() {
                   <path className='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'></path>
                 </svg>
               </div>
-              <h3 className='text-xl font-semibold text-white mb-2'>Đang upload video...</h3>
-              <p className='text-[#9aa0a6] mb-4'>Vui lòng không đóng trang này</p>
+              <h3 className='text-xl font-semibold text-white mb-2'>Uploading video...</h3>
+              <p className='text-[#9aa0a6] mb-4'>Please do not close this page</p>
               
               <div className='w-full bg-[#5f6368] rounded-full h-2 mb-2'>
                 <div 
@@ -176,7 +178,7 @@ function MeetingRoom() {
             <div className='flex items-center gap-2 px-3 py-2 bg-red-600/20 rounded-full'>
               <div className='w-2 h-2 bg-red-500 rounded-full animate-pulse'></div>
               <span className='text-xs text-red-400 font-medium'>
-                {recordingUserId === me ? 'Bạn đang ghi' : 'Đang ghi'}
+                {recordingUserId === me ? 'You are recording' : 'Recording'}
               </span>
             </div>
           )}
@@ -209,13 +211,13 @@ function MeetingRoom() {
         {/* Video Area - Adjusted width when chat is open */}
         <div className={`flex overflow-hidden transition-all duration-300 ${showChat ? 'flex-1' : 'w-full'}`}>
           
-          {/* Layout khi CÓ người share màn hình */}
+          {/* Layout when SOMEONE is sharing screen */}
           {hasScreenShare ? (
             <div className='flex w-full h-full gap-3 p-4'>
-              {/* Main Screen Share Area (bên trái) */}
+              {/* Main Screen Share Area (left) */}
               <div className='flex-1 flex items-center justify-center bg-black rounded-2xl overflow-hidden shadow-2xl'>
                 {isSharing ? (
-                  // Tôi đang share
+                  // I am sharing
                   <div className='relative w-full h-full flex items-center justify-center'>
                     <video
                       ref={myVideo}
@@ -230,7 +232,7 @@ function MeetingRoom() {
                     </div>
                   </div>
                 ) : sharingPeer ? (
-                  // Người khác đang share
+                  // Others are sharing
                   <div className='relative w-full h-full'>
                     <ParticipantVideo
                       key={sharingPeer.id}
@@ -244,9 +246,9 @@ function MeetingRoom() {
                 ) : null}
               </div>
 
-              {/* Sidebar với thumbnails (bên phải) */}
+              {/* Sidebar with thumbnails (right) */}
               <div className='w-80 flex flex-col gap-2 overflow-y-auto py-1 pr-1 custom-scrollbar'>
-                {/* Video của tôi - LUÔN HIỂN THỊ (camera) khi người khác share */}
+                {/* My video - ALWAYS SHOW (camera) when others share */}
                 {!isSharing && (
                   <div className='relative bg-[#3c4043] rounded-xl overflow-hidden aspect-video flex-shrink-0 group hover:ring-2 hover:ring-blue-500 transition-all shadow-lg'>
                     <video
@@ -255,7 +257,7 @@ function MeetingRoom() {
                       muted
                       ref={(el) => {
                         if (el && stream) {
-                          el.srcObject = stream; // Luôn hiển thị camera khi không share
+                          el.srcObject = stream; // Always show camera when not sharing
                         }
                       }}
                       className='w-full h-full object-cover'
@@ -267,9 +269,9 @@ function MeetingRoom() {
                   </div>
                 )}
 
-                {/* Videos của người khác (không share) */}
+                {/* Others' videos (not sharing) */}
                 {groupPeers
-                  .filter(({ id }) => !peersSharingScreen.has(id))
+                  .filter((p) => !peersSharingScreen.has(p.id))
                   .map(({ id, peer, name }) => (
                     <div key={id} className='flex-shrink-0'>
                       <ParticipantVideo
@@ -284,7 +286,7 @@ function MeetingRoom() {
               </div>
             </div>
           ) : (
-            // Layout BÌNH THƯỜNG (không ai share)
+            // NORMAL Layout (no one sharing)
             <div className='flex-1 flex items-center justify-center p-4'>
               <div className='w-full h-full flex items-center justify-center'>
                 <div
@@ -318,7 +320,7 @@ function MeetingRoom() {
                       muted
                       ref={(el) => {
                         if (el && stream) {
-                          el.srcObject = stream; // Luôn hiển thị camera trong grid view
+                          el.srcObject = stream; // Always show camera in grid view
                         }
                       }}
                       className='w-full h-full object-cover'

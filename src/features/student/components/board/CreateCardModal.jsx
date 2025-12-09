@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import {
   X,
   Plus,
@@ -13,7 +14,6 @@ import {
 } from 'lucide-react';
 import { useSignalRContext } from '../../../../context/kanban/useSignalRContext';
 import { createCard } from '../../../../hooks/kanban/signalRHelper';
-import { toast } from 'sonner';
 import { calculateNewPosition } from '../../../../utils/positionHelper';
 
 const riskOptions = [
@@ -74,7 +74,7 @@ const CreateCardModal = ({
     setIsCreating(true);
 
     try {
-      // Chuẩn bị assignmentList
+      // Prepare assignmentList
       const existingCards = list?.cards || [];
       const sortedCards = [...existingCards].sort(
         (a, b) => a.position - b.position
@@ -93,7 +93,7 @@ const CreateCardModal = ({
       if (dueDate) {
         const dateObj = new Date(dueDate);
 
-        // Kiểm tra date hợp lệ
+        // Check if date is valid
         if (isNaN(dateObj.getTime())) {
           toast.error('Invalid due date format');
           setIsCreating(false);
@@ -106,7 +106,7 @@ const CreateCardModal = ({
         studentName: m.studentName,
       }));
 
-      // Chuẩn bị tasksOfCard
+      // Prepare tasksOfCard
       const tasksOfCard = tasks
         .filter(t => t.title.trim())
         .map((task, index) => ({
@@ -151,7 +151,7 @@ const CreateCardModal = ({
         onCardCreated(listId, newCardForUI);
       }
 
-      // Gọi SignalR để tạo card
+      // Call SignalR to create card
       await createCard(
         connection,
         workspaceId,
@@ -165,7 +165,7 @@ const CreateCardModal = ({
         tasksOfCard
       );
 
-      // Reset form và đóng modal
+      // Reset form and close modal
       setTitle('');
       setDescription('');
       setTasks([
@@ -182,7 +182,7 @@ const CreateCardModal = ({
       onClose();
     } catch (error) {
       console.error('Error creating card:', error);
-      alert('Failed to create card: ' + error.message);
+      toast.error('Failed to create card: ' + error.message);
     } finally {
       setIsCreating(false);
     }

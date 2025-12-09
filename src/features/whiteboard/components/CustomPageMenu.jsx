@@ -1,11 +1,13 @@
-// CustomPageMenu.jsx
-import React, { useEffect, useState } from 'react';
+// CustomPageMenu.jsx - WITH MOUSE LEAVE DELAY (100ms)
+import React, { useEffect, useState, useRef } from 'react';
 import { useEditor } from 'tldraw';
 import {
   createPage,
   updatePageTitle,
   deletePage,
 } from '../services/whiteboardService';
+import { toast } from 'sonner';
+import useToastConfirmation from '../../../hooks/useToastConfirmation';
 
 export default function CustomPageMenu({
   whiteboardId,
@@ -14,9 +16,20 @@ export default function CustomPageMenu({
   websocket
 }) {
   const editor = useEditor();
+  const confirmWithToast = useToastConfirmation();
   const [open, setOpen] = useState(false);
   const [editingPageId, setEditingPageId] = useState(null);
   const [editingValue, setEditingValue] = useState('');
+  
+  // ✅ Refs for elements
+  const menuRef = useRef(null);
+  const buttonRef = useRef(null);
+  const containerRef = useRef(null);
+  
+  
+  // ✅ Constants
+  const DEFAULT_TLDRAW_PAGE_ID = 'page:page';
+  const CLOSE_DELAY = 100; // 100ms delay
   
   // ✅ Calculate pages on every render
   const pages = editor ? Array.from(editor.store.allRecords())
@@ -32,6 +45,72 @@ export default function CustomPageMenu({
     if (typeof externalIsOpen === 'boolean') setOpen(externalIsOpen);
   }, [externalIsOpen]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    const handleClickOutside = (e) => {
+      if (
+        menuRef.current && 
+        !menuRef.current.contains(e.target) &&
+        buttonRef.current && 
+        !buttonRef.current.contains(e.target)
+      ) {
+        setOpen(false);
+        if (onClose) onClose();
+      }
+    };
+
+    const handleMouseLeave = (e) => {
+      // Check if mouse leaves both button and menu
+      const menuRect = menuRef.current?.getBoundingClientRect();
+      const buttonRect = buttonRef.current?.getBoundingClientRect();
+      
+      if (!menuRect || !buttonRect) return;
+      
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+      
+      // Create 20px "buffer" zone to prevent closing too fast when moving between button and menu
+      const buffer = 20;
+      const inMenuArea = (
+        mouseX >= menuRect.left - buffer &&
+        mouseX <= menuRect.right + buffer &&
+        mouseY >= menuRect.top - buffer &&
+        mouseY <= menuRect.bottom + buffer
+      );
+      
+      const inButtonArea = (
+        mouseX >= buttonRect.left - buffer &&
+        mouseX <= buttonRect.right + buffer &&
+        mouseY >= buttonRect.top - buffer &&
+        mouseY <= buttonRect.bottom + buffer
+      );
+      
+      if (!inMenuArea && !inButtonArea) {
+        setOpen(false);
+        if (onClose) onClose();
+      }
+    };
+
+    // Add timeout to delay mouse leave check (prevent closing too fast)
+    let leaveTimeout;
+    const delayedMouseLeave = (e) => {
+      clearTimeout(leaveTimeout);
+      leaveTimeout = setTimeout(() => handleMouseLeave(e), 100);
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    document.addEventListener('mousemove', delayedMouseLeave);
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('mousemove', delayedMouseLeave);
+      clearTimeout(leaveTimeout);
+    };
+  }, [open, onClose]);
+
+  
+
   // ✅ Listen to ALL store updates for page changes
   useEffect(() => {
     if (!editor) return;
@@ -44,7 +123,7 @@ export default function CustomPageMenu({
         (entry.changes?.removed && Object.values(entry.changes.removed).some(r => r.typeName === 'page'));
       
       if (hasPageChanges) {
-        console.log('🔄 Page changes detected in CustomPageMenu');
+        console.log('📄 Page changes detected in CustomPageMenu');
       }
     });
     
@@ -57,6 +136,7 @@ export default function CustomPageMenu({
 
   const handleToggle = e => {
     e.stopPropagation();
+    
     setOpen(v => !v);
     if (onClose && open) onClose();
   };
@@ -68,6 +148,11 @@ export default function CustomPageMenu({
   };
 
   const startEdit = page => {
+    // ✅ Prevent editing default page
+    if (page.id === DEFAULT_TLDRAW_PAGE_ID) {
+      toast.error('Cannot rename the system default page.');
+      return;
+    }
     setEditingPageId(page.id);
     setEditingValue(page.name ?? '');
   };
@@ -86,6 +171,13 @@ export default function CustomPageMenu({
     }
 
     const numericPageId = page.id.split(':')[1];
+    
+    // ✅ Extra safety check
+    if (!numericPageId || numericPageId === 'page') {
+      toast.error('Cannot rename default page.');
+      cancelEdit();
+      return;
+    }
     
     try {
       // 1. Update API first
@@ -114,7 +206,7 @@ export default function CustomPageMenu({
       }
     } catch (err) {
       console.error('💥 Rename page failed:', err);
-      alert('Failed to rename page: ' + err.message);
+      toast.error('Failed to rename page: ' + err.message);
     } finally {
       cancelEdit();
     }
@@ -123,21 +215,37 @@ export default function CustomPageMenu({
   const handleDelete = async page => {
     if (!page) return;
 
+    // ✅ CRITICAL FIX: Prevent deleting the default Tldraw page (fake page)
+    if (page.id === DEFAULT_TLDRAW_PAGE_ID) {
+      toast.error('⛔ Cannot delete the system default page.\n\nPlease create a new page before deleting this one.');
+      return;
+    }
+
+    // Extract numeric ID and validate
+    const numericPageId = page.id.split(':')[1];
+    
+    // ✅ Additional validation: Check if this is a real page from database
+    if (!numericPageId || numericPageId === 'page') {
+      toast.error('⛔ Cannot delete this page. It is the system default page.');
+      return;
+    }
+
     // Safety: don't allow deleting last page
     const pageList = Array.from(editor.store.allRecords()).filter(
       r => r.typeName === 'page'
     );
     if (pageList.length <= 1) {
-      alert('Cannot delete the last remaining page.');
+      toast.error('⛔ Cannot delete the last page.\n\nThere must be at least 1 page in the whiteboard.');
       return;
     }
 
-    const confirmDelete = window.confirm(
-      `Delete page "${page.name ?? 'Untitled'}"? This action cannot be undone.`
-    );
-    if (!confirmDelete) return;
+    const confirmed = await confirmWithToast({
+      message: `⚠️ Delete page "${page.name ?? 'Untitled'}"?\n\nThis action cannot be undone.`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
-    const numericPageId = page.id.split(':')[1];
     try {
       // 1. Delete from API
       await deletePage(numericPageId);
@@ -156,7 +264,7 @@ export default function CustomPageMenu({
       } else {
         // safety: create a new default page record if none left
         const fallback = {
-          id: `page:page`,
+          id: DEFAULT_TLDRAW_PAGE_ID,
           typeName: 'page',
           name: 'New Page',
           index: 'a0',
@@ -181,14 +289,14 @@ export default function CustomPageMenu({
       }
     } catch (err) {
       console.error('💥 Delete error', err);
-      alert('Error deleting page: ' + err.message);
+      toast.error('❌ Error deleting page: ' + err.message);
     }
   };
 
   const handleCreatePage = async () => {
     const defaultTitle = 'New Page';
     const title =
-      window.prompt('Enter new page name:', defaultTitle) ?? defaultTitle;
+      window.prompt('📝 Enter new page name:', defaultTitle) ?? defaultTitle;
     const trimmed = title.trim();
     if (!trimmed) return;
 
@@ -234,15 +342,22 @@ export default function CustomPageMenu({
       setOpen(false);
     } catch (err) {
       console.error('💥 Create page error:', err);
-      alert('Error creating page: ' + err.message);
+      toast.error('❌ Error creating page: ' + err.message);
     }
+  };
+
+  // ✅ Helper function to check if a page is the default fake page
+  const isFakePage = (pageId) => {
+    return pageId === DEFAULT_TLDRAW_PAGE_ID;
   };
 
   return (
     <div
+      ref={containerRef}
       style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
     >
       <button
+        ref={buttonRef}
         onClick={handleToggle}
         aria-haspopup='menu'
         aria-expanded={open}
@@ -295,6 +410,7 @@ export default function CustomPageMenu({
 
       {open && (
         <div
+          ref={menuRef}
           role='menu'
           onClick={e => e.stopPropagation()}
           style={{
@@ -318,7 +434,7 @@ export default function CustomPageMenu({
               padding: '4px 6px',
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 600 }}>Các trang ({pages.length})</div>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>Pages ({pages.length})</div>
             <div style={{ display: 'flex', gap: 6 }}>
               <button
                 onClick={handleCreatePage}
@@ -353,6 +469,8 @@ export default function CustomPageMenu({
             {pages.map(p => {
               const isActive = p.id === currentPageId;
               const isEditing = editingPageId === p.id;
+              const isFake = isFakePage(p.id);
+              
               return (
                 <div
                   key={p.id}
@@ -410,6 +528,7 @@ export default function CustomPageMenu({
                           }}
                         >
                           {p.name ?? 'Untitled'}
+                          {isFake && <span style={{ marginLeft: 6, fontSize: 11, color: '#999' }}>(default)</span>}
                         </div>
                       </div>
                     )}
@@ -422,12 +541,14 @@ export default function CustomPageMenu({
                           e.stopPropagation();
                           startEdit(p);
                         }}
-                        title='Rename'
+                        title={isFake ? 'Cannot rename default page' : 'Rename'}
+                        disabled={isFake}
                         style={{
                           border: 'none',
-                          background: 'var(--tl-color-selected)',
-                          cursor: 'pointer',
+                          background: isFake ? '#ccc' : 'var(--tl-color-selected)',
+                          cursor: isFake ? 'not-allowed' : 'pointer',
                           padding: 6,
+                          opacity: isFake ? 0.5 : 1,
                         }}
                       >
                         <svg width='14' height='14' viewBox='0 0 24 24'>
@@ -443,12 +564,14 @@ export default function CustomPageMenu({
                           e.stopPropagation();
                           handleDelete(p);
                         }}
-                        title='Delete'
+                        title={isFake ? 'Cannot delete default page' : 'Delete'}
+                        disabled={isFake}
                         style={{
                           border: 'none',
-                          background: '#eb3434',
-                          cursor: 'pointer',
+                          background: isFake ? '#ccc' : '#eb3434',
+                          cursor: isFake ? 'not-allowed' : 'pointer',
                           padding: 6,
+                          opacity: isFake ? 0.5 : 1,
                         }}
                       >
                         <svg width='14' height='14' viewBox='0 0 24 24'>

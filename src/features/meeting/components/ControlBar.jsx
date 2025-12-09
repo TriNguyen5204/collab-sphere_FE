@@ -113,7 +113,7 @@ export const ControlBar = ({
             )}
             {/* Tooltip */}
             <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none'>
-              {audioEnabled ? 'Tắt mic (Ctrl+D)' : 'Bật mic (Ctrl+D)'}
+              {audioEnabled ? 'Turn off mic (Ctrl+D)' : 'Turn on mic (Ctrl+D)'}
             </div>
           </button>
 
@@ -139,7 +139,7 @@ export const ControlBar = ({
             )}
             {/* Tooltip */}
             <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none'>
-              {videoEnabled ? 'Tắt camera (Ctrl+E)' : 'Bật camera (Ctrl+E)'}
+              {videoEnabled ? 'Turn off camera (Ctrl+E)' : 'Turn on camera (Ctrl+E)'}
             </div>
           </button>
 
@@ -155,7 +155,7 @@ export const ControlBar = ({
               </svg>
               {/* Tooltip */}
               <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none'>
-                Chia sẻ màn hình
+                Share screen
               </div>
             </button>
           ) : (
@@ -169,7 +169,7 @@ export const ControlBar = ({
               </svg>
               {/* Tooltip */}
               <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none'>
-                Ngừng chia sẻ
+                Stop sharing
               </div>
             </button>
           )}
@@ -188,10 +188,10 @@ export const ControlBar = ({
               }`}
               title={
                 isRecordingDisabled
-                  ? 'Có người khác đang ghi'
+                  ? 'Someone else is recording'
                   : isRecording
-                    ? 'Dừng ghi'
-                    : 'Bắt đầu ghi'
+                    ? 'Stop recording'
+                    : 'Start recording'
               }
             >
               <svg className='w-6 h-6 text-white' fill='currentColor' viewBox='0 0 20 20'>
@@ -202,7 +202,7 @@ export const ControlBar = ({
               )}
               {/* Tooltip */}
               <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none'>
-                {isRecording ? 'Dừng ghi' : 'Ghi màn hình'}
+                {isRecording ? 'Stop recording' : 'Record screen'}
               </div>
             </button>
           )}
@@ -226,7 +226,7 @@ export const ControlBar = ({
             </svg>
             {/* Tooltip */}
             <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none'>
-              {showChat ? 'Ẩn chat' : 'Hiện chat'}
+              {showChat ? 'Hide chat' : 'Show chat'}
             </div>
           </button>
 
@@ -248,7 +248,7 @@ export const ControlBar = ({
             </span>
             {/* Tooltip */}
             <div className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none'>
-              Rời phòng
+              Leave room
             </div>
           </button>
         </div>

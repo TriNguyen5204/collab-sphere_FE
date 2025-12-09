@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { Calendar, Clock, X, AlertCircle, FileText, Loader2, Trash2, History, User, Upload, CheckCircle, ChevronRight } from 'lucide-react';
 import useTeam from '../../../../context/useTeam';
 import { useSecureFileHandler } from '../../../../hooks/useSecureFileHandler';
@@ -657,7 +658,7 @@ const CheckpointCardModal = ({
         const shouldRefresh = checkpointId != null && resolvedSubmissionId != null;
 
         if (!fallbackUrl && !shouldRefresh) {
-            alert('No document link available.');
+            toast.error('No document link available.');
             return;
         }
 

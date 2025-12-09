@@ -70,6 +70,7 @@ const mapApiProjectToViewModel = (rawProject = {}) => {
       lecturerName: rawProject.lecturerName ?? rawProject.lecturer?.fullName ?? '—',
       subjectCode: rawProject.subjectCode ?? rawProject.subject?.code ?? '—',
       subjectName: rawProject.subjectName ?? rawProject.subject?.name ?? '—',
+      semesterName: rawProject.semesterName ?? rawProject.semester?.name ?? '',
       status: statusValue,
       statusLabel: STATUS_LABELS[statusValue] ?? statusValue,
       objectives,
@@ -112,9 +113,10 @@ const ProjectLibrary = () => {
       const fetchData = async () => {
          setIsLoading(true);
          try {
+            // Fetch all projects for client-side pagination/filtering
             const params = {
-               pageNum: pagination.pageNum,
-               pageSize: pagination.pageSize
+               pageNum: 1,
+               pageSize: 1000 // Fetch all
             };
 
             let payload;
@@ -128,16 +130,9 @@ const ProjectLibrary = () => {
             console.log("Projects payload:", payload);
 
             if (payload && (payload.list || Array.isArray(payload))) {
-               // Handle both { list: [], ... } and [] responses if necessary, 
-               // though the sample shows { list: [], itemCount: ... }
                const list = payload.list || (Array.isArray(payload) ? payload : []);
                
-               setPagination((prev) => ({
-                  ...prev,
-                  pageCount: payload.pageCount || 1,
-                  totalItems: payload.itemCount || list.length
-               }));
-
+               // Store ALL projects
                const mapped = list.map(mapApiProjectToViewModel);
                setProjects(mapped);
             } else {
@@ -152,19 +147,38 @@ const ProjectLibrary = () => {
       };
       fetchData();
       return () => { isMounted = false; };
-   }, [lecturerId, pagination.pageNum, pagination.pageSize, ownerFilter]);
+   }, [lecturerId, ownerFilter]); // Removed pagination dependencies
 
    // --- Derived State ---
    const filteredProjects = useMemo(() => {
-      const lowerSearch = searchTerm.toLowerCase();
+      const lowerSearch = searchTerm.trim().toLowerCase();
+      const searchTerms = lowerSearch.split(/\s+/).filter(Boolean);
+
       return projects.filter(p => {
          const matchSearch =
-            p.projectName.toLowerCase().includes(lowerSearch) ||
-            p.subjectCode.toLowerCase().includes(lowerSearch);
+            searchTerms.length === 0 ||
+            searchTerms.some((term) =>
+               p.projectName.toLowerCase().includes(term) ||
+               p.subjectCode.toLowerCase().includes(term) ||
+               p.semesterName.toLowerCase().includes(term)
+            );
          const matchStatus = statusFilter === 'all' || p.status === statusFilter;
          return matchSearch && matchStatus;
       });
    }, [projects, searchTerm, statusFilter]);
+
+   // Reset pagination when filters change
+   useEffect(() => {
+      setPagination(prev => ({ ...prev, pageNum: 1 }));
+   }, [searchTerm, statusFilter, ownerFilter]);
+
+   const paginatedProjects = useMemo(() => {
+      const start = (pagination.pageNum - 1) * pagination.pageSize;
+      const end = start + pagination.pageSize;
+      return filteredProjects.slice(start, end);
+   }, [filteredProjects, pagination.pageNum, pagination.pageSize]);
+
+   const totalPages = Math.ceil(filteredProjects.length / pagination.pageSize) || 1;
 
    const stats = useMemo(() => {
       return {
@@ -402,7 +416,7 @@ const ProjectLibrary = () => {
                      <>
                         {viewMode === 'grid' ? (
                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                              {filteredProjects.map((project) => (
+                              {paginatedProjects.map((project) => (
                                  <div
                                     key={project.projectId}
                                     onClick={() => navigate(`/lecturer/projects/${project.projectId}`)}
@@ -414,6 +428,11 @@ const ProjectLibrary = () => {
                                              <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-600">
                                                 {project.subjectCode}
                                              </span>
+                                             {project.semesterName && (
+                                                <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-600 border border-blue-100">
+                                                   {project.semesterName}
+                                                </span>
+                                             )}
                                              {project.lecturerName && (
                                                 <span className="inline-flex items-center gap-1 text-[10px] text-slate-500" title={`Created by ${project.lecturerName}`}>
                                                    <UserIcon className="h-3 w-3" />
@@ -456,7 +475,7 @@ const ProjectLibrary = () => {
                            </div>
                         ) : (
                            <div className="flex flex-col gap-4">
-                              {filteredProjects.map((project) => (
+                              {paginatedProjects.map((project) => (
                                  <div key={project.projectId} className="group flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-orangeFpt-200 hover:shadow-md sm:flex-row sm:items-center">
 
                                     {/* Left: Info */}
@@ -465,6 +484,11 @@ const ProjectLibrary = () => {
                                           <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-600">
                                              {project.subjectCode}
                                           </span>
+                                          {project.semesterName && (
+                                             <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-600 border border-blue-100">
+                                                {project.semesterName}
+                                             </span>
+                                          )}
                                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${getStatusColor(project.status)}`}>
                                              {project.statusLabel}
                                           </span>
@@ -512,11 +536,11 @@ const ProjectLibrary = () => {
                      </>
                   )}
 
-                  {!isLoading && pagination.pageCount > 1 && (
+                  {!isLoading && totalPages > 1 && (
                      <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-6">
                         <p className="text-sm text-slate-500">
                            Showing page <span className="font-semibold text-slate-900">{pagination.pageNum}</span> of{' '}
-                           <span className="font-semibold text-slate-900">{pagination.pageCount}</span>
+                           <span className="font-semibold text-slate-900">{totalPages}</span>
                         </p>
                         <div className="flex items-center gap-2">
                            <button
@@ -527,8 +551,8 @@ const ProjectLibrary = () => {
                               <ChevronLeftIcon className="h-5 w-5" />
                            </button>
                            <button
-                              onClick={() => setPagination((prev) => ({ ...prev, pageNum: Math.min(pagination.pageCount, prev.pageNum + 1) }))}
-                              disabled={pagination.pageNum === pagination.pageCount}
+                              onClick={() => setPagination((prev) => ({ ...prev, pageNum: Math.min(totalPages, prev.pageNum + 1) }))}
+                              disabled={pagination.pageNum === totalPages}
                               className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                            >
                               <ChevronRightIcon className="h-5 w-5" />

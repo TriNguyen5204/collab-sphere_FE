@@ -11,7 +11,6 @@ const UpdateClassForm = ({ classData, onClose, onUpdated }) => {
     className: '',
     subjectId: 0,
     lecturerId: 0,
-    enrolKey: '',
     isActive: true,
   });
 
@@ -25,7 +24,6 @@ const UpdateClassForm = ({ classData, onClose, onUpdated }) => {
         className: classData.className || '',
         subjectId: classData.subjectId || 0,
         lecturerId: classData.lecturerId || 0,
-        enrolKey: classData.enrolKey || '',
         isActive: classData.isActive ?? true,
       });
     }
@@ -37,6 +35,7 @@ const UpdateClassForm = ({ classData, onClose, onUpdated }) => {
         setSubjects(subjectRes || []);
         setLecturers(lecturerRes.list || []);
       } catch (err) {
+        console.error(err);
         toast.error('Failed to load subject or lecturer data');
       }
     };
@@ -87,7 +86,7 @@ const UpdateClassForm = ({ classData, onClose, onUpdated }) => {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Class Name */}
         <div className="group">
-          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
             <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
             </svg>
@@ -106,7 +105,7 @@ const UpdateClassForm = ({ classData, onClose, onUpdated }) => {
 
         {/* Subject */}
         <div className="group">
-          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
             <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
@@ -129,7 +128,7 @@ const UpdateClassForm = ({ classData, onClose, onUpdated }) => {
 
         {/* Lecturer */}
         <div className="group">
-          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
             <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
@@ -150,23 +149,6 @@ const UpdateClassForm = ({ classData, onClose, onUpdated }) => {
           </select>
         </div>
 
-        {/* Enrol Key */}
-        <div className="group">
-          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-            </svg>
-            Enroll Key
-          </label>
-          <input
-            type="text"
-            name="enrolKey"
-            value={formData.enrolKey}
-            onChange={handleChange}
-            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-4 focus:ring-green-100 focus:border-green-500 outline-none transition-all duration-300 hover:border-green-300"
-            placeholder="Enter enrol key"
-          />
-        </div>
 
         {/* Active Checkbox */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-100">

@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
+import useToastConfirmation from '../../../../hooks/useToastConfirmation';
 import { useSignalRContext } from '../../../../context/kanban/useSignalRContext';
 import { moveList } from '../../../../hooks/kanban/signalRHelper';
 import { AlertTriangle, CheckCircle, Loader } from 'lucide-react';
 
 /**
- * Component để normalize positions của tất cả lists
- * Thêm component này vào ProjectBoard để dễ fix position
+ * Component to normalize positions of all lists
+ * Add this component to ProjectBoard to easily fix positions
  */
 const NormalizePositionsButton = ({ lists, workspaceId }) => {
+  const confirmWithToast = useToastConfirmation();
   const { connection, isConnected } = useSignalRContext();
   const [isNormalizing, setIsNormalizing] = useState(false);
   const [result, setResult] = useState(null);
 
-  // Kiểm tra xem có lists nào có duplicate positions không
+  // Check if any lists have duplicate positions
   const hasDuplicatePositions = () => {
     const positions = lists.map(l => l.position);
     return positions.length !== new Set(positions).size;
@@ -21,21 +24,22 @@ const NormalizePositionsButton = ({ lists, workspaceId }) => {
   // Normalize positions
   const handleNormalize = async () => {
     if (!isConnected || !connection) {
-      alert('Not connected to server!');
+      toast.error('Not connected to server!');
       return;
     }
 
     // Confirm
-    const confirmMessage = `
-⚠️ NORMALIZE LIST POSITIONS
+    const confirmMessage = `Normalize List Positions`;
+    const description = `This will update positions for ${lists.length} lists:\n` + 
+        lists.map((l, i) => `• ${l.title}: ${l.position} → ${(i + 1) * 1.0}`).join('\n');
 
-This will update positions for ${lists.length} lists:
-${lists.map((l, i) => `• ${l.title}: ${l.position} → ${(i + 1) * 1.0}`).join('\n')}
+    const confirmed = await confirmWithToast(confirmMessage, {
+        description: description,
+        confirmText: "Normalize",
+        cancelText: "Cancel"
+    });
 
-Continue?
-    `.trim();
-
-    if (!window.confirm(confirmMessage)) {
+    if (!confirmed) {
       return;
     }
 
@@ -43,7 +47,7 @@ Continue?
     setResult(null);
 
     try {
-      // 1. Sort lists theo position (nếu bằng nhau thì theo id)
+      // 1. Sort lists by position (if equal, sort by id)
       const sortedLists = [...lists].sort((a, b) => {
         if (a.position === b.position) {
           return parseInt(a.id) - parseInt(b.id);
@@ -58,13 +62,13 @@ Continue?
         position: l.position
       })));
 
-      // 2. Update từng list
+      // 2. Update each list
       const updates = [];
       for (let i = 0; i < sortedLists.length; i++) {
         const list = sortedLists[i];
         const newPosition = (i + 1) * 1.0;
 
-        // Chỉ update nếu position khác
+        // Only update if position is different
         if (list.position !== newPosition) {
           console.log(`🚀 Updating list ${list.id} (${list.title}): ${list.position} → ${newPosition}`);
           
@@ -82,7 +86,7 @@ Continue?
             newPosition: newPosition
           });
 
-          // Đợi 200ms để tránh quá tải server
+          // Wait 200ms to avoid server overload
           await new Promise(resolve => setTimeout(resolve, 200));
         }
       }
@@ -111,7 +115,7 @@ Continue?
 
   return (
     <div className='fixed top-20 right-4 z-50'>
-      {/* Warning badge nếu có duplicate */}
+      {/* Warning badge if duplicate exists */}
       {isDuplicate && !result && (
         <div className='mb-2 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-3 rounded shadow-lg'>
           <div className='flex items-center gap-2'>

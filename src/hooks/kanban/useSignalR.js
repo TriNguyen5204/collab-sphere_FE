@@ -9,7 +9,7 @@ const useSignalR = (hubUrl, token, workspaceId) => {
   useEffect(() => {
     if (!token || !hubUrl || !workspaceId) return;
 
-    // Tạo connection
+    // Create connection
     const newConnection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, {
         accessTokenFactory: () => token,
@@ -20,7 +20,7 @@ const useSignalR = (hubUrl, token, workspaceId) => {
 
     connectionRef.current = newConnection;
 
-    // Bắt đầu kết nối
+    // Start connection
     
     newConnection
       .start()
@@ -29,7 +29,7 @@ const useSignalR = (hubUrl, token, workspaceId) => {
         setIsConnected(true);
         setConnection(newConnection);
 
-        // Tự động join workspace
+        // Automatically join workspace
         return newConnection.invoke('JoinWorkspace', workspaceId);
       })
       .then(() => {

@@ -19,7 +19,7 @@ const ProjectBoard = () => {
   const [workspace, setWorkspace] = useState(null);
   const [members, setMembers] = useState();
 
-  // Archived state giữ nguyên (vẫn do TrelloBoard quản lý)
+  // Archived state remains unchanged (still managed by TrelloBoard)
   const [archivedItems, setArchivedItems] = useState({ cards: [], lists: [] });
 
   const boardRef = useRef(null);

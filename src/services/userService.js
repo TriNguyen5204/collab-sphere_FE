@@ -127,17 +127,19 @@ export const importLecturerList = async data => {
   }
 };
 export const getAllLecturer = async (
+  viewAll,
   email,
   fullName,
   yob,
   lecturerCode,
   major,
   pageNumber,
-  pageSize = 5,
+  pageSize,
   isDesc
 ) => {
   try {
     const params = cleanParams({
+      ViewAll: viewAll,
       Email: email,
       FullName: fullName,
       Yob: yob,
@@ -157,6 +159,7 @@ export const getAllLecturer = async (
   }
 };
 export const getAllStudent = async (
+  viewAll,
   email,
   fullName,
   yob,
@@ -168,6 +171,7 @@ export const getAllStudent = async (
 ) => {
   try {
     const params = cleanParams({
+      ViewAll: viewAll,
       Email: email,
       FullName: fullName,
       Yob: yob,
@@ -311,7 +315,7 @@ export const getAllProject = async (params = {}) => {
         PageSize: 9,
       },
       paramsSerializer: {
-        indexes: null, // quan trọng: giúp Axios format array như ?SubjectIds=10&SubjectIds=11
+        indexes: null, // Important: helps Axios format array like ?SubjectIds=10&SubjectIds=11
       },
     });
 

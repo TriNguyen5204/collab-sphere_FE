@@ -456,19 +456,24 @@ const MilestonePage = () => {
     const milestoneId = getMilestoneId(milestone);
     if (!milestoneId) return;
 
-    if (window.confirm(`Are you sure you want to delete milestone '${milestone.title}'?`)) {
-      try {
-        await deleteTeamMilestoneById(milestoneId);
-        toast.success(`Deleted successfully team milestone '${milestone.title}' (${milestoneId})`);
-        
-        // Refresh list
-        if (teamId) {
-            fetchMilestones(teamId);
-        }
-      } catch (error) {
-        console.error('Failed to delete milestone:', error);
-        toast.error('Failed to delete milestone');
+    const confirmed = await confirmWithToast({
+      message: `Are you sure you want to delete milestone '${milestone.title}'?`,
+      variant: 'danger',
+      confirmLabel: 'Delete',
+    });
+    if (!confirmed) return;
+
+    try {
+      await deleteTeamMilestoneById(milestoneId);
+      toast.success(`Deleted successfully team milestone '${milestone.title}' (${milestoneId})`);
+
+      // Refresh list
+      if (teamId) {
+        fetchMilestones(teamId);
       }
+    } catch (error) {
+      console.error('Failed to delete milestone:', error);
+      toast.error('Failed to delete milestone');
     }
   };
 
@@ -477,7 +482,7 @@ const MilestonePage = () => {
     const totalRequired = selectedMilestone?.requiredAnswers ?? selectedMilestone?.milestoneQuestionCount ?? 0;
     const completedAns = selectedMilestone?.completedAnswers ?? 0;
     if (completedAns < totalRequired) {
-      alert("Please answer all questions before completing the milestone");
+      toast.error("Please answer all questions before completing the milestone");
       return;
     }
 

@@ -14,7 +14,7 @@ export const usePeerConnections = (
   const [groupPeers, setGroupPeers] = useState([]);
   const [peersSharingScreen, setPeersSharingScreen] = useState(new Set());
   const peersSharingScreenRef = useRef(new Set());
-  const peerNamesRef = useRef({}); // 🆕 Lưu trữ tên của các peers
+  const peerNamesRef = useRef({}); // 🆕 Store peer names
 
   const createPeer = (userId, stream, socket, isPeerSharing) => {
     console.log(`🔧 Creating peer for ${userId.slice(0,6)} | isPeerSharing: ${isPeerSharing} | I'm sharing: ${isSharingRef.current}`);
@@ -43,7 +43,7 @@ export const usePeerConnections = (
     peer.on('connect', () => {
       console.log('✅ Peer connected:', userId.slice(0, 6));
       
-      // Nếu MÌNH đang share screen, replace track ngay
+      // If I am sharing screen, replace track immediately
       if (isSharingRef.current && screenStreamRef.current) {
         setTimeout(() => {
           const screenVideoTrack = screenStreamRef.current?.getVideoTracks()[0];
@@ -61,26 +61,26 @@ export const usePeerConnections = (
         }, 500);
       }
       
-      // Nếu PEER đang share screen, yêu cầu họ gửi screen track (retry mechanism)
+      // If PEER is sharing screen, request them to send screen track (retry mechanism)
       if (isPeerSharing) {
         console.log('📢 Peer is sharing! Requesting screen track from:', userId.slice(0, 6));
         
-        // Request ngay lập tức
+        // Request immediately
         socket.emit('requestScreenTrack', { targetId: userId });
         
-        // Retry sau 500ms
+        // Retry after 500ms
         setTimeout(() => {
           console.log('📢 Retry 1: Requesting screen track from:', userId.slice(0, 6));
           socket.emit('requestScreenTrack', { targetId: userId });
         }, 500);
         
-        // Retry sau 1000ms
+        // Retry after 1000ms
         setTimeout(() => {
           console.log('📢 Retry 2: Requesting screen track from:', userId.slice(0, 6));
           socket.emit('requestScreenTrack', { targetId: userId });
         }, 1000);
         
-        // Retry sau 2000ms
+        // Retry after 2000ms
         setTimeout(() => {
           console.log('📢 Retry 3: Requesting screen track from:', userId.slice(0, 6));
           socket.emit('requestScreenTrack', { targetId: userId });
@@ -121,7 +121,7 @@ export const usePeerConnections = (
     peer.on('connect', () => {
       console.log('✅ Peer connected (non-initiator):', userId.slice(0, 6));
       
-      // Nếu mình đang share, gửi screen track
+      // If I am sharing, send screen track
       if (isSharingRef.current && screenStreamRef.current) {
         setTimeout(() => {
           const screenVideoTrack = screenStreamRef.current?.getVideoTracks()[0];
@@ -176,7 +176,7 @@ export const usePeerConnections = (
         const name = user.name || 'Anonymous';
         const isPeerSharing = usersSharing ? usersSharing.includes(id) : false;
 
-        // 🆕 Lưu tên của peer
+        // 🆕 Store peer name
         peerNamesRef.current[id] = name;
 
         console.log(`👤 Processing user ${name} (${id.slice(0,6)}) | Sharing: ${isPeerSharing}`);
@@ -187,7 +187,7 @@ export const usePeerConnections = (
 
           setGroupPeers(prev => {
             if (prev.find(p => p.id === id)) return prev;
-            return [...prev, { id, peer, name }]; // 🆕 Thêm name vào state
+            return [...prev, { id, peer, name }]; // 🆕 Add name to state
           });
         }
       });
@@ -200,14 +200,14 @@ export const usePeerConnections = (
     socket.on('userJoined', ({ id, name }) => {
       console.log('👤 New user joined:', name, `(${id.slice(0, 6)})`);
       
-      // 🆕 Lưu tên của peer mới
+      // 🆕 Save new peer name
       peerNamesRef.current[id] = name || 'Anonymous';
       
-      // Nếu MÌNH đang share screen, cần gửi screen track cho user mới
+      // If I am sharing screen, need to send screen track to new user
       if (isSharingRef.current && screenStreamRef.current) {
         console.log('🖥️ I am sharing! Will send screen track to new user...');
         
-        // Retry với nhiều lần để đảm bảo
+        // Retry multiple times to ensure
         [500, 1000, 1500, 2000].forEach(delay => {
           setTimeout(() => {
             const peer = peersRef.current[id];
@@ -230,7 +230,7 @@ export const usePeerConnections = (
       }
     });
 
-    // Handler khi nhận yêu cầu gửi screen track
+    // Handler when receiving request to send screen track
     socket.on('requestScreenTrack', ({ requesterId }) => {
       console.log('📨 Received request for screen track from:', requesterId.slice(0, 6));
       console.log('   Am I sharing?', isSharingRef.current);
@@ -278,12 +278,12 @@ export const usePeerConnections = (
             const peer = addPeer(signal, from, stream, socket);
             peersRef.current[from] = peer;
             
-            // 🆕 Lấy tên từ ref (đã lưu từ userJoined hoặc allUsers)
+            // 🆕 Get name from ref (saved from userJoined or allUsers)
             const peerName = peerNamesRef.current[from] || 'Anonymous';
             
             setGroupPeers(prev => {
               if (prev.find(p => p.id === from)) return prev;
-              return [...prev, { id: from, peer, name: peerName }]; // 🆕 Thêm name
+              return [...prev, { id: from, peer, name: peerName }]; // 🆕 Add name
             });
           }
         }
@@ -298,7 +298,7 @@ export const usePeerConnections = (
         peersRef.current[id].destroy();
         delete peersRef.current[id];
       }
-      // 🆕 Xóa tên
+      // 🆕 Remove name
       delete peerNamesRef.current[id];
       
       setGroupPeers(prev => prev.filter(user => user.id !== id));

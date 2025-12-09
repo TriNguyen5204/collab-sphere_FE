@@ -43,12 +43,12 @@ const CreateMultipleStudentForm = ({ onClose }) => {
     XLSX.writeFile(wb, 'student_accounts_template.xlsx');
   };
 
-  // Validate file structure - sử dụng utility
+  // Validate file structure - use utility
   const validateFileStructure = (parsedData) => {
     return validateExcelStructure(parsedData, STUDENT_TEMPLATE.requiredColumns);
   };
 
-  // Validate data - sử dụng utility
+  // Validate data - use utility
   const validateData = (data) => {
     return validateDataWithRules(data, STUDENT_TEMPLATE.validationRules);
   };
@@ -135,14 +135,14 @@ const CreateMultipleStudentForm = ({ onClose }) => {
         const workbook = XLSX.read(data, { type: 'array' });
 
         if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-          throw new Error('File không có sheet dữ liệu');
+          throw new Error('File has no data sheet');
         }
 
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
 
         if (!sheet) {
-          throw new Error('Sheet dữ liệu trống');
+          throw new Error('Data sheet is empty');
         }
 
         const parsedData = XLSX.utils.sheet_to_json(sheet);
@@ -164,16 +164,16 @@ const CreateMultipleStudentForm = ({ onClose }) => {
           return;
         }
 
-        // ✅ VALIDATE CẤU TRÚC FILE
+        // ✅ VALIDATE FILE STRUCTURE
         const structureValidation = validateFileStructure(parsedData);
 
         if (!structureValidation.isValid) {
           setUploadStatus('error');
-          // Format errors cho UI
+          // Format errors for UI
           const formattedErrors = structureValidation.errors.map(err => ({
             type: 'structure',
-            message: `❌ File KHÔNG ĐÚNG định dạng! ${err}`,
-            details: `File chuẩn phải có ${STUDENT_TEMPLATE.requiredColumns.length} cột: ${STUDENT_TEMPLATE.requiredColumns.join(', ')}`,
+            message: `❌ File format INCORRECT! ${err}`,
+            details: `Standard file must have ${STUDENT_TEMPLATE.requiredColumns.length} columns: ${STUDENT_TEMPLATE.requiredColumns.join(', ')}`,
           }));
           setStructureErrors(formattedErrors);
           setStudents([]);
@@ -185,19 +185,19 @@ const CreateMultipleStudentForm = ({ onClose }) => {
           return;
         }
 
-        // Show warnings nếu có
+        // Show warnings if any
         if (structureValidation.warnings && structureValidation.warnings.length > 0) {
           structureValidation.warnings.forEach(warning => {
             toast.warning(warning);
             setStructureErrors(prev => [...prev, {
               type: 'warning',
               message: `⚠️ ${warning}`,
-              details: 'Các cột này sẽ bị bỏ qua khi import.',
+              details: 'These columns will be ignored during import.',
             }]);
           });
         }
 
-        // ✅ VALIDATE DỮ LIỆU
+        // ✅ VALIDATE DATA
         const dataErrors = validateData(parsedData);
 
         setErrors(dataErrors);

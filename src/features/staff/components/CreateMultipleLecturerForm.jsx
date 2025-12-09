@@ -46,18 +46,18 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
 
     const wsData = XLSX.utils.json_to_sheet(template);
 
-    // Tạo sheet hướng dẫn
+    // Create instruction sheet
     const instructionData = [
-      ['HƯỚNG DẪN:'],
-      ['- Email: Email công việc (bắt buộc)'],
-      ['- Password: Mật khẩu (mặc định 12345, nên đổi sau khi đăng nhập)'],
-      ['- FullName: Họ và tên đầy đủ (bắt buộc, ít nhất 3 ký tự)'],
-      ['- Address: Địa chỉ chi tiết (bắt buộc)'],
-      ['- PhoneNumber: Số điện thoại (bắt buộc, 10-11 số)'],
-      ['- YOB: Năm sinh (bắt buộc, từ 1950-1980)'],
-      ['- School: Trường (bắt buộc)'],
-      ['- LecturerCode: Mã giảng viên (bắt buộc)'],
-      ['- Major: Ngành học (bắt buộc)'],
+      ['INSTRUCTIONS:'],
+      ['- Email: Work email (required)'],
+      ['- Password: Password (default 12345, should change after login)'],
+      ['- FullName: Full name (required, at least 3 characters)'],
+      ['- Address: Detailed address (required)'],
+      ['- PhoneNumber: Phone number (required, 10-11 digits)'],
+      ['- YOB: Year of birth (required, from 1950-1980)'],
+      ['- School: School (required)'],
+      ['- LecturerCode: Lecturer code (required)'],
+      ['- Major: Major (required)'],
     ];
     const wsInstruction = XLSX.utils.aoa_to_sheet(instructionData);
 
@@ -105,7 +105,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
           details: 'Only Excel files (.xlsx, .xls) are accepted',
         },
       ]);
-      toast.error('Invalid file format! Vui lòng chọn file Excel.');
+      toast.error('Invalid file format! Please select an Excel file.');
 
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -125,7 +125,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
           details: 'Maximum file size is 10MB',
         },
       ]);
-      toast.error('File too large! Vui lòng chọn file nhỏ hơn 10MB.');
+      toast.error('File too large! Please select a file smaller than 10MB.');
 
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -161,14 +161,14 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
         const workbook = XLSX.read(data, { type: 'array' });
 
         if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-          throw new Error('File không có sheet dữ liệu');
+          throw new Error('File has no data sheet');
         }
 
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
 
         if (!worksheet) {
-          throw new Error('Sheet dữ liệu trống');
+          throw new Error('Data sheet is empty');
         }
 
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
@@ -190,12 +190,12 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
           return;
         }
 
-        // Lọc bỏ row trống
+        // Filter out empty rows
         const filteredData = jsonData.filter(
           row => row.FullName && row.FullName.trim() !== ''
         );
 
-        // ✅ VALIDATE CẤU TRÚC FILE
+        // ✅ VALIDATE FILE STRUCTURE
         const structureValidation = validateFileStructure(filteredData);
 
         if (!structureValidation.isValid) {
@@ -203,7 +203,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
           const formattedErrors = structureValidation.errors.map(err => ({
             type: 'structure',
             message: `❌ INVALID FILE STRUCTURE! ${err}`,
-            details: `Standard file must have ${LECTURER_TEMPLATE.requiredColumns.length} cột: ${LECTURER_TEMPLATE.requiredColumns.join(', ')}`,
+            details: `Standard file must have ${LECTURER_TEMPLATE.requiredColumns.length} columns: ${LECTURER_TEMPLATE.requiredColumns.join(', ')}`,
           }));
           setStructureErrors(formattedErrors);
           setLecturers([]);
@@ -215,7 +215,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
           return;
         }
 
-        // Show warnings nếu có
+        // Show warnings if any
         if (structureValidation.warnings && structureValidation.warnings.length > 0) {
           structureValidation.warnings.forEach(warning => {
             toast.warning(warning);
@@ -227,7 +227,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
           });
         }
 
-        // ✅ VALIDATE DỮ LIỆU
+        // ✅ VALIDATE DATA
         const dataErrors = validateData(filteredData);
 
         setErrors(dataErrors);
@@ -465,7 +465,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
             <FileX className='w-6 h-6 text-red-600 mt-0.5 flex-shrink-0' />
             <div className='flex-1'>
               <h4 className='font-bold text-red-900 mb-3 text-lg'>
-                ⛔ FILE KHÔNG ĐÚNG CẤU TRÚC!
+                ⛔ INCORRECT FILE STRUCTURE!
               </h4>
               {structureErrors.map((err, idx) => (
                 <div key={idx} className='mb-3 last:mb-0'>
@@ -506,7 +506,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
             <AlertTriangle className='w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0' />
             <div className='flex-1'>
               <h4 className='font-semibold text-orange-900 mb-2'>
-                Data validation errors found ({errors.length} lỗi)
+                Data validation errors found ({errors.length} errors)
               </h4>
               <div className='space-y-2 max-h-60 overflow-y-auto'>
                 {errors.map((err, idx) => (

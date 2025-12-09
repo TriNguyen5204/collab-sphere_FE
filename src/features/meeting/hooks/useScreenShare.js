@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 export const useScreenShare = (peersRef, localStreamRef, roomId, socket) => {
   const [isSharing, setIsSharing] = useState(false);
@@ -24,7 +25,7 @@ export const useScreenShare = (peersRef, localStreamRef, roomId, socket) => {
       // Emit screen share status
       socket.emit('screenShareStatus', { roomId, isSharing: true, userId: socket.id });
 
-      // Replace video track cho tất cả peers
+      // Replace video track for all peers
       const screenVideoTrack = screenStream.getVideoTracks()[0];
       Object.values(peersRef.current).forEach(peer => {
         if (!peer?._pc) return;
@@ -41,14 +42,14 @@ export const useScreenShare = (peersRef, localStreamRef, roomId, socket) => {
         }
       });
 
-      // Xử lý khi user tự stop share từ browser
+      // Handle when user stops sharing from browser
       screenVideoTrack.onended = () => {
         console.log('🛑 Screen share ended by user');
         stopScreenShare();
       };
     } catch (err) {
       if (err.name === 'NotAllowedError') {
-        alert('Screen sharing permission denied');
+        toast.error('Screen sharing permission denied');
       } else {
         console.error('❌ Screen share error:', err);
       }
@@ -60,7 +61,7 @@ export const useScreenShare = (peersRef, localStreamRef, roomId, socket) => {
 
     console.log('🛑 Stopping screen share...');
 
-    // Stop tất cả tracks của screen stream
+    // Stop all tracks of screen stream
     const screenStream = screenStreamRef.current;
     if (screenStream) {
       screenStream.getTracks().forEach(track => {
@@ -78,7 +79,7 @@ export const useScreenShare = (peersRef, localStreamRef, roomId, socket) => {
     // Emit screen share stopped
     socket.emit('screenShareStatus', { roomId, isSharing: false });
 
-    // Restore camera track cho tất cả peers
+    // Restore camera track for all peers
     const cam = localStreamRef.current;
     if (!cam) {
       console.warn('⚠️ No camera stream to restore!');
@@ -93,7 +94,7 @@ export const useScreenShare = (peersRef, localStreamRef, roomId, socket) => {
 
     console.log('📹 Restoring camera track:', camVideoTrack.id.slice(0, 8));
 
-    // Replace track cho tất cả peers
+    // Replace track for all peers
     Object.values(peersRef.current).forEach(peer => {
       if (!peer?._pc) return;
       const senders = peer._pc.getSenders();

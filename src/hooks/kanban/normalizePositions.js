@@ -1,20 +1,21 @@
 /**
- * Script để chuẩn hóa lại position cho tất cả lists
- * Chạy file này 1 lần để fix position trước khi test drag & drop
+ * Script to normalize positions for all lists
+ * Run this file once to fix positions before testing drag & drop
  */
 import { moveList } from './signalRHelper';
+import useToastConfirmation from '../useToastConfirmation';
 /**
- * Normalize positions cho tất cả lists
- * @param {Array} lists - Mảng lists hiện tại
+ * Normalize positions for all lists
+ * @param {Array} lists - Current lists array
  * @param {Object} connection - SignalR connection
- * @param {number} workspaceId - ID của workspace
+ * @param {number} workspaceId - Workspace ID
  */
 export const normalizeListPositions = async (lists, connection, workspaceId) => {
   console.log('🔧 Starting position normalization...');
   
-  // 1. Sort lists theo position hiện tại
+  // 1. Sort lists by current position
   const sortedLists = [...lists].sort((a, b) => {
-    // Nếu position bằng nhau, sort theo id
+    // If positions are equal, sort by id
     if (a.position === b.position) {
       return parseInt(a.id) - parseInt(b.id);
     }
@@ -27,7 +28,7 @@ export const normalizeListPositions = async (lists, connection, workspaceId) => 
     oldPosition: l.position
   })));
 
-  // 2. Tính position mới - mỗi list cách nhau 1.0
+  // 2. Calculate new position - each list separated by 1.0
   const updates = sortedLists.map((list, index) => ({
     listId: list.id,
     oldPosition: list.position,
@@ -42,15 +43,15 @@ export const normalizeListPositions = async (lists, connection, workspaceId) => 
     newPosition: u.newPosition
   })));
 
-  // 3. Gửi updates lên server
+  // 3. Send updates to server
   try {
     for (const update of updates) {
       console.log(`🚀 Updating list ${update.listId}: ${update.oldPosition} → ${update.newPosition}`);
       
-      // Gọi API hoặc SignalR để update
+      // Call API or SignalR to update
       await moveList(connection, workspaceId, parseInt(update.listId), update.newPosition);
       
-      // Đợi 100ms để tránh quá tải server
+      // Wait 100ms to avoid server overload
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     
@@ -63,15 +64,19 @@ export const normalizeListPositions = async (lists, connection, workspaceId) => 
 };
 
 /**
- * Helper function để import vào component
+ * Helper function to import into component
  */
 export const useNormalizePositions = () => {
+  const confirmWithToast = useToastConfirmation();
+
   const normalizePositions = async (lists, connection, workspaceId) => {
-    const confirm = window.confirm(
-      `This will normalize positions for ${lists.length} lists.\n\n` +
-      'Current positions will be changed to:\n' +
-      '1.0, 2.0, 3.0, ...\n\n' +
-      'Continue?'
+    const confirm = await confirmWithToast(
+      `This will normalize positions for ${lists.length} lists.`,
+      {
+        description: 'Current positions will be changed to: 1.0, 2.0, 3.0, ...',
+        confirmText: "Normalize",
+        cancelText: "Cancel"
+      }
     );
     
     if (!confirm) {

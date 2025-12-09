@@ -1,12 +1,12 @@
 /**
- * Tính position mới cho item dựa trên vị trí trước và sau
- * @param {number|null} prevPosition - Position của item trước (null nếu là đầu tiên)
- * @param {number|null} nextPosition - Position của item sau (null nếu là cuối cùng)
- * @returns {number} Position mới
+ * Calculate new position for item based on previous and next positions
+ * @param {number|null} prevPosition - Position of previous item (null if first)
+ * @param {number|null} nextPosition - Position of next item (null if last)
+ * @returns {number} New position
  */
 export const calculateNewPosition = (prevPosition, nextPosition) => {
 
-  // ✅ Convert to number và handle null/undefined
+  // ✅ Convert to number and handle null/undefined
   const prev =
     prevPosition !== null && prevPosition !== undefined
       ? Number(prevPosition)
@@ -38,8 +38,8 @@ export const calculateNewPosition = (prevPosition, nextPosition) => {
     result = 1.0;
   }
 
-  // ✅ BỎ LÀM TRÒN - giữ nguyên precision của JavaScript
-  // const floatResult = parseFloat(result.toFixed(1)); // ❌ CŨ
+  // ✅ REMOVE ROUNDING - keep JavaScript precision
+  // const floatResult = parseFloat(result.toFixed(1)); // ❌ OLD
 
   // ✅ Final check
   if (isNaN(result)) {
@@ -50,10 +50,10 @@ export const calculateNewPosition = (prevPosition, nextPosition) => {
 };
 
 /**
- * Lấy position của item tại index trong mảng đã sắp xếp
- * @param {Array} items - Mảng items đã sort theo position
- * @param {number} targetIndex - Index muốn insert
- * @returns {number} Position mới
+ * Get position of item at index in sorted array
+ * @param {Array} items - Array of items sorted by position
+ * @param {number} targetIndex - Index to insert
+ * @returns {number} New position
  */
 export const getPositionForIndex = (items, targetIndex) => {
   if (items.length === 0) {
