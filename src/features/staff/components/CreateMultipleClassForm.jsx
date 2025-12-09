@@ -24,7 +24,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
       {
         ClassName: 'SE1234',
         SubjectCode: 'CS101',
-        SemesterCode: 'FA252',
+        SemesterCode: 'FA25',
         LecturerCode: 'GV001',
         StudentCodes: 'SE18471,SE18472',
         IsActive: true,
@@ -166,7 +166,8 @@ const CreateMultipleClassForm = ({ onClose }) => {
                   Bước 1: Tải file mẫu
                 </h3>
                 <p className='text-sm text-gray-600 mb-3'>
-                  Download the Excel template and fill in the class information according to the format
+                  Download the Excel template and fill in the class information
+                  according to the format
                 </p>
                 <button
                   onClick={downloadTemplate}
@@ -207,7 +208,8 @@ const CreateMultipleClassForm = ({ onClose }) => {
               >
                 <Upload className='w-6 h-6 text-gray-400' />
                 <span className='text-gray-600'>
-                  {fileName || 'Click to select file or drag and drop file here'}
+                  {fileName ||
+                    'Click to select file or drag and drop file here'}
                 </span>
               </label>
             </div>
@@ -318,8 +320,8 @@ const CreateMultipleClassForm = ({ onClose }) => {
                           <p className='text-red-700'>{err.general}</p>
                         ) : (
                           <p className='text-red-700'>
-                            <span className='font-medium'>Row {err.row}</span>{' '}
-                            ({err.name}):{' '}
+                            <span className='font-medium'>Row {err.row}</span> (
+                            {err.name}):{' '}
                             <span className='text-red-600'>
                               {err.errors.join(', ')}
                             </span>
@@ -336,9 +338,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
           {/* Empty State */}
           {uploadStatus === 'empty' && (
             <div className='mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg text-center'>
-              <p className='text-gray-600'>
-                No valid data found in file
-              </p>
+              <p className='text-gray-600'>No valid data found in file</p>
             </div>
           )}
 
@@ -365,12 +365,16 @@ const CreateMultipleClassForm = ({ onClose }) => {
       </div>
       {/* errorList */}
       {apiErrors.length > 0 && (
-        <div className='mt-4 p-4 bg-red-50 border border-red-300 rounded-md'>
-          <h3 className='text-red-600 font-semibold mb-2'>Error list:</h3>
-          <ul className='list-disc list-inside text-red-700'>
+        <div className='mt-6 p-4 bg-red-50 border border-red-200 rounded-lg'>
+          <div className='flex items-center gap-2 mb-3 text-red-700'>
+            <AlertCircle className='w-5 h-5' />
+            <h3 className='font-bold'>Import Failed</h3>
+          </div>
+          <ul className='list-disc list-inside space-y-1'>
             {apiErrors.map((err, index) => (
-              <li key={index}>
-                <strong>{err.field}</strong>: {err.message}
+              <li key={index} className='text-red-600 text-sm'>
+                {/* Chỉ hiển thị err.message, bỏ err.field */}
+                {err.message}
               </li>
             ))}
           </ul>

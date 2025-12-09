@@ -6,9 +6,14 @@ const app = express();
 const server = http.createServer(app);
 const recorders = {};
 const chatHistory = {};
+// Waiting room: roomId -> { hostSocketId, waitingGuests: [...] }
+const waitingRooms = {};
+// Room hosts: roomId -> hostSocketId
+const roomHosts = {};
+
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: ['http://localhost:5173', 'https://collabsphere.space'],
     methods: ['GET', 'POST'],
   },
 });
@@ -26,11 +31,42 @@ io.on('connection', socket => {
     if (roomId) {
       console.log(`${socket.name} (${socket.id}) disconnected from ${roomId}`);
       socket.to(roomId).emit('userLeft', socket.id);
+      
+      // If this was the host, close the entire room
+      if (roomHosts[roomId] === socket.id) {
+        console.log(`🏠 Host of room ${roomId} disconnected - closing room for all users`);
+        
+        // Notify all users in the room that the host left and room is closed
+        socket.to(roomId).emit('room-closed', {
+          roomId,
+          reason: 'Host has left the meeting',
+        });
+        
+        delete roomHosts[roomId];
+      }
+      
+      // Notify host if a waiting guest disconnected
+      if (waitingRooms[roomId]) {
+        const wasWaiting = waitingRooms[roomId].find(g => g.socketId === socket.id);
+        if (wasWaiting) {
+          waitingRooms[roomId] = waitingRooms[roomId].filter(g => g.socketId !== socket.id);
+          const hostSocketId = roomHosts[roomId];
+          if (hostSocketId) {
+            io.to(hostSocketId).emit('waiting-guest-disconnected', {
+              guestSocketId: socket.id,
+              roomId,
+            });
+          }
+        }
+      }
+      
       const clientsInRoom = io.sockets.adapter.rooms.get(roomId);
       // Delete history if no one is left in the room
       if (!clientsInRoom || clientsInRoom.size === 0) {
-        console.log(`🗑️ Room ${roomId} is empty, cleaning up chat history`);
+        console.log(`🗑️ Room ${roomId} is empty, cleaning up`);
         delete chatHistory[roomId];
+        delete waitingRooms[roomId];
+        delete roomHosts[roomId];
       }
     }
     socket.isSharing = false;
@@ -71,12 +107,18 @@ io.on('connection', socket => {
     console.log(`✅ Sent ${history.length} messages to ${socket.id}`);
   });
 
-  socket.on('joinRoom', ({ roomId, name }) => {
+  socket.on('joinRoom', ({ roomId, name, isHost }) => {
     socket.join(roomId);
     socket.roomId = roomId;
     socket.name = name || 'Anonymous';
 
-    console.log(`${name} (${socket.id}) joined ${roomId}`);
+    console.log(`${name} (${socket.id}) joined ${roomId}${isHost ? ' as HOST' : ''}`);
+
+    // If this user is the host, register them
+    if (isHost) {
+      roomHosts[roomId] = socket.id;
+      console.log(`🏠 ${name} is now the host of room ${roomId}`);
+    }
 
     const clientsInRoom = io.sockets.adapter.rooms.get(roomId);
 
@@ -108,6 +150,128 @@ io.on('connection', socket => {
       name: socket.name,
     });
   });
+
+  // ==================== WAITING ROOM EVENTS ====================
+
+  // Guest requests to join a room
+  socket.on('request-to-join', ({ roomId, guestId, guestName, guestSocketId }) => {
+    console.log(`📥 ${guestName} (${guestSocketId}) requesting to join room ${roomId}`);
+    console.log(`📊 Current roomHosts:`, roomHosts);
+    console.log(`📊 Current waitingRooms:`, waitingRooms);
+    
+    // Store guest in waiting room
+    if (!waitingRooms[roomId]) {
+      waitingRooms[roomId] = [];
+    }
+    
+    // Avoid duplicate entries
+    const existingGuest = waitingRooms[roomId].find(g => g.socketId === guestSocketId);
+    if (!existingGuest) {
+      waitingRooms[roomId].push({
+        id: guestId,
+        name: guestName,
+        socketId: guestSocketId,
+        requestedAt: new Date(),
+      });
+      console.log(`📊 Added guest to waiting room. Total waiting: ${waitingRooms[roomId].length}`);
+    } else {
+      console.log(`📊 Guest already in waiting room, skipping`);
+    }
+    
+    // Find the host and notify them
+    const hostSocketId = roomHosts[roomId];
+    console.log(`📊 Looking for host of room ${roomId}: ${hostSocketId || 'NOT FOUND'}`);
+    
+    if (hostSocketId) {
+      // Check if host is still connected
+      const hostSocket = io.sockets.sockets.get(hostSocketId);
+      if (hostSocket) {
+        io.to(hostSocketId).emit('join-request', {
+          guestId,
+          guestName,
+          guestSocketId,
+          roomId,
+        });
+        console.log(`📤 Notified host ${hostSocketId} about join request`);
+      } else {
+        console.log(`⚠️ Host socket ${hostSocketId} not found, broadcasting to room`);
+        delete roomHosts[roomId]; // Clean up stale host reference
+        io.to(roomId).emit('join-request', {
+          guestId,
+          guestName,
+          guestSocketId,
+          roomId,
+        });
+      }
+    } else {
+      // No host found - try to notify all users in the room
+      io.to(roomId).emit('join-request', {
+        guestId,
+        guestName,
+        guestSocketId,
+        roomId,
+      });
+      console.log(`📤 Broadcast join request to all users in room ${roomId}`);
+    }
+  });
+
+  // Host approves a guest
+  socket.on('approve-guest', ({ roomId, guestSocketId, guestId, guestName }) => {
+    console.log(`✅ Host approved ${guestName} (${guestSocketId}) to join room ${roomId}`);
+    
+    // Remove from waiting room
+    if (waitingRooms[roomId]) {
+      waitingRooms[roomId] = waitingRooms[roomId].filter(g => g.socketId !== guestSocketId);
+    }
+    
+    // Notify the guest they're approved
+    io.to(guestSocketId).emit('join-approved', {
+      roomId,
+      approvedBy: socket.id,
+    });
+  });
+
+  // Host rejects a guest
+  socket.on('reject-guest', ({ roomId, guestSocketId, guestId }) => {
+    console.log(`❌ Host rejected guest ${guestSocketId} from room ${roomId}`);
+    
+    // Remove from waiting room
+    if (waitingRooms[roomId]) {
+      waitingRooms[roomId] = waitingRooms[roomId].filter(g => g.socketId !== guestSocketId);
+    }
+    
+    // Notify the guest they're rejected
+    io.to(guestSocketId).emit('join-rejected', {
+      roomId,
+      rejectedBy: socket.id,
+    });
+  });
+
+  // Guest cancels their join request
+  socket.on('cancel-join-request', ({ roomId, guestSocketId }) => {
+    console.log(`🚫 Guest ${guestSocketId} cancelled join request for room ${roomId}`);
+    
+    // Remove from waiting room
+    if (waitingRooms[roomId]) {
+      waitingRooms[roomId] = waitingRooms[roomId].filter(g => g.socketId !== guestSocketId);
+    }
+    
+    // Notify host that request was cancelled
+    const hostSocketId = roomHosts[roomId];
+    if (hostSocketId) {
+      io.to(hostSocketId).emit('request-cancelled', {
+        guestSocketId,
+        roomId,
+      });
+    } else {
+      io.to(roomId).emit('request-cancelled', {
+        guestSocketId,
+        roomId,
+      });
+    }
+  });
+
+  // ==================== END WAITING ROOM EVENTS ====================
 
   socket.on('signal', data => {
     const targetId = data.targetId;
@@ -161,10 +325,39 @@ io.on('connection', socket => {
     const roomId = socket.roomId;
     if (roomId) {
       console.log(`${socket.name} (${socket.id}) left ${roomId}`);
+      
+      // If this was the host, close the entire room
+      if (roomHosts[roomId] === socket.id) {
+        console.log(`🏠 Host of room ${roomId} left - closing room for all users`);
+        
+        // Notify all users in the room that the host left
+        socket.to(roomId).emit('room-closed', {
+          roomId,
+          reason: 'Host has left the meeting',
+        });
+        
+        delete roomHosts[roomId];
+      }
+      
       socket.leave(roomId);
       socket.to(roomId).emit('userLeft', socket.id);
       socket.roomId = null;
     }
+  });
+
+  // Check if a room exists (has active users)
+  socket.on('check-room-exists', ({ roomId }, callback) => {
+    const clientsInRoom = io.sockets.adapter.rooms.get(roomId);
+    const exists = clientsInRoom && clientsInRoom.size > 0;
+    const hasHost = !!roomHosts[roomId];
+    
+    console.log(`🔍 Checking room ${roomId}: exists=${exists}, hasHost=${hasHost}, users=${clientsInRoom?.size || 0}`);
+    
+    callback({
+      exists,
+      hasHost,
+      userCount: clientsInRoom?.size || 0,
+    });
   });
 });
 

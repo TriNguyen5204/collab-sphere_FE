@@ -23,6 +23,7 @@ export const ControlBar = ({
   const [videoEnabled, setVideoEnabled] = useState(initialVideo);
   const [isTogglingAudio, setIsTogglingAudio] = useState(false);
   const [isTogglingVideo, setIsTogglingVideo] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   const handleToggleAudio = async () => {
     setIsTogglingAudio(true);
@@ -57,9 +58,16 @@ export const ControlBar = ({
   };
 
   const handleLeave = () => {
-    if (confirm('Are you sure you want to leave this meeting?')) {
-      onLeave();
-    }
+    setShowLeaveConfirm(true);
+  };
+
+  const confirmLeave = () => {
+    setShowLeaveConfirm(false);
+    onLeave();
+  };
+
+  const cancelLeave = () => {
+    setShowLeaveConfirm(false);
   };
 
   // ✅ NEW: Handler for chat toggle with extensive logging
@@ -72,24 +80,58 @@ export const ControlBar = ({
   };
 
   return (
-    <div className='w-full flex justify-center'>
-      <div className='bg-[#3c4043] backdrop-blur-xl rounded-full px-6 py-3 shadow-2xl border border-[#5f6368] flex items-center gap-2'>
-        
-        {/* Left Section - Meeting Info */}
-        <div className='flex items-center gap-3 px-3 border-r border-[#5f6368] mr-2'>
-          <div className='text-[#e8eaed] text-sm'>
-            <span className='font-medium'>{currentTime}</span>
-          </div>
-          <div className='w-1 h-1 bg-[#5f6368] rounded-full'></div>
-          <div className='text-[#9aa0a6] text-sm flex items-center gap-1.5'>
-            <svg className='w-4 h-4' fill='currentColor' viewBox='0 0 20 20'>
-              <path d='M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z' />
-            </svg>
-            <span>{participantCount}</span>
+    <>
+      {/* Leave Confirmation Modal */}
+      {showLeaveConfirm && (
+        <div className='fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center'>
+          <div className='bg-[#3c4043] rounded-2xl p-6 max-w-sm w-full mx-4 border border-[#5f6368] shadow-2xl'>
+            <div className='text-center'>
+              <div className='w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4'>
+                <svg className='w-6 h-6 text-red-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1' />
+                </svg>
+              </div>
+              <h3 className='text-lg font-semibold text-white mb-2'>Leave Meeting?</h3>
+              <p className='text-[#9aa0a6] text-sm mb-6'>
+                Are you sure you want to leave this meeting?
+              </p>
+              <div className='flex gap-3'>
+                <button
+                  onClick={cancelLeave}
+                  className='flex-1 px-4 py-2.5 bg-[#5f6368] hover:bg-[#6b7075] text-white font-medium rounded-xl transition-colors'
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmLeave}
+                  className='flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors'
+                >
+                  Leave
+                </button>
+              </div>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Center Section - Main Controls */}
+      <div className='w-full flex justify-center'>
+        <div className='bg-[#3c4043] backdrop-blur-xl rounded-full px-6 py-3 shadow-2xl border border-[#5f6368] flex items-center gap-2'>
+          
+          {/* Left Section - Meeting Info */}
+          <div className='flex items-center gap-3 px-3 border-r border-[#5f6368] mr-2'>
+            <div className='text-[#e8eaed] text-sm'>
+              <span className='font-medium'>{currentTime}</span>
+            </div>
+            <div className='w-1 h-1 bg-[#5f6368] rounded-full'></div>
+            <div className='text-[#9aa0a6] text-sm flex items-center gap-1.5'>
+              <svg className='w-4 h-4' fill='currentColor' viewBox='0 0 20 20'>
+                <path d='M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z' />
+              </svg>
+              <span>{participantCount}</span>
+            </div>
+          </div>
+
+          {/* Center Section - Main Controls */}
         <div className='flex items-center gap-2'>
           {/* Microphone */}
           <button
@@ -254,5 +296,6 @@ export const ControlBar = ({
         </div>
       </div>
     </div>
+    </>
   );
 };

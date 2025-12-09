@@ -336,12 +336,13 @@ export const getProjectById = async (id) => {
 }
 export const getPendingProjects = async (params = {}) => {
   try {
+    const filterParams = cleanParams(params)
     const response = await apiClient.get('/project/pending', {
       params: {
-        Descriptors: params.descriptors,
-        ViewAll: params.viewAll,
-        PageNum: params.pageNum,
-        PageSize: params.pageSize,
+        Descriptors: filterParams.descriptors,
+        ViewAll: filterParams.viewAll,
+        PageNum: filterParams.pageNum,
+        PageSize: filterParams.pageSize,
       },
     });
     return response.data;

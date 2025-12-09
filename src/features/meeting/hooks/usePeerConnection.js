@@ -9,10 +9,13 @@ export const usePeerConnections = (
   isSharingRef,
   screenStreamRef,
   peersRef,
-  mySocketId
+  mySocketId,
+  isHost = false,
+  onRoomClosed = null // Callback when host leaves and room is closed
 ) => {
   const [groupPeers, setGroupPeers] = useState([]);
   const [peersSharingScreen, setPeersSharingScreen] = useState(new Set());
+  const [roomClosed, setRoomClosed] = useState(false); // Track if room was closed by host
   const peersSharingScreenRef = useRef(new Set());
   const peerNamesRef = useRef({}); // 🆕 Store peer names
 
@@ -156,7 +159,7 @@ export const usePeerConnections = (
   useEffect(() => {
     if (!stream || !roomId || !socket || !mySocketId) return;
 
-    socket.emit('joinRoom', { roomId, name: myName });
+    socket.emit('joinRoom', { roomId, name: myName, isHost });
 
     socket.off('allUsers');
     socket.off('userJoined');
@@ -304,6 +307,24 @@ export const usePeerConnections = (
       setGroupPeers(prev => prev.filter(user => user.id !== id));
     });
 
+    // Handle room closed by host
+    socket.on('room-closed', ({ roomId: closedRoomId, reason }) => {
+      console.log(`🚪 Room ${closedRoomId} was closed: ${reason}`);
+      setRoomClosed(true);
+      
+      // Destroy all peer connections
+      Object.values(peersRef.current).forEach(peer => {
+        if (peer?.destroy) peer.destroy();
+      });
+      peersRef.current = {};
+      setGroupPeers([]);
+      
+      // Call the callback if provided
+      if (onRoomClosed) {
+        onRoomClosed(reason);
+      }
+    });
+
     socket.on('peerScreenShareStatus', ({ userId, isSharing }) => {
       console.log(`🖥️ Screen share status from ${peerNamesRef.current[userId] || userId.slice(0,6)}: ${isSharing ? 'STARTED' : 'STOPPED'}`);
       
@@ -335,8 +356,9 @@ export const usePeerConnections = (
       socket.off('userLeft');
       socket.off('peerScreenShareStatus');
       socket.off('requestScreenTrack');
+      socket.off('room-closed');
     };
-  }, [stream, roomId, myName, socket, mySocketId]);
+  }, [stream, roomId, myName, socket, mySocketId, onRoomClosed]);
 
   useEffect(() => {
     return () => {
@@ -350,5 +372,6 @@ export const usePeerConnections = (
     groupPeers,
     peersRef,
     peersSharingScreen,
+    roomClosed, // Expose room closed state
   };
 };

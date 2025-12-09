@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import {
   Mail,
   MailOpen,
@@ -121,7 +122,7 @@ export default function SystemReport() {
 
     } catch (error) {
       console.error('Delete failed:', error);
-      alert('Failed to delete email');
+      toast.error('Failed to delete email');
     }
   };
 

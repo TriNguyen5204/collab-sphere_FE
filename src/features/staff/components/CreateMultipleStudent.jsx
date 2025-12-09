@@ -44,24 +44,24 @@ const CreateMultipleStudentForm = ({ onClose }) => {
   };
 
   // Validate file structure - use utility
-  const validateFileStructure = (parsedData) => {
+  const validateFileStructure = parsedData => {
     return validateExcelStructure(parsedData, STUDENT_TEMPLATE.requiredColumns);
   };
 
   // Validate data - use utility
-  const validateData = (data) => {
+  const validateData = data => {
     return validateDataWithRules(data, STUDENT_TEMPLATE.validationRules);
   };
 
   // Check file type
-  const isValidExcelFile = (file) => {
+  const isValidExcelFile = file => {
     const validExtensions = ['.xlsx', '.xls'];
     const fileName = file.name.toLowerCase();
     return validExtensions.some(ext => fileName.endsWith(ext));
   };
 
   // Handle file upload
-  const handleFileUpload = (e) => {
+  const handleFileUpload = e => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -129,7 +129,7 @@ const CreateMultipleStudentForm = ({ onClose }) => {
       }
     };
 
-    reader.onload = (evt) => {
+    reader.onload = evt => {
       try {
         const data = new Uint8Array(evt.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
@@ -186,14 +186,20 @@ const CreateMultipleStudentForm = ({ onClose }) => {
         }
 
         // Show warnings if any
-        if (structureValidation.warnings && structureValidation.warnings.length > 0) {
+        if (
+          structureValidation.warnings &&
+          structureValidation.warnings.length > 0
+        ) {
           structureValidation.warnings.forEach(warning => {
             toast.warning(warning);
-            setStructureErrors(prev => [...prev, {
-              type: 'warning',
-              message: `⚠️ ${warning}`,
-              details: 'These columns will be ignored during import.',
-            }]);
+            setStructureErrors(prev => [
+              ...prev,
+              {
+                type: 'warning',
+                message: `⚠️ ${warning}`,
+                details: 'These columns will be ignored during import.',
+              },
+            ]);
           });
         }
 
@@ -209,7 +215,6 @@ const CreateMultipleStudentForm = ({ onClose }) => {
         } else {
           toast.warning(`⚠️ Found ${dataErrors.length} errors in file`);
         }
-
       } catch (error) {
         console.error('Error reading file:', error);
         setUploadStatus('error');
@@ -259,21 +264,29 @@ const CreateMultipleStudentForm = ({ onClose }) => {
       const file = new File([blob], 'students.xlsx', { type: blob.type });
 
       const response = await importStudentList(file);
-      
+
       // Use response parser to handle message
-      const isSuccess = handleImportResponse(response, toast, 'students');
-      
-      if (isSuccess) {
+      if (response.isSuccess === true) {
+        toast.success(response.message || 'Successfully imported students');
         resetForm();
-        setTimeout(() => {
-          if (onClose) onClose();
-        }, 2000); // Give time to read messages
+        fileInputRef.current.value = '';
+      } else {
+        // Handle error case
+        if (response.errorList && response.errorList.length > 0) {
+          response.errorList.forEach(err => {
+            toast.error(`${err.field ? err.field + ': ' : ''}${err.message}`);
+          });
+        } else if (response.message) {
+          toast.error(response.message);
+        } else {
+          toast.error('Failed to import students');
+        }
       }
     } catch (error) {
       console.error('Error creating students:', error);
-      
+
       const errorData = error?.response?.data;
-      
+
       if (errorData?.errorList && errorData.errorList.length > 0) {
         errorData.errorList.forEach(err => {
           toast.error(`${err.field}: ${err.message}`);
@@ -285,7 +298,9 @@ const CreateMultipleStudentForm = ({ onClose }) => {
           toast.error(errorData.message);
         }
       } else {
-        toast.error('An error occurred while creating accounts. Please try again.');
+        toast.error(
+          'An error occurred while creating accounts. Please try again.'
+        );
       }
     } finally {
       setLoading(false);
@@ -376,7 +391,9 @@ const CreateMultipleStudentForm = ({ onClose }) => {
           {uploadStatus === 'processing' && (
             <div className='mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-3'>
               <div className='animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-600'></div>
-              <span className='text-yellow-800 font-medium'>Processing file...</span>
+              <span className='text-yellow-800 font-medium'>
+                Processing file...
+              </span>
             </div>
           )}
 
@@ -432,9 +449,13 @@ const CreateMultipleStudentForm = ({ onClose }) => {
                   </h4>
                   <div className='space-y-2 max-h-60 overflow-y-auto'>
                     {errors.map((err, idx) => (
-                      <div key={idx} className='text-sm bg-white p-2 rounded border border-orange-200'>
+                      <div
+                        key={idx}
+                        className='text-sm bg-white p-2 rounded border border-orange-200'
+                      >
                         <p className='text-orange-800'>
-                          <span className='font-medium'>Row {err.row}:</span> {err.name}
+                          <span className='font-medium'>Row {err.row}:</span>{' '}
+                          {err.name}
                         </p>
                         <p className='text-orange-700 ml-4'>
                           • {err.errors.join(', ')}
@@ -454,60 +475,87 @@ const CreateMultipleStudentForm = ({ onClose }) => {
           )}
 
           {/* Success - Student List */}
-          {uploadStatus === 'success' && students.length > 0 && errors.length === 0 && (
-            <div className='mb-6'>
-              <div className='flex items-center justify-between mb-3'>
-                <div className='flex items-center gap-2'>
-                  <CheckCircle className='w-5 h-5 text-green-600' />
-                  <h3 className='font-semibold text-gray-800'>
-                    ✅ Valid file! ({students.length} students)
-                  </h3>
+          {uploadStatus === 'success' &&
+            students.length > 0 &&
+            errors.length === 0 && (
+              <div className='mb-6'>
+                <div className='flex items-center justify-between mb-3'>
+                  <div className='flex items-center gap-2'>
+                    <CheckCircle className='w-5 h-5 text-green-600' />
+                    <h3 className='font-semibold text-gray-800'>
+                      ✅ Valid file! ({students.length} students)
+                    </h3>
+                  </div>
+                  <button
+                    onClick={resetForm}
+                    className='text-gray-500 hover:text-gray-700 p-1'
+                    title='Clear and upload again'
+                  >
+                    <X className='w-5 h-5' />
+                  </button>
                 </div>
-                <button
-                  onClick={resetForm}
-                  className='text-gray-500 hover:text-gray-700 p-1'
-                  title='Clear and upload again'
-                >
-                  <X className='w-5 h-5' />
-                </button>
-              </div>
 
-              <div className='bg-gray-50 rounded-lg border border-gray-200 overflow-hidden'>
-                <div className='max-h-96 overflow-auto'>
-                  <table className='w-full text-sm'>
-                    <thead className='bg-gray-100 sticky top-0'>
-                      <tr>
-                        <th className='px-3 py-2 text-left font-semibold text-gray-700'>No.</th>
-                        <th className='px-3 py-2 text-left font-semibold text-gray-700'>Email</th>
-                        <th className='px-3 py-2 text-left font-semibold text-gray-700'>Full Name</th>
-                        <th className='px-3 py-2 text-left font-semibold text-gray-700'>Student Code</th>
-                        <th className='px-3 py-2 text-left font-semibold text-gray-700'>Major</th>
-                        <th className='px-3 py-2 text-left font-semibold text-gray-700'>School</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {students.map((student, idx) => (
-                        <tr key={idx} className='border-t border-gray-200 hover:bg-gray-50'>
-                          <td className='px-3 py-2 text-gray-600'>{idx + 1}</td>
-                          <td className='px-3 py-2 text-blue-600'>{student.Email}</td>
-                          <td className='px-3 py-2 font-medium'>{student.Fullname}</td>
-                          <td className='px-3 py-2'>{student.StudentCode}</td>
-                          <td className='px-3 py-2'>{student.Major}</td>
-                          <td className='px-3 py-2'>{student.School}</td>
+                <div className='bg-gray-50 rounded-lg border border-gray-200 overflow-hidden'>
+                  <div className='max-h-96 overflow-auto'>
+                    <table className='w-full text-sm'>
+                      <thead className='bg-gray-100 sticky top-0'>
+                        <tr>
+                          <th className='px-3 py-2 text-left font-semibold text-gray-700'>
+                            No.
+                          </th>
+                          <th className='px-3 py-2 text-left font-semibold text-gray-700'>
+                            Email
+                          </th>
+                          <th className='px-3 py-2 text-left font-semibold text-gray-700'>
+                            Full Name
+                          </th>
+                          <th className='px-3 py-2 text-left font-semibold text-gray-700'>
+                            Student Code
+                          </th>
+                          <th className='px-3 py-2 text-left font-semibold text-gray-700'>
+                            Major
+                          </th>
+                          <th className='px-3 py-2 text-left font-semibold text-gray-700'>
+                            School
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {students.map((student, idx) => (
+                          <tr
+                            key={idx}
+                            className='border-t border-gray-200 hover:bg-gray-50'
+                          >
+                            <td className='px-3 py-2 text-gray-600'>
+                              {idx + 1}
+                            </td>
+                            <td className='px-3 py-2 text-blue-600'>
+                              {student.Email}
+                            </td>
+                            <td className='px-3 py-2 font-medium'>
+                              {student.Fullname}
+                            </td>
+                            <td className='px-3 py-2'>{student.StudentCode}</td>
+                            <td className='px-3 py-2'>{student.Major}</td>
+                            <td className='px-3 py-2'>{student.School}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Submit Button */}
           {students.length > 0 && errors.length === 0 && (
             <div className='flex items-center justify-between pt-4 border-t border-gray-200'>
               <p className='text-sm text-gray-600'>
-                Ready to create <span className='font-semibold text-gray-800'>{students.length}</span> accounts
+                Ready to create{' '}
+                <span className='font-semibold text-gray-800'>
+                  {students.length}
+                </span>{' '}
+                accounts
               </p>
               <button
                 onClick={handleSubmit}

@@ -16,19 +16,19 @@ import {
   ArrowRight,
   Filter,
   Target,
-  Flag
+  Flag,
 } from 'lucide-react';
 import HeadDashboardLayout from '../../components/layout/HeadDashboardLayout';
 
 export default function ProjectApprovals() {
   const [projects, setProjects] = useState([]);
   const [searchText, setSearchText] = useState('');
-  
+
   // Pagination State
   const [pageNum, setPageNum] = useState(1);
   const pageSize = 6; // Số lượng project mỗi trang
   const [total, setTotal] = useState(0);
-  
+
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -37,12 +37,12 @@ export default function ProjectApprovals() {
     const fetchPendingProjects = async () => {
       setLoading(true);
       try {
-        const data = await getPendingProjects(
-          searchText,
-          pageNum,
-          pageSize,
-          false // isApproved = false (Pending)
-        );
+        const data = await getPendingProjects({
+          descriptors: searchText, // Tham số search
+          viewAll: false, // isApproved
+          pageNum: pageNum,
+          pageSize: pageSize,
+        });
         setProjects(data.list || []);
         setTotal(data.itemCount || 0);
       } catch (error) {
@@ -64,13 +64,13 @@ export default function ProjectApprovals() {
   // Calculate Total Pages
   const totalPages = Math.ceil(total / pageSize);
 
-  const handleProjectClick = (project) => {
+  const handleProjectClick = project => {
     navigate(`/head-department/project-approvals/${project.projectId}`, {
-      state: { project }
+      state: { project },
     });
   };
 
-  const handlePageChange = (newPage) => {
+  const handlePageChange = newPage => {
     if (newPage >= 1 && newPage <= totalPages) {
       setPageNum(newPage);
       // Scroll to top when page changes (optional)
@@ -81,7 +81,6 @@ export default function ProjectApprovals() {
   return (
     <HeadDashboardLayout>
       <div className='w-full px-6 mx-auto space-y-6 pb-8'>
-        
         {/* --- Header Section --- */}
         <div className='flex flex-col gap-6 md:flex-row md:items-center md:justify-between'>
           <div>
@@ -109,7 +108,7 @@ export default function ProjectApprovals() {
                 type='text'
                 placeholder='Search projects...'
                 value={searchText}
-                onChange={(e) => {
+                onChange={e => {
                   setSearchText(e.target.value);
                   setPageNum(1); // Reset về trang 1 khi search
                 }}
@@ -127,7 +126,7 @@ export default function ProjectApprovals() {
                 </button>
               )}
             </div>
-            
+
             <button className='flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm'>
               <Filter className='h-4 w-4' />
               <span>Filter</span>
@@ -137,7 +136,6 @@ export default function ProjectApprovals() {
 
         {/* --- Main Content Area --- */}
         <div className='bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden min-h-[600px] flex flex-col'>
-          
           <div className='flex-1 p-6'>
             {loading ? (
               <div className='flex h-64 items-center justify-center'>
@@ -160,13 +158,15 @@ export default function ProjectApprovals() {
               </div>
             ) : (
               <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'>
-                {projects.map((project) => {
-                   // Calculate stats
-                   const objectivesCount = project.objectives?.length || 0;
-                   const milestonesCount = project.objectives?.reduce(
-                     (acc, obj) => acc + (obj.objectiveMilestones?.length || 0), 
-                     0
-                   ) || 0;
+                {projects.map(project => {
+                  // Calculate stats
+                  const objectivesCount = project.objectives?.length || 0;
+                  const milestonesCount =
+                    project.objectives?.reduce(
+                      (acc, obj) =>
+                        acc + (obj.objectiveMilestones?.length || 0),
+                      0
+                    ) || 0;
 
                   return (
                     <div
@@ -180,34 +180,35 @@ export default function ProjectApprovals() {
                           <BookOpen className='h-6 w-6' />
                         </div>
                         <span className='inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700 ring-1 ring-inset ring-amber-600/20'>
-                           <Clock className="w-3 h-3 mr-1" />
-                           PENDING
+                          <Clock className='w-3 h-3 mr-1' />
+                          PENDING
                         </span>
                       </div>
 
                       {/* --- 2. Content: Title & Desc --- */}
-                      <div className="mb-4">
-                        <h3 
+                      <div className='mb-4'>
+                        <h3
                           className='text-lg font-bold text-slate-800 line-clamp-1 group-hover:text-[#F26F21] transition-colors'
                           title={project.projectName}
                         >
                           {project.projectName}
                         </h3>
                         <p className='mt-2 text-sm text-slate-500 line-clamp-2 leading-relaxed h-[40px]'>
-                          {project.description || 'No description provided for this project.'}
+                          {project.description ||
+                            'No description provided for this project.'}
                         </p>
                       </div>
 
                       {/* --- 3. Stats: Obj & Mile (Small Badges) --- */}
-                      <div className="flex flex-wrap gap-2 mb-5">
-                         <div className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-600 border border-slate-100">
-                            <Target className="h-3.5 w-3.5 text-indigo-500" />
-                            {objectivesCount} Objectives
-                         </div>
-                         <div className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-600 border border-slate-100">
-                            <Flag className="h-3.5 w-3.5 text-emerald-500" />
-                            {milestonesCount} Milestones
-                         </div>
+                      <div className='flex flex-wrap gap-2 mb-5'>
+                        <div className='inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-600 border border-slate-100'>
+                          <Target className='h-3.5 w-3.5 text-indigo-500' />
+                          {objectivesCount} Objectives
+                        </div>
+                        <div className='inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-600 border border-slate-100'>
+                          <Flag className='h-3.5 w-3.5 text-emerald-500' />
+                          {milestonesCount} Milestones
+                        </div>
                       </div>
 
                       {/* --- 4. Meta Info: Subject & Lecturer (Styled Blocks) --- */}
@@ -218,8 +219,13 @@ export default function ProjectApprovals() {
                             <FileText className='h-4 w-4' />
                           </div>
                           <div className='flex-1 min-w-0'>
-                            <p className='text-[10px] font-bold uppercase text-slate-400'>Subject</p>
-                            <p className='truncate text-sm font-semibold text-slate-700' title={project.subjectCode}>
+                            <p className='text-[10px] font-bold uppercase text-slate-400'>
+                              Subject
+                            </p>
+                            <p
+                              className='truncate text-sm font-semibold text-slate-700'
+                              title={project.subjectCode}
+                            >
                               {project.subjectCode}
                             </p>
                           </div>
@@ -231,8 +237,13 @@ export default function ProjectApprovals() {
                             <User className='h-4 w-4' />
                           </div>
                           <div className='flex-1 min-w-0'>
-                            <p className='text-[10px] font-bold uppercase text-slate-400'>Proposer</p>
-                            <p className='truncate text-sm font-semibold text-slate-700' title={project.lecturerName}>
+                            <p className='text-[10px] font-bold uppercase text-slate-400'>
+                              Proposer
+                            </p>
+                            <p
+                              className='truncate text-sm font-semibold text-slate-700'
+                              title={project.lecturerName}
+                            >
                               {project.lecturerName}
                             </p>
                           </div>
@@ -241,9 +252,9 @@ export default function ProjectApprovals() {
 
                       {/* --- 5. Footer Action --- */}
                       <div className='mt-4 pt-3 flex justify-end'>
-                         <span className="text-sm font-bold text-[#F26F21] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                            Review Details <ArrowRight className="w-4 h-4" />
-                         </span>
+                        <span className='text-sm font-bold text-[#F26F21] flex items-center gap-1 group-hover:translate-x-1 transition-transform'>
+                          Review Details <ArrowRight className='w-4 h-4' />
+                        </span>
                       </div>
                     </div>
                   );
@@ -255,8 +266,17 @@ export default function ProjectApprovals() {
           {/* --- Pagination Footer --- */}
           {totalPages > 0 && (
             <div className='p-6 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4'>
-              <div className="text-sm text-slate-500">
-                 Showing <span className="font-bold text-slate-800">{(pageNum - 1) * pageSize + 1}</span> to <span className="font-bold text-slate-800">{Math.min(pageNum * pageSize, total)}</span> of <span className="font-bold text-slate-800">{total}</span> projects
+              <div className='text-sm text-slate-500'>
+                Showing{' '}
+                <span className='font-bold text-slate-800'>
+                  {(pageNum - 1) * pageSize + 1}
+                </span>{' '}
+                to{' '}
+                <span className='font-bold text-slate-800'>
+                  {Math.min(pageNum * pageSize, total)}
+                </span>{' '}
+                of <span className='font-bold text-slate-800'>{total}</span>{' '}
+                projects
               </div>
 
               <div className='flex items-center gap-2'>
@@ -272,30 +292,30 @@ export default function ProjectApprovals() {
                   <ChevronLeft className='w-5 h-5' />
                 </button>
 
-                <div className="flex items-center gap-1 px-2">
-                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      // Logic hiển thị số trang đơn giản (1, 2, 3...)
-                      // Nếu muốn logic phức tạp hơn (1 ... 5 6 7 ... 10) thì cần code thêm
-                      let p = i + 1;
-                      if (totalPages > 5 && pageNum > 3) {
-                         p = pageNum - 2 + i;
-                      }
-                      if (p > totalPages) return null;
+                <div className='flex items-center gap-1 px-2'>
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    // Logic hiển thị số trang đơn giản (1, 2, 3...)
+                    // Nếu muốn logic phức tạp hơn (1 ... 5 6 7 ... 10) thì cần code thêm
+                    let p = i + 1;
+                    if (totalPages > 5 && pageNum > 3) {
+                      p = pageNum - 2 + i;
+                    }
+                    if (p > totalPages) return null;
 
-                      return (
-                        <button
-                          key={p}
-                          onClick={() => handlePageChange(p)}
-                          className={`w-9 h-9 flex items-center justify-center rounded-xl text-sm font-bold transition-all ${
-                             pageNum === p
-                             ? 'bg-[#F26F21] text-white shadow-md shadow-orange-200'
-                             : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-                          }`}
-                        >
-                           {p}
-                        </button>
-                      );
-                   })}
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => handlePageChange(p)}
+                        className={`w-9 h-9 flex items-center justify-center rounded-xl text-sm font-bold transition-all ${
+                          pageNum === p
+                            ? 'bg-[#F26F21] text-white shadow-md shadow-orange-200'
+                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <button
@@ -312,7 +332,6 @@ export default function ProjectApprovals() {
               </div>
             </div>
           )}
-
         </div>
       </div>
     </HeadDashboardLayout>
