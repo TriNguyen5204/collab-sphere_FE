@@ -35,6 +35,186 @@ import {
   User,
 } from 'lucide-react';
 
+// --- Chat styles with glassmorphism ---
+const ChatStyles = () => (
+  <style>{`
+    .chat-bubble-right {
+      position: relative;
+      background: #F36F21;
+      color: #ffffff;
+      border-radius: 18px 18px 4px 18px;
+      padding: 10px 14px;
+      box-shadow: 0 1px 2px rgba(243, 111, 33, 0.2);
+      max-width: 100%;
+    }
+    
+    .chat-bubble-right::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      right: -6px;
+      width: 12px;
+      height: 16px;
+      background: #F36F21;
+      clip-path: polygon(0 0, 0 100%, 100% 100%);
+    }
+    
+    .chat-bubble-left {
+      position: relative;
+      background: rgba(255, 255, 255, 0.95);
+      color: #1a1a1a;
+      border-radius: 18px 18px 18px 4px;
+      padding: 10px 14px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      max-width: 100%;
+    }
+    
+    .chat-bubble-left::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: -6px;
+      width: 12px;
+      height: 16px;
+      background: rgba(255, 255, 255, 0.95);
+      clip-path: polygon(100% 0, 0 100%, 100% 100%);
+    }
+    
+    /* Frosted glass sidebar */
+    .glass-sidebar {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    
+    .glass-sidebar-item {
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(10px);
+      transition: all 0.2s ease;
+    }
+    
+    .glass-sidebar-item:hover {
+      background: rgba(255, 255, 255, 0.9);
+    }
+    
+    .glass-sidebar-item.active {
+      background: rgba(255, 255, 255, 0.95);
+      border-left: 3px solid #F36F21;
+    }
+    
+    /* Subtle pattern background */
+    .chat-pattern-bg {
+      background-color: #f8f9fa;
+      background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23e5e7eb' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    
+    /* Floating input bar */
+    .floating-input {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      border-radius: 20px;
+      padding: 12px 14px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    }
+    
+    /* Floating glass input bar */
+    .glass-input-bar {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Message text typography */
+    .message-text {
+      font-size: 15px;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+    
+    .message-text p {
+      margin: 0;
+    }
+    
+    /* Read receipts styling */
+    .read-receipts {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 4px;
+      padding-right: 2px;
+    }
+    
+    .read-receipts-avatars {
+      display: flex;
+      flex-direction: row-reverse;
+    }
+    
+    .read-receipts-avatars > * {
+      margin-left: -6px;
+    }
+    
+    .read-receipts-avatars > *:last-child {
+      margin-left: 0;
+    }
+    
+    /* Quill editor custom styles */
+    .chat-quill .ql-container {
+      border: none !important;
+      font-size: 15px;
+      font-family: 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .chat-quill .ql-editor {
+      min-height: 44px;
+      max-height: 120px;
+      overflow-y: auto;
+      padding: 12px 16px;
+      line-height: 1.5;
+    }
+    .chat-quill .ql-editor.ql-blank::before {
+      color: #9ca3af;
+      font-style: normal;
+      left: 16px;
+    }
+    .chat-quill .ql-toolbar {
+      border: none !important;
+      border-bottom: 1px solid rgba(0,0,0,0.08) !important;
+      background: rgba(249, 250, 251, 0.8);
+      padding: 8px;
+      border-radius: 16px 16px 0 0;
+    }
+    .chat-quill .ql-stroke { stroke: #6b7280; }
+    .chat-quill .ql-fill { fill: #6b7280; }
+    .chat-quill .ql-picker-label { color: #6b7280; }
+    .chat-quill .ql-toolbar button:hover .ql-stroke,
+    .chat-quill .ql-toolbar button.ql-active .ql-stroke { stroke: #F36F21; }
+    .chat-quill .ql-toolbar button:hover .ql-fill,
+    .chat-quill .ql-toolbar button.ql-active .ql-fill { fill: #F36F21; }
+    .chat-quill .ql-toolbar button:hover,
+    .chat-quill .ql-toolbar button.ql-active {
+      background: rgba(243, 111, 33, 0.1);
+      border-radius: 6px;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-10px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    
+    .animate-slide-in {
+      animation: slideIn 0.2s ease-out;
+    }
+  `}</style>
+);
+
 // --- Avatar Component with Fallback ---
 const AvatarWithFallback = ({ src, name, size = 'md', className = '' }) => {
   const [imageError, setImageError] = useState(false);
@@ -714,9 +894,11 @@ export default function ChatComponent() {
   }
 
   return (
-    <div className='flex flex-col h-screen bg-gradient-to-br from-gray-50 to-gray-100'>
-      {/* Header */}
-      <div className='bg-white border-b border-gray-200 shadow-sm z-10'>
+    <div className='flex flex-col h-screen bg-gray-100'>
+      <ChatStyles />
+      
+      {/* Header - Clean white with subtle shadow */}
+      <div className='bg-white border-b border-gray-200/80 shadow-sm z-10'>
         <div className='flex items-center justify-between px-6 py-4'>
           <div className='flex items-center space-x-3'>
             <button
@@ -725,19 +907,19 @@ export default function ChatComponent() {
               title='Go back'
               aria-label='Go back'
             >
-              <ArrowLeft className='w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors' />
+              <ArrowLeft className='w-5 h-5 text-gray-600 group-hover:text-orangeFpt-500 transition-colors' />
             </button>
 
-            <h1 className='text-2xl font-bold bg-gradient-to-r from-orangeFpt-600 to-orangeFpt-700 bg-clip-text text-transparent'>
+            <h1 className='text-2xl font-bold text-gray-900'>
               Messages
             </h1>
           </div>
         </div>
 
-        {/* Filter Section */}
-        <div className='px-6 py-3 bg-gradient-to-r from-gray-50 to-blue-50 border-t border-gray-200'>
+        {/* Filter Section - Subtle glass effect */}
+        <div className='px-6 py-3 bg-gradient-to-r from-gray-50/80 to-white border-t border-gray-100'>
           <div className='flex items-center space-x-4'>
-            <div className='flex items-center text-sm font-medium text-gray-700'>
+            <div className='flex items-center text-sm font-medium text-gray-600'>
               <Filter className='w-4 h-4 mr-2 text-orangeFpt-500' />
               Filters:
             </div>
@@ -748,7 +930,7 @@ export default function ChatComponent() {
                 value={selectedSemesterId || ''}
                 onChange={(e) => setSelectedSemesterId(Number(e.target.value))}
                 disabled={isLoadingFilters || semesters.length === 0}
-                className='appearance-none bg-white border-2 border-gray-300 rounded-lg px-4 py-2 pr-10 text-sm font-medium text-gray-700 hover:border-orangeFpt-400 focus:outline-none focus:ring-2 focus:ring-orangeFpt-500 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]'
+                className='appearance-none bg-white border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium text-gray-700 hover:border-orangeFpt-300 focus:outline-none focus:ring-2 focus:ring-orangeFpt-500/20 focus:border-orangeFpt-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[180px] shadow-sm'
               >
                 <option value='' disabled>Select Semester</option>
                 {semesters.map(semester => (
@@ -757,7 +939,7 @@ export default function ChatComponent() {
                   </option>
                 ))}
               </select>
-              <ChevronDown className='absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none' />
+              <ChevronDown className='absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none' />
             </div>
 
             {/* Class Dropdown */}
@@ -766,7 +948,7 @@ export default function ChatComponent() {
                 value={selectedClassId || ''}
                 onChange={(e) => setSelectedClassId(Number(e.target.value))}
                 disabled={isLoadingFilters || classes.length === 0 || !selectedSemesterId}
-                className='appearance-none bg-white border-2 border-gray-300 rounded-lg px-4 py-2 pr-10 text-sm font-medium text-gray-700 hover:border-orangeFpt-400 focus:outline-none focus:ring-2 focus:ring-orangeFpt-500 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]'
+                className='appearance-none bg-white border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium text-gray-700 hover:border-orangeFpt-300 focus:outline-none focus:ring-2 focus:ring-orangeFpt-500/20 focus:border-orangeFpt-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[220px] shadow-sm'
               >
                 <option value='' disabled>
                   {classes.length === 0 ? 'No classes available' : 'Select Class'}
@@ -777,7 +959,7 @@ export default function ChatComponent() {
                   </option>
                 ))}
               </select>
-              <ChevronDown className='absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none' />
+              <ChevronDown className='absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none' />
             </div>
 
             {isLoadingFilters && (
@@ -790,12 +972,12 @@ export default function ChatComponent() {
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main Content - Two-pane layout */}
       <div className='flex flex-1 overflow-hidden' ref={mainChatAreaRef}>
-        {/* Conversations List */}
-        <div className='w-80 bg-white border-r border-gray-200 flex flex-col shadow-sm'>
-          <div className='p-4 border-b border-gray-200 bg-gradient-to-r from-orangeFpt-50 to-orangeFpt-100'>
-            <h2 className='text-lg font-semibold text-gray-800 flex items-center'>
+        {/* Conversations List - Frosted glass sidebar */}
+        <div className='w-80 glass-sidebar border-r border-gray-200/50 flex flex-col'>
+          <div className='p-4 border-b border-gray-200/50'>
+            <h2 className='text-base font-semibold text-gray-800 flex items-center'>
               <MessageCircle className='w-5 h-5 mr-2 text-orangeFpt-500' />
               Conversations
             </h2>
@@ -825,14 +1007,14 @@ export default function ChatComponent() {
                 </p>
               </div>
             ) : (
-              <div className='divide-y divide-gray-100'>
+              <div className='p-2 space-y-1'>
                 {chatConversations.map(conv => (
                   <div
                     key={conv.conversationId}
-                    className={`p-4 cursor-pointer transition-all duration-200 hover:bg-orangeFpt-50 relative ${
+                    className={`p-3 cursor-pointer rounded-xl transition-all duration-200 animate-slide-in ${
                       conv.conversationId === currentConversationId
-                        ? 'bg-orangeFpt-50 border-l-4 border-orangeFpt-500'
-                        : 'border-l-4 border-transparent hover:border-orangeFpt-200'
+                        ? 'glass-sidebar-item active shadow-sm'
+                        : 'glass-sidebar-item hover:shadow-sm'
                     }`}
                     onClick={() =>
                       setCurrentConversationId(conv.conversationId)
@@ -879,36 +1061,34 @@ export default function ChatComponent() {
         {/* Chat Window */}
         <div className='flex-1 flex flex-col bg-white relative'>
           {currentConversationId === -1 ? (
-            <div className='flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-orangeFpt-50'>
+            <div className='flex-1 flex items-center justify-center chat-pattern-bg'>
               <div className='text-center max-w-md px-6'>
-                <div className='inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-orangeFpt-100 to-orangeFpt-200 mb-6 shadow-lg'>
-                  <MessageCircle className='w-12 h-12 text-orangeFpt-500' />
+                <div className='inline-flex items-center justify-center w-20 h-20 rounded-full bg-white shadow-lg mb-6'>
+                  <MessageCircle className='w-10 h-10 text-orangeFpt-500' />
                 </div>
-                <h3 className='text-2xl font-bold text-gray-800 mb-3'>
+                <h3 className='text-xl font-bold text-gray-800 mb-2'>
                   Select a conversation
                 </h3>
-                <p className='text-gray-500'>
-                  Choose a conversation from the list to start chatting with
-                  your team
+                <p className='text-gray-500 text-sm'>
+                  Choose a conversation from the list to start chatting with your team
                 </p>
               </div>
             </div>
           ) : (
             <>
-              {/* Chat Header */}
+              {/* Chat Header - Clean white */}
               {currentConvDetail && (
-                <div className='border-b border-gray-200 bg-gradient-to-r from-white to-orangeFpt-50 px-6 py-4 shadow-sm'>
+                <div className='border-b border-gray-100 bg-white px-6 py-4'>
                   <div className='flex items-center justify-between'>
                     <div>
-                      <h2 className='text-lg font-bold text-gray-900 flex items-center'>
-                        <MessageCircle className='w-5 h-5 mr-2 text-orangeFpt-500' />
+                      <h2 className='text-lg font-semibold text-gray-900'>
                         {currentConvDetail.conversationName}
                       </h2>
-                      <div className='flex items-center mt-1 text-sm text-gray-600'>
-                        <Users className='w-4 h-4 mr-1' />
+                      <div className='flex items-center mt-0.5 text-sm text-gray-500'>
+                        <Users className='w-3.5 h-3.5 mr-1' />
                         <span>{currentConvDetail.teamName}</span>
-                        <span className='mx-2'>•</span>
-                        <span className='text-xs text-gray-500'>
+                        <span className='mx-2 text-gray-300'>•</span>
+                        <span className='text-gray-400'>
                           {currentConvDetail.teamMembers?.length + 1} members
                         </span>
                       </div>
@@ -917,22 +1097,22 @@ export default function ChatComponent() {
                     {/* Info Button */}
                     <button
                       onClick={() => setShowDetailSidebar(!showDetailSidebar)}
-                      className='flex items-center justify-center w-10 h-10 rounded-full hover:bg-orangeFpt-100 active:bg-orangeFpt-200 transition-all duration-200 group'
+                      className='flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-all duration-200 group'
                       title='Conversation details'
                     >
-                      <Info className='w-5 h-5 text-gray-600 group-hover:text-orangeFpt-600 transition-colors' />
+                      <Info className='w-5 h-5 text-gray-400 group-hover:text-orangeFpt-500 transition-colors' />
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Messages Area */}
+              {/* Messages Area - Pattern background */}
               <div
                 ref={messageListRef}
-                className='flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-gradient-to-b from-gray-50 to-white relative'
+                className='flex-1 overflow-y-auto px-6 py-4 space-y-3 chat-pattern-bg relative'
                 style={{
                   scrollbarWidth: 'thin',
-                  scrollbarColor: '#cbd5e1 transparent',
+                  scrollbarColor: '#d1d5db transparent',
                 }}
               >
                 {isLoadingMessages ? (
@@ -941,8 +1121,8 @@ export default function ChatComponent() {
                 currentConvDetail.chatMessages.length === 0 ? (
                   <div className='flex items-center justify-center h-full'>
                     <div className='text-center text-gray-400'>
-                      <MessageCircle className='w-16 h-16 mx-auto mb-3 text-gray-300' />
-                      <p className='text-lg font-medium text-gray-500'>
+                      <MessageCircle className='w-14 h-14 mx-auto mb-3 text-gray-300' />
+                      <p className='text-base font-medium text-gray-500'>
                         No messages yet
                       </p>
                       <p className='text-sm text-gray-400 mt-1'>
@@ -955,11 +1135,6 @@ export default function ChatComponent() {
                     const isMine = Number(msg.senderId) === Number(userId);
                     let showDateHeader = false;
                     const currentDate = new Date(msg.sendAt);
-
-                    // Debug: Log message with readUserIds
-                    if (index === 0) {
-                      console.log('First message readUserIds:', msg.messageId, msg.readUserIds);
-                    }
 
                     if (index === 0) {
                       showDateHeader = true;
@@ -975,9 +1150,8 @@ export default function ChatComponent() {
                     return (
                       <React.Fragment key={msg.messageId}>
                         {showDateHeader && (
-                          <div className='flex items-center justify-center my-6'>
-                            <div className='flex items-center px-4 py-1.5 rounded-full bg-gray-200 text-xs font-medium text-gray-600 shadow-sm'>
-                              <Calendar className='w-3.5 h-3.5 mr-1.5' />
+                          <div className='flex items-center justify-center my-4'>
+                            <div className='px-3 py-1 rounded-full bg-white/80 backdrop-blur-sm text-xs font-medium text-gray-500 shadow-sm border border-gray-100'>
                               {formatDateHeader(currentDate)}
                             </div>
                           </div>
@@ -985,45 +1159,34 @@ export default function ChatComponent() {
 
                         <div
                           id={`message-${msg.messageId}`}
-                          className={`flex ${isMine ? 'justify-end' : 'justify-start'} animate-[fadeIn_0.3s_ease-in] transition-colors duration-500`}
+                          className={`flex ${isMine ? 'justify-end' : 'justify-start'} animate-[fadeIn_0.2s_ease-out]`}
                         >
-                          <div
-                            className={`max-w-md ${isMine ? 'ml-12' : 'mr-12'}`}
-                          >
+                          <div className={`max-w-[65%] ${isMine ? 'ml-12' : 'mr-12'}`}>
+                            {/* Sender name for others' messages */}
                             {!isMine && (
-                              <div className='flex items-center text-xs font-medium text-gray-600 mb-1 ml-3'>
-                                <div className='w-2 h-2 rounded-full bg-orangeFpt-400 mr-1.5'></div>
+                              <div className='text-xs font-medium text-orangeFpt-600 mb-1 ml-2'>
                                 {msg.senderName}
                               </div>
                             )}
-                            <div
-                              className={`rounded-2xl px-4 py-3 shadow-md transition-all duration-200 hover:shadow-lg ${
-                                isMine
-                                  ? 'bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 text-white rounded-br-sm'
-                                  : 'bg-white border border-gray-200 text-gray-800 rounded-bl-sm'
-                              }`}
-                            >
+                            
+                            {/* Message bubble */}
+                            <div className={isMine ? 'chat-bubble-right' : 'chat-bubble-left'}>
                               <div
-                                className='text-sm break-words leading-relaxed'
+                                className='message-text'
                                 dangerouslySetInnerHTML={{
                                   __html: msg.message,
                                 }}
                               />
-                              <div
-                                className={`flex items-center text-xs mt-2 ${isMine ? 'text-orangeFpt-100' : 'text-gray-500'}`}
-                              >
-                                <Clock className='w-3 h-3 mr-1' />
-                                {formatTime(msg.sendAt)}
-                                {isMine &&
-                                  msg.readUserIds &&
-                                  msg.readUserIds.length > 0 && (
-                                    <CheckCheck className='w-3.5 h-3.5 ml-2 text-orangeFpt-200' />
-                                  )}
+                              <div className={`flex items-center justify-end text-xs mt-1.5 ${isMine ? 'text-white/70' : 'text-gray-400'}`}>
+                                <span className='text-[11px]'>{formatTime(msg.sendAt)}</span>
+                                {isMine && msg.readUserIds && msg.readUserIds.length > 0 && (
+                                  <CheckCheck className='w-4 h-4 ml-1 text-white/80' />
+                                )}
                               </div>
                             </div>
 
+                            {/* Read receipts */}
                             {msg.readUserIds && msg.readUserIds.length > 0 && (() => {
-                              // Filter out the message sender from read receipts (they don't need to see themselves)
                               const readersToShow = msg.readUserIds.filter(
                                 readerId => Number(readerId) !== Number(msg.senderId)
                               );
@@ -1088,11 +1251,11 @@ export default function ChatComponent() {
                   })
                 )}
                 
-                {/* ✨ NEW: Scroll to bottom button */}
+                {/* Scroll to bottom button */}
                 {showScrollToBottom && (
                   <button
                     onClick={scrollToBottom}
-                    className='fixed bottom-24 right-8 z-50 flex items-center justify-center w-12 h-12 bg-orangeFpt-500 hover:bg-orangeFpt-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110 animate-bounce'
+                    className='fixed bottom-28 right-[calc(25%+1rem)] z-50 flex items-center justify-center w-10 h-10 bg-white/90 backdrop-blur-sm hover:bg-orangeFpt-500 text-gray-600 hover:text-white rounded-full shadow-lg border border-gray-200 hover:border-orangeFpt-500 transition-all duration-200'
                     title='Scroll to bottom'
                   >
                     <ArrowDown className='w-5 h-5' />
@@ -1100,11 +1263,11 @@ export default function ChatComponent() {
                 )}
               </div>
 
-              {/* Input Area */}
-              <div className='border-t border-gray-200 bg-white p-4 shadow-lg'>
-                <div className='flex items-end space-x-3'>
+              {/* Floating Input Area */}
+              <div className='floating-input mx-4 mb-4'>
+                <div className='flex items-end gap-3'>
                   <div
-                    className='flex-1 bg-gray-50 rounded-2xl border-2 border-gray-200 overflow-hidden hover:border-orangeFpt-300 transition-colors duration-200 focus-within:border-orangeFpt-500 focus-within:ring-2 focus-within:ring-orangeFpt-100'
+                    className='flex-1 bg-white/80 rounded-2xl border border-white/50 overflow-hidden focus-within:border-orangeFpt-300 transition-colors duration-200'
                     onKeyDown={handleKeyPress}
                   >
                     <style>{`
@@ -1112,40 +1275,41 @@ export default function ChatComponent() {
                         border: none !important;
                         font-size: 14px;
                         font-family: inherit;
+                        background: transparent;
                       }
                       .quill-wrapper .ql-editor {
-                        min-height: 60px;
-                        max-height: 120px;
+                        min-height: 44px;
+                        max-height: 100px;
                         overflow-y: auto;
-                        padding: 12px 16px;
+                        padding: 10px 14px;
+                        background: transparent;
                       }
                       .quill-wrapper .ql-editor.ql-blank::before {
                         color: #9ca3af;
                         font-style: normal;
-                        left: 16px;
+                        left: 14px;
                       }
                       .quill-wrapper .ql-toolbar {
                         border: none !important;
-                        border-bottom: 2px solid #e5e7eb !important;
-                        background-color: #f9fafb;
-                        padding: 8px;
+                        border-bottom: 1px solid rgba(0,0,0,0.05) !important;
+                        background: rgba(255,255,255,0.5);
+                        padding: 6px 8px;
                       }
                       .quill-wrapper .ql-stroke { stroke: #6b7280; }
                       .quill-wrapper .ql-fill { fill: #6b7280; }
                       .quill-wrapper .ql-picker-label { color: #6b7280; }
                       .quill-wrapper .ql-toolbar button:hover .ql-stroke,
-                      .quill-wrapper .ql-toolbar button.ql-active .ql-stroke { stroke: #f26a1b; }
+                      .quill-wrapper .ql-toolbar button.ql-active .ql-stroke { stroke: #F36F21; }
                       .quill-wrapper .ql-toolbar button:hover .ql-fill,
-                      .quill-wrapper .ql-toolbar button.ql-active .ql-fill { fill: #f26a1b; }
+                      .quill-wrapper .ql-toolbar button.ql-active .ql-fill { fill: #F36F21; }
                       .quill-wrapper .ql-toolbar button:hover,
                       .quill-wrapper .ql-toolbar button.ql-active {
-                        background-color: #fde1cf;
-                        border-radius: 4px;
+                        background-color: rgba(243, 111, 33, 0.1);
+                        border-radius: 6px;
                       }
-                      @keyframes fadeIn {
-                        from { opacity: 0; transform: translateY(10px); }
-                        to { opacity: 1; transform: translateY(0); }
-                      }
+                      .message-text { font-size: 14px; line-height: 1.5; word-break: break-word; }
+                      .message-text p { margin: 0; }
+                      .message-text p + p { margin-top: 0.25rem; }
                     `}</style>
                     <div className='quill-wrapper'>
                       <ReactQuill
@@ -1153,14 +1317,14 @@ export default function ChatComponent() {
                         modules={{ toolbar: toolbarOptions }}
                         value={inputMessage}
                         onChange={value => setInputMessage(value)}
-                        placeholder='Type your message... (Press Enter to send, Shift+Enter for new line)'
+                        placeholder='Write a message...'
                       />
                     </div>
                   </div>
                   <button
                     onClick={handleSendMessage}
                     disabled={!getMessagePreview(inputMessage).trim()}
-                    className='flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 hover:from-orangeFpt-600 hover:to-orangeFpt-700 text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 disabled:transform-none'
+                    className='flex items-center justify-center w-11 h-11 rounded-full bg-orangeFpt-500 hover:bg-orangeFpt-600 text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-md hover:shadow-lg'
                     title='Send message (Enter)'
                   >
                     <Send className='w-5 h-5' />
@@ -1168,57 +1332,56 @@ export default function ChatComponent() {
                 </div>
 
                 <div className='mt-2 text-xs text-gray-400 text-center'>
-                  Press{' '}
-                  <kbd className='px-1.5 py-0.5 bg-gray-200 rounded text-gray-600 font-mono'>
+                  <kbd className='px-1.5 py-0.5 bg-white/60 rounded text-gray-500 font-mono text-[10px]'>
                     Enter
                   </kbd>{' '}
-                  to send,{' '}
-                  <kbd className='px-1.5 py-0.5 bg-gray-200 rounded text-gray-600 font-mono'>
+                  send ·{' '}
+                  <kbd className='px-1.5 py-0.5 bg-white/60 rounded text-gray-500 font-mono text-[10px]'>
                     Shift+Enter
                   </kbd>{' '}
-                  for new line
+                  new line
                 </div>
               </div>
             </>
           )}
         </div>
 
-        {/* Detail Sidebar */}
+        {/* Detail Sidebar - Glass Style */}
         {showDetailSidebar && currentConvDetail && (
-          <div className='w-80 bg-white border-l border-gray-200 flex flex-col shadow-xl overflow-y-auto'>
+          <div className='w-80 bg-white/70 backdrop-blur-xl border-l border-white/30 flex flex-col shadow-xl overflow-y-auto'>
             {/* Header */}
-            <div className='p-4 border-b border-gray-200 bg-gradient-to-r from-orangeFpt-50 to-orangeFpt-100 flex items-center justify-between'>
-              <h3 className='text-lg font-semibold text-gray-800 flex items-center'>
-                <Info className='w-5 h-5 mr-2 text-orangeFpt-500' />
-                Conversation Details
+            <div className='p-4 border-b border-gray-100/50 bg-white/50 backdrop-blur-sm flex items-center justify-between'>
+              <h3 className='text-sm font-semibold text-gray-800 flex items-center'>
+                <Info className='w-4 h-4 mr-2 text-orangeFpt-500' />
+                Details
               </h3>
               <button
                 onClick={() => setShowDetailSidebar(false)}
-                className='flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200 transition-all duration-200'
+                className='flex items-center justify-center w-7 h-7 rounded-full hover:bg-gray-100/80 transition-all duration-200'
               >
-                <X className='w-5 h-5 text-gray-600' />
+                <X className='w-4 h-4 text-gray-500' />
               </button>
             </div>
 
             {/* Lecturer Section */}
             {currentConvDetail.lecturer && (
-              <div className='p-4 border-b border-gray-200'>
-                <h5 className='text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3'>
+              <div className='p-4 border-b border-gray-100/50'>
+                <h5 className='text-xs font-medium text-gray-400 uppercase tracking-wider mb-3'>
                   Lecturer
                 </h5>
-                <div className='flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors'>
+                <div className='flex items-center gap-3 p-3 rounded-xl bg-white/50 border border-white/50 hover:bg-white/70 transition-colors'>
                   <AvatarWithFallback
                     src={currentConvDetail.lecturer.avatarImg}
                     alt={currentConvDetail.lecturer.fullName || currentConvDetail.lecturer.lecturerName || 'Lecturer'}
                     name={currentConvDetail.lecturer.fullName || currentConvDetail.lecturer.lecturerName || 'Lecturer'}
-                    className='w-12 h-12 rounded-full border-2 border-orangeFpt-200 shadow-sm'
+                    className='w-11 h-11 rounded-full ring-2 ring-orangeFpt-200 shadow-sm'
                   />
-                  <div className='flex-1'>
-                    <p className='font-semibold text-gray-900'>
+                  <div className='flex-1 min-w-0'>
+                    <p className='font-semibold text-gray-900 text-sm truncate'>
                       {currentConvDetail.lecturer.fullName || currentConvDetail.lecturer.lecturerName || 'Unknown Lecturer'}
                     </p>
                     {(currentConvDetail.lecturer.lecturerCode || currentConvDetail.lecturer.isTeacher) && (
-                      <p className='text-xs text-gray-500'>
+                      <p className='text-xs text-orangeFpt-500 font-medium'>
                         {currentConvDetail.lecturer.lecturerCode || 'Instructor'}
                       </p>
                     )}
@@ -1228,40 +1391,40 @@ export default function ChatComponent() {
             )}
 
             {/* Team Members Section */}
-            <div className='p-4'>
+            <div className='p-4 flex-1'>
               <div className='flex items-center justify-between mb-3'>
-                <h5 className='text-xs font-semibold text-gray-500 uppercase tracking-wide'>
+                <h5 className='text-xs font-medium text-gray-400 uppercase tracking-wider'>
                   Team Members
                 </h5>
-                <span className='text-xs bg-orangeFpt-100 text-orangeFpt-600 px-2 py-1 rounded-full font-medium'>
+                <span className='text-xs bg-orangeFpt-100 text-orangeFpt-600 px-2 py-0.5 rounded-full font-medium'>
                   {currentConvDetail.teamMembers?.length || 0}
                 </span>
               </div>
               
-              <div className='space-y-2'>
+              <div className='space-y-1.5'>
                 {currentConvDetail.teamMembers && currentConvDetail.teamMembers.length > 0 ? (
                   currentConvDetail.teamMembers.map(member => (
                     <div
                       key={member.userId || member.studentId || member.classMemberId}
-                      className='flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer'
+                      className='flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/60 transition-colors cursor-pointer'
                     >
                       <AvatarWithFallback
                         src={member.avatarImg}
                         alt={member.fullName || member.fullname || 'Member'}
                         name={member.fullName || member.fullname || 'Member'}
-                        className='w-10 h-10 rounded-full border-2 border-gray-200 shadow-sm'
+                        className='w-9 h-9 rounded-full ring-1 ring-gray-200 shadow-sm'
                       />
                       <div className='flex-1 min-w-0'>
-                        <p className='font-medium text-gray-900 truncate'>
+                        <p className='font-medium text-gray-900 text-sm truncate'>
                           {member.fullName || member.fullname || 'Unknown Member'}
                         </p>
-                        <div className='flex items-center gap-2 text-xs text-gray-500'>
+                        <div className='flex items-center gap-1.5 text-xs text-gray-400'>
                           {member.studentCode && <span>{member.studentCode}</span>}
                           {member.teamRole && (
-                            <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
                               member.teamRole === 'LEADER' 
-                                ? 'bg-yellow-100 text-yellow-700' 
-                                : 'bg-gray-100 text-gray-600'
+                                ? 'bg-yellow-100/80 text-yellow-600' 
+                                : 'bg-gray-100/80 text-gray-500'
                             }`}>
                               {member.teamRole}
                             </span>
@@ -1272,7 +1435,7 @@ export default function ChatComponent() {
                   ))
                 ) : (
                   <div className='text-center py-8 text-gray-400'>
-                    <Users className='w-12 h-12 mx-auto mb-2 text-gray-300' />
+                    <Users className='w-10 h-10 mx-auto mb-2 text-gray-300' />
                     <p className='text-sm'>No team members</p>
                   </div>
                 )}
@@ -1280,18 +1443,16 @@ export default function ChatComponent() {
             </div>
 
             {/* Additional Info */}
-            <div className='p-4 border-t border-gray-200 bg-gray-50 mt-auto'>
-              <div className='space-y-2 text-xs text-gray-600'>
-                {currentConvDetail.latestMessage && (
-                  <div className='flex items-center justify-between'>
-                    <span className='text-gray-500'>Last activity:</span>
-                    <span className='font-medium'>
-                      {new Date(currentConvDetail.latestMessage.sendAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                )}
+            {currentConvDetail.latestMessage && (
+              <div className='p-4 border-t border-gray-100/50 bg-white/40'>
+                <div className='flex items-center justify-between text-xs'>
+                  <span className='text-gray-400'>Last activity</span>
+                  <span className='font-medium text-gray-600'>
+                    {new Date(currentConvDetail.latestMessage.sendAt).toLocaleDateString()}
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
