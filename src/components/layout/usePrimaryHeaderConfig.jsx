@@ -13,7 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { ChevronDown, LayoutDashboard, LogOut, User } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import logo from '../../assets/logov1.png';
+import logo from '../../assets/logov2.svg';
 import { logout } from '../../store/slices/userSlice';
 import { useAvatar } from '../../hooks/useAvatar';
 import { getRoleLandingRoute } from '../../constants/roleRoutes';

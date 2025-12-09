@@ -5,7 +5,6 @@ import { Home, Archive, User, School, Sparkles, GitBranch } from 'lucide-react';
 import AppSidebar from './AppSidebar';
 
 const StudentSidebar = () => {
-    const location = useLocation();
     const userId = useSelector(state => state.user.userId);
     const profileHref = userId ? `/${userId}/profile` : '/student/profile';
     const navItems = useMemo(

@@ -214,18 +214,18 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className='relative min-h-screen w-full overflow-hidden bg-[#1a0b05] text-white selection:bg-orange-500/30'>
-      {/* Atmospheric Aurora Background */}
-      <div className='absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_#4a1d08_0%,_#1a0b05_100%)]' />
+    <div className='relative min-h-screen w-full overflow-hidden bg-orangeFpt-50 text-gray-900 selection:bg-orangeFpt-200'>
+      {/* Atmospheric Aurora Background (Light) */}
+      <div className='absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_#fff7ed_0%,_#ffedd5_100%)]' />
 
-      {/* Floating 3D Spheres / Parallax Elements */}
+      {/* Floating 3D Spheres / Parallax Elements (Light) */}
       <motion.div
         animate={{
           y: [0, -20, 0],
           rotate: [0, 5, 0],
         }}
         transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-        className='absolute top-1/4 left-1/4 h-64 w-64 rounded-full bg-gradient-to-br from-orange-600/30 to-red-600/30 blur-3xl'
+        className='absolute top-1/4 left-1/4 h-64 w-64 rounded-full bg-gradient-to-br from-orangeFpt-200/40 to-orangeFpt-300/40 blur-3xl'
       />
       <motion.div
         animate={{
@@ -238,7 +238,7 @@ const RegisterPage = () => {
           ease: 'easeInOut',
           delay: 1,
         }}
-        className='absolute bottom-1/3 right-1/4 h-96 w-96 rounded-full bg-gradient-to-tr from-amber-500/20 to-orange-600/20 blur-3xl'
+        className='absolute bottom-1/3 right-1/4 h-96 w-96 rounded-full bg-gradient-to-tr from-orangeFpt-100/50 to-orangeFpt-200/50 blur-3xl'
       />
 
       {/* Abstract Learning Icons (Simulated with shapes for now) */}
@@ -247,22 +247,22 @@ const RegisterPage = () => {
         transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
         className='absolute top-20 right-20 opacity-20'
       >
-        <div className='h-20 w-20 border-4 border-white/10 rounded-xl transform rotate-45' />
+        <div className='h-20 w-20 border-4 border-orangeFpt-200 rounded-xl transform rotate-45' />
       </motion.div>
 
       <div className='relative flex min-h-screen items-center justify-center p-4'>
-        {/* Glass Panel HUD */}
+        {/* Glass Panel HUD (Light) */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className='relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl'
+          className='relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/60 bg-white/60 backdrop-blur-xl shadow-xl'
         >
           {/* Glowing Timeline Step Indicator */}
-          <div className='relative h-1 w-full bg-white/10'>
+          <div className='relative h-1 w-full bg-gray-200'>
             <motion.div
               initial={{ width: '0%' }}
               animate={{ width: step === 1 ? '50%' : '100%' }}
-              className='absolute left-0 top-0 h-full bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.8)]'
+              className='absolute left-0 top-0 h-full bg-orangeFpt-500 shadow-[0_0_10px_rgba(234,121,45,0.4)]'
             />
           </div>
 
@@ -272,11 +272,11 @@ const RegisterPage = () => {
               <motion.h1
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                className='text-3xl font-bold text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]'
+                className='text-3xl font-bold text-gray-900'
               >
                 {step === 1 ? 'Verify your email' : 'Complete Profile'}
               </motion.h1>
-              <p className='mt-2 text-white/60'>
+              <p className='mt-2 text-gray-500'>
                 {step === 1
                   ? 'Enter your email to begin the journey'
                   : 'Tell us a bit more about yourself'}
@@ -305,22 +305,22 @@ const RegisterPage = () => {
                   type='button'
                   onClick={() => handleOtp(formData.email)}
                   disabled={isSendingOtp}
-                  className='group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-orange-500 to-red-600 p-[1px] transition-all hover:shadow-[0_0_20px_rgba(249,115,22,0.5)] disabled:opacity-70'
+                  className='group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 p-[1px] transition-all hover:shadow-lg hover:shadow-orangeFpt-500/30 disabled:opacity-70'
                 >
-                  <div className='relative flex items-center justify-center gap-2 rounded-xl bg-[#1a0b05]/80 px-4 py-3.5 transition-all group-hover:bg-transparent'>
+                  <div className='relative flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-3.5 transition-all group-hover:bg-transparent'>
                     {isSendingOtp ? (
                       <>
-                        <Loader2 className='h-5 w-5 animate-spin text-white' />
-                        <span className='font-semibold text-white'>
+                        <Loader2 className='h-5 w-5 animate-spin text-orangeFpt-600 group-hover:text-white' />
+                        <span className='font-semibold text-orangeFpt-600 group-hover:text-white'>
                           Sending...
                         </span>
                       </>
                     ) : (
                       <>
-                        <span className='font-semibold text-white'>
+                        <span className='font-semibold text-orangeFpt-600 group-hover:text-white'>
                           Send OTP Code
                         </span>
-                        <Sparkles className='h-4 w-4 text-orange-300' />
+                        <Sparkles className='h-4 w-4 text-orangeFpt-500 group-hover:text-white' />
                       </>
                     )}
                   </div>
@@ -357,7 +357,7 @@ const RegisterPage = () => {
                   name='email'
                   value={formData.email}
                   disabled
-                  className='opacity-50 cursor-not-allowed'
+                  className='opacity-50 cursor-not-allowed bg-gray-50'
                 />
 
                 <div className='grid grid-cols-1 gap-6 sm:grid-cols-2'>
@@ -373,7 +373,7 @@ const RegisterPage = () => {
                       <button
                         type='button'
                         onClick={() => setShowPassword(!showPassword)}
-                        className='text-white/50 hover:text-white'
+                        className='text-gray-400 hover:text-orangeFpt-500'
                       >
                         {showPassword ? (
                           <EyeSlashIcon className='h-5 w-5' />
@@ -397,7 +397,7 @@ const RegisterPage = () => {
                         onClick={() =>
                           setShowConfirmPassword(!showConfirmPassword)
                         }
-                        className='text-white/50 hover:text-white'
+                        className='text-gray-400 hover:text-orangeFpt-500'
                       >
                         {showConfirmPassword ? (
                           <EyeSlashIcon className='h-5 w-5' />
@@ -419,13 +419,13 @@ const RegisterPage = () => {
                           className={`flex-1 rounded-full transition-colors ${
                             level <= passwordStrength
                               ? getPasswordStrengthColor()
-                              : 'bg-white/10'
+                              : 'bg-gray-200'
                           }`}
                         />
                       ))}
                     </div>
                     <p
-                      className={`text-xs font-medium ${passwordStrength >= 3 ? 'text-emerald-400' : 'text-white/50'}`}
+                      className={`text-xs font-medium ${passwordStrength >= 3 ? 'text-emerald-600' : 'text-gray-400'}`}
                     >
                       Strength: {getPasswordStrengthText()}
                     </p>
@@ -494,9 +494,9 @@ const RegisterPage = () => {
                 <button
                   type='submit'
                   disabled={isLoading}
-                  className='group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-orange-500 to-red-600 p-[1px] transition-all hover:shadow-[0_0_20px_rgba(249,115,22,0.5)] disabled:opacity-70'
+                  className='group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 p-[1px] transition-all hover:shadow-lg hover:shadow-orangeFpt-500/30 disabled:opacity-70'
                 >
-                  <div className='relative flex items-center justify-center gap-2 rounded-xl bg-[#1a0b05]/80 px-4 py-3.5 transition-all group-hover:bg-transparent'>
+                  <div className='relative flex items-center justify-center gap-2 rounded-xl bg-orangeFpt-500 px-4 py-3.5 transition-all group-hover:bg-orangeFpt-600'>
                     {isLoading ? (
                       <>
                         <Loader2 className='h-5 w-5 animate-spin text-white' />
@@ -515,11 +515,11 @@ const RegisterPage = () => {
             )}
 
             <div className='mt-8 text-center'>
-              <p className='text-sm text-white/60'>
+              <p className='text-sm text-gray-500'>
                 Already have an account?{' '}
                 <Link
                   to='/login'
-                  className='font-semibold text-orange-400 hover:text-orange-300 hover:underline'
+                  className='font-semibold text-orangeFpt-600 hover:text-orangeFpt-500 hover:underline'
                 >
                   Sign in
                 </Link>

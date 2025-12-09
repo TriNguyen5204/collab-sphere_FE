@@ -26,6 +26,8 @@ export default function AccountManagement() {
   const [selectedRole, setSelectedRole] = useState('HeadDepartment');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const [data, setData] = useState({
     headDepartmentList: [],
@@ -92,6 +94,14 @@ export default function AccountManagement() {
 
     return users;
   }, [selectedRole, data, searchQuery]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedRole, searchQuery]);
+
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
 
   // const handleToggleActive = email => {
   //   setData(prev => {
@@ -241,89 +251,94 @@ export default function AccountManagement() {
 
   return (
     <>
-      <div className='min-h-screen flex'>
-        <AdminSidebar />
-        <div className='flex flex-col flex-1'>
-          <div className='min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6'>
-            <div className='max-w-7xl mx-auto space-y-6'>
-              {/* Header */}
-              <div className='flex items-center justify-between'>
-                <div>
-                  <h1 className='text-3xl font-bold text-gray-800 flex items-center gap-3'>
-                    <Users className='w-8 h-8 text-blue-600' />
-                    Account Management
-                  </h1>
-                  <p className='text-gray-500 mt-1'>
-                    Manage user accounts and permissions
-                  </p>
-                </div>
-                <div className='flex gap-3'>
-                  <button
-                    className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md'
-                    onClick={() => setShowCreateForm(!showCreateForm)}
-                  >
-                    <Plus className='w-4 h-4' />
-                    Create Account
-                  </button>
-                </div>
-              </div>
-
-              {/* Stats Cards */}
-              <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
-                {['HeadDepartment', 'Staff', 'Lecturer', 'Student'].map(
-                  role => (
-                    <div
-                      key={role}
-                      onClick={() => setSelectedRole(role)}
-                      className={`bg-white rounded-lg p-4 cursor-pointer transition-all shadow-md hover:shadow-lg ${
-                        selectedRole === role
-                          ? 'ring-2 ring-blue-600 bg-blue-50'
-                          : ''
-                      }`}
-                    >
-                      <div className='flex items-center justify-between mb-2'>
-                        <h3 className='text-sm font-medium text-gray-600'>
-                          {role === 'HeadDepartment' ? 'Head Department' : role}
-                        </h3>
-                        <Users
-                          className={`w-5 h-5 ${selectedRole === role ? 'text-blue-600' : 'text-gray-400'}`}
-                        />
+      <div className=' flex'>
+        <aside className='fixed top-0 left-0 h-full overflow-y-auto bg-slate-50 border-r border-slate-200'>
+          <AdminSidebar />
+        </aside>
+        <main className='flex-1 min-h-0 min-w-0 px-4 py-6 md:px-6 lg:px-8 ml-64 custom-scrollbar'>
+          <div className=' bg-gradient-to-br from-gray-50 to-gray-100 p-6'>
+            <div className=' mx-auto space-y-6'>
+              
+              {/* Header Section */}
+              <div className="relative overflow-hidden rounded-3xl border border-orangeFpt-50 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white shadow-md shadow-orangeFpt-100/60 backdrop-blur">
+                <div className="relative z-10 px-6 py-8 lg:px-10">
+                  <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="max-w-2xl space-y-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500 flex items-center gap-2">
+                        Admin Hub
+                      </p>
+                      <h1 className="mt-2 text-3xl font-semibold text-slate-900">
+                        Account <span className="text-orangeFpt-500 font-bold">Management</span>
+                      </h1>
+                      <p className="mt-1 text-sm text-slate-600">
+                        Manage user accounts, permissions, and view statistics.
+                      </p>
+                      <div className="pt-2">
+                        <button
+                            className='flex items-center gap-2 px-5 py-2.5 bg-orangeFpt-500 text-white rounded-xl hover:bg-orangeFpt-600 transition-all shadow-lg shadow-orangeFpt-500/30 font-medium'
+                            onClick={() => setShowCreateForm(!showCreateForm)}
+                        >
+                            <Plus className='w-4 h-4' />
+                            Create Account
+                        </button>
                       </div>
-                      <p className='text-2xl font-bold text-gray-800'>
-                        {roleStats[role]}
-                      </p>
-                      <p className='text-xs text-gray-500 mt-1'>
-                        {getActiveCount(role)} active
-                      </p>
                     </div>
-                  )
-                )}
+                    <div className="w-full max-w-xl">
+                      <div className="grid grid-cols-2 gap-3">
+                        {['HeadDepartment', 'Staff', 'Lecturer', 'Student'].map(role => (
+                           <div
+                            key={role}
+                            onClick={() => setSelectedRole(role)}
+                            className={`rounded-2xl border px-4 py-3 shadow-sm backdrop-blur cursor-pointer transition-all duration-200
+                              ${selectedRole === role 
+                                ? 'border-orangeFpt-500 bg-orangeFpt-50 ring-1 ring-orangeFpt-500' 
+                                : 'border-orangeFpt-100 bg-white/60 hover:border-orangeFpt-300 hover:bg-white'
+                              }
+                            `}
+                          >
+                            <div className="flex justify-between items-start">
+                                <p className={`text-[11px] uppercase tracking-wide font-semibold ${selectedRole === role ? 'text-orangeFpt-700' : 'text-slate-500'}`}>
+                                    {role === 'HeadDepartment' ? 'Head Dept' : role}
+                                </p>
+                                <Users className={`w-4 h-4 ${selectedRole === role ? 'text-orangeFpt-600' : 'text-slate-400'}`} />
+                            </div>
+                            <div className="flex justify-between items-end mt-1">
+                                <p className="text-xs text-slate-500">
+                                    {getActiveCount(role)} active
+                                </p>
+                                <p className={`text-xl font-bold ${selectedRole === role ? 'text-orangeFpt-600' : 'text-slate-700'}`}>
+                                    {roleStats[role]}
+                                </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* User Table */}
-              <div className='bg-white rounded-lg shadow-md overflow-hidden'>
+              <div className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden'>
                 {/* Table Header */}
-                <div className='p-4 bg-gradient-to-r from-blue-50 to-white border-b'>
-                  <div className='flex items-center justify-between mb-4'>
-                    <h2 className='text-xl font-semibold text-gray-800'>
+                <div className='p-5 bg-white border-b border-slate-100'>
+                  <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+                    <h2 className='text-lg font-bold text-slate-800 flex items-center gap-2'>
                       {selectedRole === 'HeadDepartment'
                         ? 'Head Department'
                         : selectedRole}{' '}
-                      Accounts
-                      <span className='ml-2 text-sm font-normal text-gray-500'>
-                        ({filteredUsers.length} users)
+                      <span className='px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium'>
+                        {filteredUsers.length} users
                       </span>
                     </h2>
-                  </div>
 
-                  {/* Search and Filter */}
-                  <div className='flex gap-3'>
-                    <div className='flex-1 relative'>
-                      <Search className='w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400' />
+                    {/* Search */}
+                    <div className='relative'>
+                      <Search className='w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400' />
                       <input
                         type='text'
                         placeholder='Search by name or email...'
-                        className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        className='w-full sm:w-64 pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orangeFpt-500/20 focus:border-orangeFpt-500 transition-all text-sm'
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                       />
@@ -334,69 +349,69 @@ export default function AccountManagement() {
                 {/* Table */}
                 <div className='overflow-x-auto'>
                   <table className='w-full'>
-                    <thead className='bg-gray-50 border-b-2 border-gray-200'>
+                    <thead className='bg-slate-50/50 border-b border-slate-200'>
                       <tr>
-                        <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                        <th className='px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider'>
                           User Info
                         </th>
-                        <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                        <th className='px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider'>
                           Email
                         </th>
-                        <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                        <th className='px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider'>
                           Join Date
                         </th>
-                        <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                        <th className='px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider'>
                           Status
                         </th>
-                        <th className='px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider'>
+                        <th className='px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider'>
                           Actions
                         </th>
                       </tr>
                     </thead>
-                    <tbody className='divide-y divide-gray-200'>
-                      {filteredUsers.map(u => (
+                    <tbody className='divide-y divide-slate-100'>
+                      {currentUsers.map(u => (
                         <tr
                           key={u.email}
-                          className='hover:bg-gray-50 transition-colors'
+                          className='hover:bg-slate-50/80 transition-colors'
                         >
                           <td className='px-6 py-4'>
                             <div className='flex items-center gap-3'>
-                              <div className='w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold'>
+                              <div className='w-10 h-10 bg-gradient-to-br from-orangeFpt-400 to-orangeFpt-600 rounded-full flex items-center justify-center text-white font-semibold shadow-sm'>
                                 {(u.fullname || u.email)
                                   .charAt(0)
                                   .toUpperCase()}
                               </div>
                               <div>
-                                <p className='font-medium text-gray-800'>
+                                <p className='font-medium text-slate-800'>
                                   {u.fullname || u.email.split('@')[0]}
                                 </p>
-                                <p className='text-xs text-gray-500'>
+                                <p className='text-xs text-slate-500'>
                                   {getRoleDisplayName(u.roleName)}
                                 </p>
                               </div>
                             </div>
                           </td>
                           <td className='px-6 py-4'>
-                            <div className='flex items-center gap-2 text-gray-600'>
-                              <Mail className='w-4 h-4 text-gray-400' />
+                            <div className='flex items-center gap-2 text-slate-600 text-sm'>
+                              <Mail className='w-3.5 h-3.5 text-slate-400' />
                               {u.email}
                             </div>
                           </td>
                           <td className='px-6 py-4'>
-                            <div className='flex items-center gap-2 text-gray-600'>
-                              <Calendar className='w-4 h-4 text-gray-400' />
+                            <div className='flex items-center gap-2 text-slate-600 text-sm'>
+                              <Calendar className='w-3.5 h-3.5 text-slate-400' />
                               {formatDate(u.createdDate)}
                             </div>
                           </td>
                           <td className='px-6 py-4'>
                             {u.isActive ? (
-                              <span className='inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800'>
-                                <CheckCircle className='w-3 h-3' />
+                              <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100'>
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
                                 Active
                               </span>
                             ) : (
-                              <span className='inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800'>
-                                <XCircle className='w-3 h-3' />
+                              <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-100'>
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
                                 Inactive
                               </span>
                             )}
@@ -405,21 +420,21 @@ export default function AccountManagement() {
                             {selectedRole !== 'HeadDepartment' &&
                               selectedRole !== 'Staff' && (
                                 <button
-                                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                                     u.isActive
-                                      ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                                      : 'bg-green-50 text-green-600 hover:bg-green-100'
+                                      ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100'
+                                      : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-100'
                                   }`}
                                   onClick={() => handleDeactivate(u)}
                                 >
                                   {u.isActive ? (
                                     <>
-                                      <Trash2 className='w-4 h-4' />
+                                      <Trash2 className='w-3.5 h-3.5' />
                                       Deactivate
                                     </>
                                   ) : (
                                     <>
-                                      <CheckCircle className='w-4 h-4' />
+                                      <CheckCircle className='w-3.5 h-3.5' />
                                       Activate
                                     </>
                                   )}
@@ -434,12 +449,14 @@ export default function AccountManagement() {
 
                 {/* Empty State */}
                 {filteredUsers.length === 0 && (
-                  <div className='text-center py-12'>
-                    <Users className='w-16 h-16 text-gray-300 mx-auto mb-4' />
-                    <h3 className='text-lg font-semibold text-gray-600 mb-2'>
+                  <div className='text-center py-16'>
+                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Users className='w-8 h-8 text-slate-300' />
+                    </div>
+                    <h3 className='text-lg font-semibold text-slate-700 mb-1'>
                       No users found
                     </h3>
-                    <p className='text-gray-500'>
+                    <p className='text-slate-500 text-sm'>
                       Try adjusting your search or filter criteria
                     </p>
                   </div>
@@ -447,32 +464,59 @@ export default function AccountManagement() {
 
                 {/* Pagination */}
                 {filteredUsers.length > 0 && (
-                  <div className='px-6 py-4 bg-gray-50 border-t flex items-center justify-between'>
-                    <div className='text-sm text-gray-600'>
-                      Showing <span className='font-medium'>1</span> to{' '}
-                      <span className='font-medium'>
-                        {filteredUsers.length}
+                  <div className='px-6 py-4 bg-white border-t border-slate-100 flex items-center justify-between'>
+                    <div className='text-sm text-slate-500'>
+                      Showing <span className='font-medium text-slate-700'>{startIndex + 1}</span> to{' '}
+                      <span className='font-medium text-slate-700'>
+                        {Math.min(startIndex + itemsPerPage, filteredUsers.length)}
                       </span>{' '}
                       of{' '}
-                      <span className='font-medium'>
+                      <span className='font-medium text-slate-700'>
                         {filteredUsers.length}
                       </span>{' '}
                       results
                     </div>
                     <div className='flex gap-2'>
-                      <button className='px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'>
+                      <button 
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className='px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm text-slate-600'
+                      >
                         Previous
                       </button>
-                      <button className='px-3 py-1 bg-blue-600 text-white rounded-lg'>
-                        1
-                      </button>
-                      <button className='px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors'>
-                        2
-                      </button>
-                      <button className='px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors'>
-                        3
-                      </button>
-                      <button className='px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors'>
+                      
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                              currentPage === pageNum
+                                ? 'bg-orangeFpt-500 text-white shadow-sm shadow-orangeFpt-200'
+                                : 'border border-slate-200 hover:bg-slate-50 text-slate-600'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+
+                      <button 
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className='px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm text-slate-600'
+                      >
                         Next
                       </button>
                     </div>
@@ -481,7 +525,7 @@ export default function AccountManagement() {
               </div>
             </div>
           </div>
-        </div>
+        </main>
         <ModalWrapper
           isOpen={showCreateForm}
           onClose={() => setShowCreateForm(false)}

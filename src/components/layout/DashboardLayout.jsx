@@ -15,7 +15,7 @@ import { Search, User, LogOut, ChevronDown, LayoutDashboard, MessageCircleMoreIc
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation, href } from 'react-router-dom';
 import AppSidebar from './AppSidebar';
-import logo from '../../assets/logov1.png';
+import logo from '../../assets/logov2.svg';
 import { logout } from '../../store/slices/userSlice';
 import useClickOutside from '../../hooks/useClickOutside';
 import { useAvatar } from '../../hooks/useAvatar';
@@ -67,7 +67,7 @@ const LecturerHeader = ({
       <div className='mx-auto px-4 py-3 md:px-6 lg:px-8'>
         <div className='flex items-center gap-10 w-full'>
           <div className='flex items-center gap-3 min-w-0'>
-            <img src={logo} alt='CollabSphere' className='w-8 h-8 rounded' />
+            <img src={logo} alt='CollabSphere' className='w-8 h-8 rounded-xl' />
             <div className='leading-tight'>
               <div className='text-sm font-bold text-slate-900'>
                 CollabSphere

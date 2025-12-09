@@ -9,40 +9,35 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import AppSidebar from './AppSidebar';
 import { logout } from '../../store/slices/userSlice';
+import logo from '../../assets/logov2.svg';
 
 const AdminSidebar = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { accessToken, roleName } = useSelector(state => state.user);
+  const { accessToken } = useSelector(state => state.user);
   const isAuthenticated = Boolean(accessToken);
-  const userLabel = roleName || 'Admin user';
 
-  const sections = useMemo(
+  const navItems = useMemo(
     () =>
       isAuthenticated
         ? [
+            // {
+            //   label: 'Dashboard',
+            //   href: '/admin',
+            //   icon: LayoutDashboard,
+            //   match: path => path === '/admin',
+            // },
             {
-              title: 'Administration',
-              items: [
-                {
-                  label: 'Dashboard',
-                  href: '/admin',
-                  icon: LayoutDashboard,
-                  match: path => path === '/admin',
-                },
-                {
-                  label: 'Account management',
-                  href: '/admin/account-management',
-                  icon: Users,
-                  match: path => path.startsWith('/admin/account-management'),
-                },
-                {
-                  label: 'System reports',
-                  href: '/admin/reports',
-                  icon: FileText,
-                  match: path => path.startsWith('/admin/reports'),
-                },
-              ],
+              label: 'Account management',
+              href: '/admin/account-management',
+              icon: Users,
+              match: path => path.startsWith('/admin/account-management'),
+            },
+            {
+              label: 'System reports',
+              href: '/admin/reports',
+              icon: FileText,
+              match: path => path.startsWith('/admin/reports'),
             },
           ]
         : [],
@@ -50,27 +45,18 @@ const AdminSidebar = () => {
   );
 
   const footer = isAuthenticated ? (
-    <div className='mt-auto border-t border-slate-200 px-4 py-4 bg-slate-50'>
-      <div className='flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:shadow-md'>
-        <div className='flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-semibold text-white shadow'>
-          {userLabel.charAt(0).toUpperCase()}
-        </div>
-        <div className='flex-1 overflow-hidden'>
-          <p className='truncate text-sm font-semibold text-slate-800'>{userLabel}</p>
-          <p className='truncate text-xs text-slate-500'>Administrator</p>
-        </div>
-        <button
-          type='button'
-          onClick={() => {
-            dispatch(logout());
-            navigate('/login');
-          }}
-          className='inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-rose-400 hover:bg-rose-50 hover:text-rose-500'
-          title='Sign out'
-        >
-          <LogOut className='h-4 w-4' />
-        </button>
-      </div>
+    <div className='mt-auto border-t border-slate-100 px-3 py-3'>
+      <button
+        type='button'
+        onClick={() => {
+          dispatch(logout());
+          navigate('/login');
+        }}
+        className='flex w-full items-center gap-3 rounded-md px-3 py-2 text-slate-600 transition hover:bg-red-50 hover:text-red-600'
+      >
+        <LogOut className='h-5 w-5' />
+        <span className='font-medium'>Log out</span>
+      </button>
     </div>
   ) : null;
 
@@ -98,27 +84,45 @@ const AdminSidebar = () => {
     </div>
   ) : undefined;
 
+  const brand = (
+    <div className='flex items-center gap-3 px-4 py-4'>
+      <img src={logo} alt='CollabSphere' className='w-8 h-8 rounded-xl' />
+      <div className='leading-tight'>
+        <div className='text-sm font-bold text-slate-900'>
+          CollabSphere
+        </div>
+        <div className='text-xs text-slate-500'>Admin Hub</div>
+      </div>
+    </div>
+  );
+
   return (
     <AppSidebar
-      brand={{
-        title: 'Admin Console',
-        subtitle: 'CollabSphere',
-        to: '/admin',
+      showBrand={false}
+      style={{
+        ['--bg-card']: 'transparent',
+        ['--border-color']: 'transparent',
+        ['--bg-secondary']: 'rgb(226 232 240)',
+        boxShadow: 'none',
       }}
-      sections={sections.map(section => ({
-        ...section,
-        items: section.items.map(item => ({
-          ...item,
-          match: path => (item.match ? item.match(path) : path === item.href),
-          // UI enhancement: add color highlight or background for active links
-          className:
-            'flex items-center gap-3 rounded-xl px-3 py-2 text-slate-700 font-medium transition hover:bg-slate-100 hover:text-blue-600 [&.active]:bg-blue-50 [&.active]:text-blue-600 [&.active]:font-semibold',
-        })),
-      }))}
+      itemClassName="rounded-md px-3"
+      activeItemClassName="bg-orangeFpt-50/60 text-orangeFpt-600 font-semibold shadow-inner"
+      sections={[
+        {
+          items: navItems.map(item => ({
+            ...item,
+            match: path => (item.match ? item.match(path) : path === item.href),
+          })),
+        },
+      ]}
       expanded
       mode='inline'
-      className='h-full min-h-screen border-r border-slate-200 bg-white shadow-sm'
-      topSlot={unauthPrompt}
+      topSlot={
+        <>
+          {brand}
+          {unauthPrompt}
+        </>
+      }
       footerSlot={footer}
     />
   );

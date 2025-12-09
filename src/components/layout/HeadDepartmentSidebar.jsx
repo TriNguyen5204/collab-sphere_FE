@@ -3,7 +3,7 @@ import { BookOpen, FolderKanban, LayoutDashboard, Clock, LogOut } from 'lucide-r
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import AppSidebar from './AppSidebar';
-import logo from '../../assets/logov1.png';
+import logo from '../../assets/logov2.svg';
 import { logout } from '../../store/slices/userSlice';
 
 const HeadDepartmentSidebar = () => {

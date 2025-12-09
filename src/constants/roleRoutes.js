@@ -3,7 +3,7 @@ const ROLE_ROUTE_MAP = {
   lecturer: '/lecturer/classes',
   headdepartment: '/head-department',
   staff: '/staff/lecturers',
-  admin: '/admin',
+  admin: '/admin/account-management',
 };
 
 export const getRoleLandingRoute = (roleName) => {
