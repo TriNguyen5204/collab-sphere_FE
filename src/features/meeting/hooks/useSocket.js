@@ -9,8 +9,24 @@ const getSocketServerUrl = () => {
     return 'http://localhost:5000';
   }
   // Production - use Railway server from environment variable
-  const portUrl = import.meta.env.VITE_PORT_URL;
-  return portUrl ? `https://${portUrl}` : 'https://server-webrtc-production-3be0.up.railway.app';
+  let portUrl = import.meta.env.VITE_PORT_URL;
+  
+  // Handle edge cases: strip protocol if accidentally included, ensure valid hostname
+  if (portUrl) {
+    // Remove any protocol prefix (https://, http://, wss://, ws://)
+    portUrl = portUrl.replace(/^(https?:\/\/|wss?:\/\/)/, '');
+    // Remove trailing slashes
+    portUrl = portUrl.replace(/\/+$/, '');
+    
+    // Validate: must contain at least one dot (domain) and not be just a protocol name
+    if (portUrl && portUrl.includes('.') && !['https', 'http', 'wss', 'ws'].includes(portUrl)) {
+      return `https://${portUrl}`;
+    }
+  }
+  
+  // Fallback to hardcoded server URL
+  console.warn('⚠️ VITE_PORT_URL not configured or invalid, using default server');
+  return 'https://server-webrtc-production-3be0.up.railway.app';
 };
 
 export const useSocket = (serverUrl = getSocketServerUrl()) => {
