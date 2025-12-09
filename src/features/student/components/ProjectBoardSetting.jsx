@@ -435,7 +435,7 @@ const ProjectSettingsModal = ({
                     )}
 
                     <span className="absolute inset-0 flex items-center justify-center rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="p-2 bg-black bg-opacity-60 rounded-full">
+                      <span className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 rounded-full flex items-center justify-center transition-all backdrop-blur-sm">
                         <Upload size={16} className="text-white" />
                       </span>
                     </span>
@@ -452,7 +452,7 @@ const ProjectSettingsModal = ({
                 </div>
               </div>
               <div className="col-span-2">
-                <div>
+                <div className="mb-2">
                   <label className="block text-sm font-medium mb-2 text-gray-700">Team Name</label>
                   <input
                     type="text"
@@ -462,7 +462,7 @@ const ProjectSettingsModal = ({
                     placeholder="Enter team name"
                   />
                 </div>
-                <div>
+                <div className="mb-2">
                   <label className="block text-sm font-medium mb-2 text-gray-700">Description</label>
                   <textarea
                     value={formValues.description}

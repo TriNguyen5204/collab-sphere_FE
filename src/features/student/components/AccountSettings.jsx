@@ -1,188 +1,91 @@
 import React, { useMemo, useState } from "react";
-import { Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Lock, Eye, EyeOff, Loader2, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 
 const AccountSettings = ({ onChangePassword, isSaving }) => {
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [show, setShow] = useState({ current: false, new: false, confirm: false });
+  const [data, setData] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
 
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-
-  const handlePasswordChange = (e) => {
-    const { name, value } = e.target;
-    setPasswordData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleChangePassword = async () => {
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error("Passwords do not match.");
-      return;
-    }
-
-    if (!onChangePassword) {
-      toast.error("Unable to update password at this time.");
-      return;
-    }
-
+  const handleData = (e) => setData({ ...data, [e.target.name]: e.target.value });
+  const toggleShow = (field) => setShow({ ...show, [field]: !show[field] });
+  
+  const handleSubmit = async () => {
+    if (data.newPassword !== data.confirmPassword) return toast.error("Passwords do not match.");
     try {
-      await onChangePassword({
-        oldPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword,
-        confirmNewPassword: passwordData.confirmPassword,
-      });
-      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
-    } catch (error) {
-      // Parent already surfaced toast; keep form data so the user can retry.
-    }
+      if(onChangePassword) await onChangePassword({ oldPassword: data.currentPassword, newPassword: data.newPassword, confirmNewPassword: data.confirmPassword });
+      setData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (e) {}
   };
 
-  const isPasswordDirty = useMemo(() => {
-    return (
-      passwordData.currentPassword !== "" ||
-      passwordData.newPassword !== "" ||
-      passwordData.confirmPassword !== ""
-    );
-  }, [passwordData]);
+  const isDirty = useMemo(() => Object.values(data).some(v => v !== ""), [data]);
+  const isValid = useMemo(() => data.currentPassword && data.newPassword && data.confirmPassword && data.newPassword === data.confirmPassword, [data]);
 
-  const isPasswordValid = useMemo(() => {
-    return (
-      passwordData.currentPassword &&
-      passwordData.newPassword &&
-      passwordData.confirmPassword &&
-      passwordData.newPassword === passwordData.confirmPassword
-    );
-  }, [passwordData]);
+  // STYLES
+  // Changed: Removed max-w-2xl, added w-full
+  const glassCard = "w-full backdrop-blur-xl bg-white/60 border border-white/40 shadow-xl rounded-3xl p-8";
+  const glassInput = "w-full bg-white/80 border border-white/60 text-gray-900 rounded-xl pl-10 pr-12 py-3 focus:ring-2 focus:ring-orangeFpt-400 focus:bg-white transition-all shadow-sm outline-none";
 
-  const handleCancelPassword = () => {
-    setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
-  };
+  const renderInput = (label, name, key, placeholder) => (
+    <div className="w-full">
+        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">{label}</label>
+        <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+                type={show[key] ? "text" : "password"}
+                name={name}
+                value={data[name]}
+                onChange={handleData}
+                placeholder={placeholder}
+                className={glassInput}
+            />
+            <button type="button" onClick={() => toggleShow(key)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orangeFpt-500 transition">
+                {show[key] ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+        </div>
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Password Change Section */}
-      <div className="bg-gray-50 rounded-lg p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Lock className="text-brand-600" size={24} />
-          <h3 className="text-lg font-semibold text-gray-900">Change Password</h3>
+    <div className={glassCard}>
+      <div className="flex items-center gap-4 mb-8 pb-4 border-b border-gray-200/50">
+        <div className="w-12 h-12 rounded-2xl bg-orangeFpt-100 flex items-center justify-center text-orangeFpt-600 shadow-inner">
+            <KeyRound size={24} />
         </div>
-
-        <div className="space-y-4">
-          {/* Current Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Current Password
-            </label>
-            <div className="relative">
-              <input
-                type={showCurrentPassword ? "text" : "password"}
-                name="currentPassword"
-                value={passwordData.currentPassword}
-                onChange={handlePasswordChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-brand-500 focus:ring-2 focus:ring-brand-200 transition"
-                placeholder="Enter current password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              >
-                {showCurrentPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-          </div>
-
-          {/* New Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              New Password
-            </label>
-            <div className="relative">
-              <input
-                type={showNewPassword ? "text" : "password"}
-                name="newPassword"
-                value={passwordData.newPassword}
-                onChange={handlePasswordChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-brand-500 focus:ring-2 focus:ring-brand-200 transition"
-                placeholder="Enter new password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowNewPassword(!showNewPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              >
-                {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-          </div>
-
-          {/* Confirm Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Confirm New Password
-            </label>
-            <div className="relative">
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                name="confirmPassword"
-                value={passwordData.confirmPassword}
-                onChange={handlePasswordChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-brand-500 focus:ring-2 focus:ring-brand-200 transition"
-                placeholder="Confirm new password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              >
-                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={handleCancelPassword}
-              disabled={!isPasswordDirty || isSaving}
-              className={`px-4 py-2 rounded-lg transition border ${
-                !isPasswordDirty || isSaving
-                  ? "bg-white text-gray-400 cursor-not-allowed border-gray-200"
-                  : "bg-white text-red-600 border-red-300 hover:bg-red-50"
-              }`}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleChangePassword}
-              disabled={!isPasswordValid || isSaving}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
-                !isPasswordValid || isSaving
-                  ? "bg-white text-gray-400 cursor-not-allowed border-gray-200 border"
-                  : "bg-blue-600 text-white hover:bg-blue-700"
-              }`}
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <span>Save Changes</span>
-              )}
-            </button>
-          </div>
+        <div>
+            <h3 className="text-xl font-bold text-gray-800">Change Password</h3>
+            <p className="text-sm text-gray-500">Ensure your account is using a long, random password.</p>
         </div>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Left Col: Current Password */}
+        <div className="lg:border-r lg:border-gray-200/50 lg:pr-8">
+            {renderInput("Current Password", "currentPassword", "current", "••••••••")}
+        </div>
+
+        {/* Right Col: New Passwords */}
+        <div className="space-y-5">
+            {renderInput("New Password", "newPassword", "new", "New Password")}
+            {renderInput("Confirm Password", "confirmPassword", "confirm", "Confirm Password")}
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200/50">
+        <button
+            onClick={() => setData({ currentPassword: "", newPassword: "", confirmPassword: "" })}
+            disabled={!isDirty || isSaving}
+            className="px-6 py-2 rounded-xl text-gray-600 hover:bg-white/50 transition font-medium disabled:opacity-50"
+        >
+            Clear
+        </button>
+        <button
+            onClick={handleSubmit}
+            disabled={!isValid || isSaving}
+            className="px-8 py-2 bg-orangeFpt-500 text-white rounded-xl shadow-lg shadow-orangeFpt-500/40 hover:bg-orangeFpt-600 transition font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+        >
+            {isSaving ? <Loader2 className="animate-spin w-4 h-4" /> : "Update Password"}
+        </button>
+      </div>
     </div>
   );
 };

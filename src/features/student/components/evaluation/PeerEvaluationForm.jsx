@@ -5,6 +5,7 @@ import StarRating from './StarRating';
 import { toast } from 'sonner';
 import { useAvatar } from '../../../../hooks/useAvatar';
 import { postSubmitPeerEvaluation, getOwnEvaluationByTeamId } from '../../../../services/studentApi';
+import useTeam from '../../../../context/useTeam';
 
 const CRITERIA = [
   'Hard-working',
@@ -21,6 +22,8 @@ const buildInitialRatings = (members) => {
 
 const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
   const { userId } = useSelector((s) => s.user);
+  console.log('PeerEvaluationForm userId:', userId);
+  console.log('PeerEvaluationForm teamMembers:', teamMembers);
 
   const evaluableMembers = useMemo(
     () =>
@@ -98,6 +101,7 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
     // Call api to submit peer evaluation
     try {
       setSubmitting(true);
+
       const res = await postSubmitPeerEvaluation(teamId, payload);
       console.log('Submit peer evaluation response:', res);
       const data = res?.data ?? res;
@@ -108,21 +112,26 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
       } else if (Array.isArray(data?.errorList) && data.errorList.length) {
         const first = data.errorList[0];
         toast.error(first?.message || 'Evaluation failed');
+        handleReset();
       } else {
         toast.error('Evaluation failed. Please try again.');
+        handleReset();
       }
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Network error while submitting evaluation');
+      handleReset();
     } finally {
       setSubmitting(false);
     }
   };
 
-
+  const { team } = useTeam();
+  const teamOverAllProgress = team?.teamProgress?.overallProgress ?? 0;
   // Call api get own evaluation to prefill if exists
   const fetchOwnEvaluation = async () => {
     setLoading(true);
     try {
+      console.log('Fetching own evaluation for teamId:', team);
       const response = await getOwnEvaluationByTeamId(teamId);
       const detailsArr = (
         response?.ownEvaluations ?? response?.data ?? []
@@ -213,83 +222,89 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex items-start justify-between mb-4">
-        <h2 className="text-2xl font-bold text-gray-900">Evaluate Your Teammates</h2>
-      </div>
-
-      {members.length === 0 ? (
+      {teamOverAllProgress < 50 ? (
+        <div className="text-center py-12">
+          <AlertCircle className="mx-auto text-gray-400 mb-4" size={48} />
+          <p className="text-gray-600">Evaluation not available until team progress reaches 50%</p>
+        </div>
+      ) : (members.length === 0 ? (
         <div className="text-center py-12">
           <AlertCircle className="mx-auto text-gray-400 mb-4" size={48} />
           <p className="text-gray-600">No teammates available to evaluate</p>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-separate border-spacing-y-3">
-              <thead>
-                <tr className="text-left text-sm text-gray-600">
-                  <th className="px-3 py-2">Member</th>
-                  {CRITERIA.map((c) => (
-                    <th key={c} className="px-3 py-2 font-medium">{c}</th>
-                  ))}
-                  <th className="px-3 py-2">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {members.map((m) => (
-                  <tr key={m._memberKey} className="bg-gray-50 rounded-xl">
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-3">
-                        <MemberAvatar
-                          name={m.name}
-                          src={m.avatar}
-                          alt={m.name}
-                          className="w-10 h-10 rounded-full object-cover border-black"
-                        />
-                        <div>
-                          <div className="font-semibold text-gray-900">{m.name}</div>
-                          {m.role && <div className="text-xs text-gray-500">{m.role}</div>}
-                        </div>
-                      </div>
-                    </td>
+        <div>
+          <div className="flex items-start justify-between mb-4">
+            <h2 className="text-2xl font-bold text-gray-900">Evaluate Your Teammates</h2>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-separate border-spacing-y-3">
+                <thead>
+                  <tr className="text-left text-sm text-gray-600">
+                    <th className="px-3 py-2">Member</th>
                     {CRITERIA.map((c) => (
-                      <td key={c} className="px-3 py-3">
-                        <StarRating
-                          value={Number(ratings[m._memberKey]?.[c] || 0)}
-                          onChange={(v) => setMemberCriterion(m._memberKey, c, v)}
-                        />
-                      </td>
+                      <th key={c} className="px-3 py-2 font-medium">{c}</th>
                     ))}
-                    <td className="flex items-baseline gap-1 px-3 py-3">
-                      <span className="text-orangeFpt-500 font-bold text-xl">{totalForMember(m._memberKey)}</span>
-                      <span className="text-gray-500 text-sm">/ 15</span>
-                    </td>
+                    <th className="px-3 py-2">Total</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {members.map((m) => (
+                    <tr key={m._memberKey} className="bg-gray-50 rounded-xl">
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-3">
+                          <MemberAvatar
+                            name={m.name}
+                            src={m.avatar}
+                            alt={m.name}
+                            className="w-10 h-10 rounded-full object-cover border-black"
+                          />
+                          <div>
+                            <div className="font-semibold text-gray-900">{m.name}</div>
+                            {m.role && <div className="text-xs text-gray-500">{m.role}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      {CRITERIA.map((c) => (
+                        <td key={c} className="px-3 py-3">
+                          <StarRating
+                            value={Number(ratings[m._memberKey]?.[c] || 0)}
+                            onChange={(v) => setMemberCriterion(m._memberKey, c, v)}
+                          />
+                        </td>
+                      ))}
+                      <td className="flex items-baseline gap-1 px-3 py-3">
+                        <span className="text-orangeFpt-500 font-bold text-xl">{totalForMember(m._memberKey)}</span>
+                        <span className="text-gray-500 text-sm">/ 15</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-          <div className="flex items-center justify-between pt-4 border-t">
-            <button
-              type="button"
-              onClick={handleReset}
-              disabled={submitting}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-            >
-              Reset all
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex items-center gap-2 px-6 py-2 bg-orangeFpt-500 text-white rounded-lg hover:bg-orangeFpt-600 disabled:opacity-50"
-            >
-              <Send size={18} />
-              {submitting ? (prefilled ? 'Updating...' : 'Submitting...') : (prefilled ? 'Update Evaluation' : 'Submit Evaluation')}
-            </button>
-          </div>
-        </form>
-      )}
+            <div className="flex items-center justify-between pt-4 border-t">
+              <button
+                type="button"
+                onClick={handleReset}
+                disabled={submitting}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              >
+                Reset all
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex items-center gap-2 px-6 py-2 bg-orangeFpt-500 text-white rounded-lg hover:bg-orangeFpt-600 disabled:opacity-50"
+              >
+                <Send size={18} />
+                {submitting ? (prefilled ? 'Updating...' : 'Submitting...') : (prefilled ? 'Update Evaluation' : 'Submit Evaluation')}
+              </button>
+            </div>
+          </form>
+        </div>
+      ))}
     </div>
   );
 };

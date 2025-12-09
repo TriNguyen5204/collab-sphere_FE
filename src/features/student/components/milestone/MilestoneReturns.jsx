@@ -177,19 +177,10 @@ const MilestoneReturns = ({
                   </div>
                   <div className="min-w-0 space-y-1">
                     <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-semibold text-orangeFpt-500 max-w-[20rem]">
-                        {item.name}
-                      </p>
-                      <ChevronRight className="h-3 w-3 text-gray-400" />
-                      <span className='text-xs font-medium text-gray-500'>
-                        {item.sizeLabel}
-                      </span>
+                      <p className={'truncate text-sm font-semibold max-w-[25rem] text-orangeFpt-500'}>{item.name}</p>
+                      <span className="text-xs font-medium text-gray-400">{item.sizeLabel}</span>
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-3 text-xs text-gray-500">
-                      <span className="flex items-center gap-2">
-                        Submitted by {item.studentName || 'Student'} • {item.submittedAtLabel}
-                      </span>
-                    </div>
+                    <p className="text-xs text-gray-500">{item.studentName || 'Student'} • {item.submittedAtLabel}</p>
                   </div>
                 </button>
                 {typeof onDeleteMilestoneReturn === 'function' && canManageReturns && (

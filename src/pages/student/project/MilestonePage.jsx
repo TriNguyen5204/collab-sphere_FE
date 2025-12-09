@@ -42,6 +42,9 @@ const MilestonePage = () => {
   const teamId = team?.teamId ?? null;
   const confirmWithToast = useToastConfirmation();
 
+  // --- STATE FOR FORM ERRORS ---
+  const [formErrors, setFormErrors] = useState({});
+
   const normalizeCheckpointStatus = (statusValue) => {
     if (statusValue === null || statusValue === undefined) return 'PROCESSING';
     if (typeof statusValue === 'number') {
@@ -553,21 +556,43 @@ const MilestonePage = () => {
 
   const isSelectedMilestoneCompleted = normalizeMilestoneStatus(selectedMilestone?.status ?? selectedMilestone?.statusString) === 'Completed';
 
+  // --- HELPER: Handle Changes and Clear Errors ---
+  const handleCheckpointChange = (updatedCheckpoint, fieldChanged) => {
+    setNewCheckpoint(updatedCheckpoint);
+    // If user types in a field that has an error, clear that specific error
+    if (fieldChanged && formErrors[fieldChanged]) {
+      setFormErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldChanged];
+        return newErrors;
+      });
+    }
+  };
+
+  // --- HELPER: Reset UI ---
+  const resetCheckpointUI = () => {
+    setShowCreateModal(false);
+    setNewCheckpoint({ title: '', description: '', startDate: '', dueDate: '', complexity: 'LOW' });
+    setFormErrors({}); // Clear errors on close
+  };
+
+  // --- ACTION: Create Checkpoint with Validation ---
   const handleCreateCheckpoint = async () => {
     if (!selectedMilestone) return;
+    
+    // Clear previous errors before new request
+    setFormErrors({}); 
+
     const isMilestoneCompleted = normalizeMilestoneStatus(selectedMilestone?.status ?? selectedMilestone?.statusString) === 'Completed';
     if (isMilestoneCompleted) {
       toast.error('Cannot create checkpoints for a completed milestone');
-      return;
-    }
-    if (!newCheckpoint.title || !newCheckpoint.dueDate) {
-      toast.error("Please fill in all required fields");
       return;
     }
 
     try {
       const milestoneId = getMilestoneId(selectedMilestone);
       if (!milestoneId) return;
+      
       await postCreateCheckpoint(
         milestoneId,
         newCheckpoint.title,
@@ -577,32 +602,54 @@ const MilestonePage = () => {
         newCheckpoint.dueDate,
       );
 
-      //refresh details
+      // Success
       await fetchMilestoneDetail(milestoneId);
-      setNewCheckpoint({ title: '', description: '', startDate: '', dueDate: '', complexity: 'LOW' });
-      setShowCreateModal(false);
+      toast.success("Checkpoint created successfully");
+      resetCheckpointUI();
       setActiveTab('all');
+
     } catch (error) {
+      console.error('Failed to create checkpoint:', error);
       const data = error?.response?.data;
-      let messages = [];
-      if (Array.isArray(data)) {
-        messages = data.map((e) => e?.message).filter(Boolean);
-      } else if (typeof data === 'object' && data !== null && data.message) {
-        messages = [data.message];
-      } else if (typeof data === 'string') {
-        messages = [data];
-      } else {
-        messages = ['Failed to create checkpoint'];
+      const newErrors = {};
+
+      // CASE 1: Validation Errors (Title, Description) - Object format
+      if (data?.errors) {
+        Object.keys(data.errors).forEach((key) => {
+          const message = data.errors[key][0];
+          const fieldName = key.charAt(0).toLowerCase() + key.slice(1);
+          newErrors[fieldName] = message;
+        });
       }
-      // Show each message via toast
-      if (messages.length > 0) messages.forEach((m) => toast.error(m));
+      
+      // CASE 2: Logic Errors (Dates) - Array format
+      else if (Array.isArray(data)) {
+        data.forEach((err) => {
+          if (err.field && err.message) {
+             const fieldName = err.field.charAt(0).toLowerCase() + err.field.slice(1);
+             newErrors[fieldName] = err.message;
+          }
+        });
+      } 
+      
+      // CASE 3: Fallback generic error
+      else {
+         const msg = data?.message || "An unexpected error occurred.";
+         toast.error(msg);
+      }
+
+      // Update state to trigger Shake and inline text
+      if (Object.keys(newErrors).length > 0) {
+        setFormErrors(newErrors);
+      }
     }
   };
 
+  // --- ACTION: Update Checkpoint (Modified for Error Bubbling) ---
   const handleUpdateCheckpoint = async (checkpointId, payload = {}) => {
     if (!checkpointId) {
-      toast.error('Unable to update checkpoint: missing identifier');
-      return;
+      // Return a rejected promise or throw so caller knows it failed
+      throw new Error('Unable to update checkpoint: missing identifier');
     }
 
     const fallbackMilestoneId = getMilestoneId(selectedMilestone);
@@ -617,35 +664,15 @@ const MilestonePage = () => {
     };
 
     if (!finalPayload.teamMilestoneId) {
-      toast.error('Unable to update checkpoint: missing team milestone reference');
-      return;
+      throw new Error('Unable to update checkpoint: missing team milestone reference');
     }
-
-    if (!finalPayload.title) {
-      toast.error('Checkpoint title is required');
-      return;
-    }
-
-    if (!finalPayload.dueDate) {
-      toast.error('Checkpoint due date is required');
-      return;
-    }
-
-    try {
-      await putUpdateCheckpointByCheckpointId(checkpointId, finalPayload);
-      toast.success('Checkpoint updated');
-      const detail = await refreshCheckpointDetail(checkpointId, finalPayload.teamMilestoneId);
-      return detail;
-    } catch (error) {
-      const messages = extractErrorMessages(error, 'Failed to update checkpoint');
-      if (messages.length > 0) {
-        messages.forEach((message) => toast.error(message));
-      }
-      const combinedMessage = messages.join('\n');
-      const wrappedError = new Error(combinedMessage || 'Failed to update checkpoint');
-      wrappedError.response = error?.response;
-      throw wrappedError;
-    }
+    
+    await putUpdateCheckpointByCheckpointId(checkpointId, finalPayload);
+    
+    // If successful:
+    toast.success('Checkpoint updated');
+    const detail = await refreshCheckpointDetail(checkpointId, finalPayload.teamMilestoneId);
+    return detail;
   };
 
   const handleDeleteCheckpoint = async (checkpointId) => {
@@ -709,27 +736,20 @@ const MilestonePage = () => {
       return;
     }
 
-    const formData = new FormData();
-    let appended = false;
-    files.forEach((file) => {
-      if (file != null) {
-        formData.append('formFile', file);
-        appended = true;
-      }
+    // --- NEW LOGIC: Upload Each File Individually ---
+    const uploadPromises = files.map((file) => {
+      const formData = new FormData();
+      formData.append('formFile', file);
+      return postUploadMilestoneFilebyMilestoneId(milestoneId, formData);
     });
 
-    if (!appended) {
-      toast.error('Files could not be prepared for upload');
-      return;
-    }
-
     try {
-      await postUploadMilestoneFilebyMilestoneId(milestoneId, formData);
+      await Promise.all(uploadPromises);
       toast.success(`${files.length} file${files.length > 1 ? 's' : ''} uploaded successfully`);
       await fetchMilestoneDetail(milestoneId);
       return true;
     } catch (error) {
-      toast.error(error?.response?.data?.errorList?.[0]?.message || 'Failed to upload files');
+      toast.error(error?.response?.data?.errorList?.[0]?.message || 'Failed to upload one or more files');
       throw error;
     }
   };
@@ -764,16 +784,20 @@ const MilestonePage = () => {
       return;
     }
 
-    const formData = new FormData();
-    files.forEach((file) => formData.append('checkpointFile', file));
+    // --- NEW LOGIC: Upload Each File Individually ---
+    const uploadPromises = files.map((file) => {
+      const formData = new FormData();
+      formData.append('checkpointFile', file);
+      return postUploadCheckpointFilebyCheckpointId(checkpointId, formData);
+    });
 
     try {
-      await postUploadCheckpointFilebyCheckpointId(checkpointId, formData);
+      await Promise.all(uploadPromises);
       toast.success(`${files.length} file${files.length > 1 ? 's' : ''} uploaded successfully`);
       const detail = await refreshCheckpointDetail(checkpointId);
       return detail;
     } catch (error) {
-      const message = error?.response?.data?.message || 'Failed to upload checkpoint files';
+      const message = error?.response?.data?.message || 'Failed to upload one or more checkpoint files';
       toast.error(message);
     }
   };
@@ -860,15 +884,6 @@ const MilestonePage = () => {
     }
   };
 
-
-  const resetCheckpointUI = () => {
-    setShowCreateModal(false);
-    setNewCheckpoint({ title: '', description: '', startDate: '', dueDate: '', complexity: 'LOW' });
-  };
-
-  const closeModals = () => {
-    resetCheckpointUI();
-  };
 
   const handleSelectMilestone = (m) => {
     resetCheckpointUI();
@@ -1017,9 +1032,10 @@ const MilestonePage = () => {
         isOpen={showCreateModal}
         title="Create Checkpoint"
         checkpoint={newCheckpoint}
-        onChange={setNewCheckpoint}
+        onChange={handleCheckpointChange}
         onSubmit={handleCreateCheckpoint}
-        onClose={closeModals}
+        onClose={resetCheckpointUI}
+        errors={formErrors}
       />
       <MilestoneUpdateModal
         isOpen={showUpdateModal}

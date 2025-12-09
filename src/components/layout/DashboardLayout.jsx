@@ -21,6 +21,7 @@ import useClickOutside from '../../hooks/useClickOutside';
 import { useAvatar } from '../../hooks/useAvatar';
 import AIChatAssistant from '../../features/ai/components/AIChatAssistant';
 import { getRoleLandingRoute } from '../../constants/roleRoutes';
+import ReportSystemModal from '../../features/student/components/ReportSystemModal';
 
 const LecturerHeader = ({
   fullName,
@@ -28,8 +29,7 @@ const LecturerHeader = ({
   isAuthenticated,
   onProfile,
   onLogout,
-  onLogin,
-  onSignup,
+  onOpenReport,
   navItems,
 }) => {
   const [query, setQuery] = useState('');
@@ -118,20 +118,14 @@ const LecturerHeader = ({
               </div>
             )}
           </div>
-          <div className='relative ml-auto' ref={profileRef}>
-            {isAuthenticated ? (
-              <>
+
+          <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setOpenProfile(!openProfile)}
-                  className='flex items-center gap-3 pl-4 border-transparent border-2 rounded-full hover:border-orangeFpt-500 hover:rounded-full hover:border-2 hover:text-white hover:bg-orangeFpt-500 transition-all duration-300'
+                  className="flex items-center gap-3 pl-4 border rounded-full hover:border-orangeFpt-100 hover:bg-gradient-to-tl hover:from-orangeFpt-200 hover:via-white/25 hover:to-white transition-all duration-300"
                 >
                   <div className='p-1 flex items-center gap-2'>
-                    <div className='text-right hidden md:block'>
-                      <p className='text-sm font-medium'>{fullName}</p>
-                    </div>
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium text-white overflow-hidden ${colorClass} ring-2 ring-white shadow-sm`}
-                    >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium text-white overflow-hidden ${colorClass} ring-2 ring-white shadow-sm`}>
                       {shouldShowImage ? (
                         <img
                           src={avatar}
@@ -143,26 +137,18 @@ const LecturerHeader = ({
                         <span>{initials}</span>
                       )}
                     </div>
-                    <ChevronDown
-                      size={16}
-                      className={`transition-transform duration-200 ${openProfile ? 'rotate-180' : ''}`}
-                    />
+                    <div className="text-right hidden md:block">
+                      <p className="text-sm font-medium">{fullName}</p>
+                    </div>
+                    <ChevronDown size={16} className={`transition-transform duration-200 ${openProfile ? 'rotate-180' : ''}`} />
                   </div>
                 </button>
                 {openProfile && (
-                  <div className='absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200'>
-                    <div className='px-4 py-3 border-b border-gray-50 mb-2'>
-                      <p className='text-sm font-medium text-gray-900'>
-                        Signed in as
-                      </p>
-                      <p className='text-sm text-gray-500 truncate'>
-                        {fullName}
-                      </p>
-                    </div>
+                  <div className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border z-50 animate-in fade-in slide-in-from-top-2 duration-200">
 
                     <button
                       onClick={() => navigate(getRoleLandingRoute(roleName))}
-                      className='w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors'
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 rounded-t-xl hover:bg-gray-200 flex items-center gap-2 transition-colors"
                     >
                       <LayoutDashboard size={16} />
                       Dashboard
@@ -174,55 +160,37 @@ const LecturerHeader = ({
                         setOpenProfile(false);
                         onProfile();
                       }}
-                      className='w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors'
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700  hover:bg-gray-200 flex items-center gap-2 transition-colors"
                     >
                       <User size={16} />
                       Profile
                     </button>
-                    
-                    <div className="h-px bg-gray-50 my-2" />
-                    
+
                     <button
                       type="button"
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-200"
+                      onClick={() => {
+                        setOpenProfile(false);
+                        onOpenReport?.();
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-200 flex items-center gap-2 transition-colors"
                     >
-                      <MessageSquareWarning className="w-4 h-4" />
+                      <MessageSquareWarning size={16} />
                       Report System
                     </button>
+                    <div className="h-px bg-gray-50 my-2" />
                     <button
                       type='button'
                       onClick={() => {
                         setOpenProfile(false);
                         onLogout();
                       }}
-                      className='w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors'
+                      className="w-full px-4 py-2 text-left text-sm text-red-600 rounded-b-xl hover:bg-red-100 flex items-center gap-2 transition-colors"
                     >
                       <LogOut size={16} />
-                      Logout
+                      Sign out
                     </button>
                   </div>
                 )}
-              </>
-            ) : (
-              <div className='hidden sm:flex items-center gap-3'>
-                <button
-                  type='button'
-                  onClick={onLogin}
-                  className='inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-blue-300 hover:text-blue-600'
-                >
-                  <ArrowRightOnRectangleIcon className='h-4 w-4' />
-                  Login
-                </button>
-                <button
-                  type='button'
-                  onClick={onSignup}
-                  className='inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-500'
-                >
-                  <UserPlusIcon className='h-4 w-4' />
-                  Sign up
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -269,8 +237,8 @@ const LecturerSidebar = ({ sections, isAuthenticated, onLogin, onSignup }) => (
           ['--bg-secondary']: 'rgb(226 232 240)',
           boxShadow: 'none',
         }}
-        itemClassName='rounded-md px-3'
-        activeItemClassName='bg-blue-200 border border-blue-500'
+        itemClassName="rounded-md px-3"
+        activeItemClassName="bg-orangeFpt-50/60 text-orangeFpt-600 font-semibold shadow-inner"
         sections={isAuthenticated ? sections : []}
         expanded
         mode='inline'
@@ -311,9 +279,8 @@ const DashboardLayout = ({ children }) => {
     return allowedPaths.some(p => path === p || path.startsWith(p));
   }, [location.pathname]);
 
-  const { accessToken, userId, fullName, avatar } = useSelector(
-    state => state.user
-  );
+  const { accessToken, userId, fullName, avatar } = useSelector(state => state.user);
+  const [showReportModal, setShowReportModal] = useState(false);
   const isAuthenticated = Boolean(accessToken);
   const navigationItems = [
     {
@@ -413,6 +380,7 @@ const DashboardLayout = ({ children }) => {
         onLogin={handleLogin}
         onSignup={handleSignup}
         navItems={isAuthenticated ? computedNavigationItems : []}
+        onOpenReport={() => setShowReportModal(true)}
       />
       <div className='flex'>
         <aside className='fixed top-16 left-0 h-[calc(100vh-4rem)] overflow-y-auto bg-slate-50 border-r border-slate-200'>
@@ -428,6 +396,11 @@ const DashboardLayout = ({ children }) => {
         </main>
       </div>
       {showChatAssistant && <AIChatAssistant />}
+      <ReportSystemModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        userId={userId}
+      />
     </div>
   );
 };

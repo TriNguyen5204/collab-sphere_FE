@@ -10,16 +10,13 @@ import ProjectResourcesMenu from './ProjectResourcesMenu';
 import { useSelector } from 'react-redux';
 
 const ProjectBoardHeader = ({
-  archivedItems,
-  onRestoreArchived,
-  onDeleteArchived,
 }) => {
   const navigate = useNavigate();
   const { clearTeam, team } = useTeam();
   const { initials, colorClass, imageError, setImageError, shouldShowImage } = useAvatar(team?.teamName, team?.teamImage);
 
   const handleExitProject = async () => {
-    await navigate(-1);
+    await navigate('/student/projects');
     clearTeam();
   };
 
@@ -28,12 +25,21 @@ const ProjectBoardHeader = ({
       {/* Left side */}
       <div className='flex items-center gap-3'>
         <div className='relative'>
-          <img
-            src={team?.teamImage}
-            alt={team?.teamName || "Project Avatar"}
-            onError={() => setImageError(true)}
-            className="w-10 h-10 rounded-full object-cover border"
-          />
+          {shouldShowImage ? (
+            <img
+              src={team?.teamImage}
+              alt={team?.teamName || "Project Avatar"}
+              onError={() => setImageError(true)}
+              className="w-10 h-10 rounded-full object-cover border"
+            />
+          ) : (
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold text-white border ${colorClass}`}
+              aria-hidden
+            >
+              <span>{initials}</span>
+            </div>
+          )}
           {/* Online indicator */}
           <div className='absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-sm'></div>
         </div>

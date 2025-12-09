@@ -209,15 +209,10 @@ const StudentHeader = () => {
           <div className='relative' ref={profileRef}>
             <button
               onClick={() => setOpenProfile(!openProfile)}
-              className='flex items-center gap-3 pl-4 border-transparent border-2 rounded-full hover:border-orangeFpt-500 hover:rounded-full hover:border-2 hover:text-white hover:bg-orangeFpt-500 transition-all duration-300'
+              className="flex items-center gap-3 pl-4 border rounded-full hover:border-orangeFpt-100 hover:bg-gradient-to-tl hover:from-orangeFpt-200 hover:via-white/25 hover:to-white transition-all duration-300"
             >
               <div className='p-1 flex items-center gap-2'>
-                <div className='text-right hidden md:block'>
-                  <p className='text-sm font-medium'>{fullname}</p>
-                </div>
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium text-white overflow-hidden ${colorClass} ring-2 ring-white shadow-sm`}
-                >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium text-white overflow-hidden ${colorClass} ring-2 ring-white shadow-sm`}>
                   {shouldShowImage ? (
                     <img
                       src={avatar}
@@ -229,25 +224,20 @@ const StudentHeader = () => {
                     <span>{initials}</span>
                   )}
                 </div>
-                <ChevronDown
-                  size={16}
-                  className={`transition-transform duration-200 ${openProfile ? 'rotate-180' : ''}`}
-                />
+                <div className="text-right hidden md:block">
+                  <p className="text-sm font-medium">{fullname}</p>
+                </div>
+
+                <ChevronDown size={16} className={`transition-transform duration-200 ${openProfile ? 'rotate-180' : ''}`} />
               </div>
             </button>
 
             {openProfile && (
-              <div className='absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200'>
-                <div className='px-4 py-3 border-b border-gray-50 mb-2'>
-                  <p className='text-sm font-medium text-gray-900'>
-                    Signed in as
-                  </p>
-                  <p className='text-sm text-gray-500 truncate'>{fullname}</p>
-                </div>
+              <div className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border z-50 animate-in fade-in slide-in-from-top-2 duration-200">
 
                 <button
                   onClick={() => navigate(getRoleLandingRoute(roleName))}
-                  className='w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors'
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 rounded-t-xl hover:bg-gray-200 flex items-center gap-2 transition-colors"
                 >
                   <LayoutDashboard size={16} />
                   Dashboard
@@ -261,7 +251,7 @@ const StudentHeader = () => {
                       : '/student/profile';
                     navigate(profilePath);
                   }}
-                  className='w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors'
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700  hover:bg-gray-200 flex items-center gap-2 transition-colors"
                 >
                   <User size={16} />
                   Profile
@@ -272,16 +262,16 @@ const StudentHeader = () => {
                     setOpenProfile(false);
                     setShowReportModal(true);
                   }}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-200 flex items-center gap-2 transition-colors"
                 >
                   <MessageSquareWarning size={16} />
                   Report System
                 </button>
-                <div className="h-px bg-gray-50 my-2" />
+                <div className=" bg-gray-50" />
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className='w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors'
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 rounded-b-xl hover:bg-red-100 flex items-center gap-2 transition-colors"
                 >
                   <LogOut size={16} />
                   Sign out

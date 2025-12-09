@@ -104,7 +104,7 @@ const StudentClassPage = () => {
     }
     try {
       setLoadingList(true);
-      const list = await getClassesByStudentId(studentId);
+      const list = await getClassesByStudentId(studentId, { viewAll: true });
       console.log('Fetched classes:', list);
       setClasses(list);
       const ids = list.map((c) => c.classId);
@@ -345,20 +345,6 @@ const StudentClassPage = () => {
                       <p className="text-xs text-slate-500">{selectedDetails.teams?.length ?? 0} teams</p>
                     </div>
                   </div>
-
-                  {/* ... Projects & Teams Counts ... */}
-                  {/* <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div className="rounded-2xl border border-dashed border-slate-200 p-4">
-                      <p className="text-xs uppercase tracking-wide text-slate-500">Projects</p>
-                      <p className="mt-1 text-2xl font-semibold text-slate-900">{selectedDetails?.projectAssignments?.length ?? 0}</p>
-                      <p className="text-xs text-slate-500">Linked deliverables for this class</p>
-                    </div>
-                    <div className="rounded-2xl border border-dashed border-slate-200 p-4">
-                      <p className="text-xs uppercase tracking-wide text-slate-500">Teams</p>
-                      <p className="mt-1 text-2xl font-semibold text-slate-900">{selectedDetails.teams?.length ?? 0}</p>
-                      <p className="text-xs text-slate-500">Collaborating student groups</p>
-                    </div>
-                  </div> */}
 
                   {/* ... Assigned Team Section ... */}
                   <div className="mt-6">

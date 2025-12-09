@@ -14,24 +14,69 @@ const CheckpointEditMenu = React.forwardRef((
     onToggleMenu,
     onCloseMenu,
     formState,
-    onChange,
+    onChange, // This will now be the wrapper that clears errors
     onSubmit,
     isSubmitting = false,
-    errorMessage,
+    errorMessage, // Keep for generic errors (network, etc.)
+    errors = {}, // NEW: Field-specific errors
   },
   ref
 ) => {
   const disabled = !canEdit;
   const state = formState ?? {};
 
+  // Helper to update field and trigger parent onChange
   const handleFieldChange = (field, value) => {
     if (typeof onChange === 'function') {
-      onChange({ ...state, [field]: value });
+      onChange(field, value); 
     }
+  };
+
+  // Helper for input styles
+  const getInputClasses = (fieldName) => {
+    const baseClasses = "mt-1 w-full rounded-lg border px-3 py-2 text-sm transition-all duration-200 focus:outline-none";
+    const hasError = Boolean(errors[fieldName]);
+
+    if (hasError) {
+      return `${baseClasses} border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200 animate-shake`;
+    }
+    return `${baseClasses} border-gray-300 focus:border-orangeFpt-500 focus:ring-1 focus:ring-orangeFpt-500`;
+  };
+
+  // Helper to render inline error
+  const renderError = (fieldName) => {
+    if (!errors[fieldName]) return null;
+    return (
+      <div className="flex items-center gap-1 mt-1 text-red-500 text-xs animate-fadeIn">
+        <AlertCircle size={12} />
+        <span>{errors[fieldName]}</span>
+      </div>
+    );
   };
 
   return (
     <div ref={ref} className="relative">
+      {/* Inject Animation Styles */}
+      <style>
+        {`
+          @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+            20%, 40%, 60%, 80% { transform: translateX(4px); }
+          }
+          .animate-shake {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out forwards;
+          }
+        `}
+      </style>
+
       <button
         type="button"
         onClick={onToggleMenu}
@@ -43,7 +88,7 @@ const CheckpointEditMenu = React.forwardRef((
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full z-20 mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-xl">
+        <div className="absolute right-0 top-full z-20 mt-2 w-96 rounded-lg border border-gray-200 bg-white shadow-xl">
           <div className="border-b px-4 py-3">
             <h4 className="text-sm font-semibold text-gray-900">Update Checkpoint</h4>
             <p className="mt-1 text-xs text-gray-500">Modify details and save changes.</p>
@@ -56,9 +101,10 @@ const CheckpointEditMenu = React.forwardRef((
                 type="text"
                 value={state.title ?? ''}
                 onChange={(event) => handleFieldChange('title', event.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-1 focus:ring-orangeFpt-500"
+                className={getInputClasses('title')}
                 placeholder="Checkpoint title"
               />
+              {renderError('title')}
             </div>
 
             <div>
@@ -91,8 +137,9 @@ const CheckpointEditMenu = React.forwardRef((
                   type="date"
                   value={state.startDate ?? ''}
                   onChange={(event) => handleFieldChange('startDate', event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-1 focus:ring-orangeFpt-500"
+                  className={getInputClasses('startDate')}
                 />
+                {renderError('startDate')}
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase text-gray-500">Due Date *</label>
@@ -100,8 +147,9 @@ const CheckpointEditMenu = React.forwardRef((
                   type="date"
                   value={state.dueDate ?? ''}
                   onChange={(event) => handleFieldChange('dueDate', event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-1 focus:ring-orangeFpt-500"
+                  className={getInputClasses('dueDate')}
                 />
+                {renderError('dueDate')}
               </div>
             </div>
 
@@ -111,11 +159,13 @@ const CheckpointEditMenu = React.forwardRef((
                 value={state.description ?? ''}
                 onChange={(event) => handleFieldChange('description', event.target.value)}
                 rows={3}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-1 focus:ring-orangeFpt-500"
+                className={getInputClasses('description')}
                 placeholder="Describe the checkpoint"
               />
+              {renderError('description')}
             </div>
 
+            {/* Fallback Generic Error Message */}
             {errorMessage ? (
               <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
                 <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
