@@ -91,25 +91,33 @@ function MeetingRoom() {
 
     console.log('🔍 [MeetingRoom] Checking if room exists...');
     
-    // Set timeout in case server doesn't have this handler (old version)
+    // Set timeout - deny access if server doesn't respond (safer approach)
     const timeoutId = setTimeout(() => {
-      console.log('⏰ [MeetingRoom] Room check timeout - allowing access (server may not support this check)');
-      setRoomExists(true);
-    }, 2000);
+      console.log('⏰ [MeetingRoom] Room check timeout - denying access for safety');
+      setRoomExists(false);
+      setAuthError('Unable to verify meeting room. Please check your connection and try again.');
+    }, 5000);
     
     socket.emit('check-room-exists', { roomId }, (response) => {
       clearTimeout(timeoutId);
       console.log('🔍 [MeetingRoom] Room check result:', response);
       
-      if (response && response.exists) {
+      if (response && response.exists && response.hasHost) {
+        // Room exists AND has a host - allow joining
         setRoomExists(true);
+      } else if (response && response.exists && !response.hasHost) {
+        // Room has users but no host - orphaned room, don't allow
+        console.log('⚠️ [MeetingRoom] Room exists but has no host - denying access');
+        setRoomExists(false);
+        setAuthError('This meeting room has no host. The meeting may have ended.');
       } else if (response && response.exists === false) {
         setRoomExists(false);
         setAuthError('This meeting room does not exist or has ended.');
       } else {
-        // Unexpected response - allow access
-        console.log('⚠️ [MeetingRoom] Unexpected response - allowing access');
-        setRoomExists(true);
+        // Unexpected response - deny access for safety
+        console.log('⚠️ [MeetingRoom] Unexpected response - denying access for safety');
+        setRoomExists(false);
+        setAuthError('Unable to verify meeting room. Please try again.');
       }
     });
     

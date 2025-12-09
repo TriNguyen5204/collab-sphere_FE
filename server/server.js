@@ -345,11 +345,24 @@ io.on('connection', socket => {
     }
   });
 
-  // Check if a room exists (has active users)
+  // Check if a room exists (has active users and valid host)
   socket.on('check-room-exists', ({ roomId }, callback) => {
     const clientsInRoom = io.sockets.adapter.rooms.get(roomId);
     const exists = clientsInRoom && clientsInRoom.size > 0;
-    const hasHost = !!roomHosts[roomId];
+    const hostSocketId = roomHosts[roomId];
+    
+    // Verify host is still actually connected
+    let hasHost = false;
+    if (hostSocketId) {
+      const hostSocket = io.sockets.sockets.get(hostSocketId);
+      if (hostSocket && hostSocket.connected) {
+        hasHost = true;
+      } else {
+        // Host reference is stale, clean it up
+        console.log(`🧹 Cleaning up stale host reference for room ${roomId}`);
+        delete roomHosts[roomId];
+      }
+    }
     
     console.log(`🔍 Checking room ${roomId}: exists=${exists}, hasHost=${hasHost}, users=${clientsInRoom?.size || 0}`);
     

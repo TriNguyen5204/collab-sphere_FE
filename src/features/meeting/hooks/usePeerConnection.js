@@ -319,6 +319,9 @@ export const usePeerConnections = (
       peersRef.current = {};
       setGroupPeers([]);
       
+      // Disconnect socket to prevent reconnection attempts
+      socket.disconnect();
+      
       // Call the callback if provided
       if (onRoomClosed) {
         onRoomClosed(reason);
