@@ -76,7 +76,11 @@ class OptimizedRAFBatcher {
     private drawerId: string;
     private pageId: number;
     private lastSendTime: number = 0;
-    private minSendInterval: number = 16; // ~60fps max
+    private minSendInterval: number = 16;
+
+    private drawingTimer: number | null = null;
+    private drawingCompleteDelay: number = 150; // Wait 150ms after last change to consider drawing complete
+    private isDrawing: boolean = false;
 
     constructor(socket: WebSocket, drawerId: string, pageId: number) {
         this.socket = socket;
@@ -108,9 +112,24 @@ class OptimizedRAFBatcher {
                 this.pending.removed.set(id, record);
             }
         }
-
+        this.isDrawing = true;
+        this.resetDrawingTimer();
         // Schedule flush
         this.scheduleFlush();
+    }
+    private resetDrawingTimer() {
+        if (this.drawingTimer !== null) {
+            clearTimeout(this.drawingTimer);
+        }
+
+        // Set a timer to detect when drawing is complete
+        this.drawingTimer = window.setTimeout(() => {
+            if (this.isDrawing) {
+                console.log('✅ Drawing completed, forcing flush...');
+                this.isDrawing = false;
+                this.forceFlush(); // Force flush when drawing completes
+            }
+        }, this.drawingCompleteDelay);
     }
 
     private scheduleFlush() {
@@ -120,15 +139,25 @@ class OptimizedRAFBatcher {
             this.flush();
         });
     }
+    private forceFlush() {
+        // Cancel any pending RAF
+        if (this.rafId !== null) {
+            cancelAnimationFrame(this.rafId);
+            this.rafId = null;
+        }
 
-    flush() {
+        // Immediately flush all pending changes
+        this.flush(true);
+    }
+
+    flush(force: boolean = false) {
         this.rafId = null;
 
         const now = performance.now();
         const timeSinceLastSend = now - this.lastSendTime;
 
         // Throttle: Don't send more than 60 times per second
-        if (timeSinceLastSend < this.minSendInterval) {
+        if (!force && timeSinceLastSend < this.minSendInterval) {
             this.scheduleFlush(); // Reschedule
             return;
         }
@@ -148,6 +177,7 @@ class OptimizedRAFBatcher {
             ),
             removed: Object.fromEntries(this.pending.removed)
         };
+        // console.log('🚀 SENDING BATCH TO SERVER:', JSON.stringify(payload, null, 2));
 
         // Clear immediately
         this.pending.added.clear();
@@ -169,7 +199,8 @@ class OptimizedRAFBatcher {
                 Object.keys(payload.removed).length;
 
             if (total > 0) {
-                console.log(`⚡ Batched ${total} changes in one message`);
+                const marker = force ? '🔥 FORCE' : '⚡';
+                console.log(`${marker} Batched ${total} changes in one message`);
             }
         } catch (error) {
             console.error('❌ Failed to send batch:', error);
@@ -183,12 +214,17 @@ class OptimizedRAFBatcher {
     }
 
     destroy() {
+        if (this.drawingTimer !== null) {
+            clearTimeout(this.drawingTimer);
+            this.drawingTimer = null;
+        }
+
         if (this.rafId !== null) {
             cancelAnimationFrame(this.rafId);
             this.rafId = null;
         }
         // Send final batch
-        this.flush();
+        this.flush(true);
     }
 }
 
@@ -269,6 +305,7 @@ export function useWhiteboardSync(
     const socketRef = useRef<WebSocket | null>(null)
     const batcherRef = useRef<OptimizedRAFBatcher | null>(null)
     const presenceRef = useRef<PresenceThrottler | null>(null)
+    const msgBufferRef = useRef<string>('');
     const isConnecting = useRef(false)
     const isMounted = useRef(true)
     const reconnectTimeoutRef = useRef<number | null>(null)
@@ -282,6 +319,7 @@ export function useWhiteboardSync(
             }
         }
     }, [])
+
 
     useEffect(() => {
         if (!editor || !whiteboardId || !drawerId) {
@@ -383,8 +421,53 @@ export function useWhiteboardSync(
             // ========== MESSAGE LISTENER ==========
             socket.onmessage = async (event) => {
                 try {
-                    const messages = parseWebSocketMessage(event.data);
+                    // 1. Cộng dồn data mới vào buffer
+                    msgBufferRef.current += event.data;
 
+                    const messages: any[] = [];
+                    let remaining = msgBufferRef.current;
+
+                    // 2. Vòng lặp quét tìm các JSON hoàn chỉnh
+                    while (true) {
+                        const start = remaining.indexOf('{');
+                        if (start === -1) {
+                            if (remaining.trim() !== '') remaining = '';
+                            break;
+                        }
+
+                        let depth = 0;
+                        let end = -1;
+
+                        for (let i = start; i < remaining.length; i++) {
+                            if (remaining[i] === '{') depth++;
+                            else if (remaining[i] === '}') {
+                                depth--;
+                                if (depth === 0) {
+                                    end = i;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (end !== -1) {
+                            const jsonStr = remaining.substring(start, end + 1);
+                            try {
+                                const parsed = JSON.parse(jsonStr);
+                                messages.push(parsed);
+                                remaining = remaining.substring(end + 1);
+                            } catch (parseErr) {
+                                console.error('❌ Parse error chunk, skipping char:', parseErr);
+                                remaining = remaining.substring(start + 1);
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+
+                    // 3. Cập nhật lại buffer
+                    msgBufferRef.current = remaining;
+
+                    // 4. Xử lý messages
                     for (const msg of messages) {
                         try {
                             await processMessage(msg);
@@ -473,43 +556,83 @@ export function useWhiteboardSync(
 
                 const msgUserId = msg.userId?.toString();
 
-                // 4. HANDLE SYNC (shapes/bindings) - OPTIMIZED
+                // 4. HANDLE SYNC (shapes/bindings) - ĐÃ SỬA TYPE & LOGIC MERGE
                 if (msg.type === 'sync' && msg.payload) {
-                    if (msgUserId && msgUserId !== drawerId) {
-                        // Use mergeRemoteChanges for better performance
-                        editor.store.mergeRemoteChanges(() => {
-                            const { added, updated, removed } = msg.payload;
+                    editor.store.mergeRemoteChanges(() => {
+                        const { added, updated, removed } = msg.payload;
 
-                            // Batch all operations
-                            const toAdd: TLRecord[] = [];
-                            const toRemove: TLRecord['id'][] = [];
+                        // Map lưu trữ bản ghi chuẩn nhất (đã gộp)
+                        const recordsMap = new Map<string, TLRecord>();
+                        // Set lưu ID cần xóa (được ép kiểu đúng)
+                        const idsToRemove = new Set<TLRecord['id']>();
 
-                            if (added) {
-                                toAdd.push(...Object.values(added) as TLRecord[]);
-                            }
-                            if (updated) {
-                                toAdd.push(...Object.values(updated).map((u: any) => u[1]) as TLRecord[]);
-                            }
-                            if (removed) {
-                                toRemove.push(...Object.values(removed).map((r: any) => r.id) as TLRecord['id'][]);
-                            }
+                        // 1. Xử lý REMOVED
+                        if (removed) {
+                            Object.values(removed).forEach((r: any) => {
+                                if (r && r.id) idsToRemove.add(r.id as TLRecord['id']);
+                            });
+                        }
 
-                            // Apply in one batch
-                            if (toAdd.length) editor.store.put(toAdd);
-                            if (toRemove.length) editor.store.remove(toRemove);
+                        // 2. Xử lý ADDED (Gốc)
+                        if (added) {
+                            Object.values(added).forEach((r: any) => {
+                                recordsMap.set(r.id, r as TLRecord);
+                                // Nếu ID này từng bị đánh dấu xóa thì bỏ đánh dấu
+                                idsToRemove.delete(r.id as TLRecord['id']);
+                            });
+                        }
 
-                            const total = toAdd.length + toRemove.length;
-                            if (total > 0) {
-                                console.log(`📥 Received ${total} changes from ${msgUserId}`);
-                            }
-                        })
-                    }
-                    else if (!msgUserId) {
-                        editor.store.mergeRemoteChanges(() => {
-                            const { added } = msg.payload
-                            if (added) editor.store.put(Object.values(added) as TLRecord[])
-                        })
-                    }
+                        // 3. Xử lý UPDATED (Quan trọng: GỘP vào ADDED thay vì ghi đè)
+                        if (updated) {
+                            Object.values(updated).forEach((u: any) => {
+                                let updateRec: TLRecord | null = null;
+                                
+                                if (Array.isArray(u) && u.length === 2) {
+                                    updateRec = u[1] as TLRecord; 
+                                } else {
+                                    updateRec = u as TLRecord;
+                                }
+
+                                if (updateRec && updateRec.id) {
+                                    const existing = recordsMap.get(updateRec.id);
+                                    if (existing) {
+                                        // 🌟 LOGIC MERGE QUAN TRỌNG:
+                                        // Nếu đã có bản ghi (từ added), hãy gộp update mới vào nó
+                                        // thay vì thay thế hoàn toàn (để tránh mất prop geo, type...)
+                                        recordsMap.set(updateRec.id, {
+                                            ...existing,
+                                            ...updateRec,
+                                            props: { ...existing.props, ...(updateRec.props || {}) },
+                                            meta: { ...existing.meta, ...(updateRec.meta || {}) }
+                                        });
+                                    } else {
+                                        // Nếu chưa có, đây có thể là update rời rạc, cứ lưu vào
+                                        recordsMap.set(updateRec.id, updateRec);
+                                    }
+                                    
+                                    idsToRemove.delete(updateRec.id as TLRecord['id']);
+                                }
+                            });
+                        }
+
+                        // 4. Thực thi update store
+                        const toPut = Array.from(recordsMap.values());
+                        const toRemove = Array.from(idsToRemove); // Đã đúng kiểu TLRecord['id'][]
+
+                        if (toRemove.length > 0) {
+                            // TypeScript sẽ không báo lỗi nữa vì toRemove đã đúng kiểu
+                            editor.store.remove(toRemove);
+                        }
+                        
+                        if (toPut.length > 0) {
+                            editor.store.put(toPut);
+                        }
+
+                        const total = toPut.length + toRemove.length;
+                        if (total > 0) {
+                            console.log(`📥 Processed ${total} changes (Merged & Typed)`);
+                        }
+                    });
                     return;
                 }
 

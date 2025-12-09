@@ -2,9 +2,11 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useDndContext } from '@dnd-kit/core';
-import { Clock, AlignLeft, CheckCircle2, Circle } from 'lucide-react';
+import { Clock, AlignLeft, CheckCircle2, Circle, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { markCardComplete } from '../../../../hooks/kanban/signalRHelper';
 
-const BoardCard = ({ card, listId, onClick, onUpdate }) => {
+const BoardCard = ({ card, listId, onClick, workspaceId, connection, isConnected }) => {
   const {
     attributes,
     listeners,
@@ -23,16 +25,100 @@ const BoardCard = ({ card, listId, onClick, onUpdate }) => {
     opacity: isDragging ? 0.3 : 1,
   };
 
-  const isOverdue = card.dueAt && new Date(card.dueAt) < new Date() && !card.isDone;
-
-  const handleCheckboxClick = (e) => {
+  const handleCheckboxClick = async (e) => {
     e.stopPropagation();
-    const updatedCard = { ...card, isCompleted: !card.isCompleted };
-    onUpdate(updatedCard); // pass only the updated card
+    
+    if (!isConnected || !connection) {
+      toast.error('Not connected to server');
+      return;
+    }
+
+    const newStatus = !card.isCompleted;
+
+    try {
+      await markCardComplete(
+        connection,
+        workspaceId,
+        parseInt(listId),
+        parseInt(card.id),
+        newStatus
+      );
+
+      toast.success(newStatus ? 'Card marked as complete' : 'Card marked as incomplete');
+    } catch (error) {
+      console.error('Error toggling card completion:', error);
+      toast.error('Failed to update card status');
+    }
   };
 
   const { over, active } = useDndContext();
   const isOverThisCard = String(over?.id) === String(card.id) && String(active?.id) !== String(card.id);
+
+  // ✅ Calculate due date status with labels
+  const getDueDateDisplay = () => {
+    if (!card.dueAt) return null;
+    
+    const dueDate = new Date(card.dueAt);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+    
+    const diffTime = dueDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Format date
+    const dateStr = dueDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+    
+    // Determine status
+    if (card.isCompleted) {
+      return {
+        dateStr,
+        label: 'Complete',
+        color: 'bg-green-100 text-green-700',
+        icon: CheckCircle2
+      };
+    }
+    
+    if (diffDays < 0) {
+      return {
+        dateStr,
+        label: 'Overdue',
+        color: 'bg-red-100 text-red-700',
+        icon: AlertCircle
+      };
+    }
+    
+    if (diffDays === 0) {
+      return {
+        dateStr,
+        label: 'Due Today',
+        color: 'bg-orange-100 text-orange-700',
+        icon: Clock
+      };
+    }
+    
+    if (diffDays <= 3) {
+      return {
+        dateStr,
+        label: 'Due Soon',
+        color: 'bg-yellow-100 text-yellow-700',
+        icon: Clock
+      };
+    }
+    
+    // Upcoming (more than 3 days)
+    return {
+      dateStr,
+      label: null, // Don't show label for future dates
+      color: 'bg-blue-100 text-blue-700',
+      icon: Clock
+    };
+  };
+
+  const dueDateDisplay = getDueDateDisplay();
 
   // Get risk color
   const getRiskColor = () => {
@@ -67,9 +153,11 @@ const BoardCard = ({ card, listId, onClick, onUpdate }) => {
         <div className="flex items-start gap-2 mb-2">
           <button
             onClick={handleCheckboxClick}
-            onPointerDownCapture={(e) => e.stopPropagation()} // avoid DnD grabbing the event
-            className="mt-0.5 flex-shrink-0 transition-all duration-200 hover:scale-110"
+            onPointerDownCapture={(e) => e.stopPropagation()}
+            disabled={!isConnected}
+            className="mt-0.5 flex-shrink-0 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
             type="button"
+            title={isConnected ? (card.isCompleted ? 'Mark as incomplete' : 'Mark as complete') : 'Offline'}
           >
             {card.isCompleted ? (
               <CheckCircle2 size={20} className="text-green-600" />
@@ -85,25 +173,22 @@ const BoardCard = ({ card, listId, onClick, onUpdate }) => {
           </h3>
         </div>
 
-        {/* 3rd line: Due time and description icon */}
+        {/* 3rd line: Due time with status label and description icon */}
         <div className="flex items-center gap-3 mb-2 text-xs">
-          {card.dueAt && (
-            <div
-              className={`flex items-center gap-1 px-2 py-1 rounded ${
-                card.isDone === true
-                  ? 'bg-green-100 text-green-700'
-                  : isOverdue
-                  ? 'bg-red-100 text-red-700'
-                  : 'bg-blue-100 text-blue-700'
-              }`}
-            >
-              <Clock size={14} />
-              <span className="font-medium">
-                {new Date(card.dueAt).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                })}
-              </span>
+          {dueDateDisplay && (
+            <div className="flex items-center gap-1">
+              <div className={`flex items-center gap-1 px-2 py-1 rounded ${dueDateDisplay.color}`}>
+                <dueDateDisplay.icon size={14} />
+                <span className="font-medium">
+                  {dueDateDisplay.dateStr}
+                </span>
+              </div>
+              
+              {dueDateDisplay.label && (
+                <span className={`px-2 py-1 rounded font-semibold ${dueDateDisplay.color}`}>
+                  {dueDateDisplay.label}
+                </span>
+              )}
             </div>
           )}
 

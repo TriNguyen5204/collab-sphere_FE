@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import TildrawBoard from './components/TldrawBoard';
 import 'tldraw/tldraw.css';
-import { getWhiteboardId } from '../../services/userService';
+import { getWhiteboardId } from './services/whiteboardService';
 import useTeam from '../../context/useTeam';
 
 export default function Whiteboard() {

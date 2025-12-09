@@ -5,7 +5,6 @@ import CustomPageMenu from './CustomPageMenu';
 import {
   getPagesByWhiteboardId,
   getShapesByPageId,
-  parseShapeJson,
 } from '../services/whiteboardService';
 import 'tldraw/tldraw.css';
 
@@ -142,13 +141,14 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
         console.log(
           `📦 Received ${shapesFromApi.shapes?.length || 0} shapes from API`
         );
+        console.log("shape of page", shapesFromApi)
 
-        const formattedShapes = shapesFromApi.shapes.map(s =>
-          parseShapeJson(s)
-        );
+        // const formattedShapes = shapesFromApi.shapes.map(s =>
+        //   parseShapeJson(s)
+        // );
 
         // Cache the shapes
-        shapesCache.current.set(numericId, formattedShapes);
+        shapesCache.current.set(numericId, shapesFromApi);
 
         // Clear old shapes for this page only
         const oldShapeIds = Array.from(editor.store.allRecords())
@@ -159,10 +159,10 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
         }
 
         // Put new shapes
-        if (formattedShapes.length) {
-          editor.store.put(formattedShapes);
+        if (shapesFromApi.length) {
+          editor.store.put(shapesFromApi);
           console.log(
-            `✅ Loaded ${formattedShapes.length} shapes for ${pageId}`
+            `✅ Loaded ${shapesFromApi.length} shapes for ${pageId}`
           );
         } else {
           console.log(`ℹ️ No shapes found for ${pageId}`);

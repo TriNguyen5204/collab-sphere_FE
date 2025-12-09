@@ -66,6 +66,7 @@ const BoardList = ({
     transform: CSS.Transform.toString(transform),
     transition,
   };
+  
   const handleSaveTitle = async () => {
     if (!editedTitle.trim() || editedTitle === list.title) {
       setIsEditingTitle(false);
@@ -116,6 +117,10 @@ const BoardList = ({
       toast.error('Failed to mark all cards as done');
     }
   };
+
+  // ✅ Đếm số cards chưa hoàn thành
+  const incompleteCards = list.cards.filter(c => !c.isCompleted && !c.archived);
+  const hasIncompleteCards = incompleteCards.length > 0;
 
   return (
     <div
@@ -244,14 +249,17 @@ const BoardList = ({
                   <Pencil size={16} />
                   Rename List
                 </button>
-                <button
-                  onClick={handleMarkAllDone}
-                  disabled={!isConnected}
-                  className='flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-medium text-green-600 transition-colors hover:bg-emerald-50 disabled:opacity-50'
-                >
-                  <CheckCircle size={16} />
-                  Mark All Done
-                </button>
+                {/* ✅ Chỉ hiện khi có cards chưa hoàn thành */}
+                {hasIncompleteCards && (
+                  <button
+                    onClick={handleMarkAllDone}
+                    disabled={!isConnected}
+                    className='flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-medium text-green-600 transition-colors hover:bg-emerald-50 disabled:opacity-50'
+                  >
+                    <CheckCircle size={16} />
+                    Mark All Done
+                  </button>
+                )}
               </div>
             </>
           )}
@@ -275,6 +283,9 @@ const BoardList = ({
                 listId={list.id}
                 onClick={() => onCardClick(card, list)}
                 onUpdate={updated => onUpdateCard(list.id, updated)}
+                workspaceId={workspaceId}
+                connection={connection}
+                isConnected={isConnected}
               />
             ))}
           </div>

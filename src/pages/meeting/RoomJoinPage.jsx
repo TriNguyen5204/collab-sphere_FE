@@ -8,7 +8,7 @@ import ClipLoader from 'react-spinners/ClipLoader';
 
 function JoinPage() {
   const myName = useSelector(state => state.user.fullName);
-  // const roleName = useSelector(state => state.user.roleName);
+  const roleName = useSelector(state => state.user.roleName);
   const [groupId, setGroupId] = useState('');
   const [title, setTitle] = useState('');
   const navigate = useNavigate();
@@ -71,14 +71,19 @@ function JoinPage() {
   // 🟢 Join existing room
   const joinRoom = () => {
     if (groupId.trim()) {
-      cleanupAndNavigate(`/room/${groupId}`, { myName, isHost: false });
+      cleanupAndNavigate(`/room/${groupId}/${teamId}`, { myName, isHost: false });
     } else {
       toast.error('Please enter a room ID');
     }
   };
 
   const handleBack = () => {
-    navigate(`/lecturer/meetings?teamId=${teamId}`);
+    if(roleName === 'LECTURER'){
+      navigate(`/lecturer/meetings?teamId=${teamId}`);
+    } else if(roleName === 'STUDENT'){
+      navigate(`/meeting/${teamId}`);
+    }
+    
   };
 
   return (

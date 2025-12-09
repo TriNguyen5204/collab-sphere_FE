@@ -82,6 +82,7 @@ import MeetingManagement from '../pages/meeting/MeetingManagement';
 import Whiteboard from '../features/whiteboard/Whiteboard';
 import CollabEditor from '../features/textEditor/CollabEditor';
 import ChatComponent from '../features/chat/ChatConservationComponent';
+import StudentMeetingManagement from '../pages/meeting/StudentMeetingManagement';
 
 import RoleProtectedRoute from './RoleProtectedRoute';
 
@@ -113,7 +114,7 @@ const studentRoutes = [
   { path: '/student/project/peer-evaluation', element: protectRoute(['STUDENT'], <PeerEvaluationPage />) },
 
   { path: '/task-board', element: protectRoute(['STUDENT', 'LECTURER'], <ProjectBoard />) },
-  { path: '/meeting/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <Layout/>) },
+  { path: '/meeting/:teamId', element: protectRoute(['STUDENT'], <Layout/>) },
   { path: '/join-room/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <RoomJoinPage/>)},
   { path: '/room/:roomId/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingRoomTest/>)},
   { path: '/meeting/history/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingManagement/> )},
@@ -121,6 +122,7 @@ const studentRoutes = [
   { path: '/whiteboard',  element: protectRoute(['STUDENT', 'LECTURER'], <Whiteboard/>)},
   { path: '/text-editor', element: protectRoute(['STUDENT', 'LECTURER'], <CollabEditor/>)},
   { path: '/chat', element: protectRoute(['STUDENT', 'LECTURER'], <ChatComponent/>)},
+  { path: '/student/meeting/history/:teamId', element: protectRoute(['STUDENT'], <StudentMeetingManagement/> )},
 ];
 
 const authenticatedRoles = ['STUDENT', 'LECTURER', 'STAFF', 'HEAD_DEPARTMENT', 'ADMIN'];

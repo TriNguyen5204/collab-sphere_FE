@@ -11,6 +11,7 @@ import ChatBox from '../../features/meeting/components/ChatBox';
 import { useNavigate } from 'react-router-dom';
 import { updateMeeting } from '../../features/meeting/services/meetingApi';
 import { toast } from 'sonner';
+import { useSelector } from 'react-redux';
 
 function MeetingRoom() {
   const { roomId } = useParams();
@@ -22,6 +23,7 @@ function MeetingRoom() {
   const meetingId = location.state?.meetingId || null;
   const isHost = location.state?.isHost || false;
   const navigate = useNavigate();
+  const roleName = useSelector(state => state.user.roleName);
 
   const myVideo = useRef();
   const peersRef = useRef({});
@@ -101,7 +103,11 @@ function MeetingRoom() {
   };
 
   const handleLeave = () => {
-    navigate(`/meeting/${teamId}`, { replace: true });
+    if(roleName === 'STUDENT') {
+      navigate(`/meeting/${teamId}`, { replace: true });
+    } else if(roleName === 'LECTURER') {
+      navigate(`/lecturer/meetings`, { replace: true });
+    }
   };
 
   // Find person sharing screen
