@@ -21,7 +21,6 @@ import useClickOutside from '../../hooks/useClickOutside';
 import { useAvatar } from '../../hooks/useAvatar';
 import AIChatAssistant from '../../features/ai/components/AIChatAssistant';
 import { getRoleLandingRoute } from '../../constants/roleRoutes';
-import { SignalRChatProvider } from '../../features/chat/hooks/SignalrChatProvider';
 
 const LecturerHeader = ({
   fullName,
@@ -44,7 +43,6 @@ const LecturerHeader = ({
   const roleName = useSelector(state => state.user.roleName);
   useClickOutside(searchRef, () => setOpenSearch(false));
   useClickOutside(profileRef, () => setOpenProfile(false));
-
 
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -120,11 +118,6 @@ const LecturerHeader = ({
               </div>
             )}
           </div>
-          <MessageCircleMoreIcon
-            size={45}
-            onClick={() => navigate('/chat')}
-            className='text-gray-500 cursor-pointer transition-all duration-200 hover:text-blue-700 hover:bg-blue-50 hover:border-blue-300 hover:shadow-md hover:rotate-3 active:scale-95 p-2 rounded-lg border border-transparent'
-          />
           <div className='relative ml-auto' ref={profileRef}>
             {isAuthenticated ? (
               <>
@@ -360,23 +353,11 @@ const DashboardLayout = ({ children }) => {
         path === '/chat' || path.startsWith('/chat/'),
     },
     {
-      label: 'Analytics',
-      href: '/lecturer/analytics',
-      icon: ChartBarIcon,
-      match: path => path === '/lecturer/analytics' || path.startsWith('/lecturer/analytics/')
+      label: 'Meetings',
+      href: '/lecturer/meetings',
+      icon: CalendarDaysIcon,
+      match: path => path === '/lecturer/meetings' || path.startsWith('/lecturer/meetings/')
     },
-    // {
-    //   label: 'Meetings',
-    //   href: '/lecturer/meetings',
-    //   icon: CalendarDaysIcon,
-    //   match: path => path === '/lecturer/meetings' || path.startsWith('/lecturer/meetings/')
-    // },
-    // {
-    //   label: 'Tools',
-    //   href: '/lecturer/tools',
-    //   icon: WrenchScrewdriverIcon,
-    //   match: path => path === '/lecturer/tools' || path.startsWith('/lecturer/tools/')
-    // },
   ];
 
   const computedNavigationItems = useMemo(

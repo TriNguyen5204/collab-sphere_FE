@@ -15,7 +15,7 @@ export default function SubjectStats({ total, active, inactive, categories }) {
         icon={BookOpen}
         label='Total Subjects'
         value={total}
-        color='orange' // Chuyển từ blue sang orange theo yêu cầu FPT
+        color='orange' // Changed from blue to orange as per FPT requirement
       />
       
       {/* Secondary Stats - Soft Muted Colors */}

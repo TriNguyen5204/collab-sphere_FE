@@ -24,12 +24,22 @@ const VARIANT_PRESETS = {
 };
 
 const useToastConfirmation = () => {
-  const confirmWithToast = useCallback((options) => {
-    const normalizedOptions = typeof options === 'string' ? { message: options } : options ?? {};
+  const confirmWithToast = useCallback((messageOrOptions, optionsIfFirstIsString) => {
+    let normalizedOptions = {};
+    if (typeof messageOrOptions === 'string') {
+      normalizedOptions = {
+        message: messageOrOptions,
+        ...optionsIfFirstIsString,
+      };
+    } else {
+      normalizedOptions = messageOrOptions ?? {};
+    }
+
     const {
       message = 'Are you sure?',
-      confirmLabel = 'Confirm',
-      cancelLabel = 'Cancel',
+      description,
+      confirmLabel = normalizedOptions.confirmText || 'Confirm',
+      cancelLabel = normalizedOptions.cancelText || 'Cancel',
       variant = 'warning',
       icon: IconComponent = AlertTriangle,
       iconProps,
@@ -38,6 +48,7 @@ const useToastConfirmation = () => {
       cancelButtonClassName,
       duration = Infinity,
       position = 'top-right',
+      dismissible = true,
     } = normalizedOptions;
 
     const variantPreset = VARIANT_PRESETS[variant] ?? VARIANT_PRESETS.warning;
@@ -69,6 +80,9 @@ const useToastConfirmation = () => {
             </div>
             <div className="flex-1 text-sm">
               <p className="font-semibold text-slate-800">{message}</p>
+              {description && (
+                <p className="mt-1 text-slate-500">{description}</p>
+              )}
               <div className="mt-4 flex flex-wrap justify-end gap-2">
                 <button
                   type="button"
@@ -91,7 +105,9 @@ const useToastConfirmation = () => {
         {
           duration,
           position,
-          onDismiss: () => complete(false),
+          onDismiss: () => {
+             if (dismissible) complete(false);
+          },
         },
       );
     });

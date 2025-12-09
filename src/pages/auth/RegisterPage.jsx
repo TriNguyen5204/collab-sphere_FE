@@ -171,7 +171,7 @@ const RegisterPage = () => {
       if (error.response?.data?.errors) {
         const errors = error.response.data.errors;
 
-        // Hiển thị tất cả lỗi
+        // Display all errors
         Object.keys(errors).forEach(field => {
           errors[field].forEach(message => {
             toast.error(message);

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import {
   Upload,
@@ -10,7 +11,6 @@ import {
   X,
 } from 'lucide-react';
 import { createMultipleClasses } from '../../../services/userService';
-import { toast } from 'sonner';
 
 const CreateMultipleClassForm = ({ onClose }) => {
   const [classes, setClasses] = useState([]);
@@ -70,7 +70,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
             typeof cls.StudentCodes === 'string' &&
             !/^[A-Za-z0-9,;\s]+$/.test(cls.StudentCodes)
           ) {
-            rowErrors.push('Invalid StudentCodes format');
+            rowErrors.push('Invalid StudentCodes');
           }
 
           if (
@@ -79,13 +79,13 @@ const CreateMultipleClassForm = ({ onClose }) => {
             cls.IsActive !== 'true' &&
             cls.IsActive !== 'false'
           ) {
-            rowErrors.push('IsActive must be true or false');
+            rowErrors.push('IsActive must be true/false');
           }
 
           if (rowErrors.length > 0) {
             validationErrors.push({
               row: index + 2,
-              name: cls.ClassName || 'Unknown Class',
+              name: cls.ClassName || 'No class name',
               errors: rowErrors,
             });
           }
@@ -108,7 +108,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
 
   const handleSubmit = async () => {
     if (!fileName) {
-      alert('Please upload an Excel file before submitting.');
+      toast.error('Please upload an Excel file before submitting.');
       return;
     }
 
@@ -149,10 +149,10 @@ const CreateMultipleClassForm = ({ onClose }) => {
         <div className='bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5'>
           <h2 className='text-2xl font-bold text-white flex items-center gap-2'>
             <FileSpreadsheet className='w-7 h-7' />
-            Create Multiple Classes from Excel
+            Create multiple classes from Excel
           </h2>
           <p className='text-blue-100 mt-1 text-sm'>
-            Upload an Excel file to create multiple classes at once
+            Upload Excel file to create multiple classes at once
           </p>
         </div>
 
@@ -163,17 +163,17 @@ const CreateMultipleClassForm = ({ onClose }) => {
               <Download className='w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0' />
               <div className='flex-1'>
                 <h3 className='font-semibold text-gray-800 mb-1'>
-                  Step 1: Download Template
+                  Bước 1: Tải file mẫu
                 </h3>
                 <p className='text-sm text-gray-600 mb-3'>
-                  Download the Excel template and fill in class information according to the format
+                  Download the Excel template and fill in the class information according to the format
                 </p>
                 <button
                   onClick={downloadTemplate}
                   className='inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium text-sm shadow-sm'
                 >
                   <Download className='w-4 h-4' />
-                  Download Template
+                  Download template
                 </button>
               </div>
             </div>
@@ -185,9 +185,9 @@ const CreateMultipleClassForm = ({ onClose }) => {
               <Upload className='w-5 h-5 text-gray-600 mt-0.5' />
               <div>
                 <h3 className='font-semibold text-gray-800 mb-1'>
-                  Step 2: Upload Excel File
+                  Step 2: Upload Excel file
                 </h3>
-                <p className='text-sm text-gray-600'>
+                <p className='text-sm text-gray-600 mb-3'>
                   Select the filled Excel file to upload
                 </p>
               </div>
@@ -207,7 +207,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
               >
                 <Upload className='w-6 h-6 text-gray-400' />
                 <span className='text-gray-600'>
-                  {fileName || 'Click to select file or drag and drop here'}
+                  {fileName || 'Click to select file or drag and drop file here'}
                 </span>
               </label>
             </div>
@@ -230,7 +230,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
                 <div className='flex items-center gap-2'>
                   <CheckCircle className='w-5 h-5 text-green-600' />
                   <h3 className='font-semibold text-gray-800'>
-                    Uploaded Class List ({classes.length} classes)
+                    Uploaded class list ({classes.length} classes)
                   </h3>
                 </div>
                 <button
@@ -337,7 +337,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
           {uploadStatus === 'empty' && (
             <div className='mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg text-center'>
               <p className='text-gray-600'>
-                No valid data found in the file
+                No valid data found in file
               </p>
             </div>
           )}
@@ -357,7 +357,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
                 className='inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium shadow-sm'
               >
                 <Send className='w-4 h-4' />
-                Submit to Server
+                Gửi lên server
               </button>
             </div>
           )}
@@ -366,7 +366,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
       {/* errorList */}
       {apiErrors.length > 0 && (
         <div className='mt-4 p-4 bg-red-50 border border-red-300 rounded-md'>
-          <h3 className='text-red-600 font-semibold mb-2'>Error List:</h3>
+          <h3 className='text-red-600 font-semibold mb-2'>Error list:</h3>
           <ul className='list-disc list-inside text-red-700'>
             {apiErrors.map((err, index) => (
               <li key={index}>

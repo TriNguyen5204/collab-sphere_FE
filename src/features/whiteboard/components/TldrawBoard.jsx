@@ -28,10 +28,10 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
 
     const container = containerRef.current;
 
-    // âœ… FIX: Giảm độ nhạy cuộn chuột (zoom)
+    // ✅ FIX: Reduce mouse scroll sensitivity (zoom)
     const handleWheel = (e) => {
       if (e.cancelable) {
-        // Giảm tốc độ zoom xuống 40%
+        // Reduce zoom speed to 40%
         Object.defineProperty(e, 'deltaY', {
           value: e.deltaY * 0.4,
           writable: false

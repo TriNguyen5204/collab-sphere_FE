@@ -31,7 +31,7 @@ const CreateLecturerForm = ({ onClose }) => {
   const handleInputChange = e => {
     const { name, value } = e.target;
 
-    // Nếu là trường ngày sinh -> chỉ lấy năm
+    // If birth field -> only take year
     if (name === 'birth') {
       const year = value ? new Date(value).getFullYear().toString() : '';
       setFormData(prev => ({ ...prev, [name]: year }));
@@ -90,7 +90,7 @@ const CreateLecturerForm = ({ onClose }) => {
       if (error.response?.data?.errors) {
         const errors = error.response.data.errors;
 
-        // Hiển thị tất cả lỗi
+        // Display all errors
         Object.keys(errors).forEach(field => {
           errors[field].forEach(message => {
             toast.error(message);

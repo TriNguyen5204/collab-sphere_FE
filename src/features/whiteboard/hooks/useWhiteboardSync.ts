@@ -8,6 +8,7 @@ import type {
     TLPage,
     IndexKey,
 } from 'tldraw'
+import useToastConfirmation from '../../../hooks/useToastConfirmation';
 
 // Helper type guard
 function isPage(record: TLRecord): record is TLPage {
@@ -264,6 +265,7 @@ export function useWhiteboardSync(
     drawerName: string,
     editor: Editor | null
 ) {
+    const confirmWithToast = useToastConfirmation();
     const socketRef = useRef<WebSocket | null>(null)
     const batcherRef = useRef<OptimizedRAFBatcher | null>(null)
     const presenceRef = useRef<PresenceThrottler | null>(null)
@@ -379,24 +381,24 @@ export function useWhiteboardSync(
             });
 
             // ========== MESSAGE LISTENER ==========
-            socket.onmessage = (event) => {
+            socket.onmessage = async (event) => {
                 try {
                     const messages = parseWebSocketMessage(event.data);
 
                     for (const msg of messages) {
                         try {
-                            processMessage(msg);
-                        } catch (msgErr) {
-                            console.error('⚠️ Error processing message:', msgErr);
+                            await processMessage(msg);
+                        } catch (err) {
+                            console.error("Error processing message:", err, msg);
                         }
                     }
                 } catch (err) {
-                    console.error('⚠️ WebSocket handler error:', err)
+                    console.error("Error parsing WebSocket message:", err);
                 }
-            }
+            };
 
             // ========== MESSAGE PROCESSOR ==========
-            function processMessage(msg: any) {
+            async function processMessage(msg: any) {
                 if (!editor) {
                     console.warn('⚠️ Editor is null, cannot process message');
                     return;
@@ -453,8 +455,14 @@ export function useWhiteboardSync(
 
                     const myCurrent = editor.getCurrentPageId();
                     if (myCurrent === tldrawPageId) {
-                        const ok = window.confirm(
-                            "The page you are viewing was deleted by someone else. Click OK to reload."
+                        const ok = await confirmWithToast(
+                            "The page you are viewing was deleted by someone else. Click Confirm to reload.",
+                            {
+                                description: "This action cannot be undone.",
+                                confirmText: "Reload",
+                                cancelText: "Stay",
+                                dismissible: false,
+                            }
                         );
                         if (ok) {
                             window.location.reload();

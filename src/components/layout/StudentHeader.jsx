@@ -11,10 +11,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import useTeam from '../../context/useTeam';
 import ReportSystemModal from '../../features/student/components/ReportSystemModal';
 import { getRoleLandingRoute } from '../../constants/roleRoutes';
-
-import NotificationBell from '../../features/chat/components/NotificationBell';
-import { SignalRChatProvider } from '../../features/chat/hooks/SignalrChatProvider';
-import { getChat } from '../../features/chat/services/chatApi';
 const StudentHeader = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -32,85 +28,7 @@ const StudentHeader = () => {
   const queryClient = useQueryClient();
   const { setTeam } = useTeam();
 
-  //state for notification
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [provider, setProvider] = useState(null);
 
-  const accessToken = useSelector(state => state.user.accessToken);
-  const [connectedConversationIds, setConnectedConversationIds] = useState([]);
-
-  // Fetch conversation IDs
-  useEffect(() => {
-
-    const fetchConversationId = async () => {
-      try {
-        const response = await getChat();
-        if (response && response.chatConversations) {
-          const conversationIds = response.chatConversations.map(
-            c => c.conversationId
-          );
-          setConnectedConversationIds(conversationIds);
-        }
-      } catch (error) {
-        console.error('Failed to fetch chat conversations:', error);
-      }
-    };
-
-    fetchConversationId();
-  }, []);
-
-  // Initialize SignalR provider
-  useEffect(() => {
-    if (!accessToken || connectedConversationIds.length === 0) {
-      return;
-    }
-
-    const chatProvider = new SignalRChatProvider(
-      connectedConversationIds,
-      accessToken
-    );
-
-    chatProvider.connect();
-    setProvider(chatProvider);
-
-    return () => {
-      chatProvider.disconnect();
-      setProvider(null);
-    };
-  }, [accessToken, connectedConversationIds]);
-
-  // Set up notification listeners
-  useEffect(() => {
-    if (!provider) return;
-
-    const onReceiveNoti = receivedNoti => {
-      console.log('New notification:', receivedNoti);
-      setNotifications(prev => [...prev, receivedNoti]);
-      setUnreadCount(prev => prev + 1);
-    };
-
-    const onReceiveAllNoti = receivedNotis => {
-      console.log('All notifications:', receivedNotis);
-      setNotifications(receivedNotis);
-
-      // Count unread
-      const unread = receivedNotis.filter(n => !n.isRead).length;
-      setUnreadCount(unread);
-    };
-
-    provider.onNotiReceived(onReceiveNoti);
-    provider.onNotiHistoryReceived(onReceiveAllNoti);
-
-    return () => {
-      provider.offNotiReceived(onReceiveNoti);
-      provider.offNotiHistoryReceived(onReceiveAllNoti);
-    };
-  }, [provider]);
-
-  const handleNotificationOpen = () => {
-    setUnreadCount(0);
-  };
 
   const searchRef = useRef(null);
   useClickOutside(searchRef, () => setOpenSearch(false));
@@ -287,16 +205,6 @@ const StudentHeader = () => {
               </div>
             )}
           </div>
-          <MessageCircleMoreIcon
-            size={45}
-            onClick={() => navigate('/student/project/chat')}
-            className='text-gray-500 cursor-pointer transition-all duration-200 hover:text-blue-700 hover:bg-blue-50 hover:border-blue-300 hover:shadow-md hover:rotate-3 active:scale-95 p-2 rounded-lg border border-transparent'
-          />
-          <NotificationBell
-            notifications={notifications}
-            unreadCount={unreadCount}
-            onOpen={handleNotificationOpen}
-          />
           {/* Profile menu */}
           <div className='relative' ref={profileRef}>
             <button

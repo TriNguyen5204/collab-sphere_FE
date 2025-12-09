@@ -554,42 +554,29 @@ const TeamProjectDetail = () => {
           </div>
         </div>
 
-        {/* --- TABS --- */}
-        <div className='flex items-center gap-4 mb-8'>
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${
-              activeTab === 'overview'
-                ? 'bg-orangeFpt-500 text-white shadow-lg shadow-orangeFpt-200 scale-105'
-                : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
-            }`}
-          >
-            Overview
-          </button>
-          <button
-            onClick={() => setActiveTab('resources')}
-            className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${
-              activeTab === 'resources'
-                ? 'bg-orangeFpt-500 text-white shadow-lg shadow-orangeFpt-200 scale-105'
-                : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
-            }`}
-          >
-            Resources
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('meeting');
-              navigate(`/meeting/${teamId}`);
-            }}
-            className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${
-              activeTab === 'meeting'
-                ? 'bg-orangeFpt-500 text-white shadow-lg shadow-orangeFpt-200 scale-105'
-                : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
-            }`}
-          >
-            Meeting
-          </button>
-        </div>
+            {/* --- TABS --- */}
+            <div className="flex items-center gap-4 mb-8">
+               <button
+                  onClick={() => setActiveTab('overview')}
+                  className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${
+                     activeTab === 'overview'
+                        ? 'bg-orangeFpt-500 text-white shadow-lg shadow-orangeFpt-200 scale-105'
+                        : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
+                  }`}
+               >
+                  Overview
+               </button>
+               <button
+                  onClick={() => setActiveTab('resources')}
+                  className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${
+                     activeTab === 'resources'
+                        ? 'bg-orangeFpt-500 text-white shadow-lg shadow-orangeFpt-200 scale-105'
+                        : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
+                  }`}
+               >
+                  Resources
+               </button>
+            </div>
 
         {/* --- CONTENT --- */}
         {activeTab === 'resources' ? (

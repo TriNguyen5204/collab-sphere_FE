@@ -1,19 +1,19 @@
 /**
- * Sort lists theo position
+ * Sort lists by position
  */
 export const sortListsByPosition = (lists) => {
   return [...lists].sort((a, b) => a.position - b.position);
 };
 
 /**
- * Sort cards theo position
+ * Sort cards by position
  */
 export const sortCardsByPosition = (cards) => {
   return [...cards].sort((a, b) => a.position - b.position);
 };
 
 /**
- * Sort lists và cards bên trong mỗi list
+ * Sort lists and cards inside each list
  */
 export const sortListsAndCards = (lists) => {
   return lists

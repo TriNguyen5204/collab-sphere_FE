@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { toast } from 'sonner';
+import useToastConfirmation from '../../../../hooks/useToastConfirmation';
 import {
   X,
   Clock,
@@ -38,8 +40,9 @@ const CardModal = ({
   onDelete,
   members,
   workspaceId,
-  lists, // ✅ Nhận lists từ TrelloBoard
+  lists, // ✅ Receive lists from TrelloBoard
 }) => {
+  const confirmWithToast = useToastConfirmation();
   const getMemberById = studentId => {
     return members?.find(m => m.studentId === studentId);
   };
@@ -57,7 +60,7 @@ const CardModal = ({
 
   useClickOutside(memberMenuRef, () => setShowMemberMenu(false));
 
-  // ✅ Tự động sync card từ lists state (real-time)
+  // ✅ Automatically sync card from lists state (real-time)
   const editedCard = useMemo(() => {
     const currentList = lists?.find(l => String(l.id) === String(listId));
     const currentCard = currentList?.cards.find(
@@ -83,7 +86,7 @@ const CardModal = ({
       dueAt: card.dueAt || null,
     };
   }, [lists, listId, card]);
-  // ✅ Helper function để format date cho input type="date"
+  // ✅ Helper function to format date for input type="date"
   const formatDateForInput = dateString => {
     if (!dateString) return '';
 
@@ -91,7 +94,7 @@ const CardModal = ({
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return '';
 
-      // Format thành YYYY-MM-DD
+      // Format to YYYY-MM-DD
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
@@ -103,7 +106,7 @@ const CardModal = ({
     }
   };
 
-  // ✅ State riêng cho các field đang edit (title, description, risk, dueAt)
+  // ✅ Separate state for fields being edited (title, description, risk, dueAt)
   const [editableFields, setEditableFields] = useState({
     title: card.title,
     description: card.description || '',
@@ -111,7 +114,7 @@ const CardModal = ({
     dueAt: formatDateForInput(card.dueAt) || null,
   });
 
-  // Sync editableFields khi editedCard thay đổi
+  // Sync editableFields when editedCard changes
   useEffect(() => {
     setEditableFields({
       title: editedCard.title,
@@ -153,14 +156,22 @@ const CardModal = ({
       onClose();
     } catch (error) {
       console.error('Error saving card:', error);
-      alert('Failed to save card details');
+      toast.error('Failed to save card details');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this card?')) {
+  const handleDelete = async () => {
+    const confirmed = await confirmWithToast(
+      'Are you sure you want to delete this card?',
+      {
+        description: "This action cannot be undone.",
+        confirmText: "Delete",
+        cancelText: "Cancel"
+      }
+    );
+    if (confirmed) {
       onDelete(listId, editedCard.id);
       onClose();
     }
@@ -177,10 +188,10 @@ const CardModal = ({
         parseInt(editedCard.id),
         newStatus
       );
-      // ✅ Không cần update state - SignalR sẽ xử lý
+      // ✅ No need to update state - SignalR will handle it
     } catch (error) {
       console.error('Error toggling card completion:', error);
-      alert('Failed to update card status');
+      toast.error('Failed to update card status');
     }
   };
 
@@ -209,11 +220,11 @@ const CardModal = ({
           member.studentName
         );
       }
-      // ✅ Không cần update state - SignalR sẽ xử lý
+      // ✅ No need to update state - SignalR will handle it
       setShowMemberMenu(false);
     } catch (error) {
       console.error('Error toggling member:', error);
-      alert('Failed to update member assignment');
+      toast.error('Failed to update member assignment');
     }
   };
 
@@ -227,7 +238,7 @@ const CardModal = ({
     setPopoverAnchor(null);
   };
 
-  // ✅ TASK HANDLERS - CHỈ GỌI SIGNALR, KHÔNG UPDATE STATE
+  // ✅ TASK HANDLERS - ONLY CALL SIGNALR, DO NOT UPDATE STATE
   const handleCreateTask = async taskData => {
     try {
       await createTask(
@@ -242,7 +253,7 @@ const CardModal = ({
       console.log('✅ Create task request sent');
     } catch (error) {
       console.error('Error creating task:', error);
-      alert('Failed to create task');
+      toast.error('Failed to create task');
     }
   };
 
@@ -262,12 +273,13 @@ const CardModal = ({
       console.log('✅ Rename task request sent');
     } catch (error) {
       console.error('Error renaming task:', error);
-      alert('Failed to rename task');
+      toast.error('Failed to rename task');
     }
   };
 
   const handleDeleteTask = async taskId => {
-    if (!window.confirm('Delete this task?')) return;
+    const confirmed = await confirmWithToast('Delete this task?', { confirmText: "Delete", cancelText: "Cancel" });
+    if (!confirmed) return;
 
     try {
       await deleteTask(
@@ -281,11 +293,11 @@ const CardModal = ({
       console.log('✅ Delete task request sent');
     } catch (error) {
       console.error('Error deleting task:', error);
-      alert('Failed to delete task');
+      toast.error('Failed to delete task');
     }
   };
 
-  // ✅ SUBTASK HANDLERS - CHỈ GỌI SIGNALR
+  // ✅ SUBTASK HANDLERS - ONLY CALL SIGNALR
   const handleCreateSubtask = async taskId => {
     const title = prompt('Enter subtask title:');
     if (!title) return;
@@ -304,7 +316,7 @@ const CardModal = ({
       console.log('✅ Create subtask request sent');
     } catch (error) {
       console.error('Error creating subtask:', error);
-      alert('Failed to create subtask');
+      toast.error('Failed to create subtask');
     }
   };
 
@@ -325,12 +337,13 @@ const CardModal = ({
       console.log('✅ Rename subtask request sent');
     } catch (error) {
       console.error('Error renaming subtask:', error);
-      alert('Failed to rename subtask');
+      toast.error('Failed to rename subtask');
     }
   };
 
   const handleDeleteSubtask = async (taskId, subTaskId) => {
-    if (!window.confirm('Delete this subtask?')) return;
+    const confirmed = await confirmWithToast('Delete this subtask?', { confirmText: "Delete", cancelText: "Cancel" });
+    if (!confirmed) return;
 
     try {
       await deleteSubTask(
@@ -345,7 +358,7 @@ const CardModal = ({
       console.log('✅ Delete subtask request sent');
     } catch (error) {
       console.error('Error deleting subtask:', error);
-      alert('Failed to delete subtask');
+      toast.error('Failed to delete subtask');
     }
   };
 
@@ -364,7 +377,7 @@ const CardModal = ({
       console.log('✅ Toggle subtask request sent');
     } catch (error) {
       console.error('Error toggling subtask:', error);
-      alert('Failed to update subtask status');
+      toast.error('Failed to update subtask status');
     }
   };
 
@@ -379,15 +392,15 @@ const CardModal = ({
     { name: 'High', value: 'high', bg: 'bg-red-500' },
   ];
   const getAvatarUrl = member => {
-    // Kiểm tra cả 2 field name có thể có
+    // Check both possible field names
     const avatarUrl = member?.avatarImg || member?.avatar;
     console.log('avatar', avatarUrl);
-    // Fallback nếu không có hoặc URL không hợp lệ
+    // Fallback if missing or invalid URL
     if (
       !avatarUrl ||
       avatarUrl === 'https://res.cloudinary.com/dn5xgbmqq/image/upload'
     ) {
-      // Tạo avatar placeholder với chữ cái đầu của tên
+      // Create avatar placeholder with first letter of name
       // const initial = member?.studentName?.charAt(0)?.toUpperCase() || '?';
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(member?.studentName || 'User')}&background=random&color=fff&size=128`;
     }
@@ -679,7 +692,7 @@ const CardModal = ({
               </button>
             </div>
 
-            {/* ✅ Tasks tự động sync từ editedCard */}
+            {/* ✅ Tasks automatically sync from editedCard */}
             {editedCard.tasks?.map(task => (
               <div
                 key={task.taskId}
@@ -817,7 +830,7 @@ const CardModal = ({
                     onClick={() => handleCreateSubtask(task.taskId)}
                     disabled={!isConnected}
                   >
-                    Thêm một mục
+                    Add an item
                   </button>
                 </div>
               </div>

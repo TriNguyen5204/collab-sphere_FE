@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react';
+import { toast } from 'sonner';
+import useToastConfirmation from '../../../../hooks/useToastConfirmation';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
@@ -32,6 +34,7 @@ const BoardList = ({
   workspaceId,
   onCardCreated,
 }) => {
+  const confirmWithToast = useToastConfirmation();
   const { connection, isConnected } = useSignalRContext();
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -80,14 +83,18 @@ const BoardList = ({
       setIsEditingTitle(false);
     } catch (error) {
       console.error('Error renaming list:', error);
-      alert('Failed to rename list');
+      toast.error('Failed to rename list');
       setEditedTitle(list.title);
       setIsEditingTitle(false);
     }
   };
 
   const handleMarkAllDone = async () => {
-    if (!window.confirm('Mark all cards in this list as done?')) return;
+    const confirmed = await confirmWithToast('Mark all cards in this list as done?', {
+        confirmText: "Mark Done",
+        cancelText: "Cancel"
+    });
+    if (!confirmed) return;
 
     try {
       const promises = list.cards
@@ -106,7 +113,7 @@ const BoardList = ({
       setShowMenu(false);
     } catch (error) {
       console.error('Error marking cards as done:', error);
-      alert('Failed to mark all cards as done');
+      toast.error('Failed to mark all cards as done');
     }
   };
 

@@ -7,17 +7,17 @@ const ChatBox = ({ socket, roomId, myName, onClose }) => {
   const messagesEndRef = useRef(null);
   const hasRequestedHistory = useRef(false);
 
-  // 📜 YÊU CẦU LỊCH SỬ CHAT KHI MỞ CHAT BOX
+  // 📜 REQUEST CHAT HISTORY WHEN OPENING CHAT BOX
   useEffect(() => {
     if (!socket || !roomId || hasRequestedHistory.current) return;
 
     console.log('📜 Requesting chat history for room:', roomId);
     
-    // Yêu cầu lịch sử chat từ server
+    // Request chat history from server
     socket.emit('requestChatHistory', roomId);
     hasRequestedHistory.current = true;
 
-    // Lắng nghe lịch sử chat
+    // Listen for chat history
     const handleChatHistory = (history) => {
       console.log('✅ Received chat history:', history.length, 'messages');
       setMessages(history);
@@ -31,16 +31,16 @@ const ChatBox = ({ socket, roomId, myName, onClose }) => {
     };
   }, [socket, roomId]);
 
-  // 💬 LẮNG NGHE TIN NHẮN MỚI (REALTIME)
+  // 💬 LISTEN FOR NEW MESSAGES (REALTIME)
   useEffect(() => {
     if (!socket) return;
 
     const handleMessage = msg => {
       console.log('💬 New message received:', msg);
       
-      // Kiểm tra xem tin nhắn đã có trong danh sách chưa (tránh duplicate)
+      // Check if message is already in the list (avoid duplicate)
       setMessages(prev => {
-        // Nếu tin nhắn đã tồn tại (cùng timestamp và sender), không thêm nữa
+        // If message already exists (same timestamp and sender), do not add again
         const isDuplicate = prev.some(
           m => m.timestamp === msg.timestamp && m.sender === msg.sender && m.message === msg.message
         );
@@ -60,7 +60,7 @@ const ChatBox = ({ socket, roomId, myName, onClose }) => {
     };
   }, [socket]);
 
-  // 📜 TỰ ĐỘNG SCROLL XUỐNG KHI CÓ TIN NHẮN MỚI
+  // 📜 AUTO SCROLL DOWN WHEN NEW MESSAGE ARRIVES
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);

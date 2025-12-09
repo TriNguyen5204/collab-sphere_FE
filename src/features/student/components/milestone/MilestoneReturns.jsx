@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { Upload, FileText, Trash2, Loader2, User, X, ChevronRight } from 'lucide-react';
 import { useSecureFileHandler } from '../../../../hooks/useSecureFileHandler';
 import useIsoToLocalTime from '../../../../hooks/useIsoToLocalTime';
@@ -91,7 +92,7 @@ const MilestoneReturns = ({
     const shouldRefresh = milestoneId != null && resolvedReturnId != null;
 
     if (!fallbackUrl && !shouldRefresh) {
-      alert('No document link available.');
+      toast.error('No document link available.');
       return;
     }
 

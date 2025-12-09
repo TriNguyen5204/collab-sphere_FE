@@ -1,6 +1,6 @@
 /**
  * SignalR Helper Functions
- * Các hàm tiện ích để gọi SignalR Hub methods
+ * Utility functions to call SignalR Hub methods
  */
 
 // 1. CREATE LIST
@@ -38,7 +38,7 @@ export const moveList = async (
   await connection
     .invoke('MoveList', workspaceId, listId, command)
     .then(() => console.log(`Move List success: with ID ${listId} to position ${newPosition}`))
-    .catch(err => console.log('Lỗi: ' + err.toString()));
+    .catch(err => console.log('Error: ' + err.toString()));
 };
 
 // 4. CREATE CARD
@@ -87,7 +87,7 @@ export const createCard = async (
   await connection
     .invoke('CreateCardAndAssignMember', workspaceId, listId, command)
     .then(() => console.log('Sent CreateCardAndAssignMember command success!'))
-    .catch(err => console.log('Lỗi CreateCard: ' + err.toString()));
+    .catch(err => console.log('CreateCard Error: ' + err.toString()));
 };
 
 // 5. MOVE CARD
@@ -114,7 +114,7 @@ export const moveCard = async (
     cardId,
     command
   ).then(() => console.log(`EVENT RECEIVED: ReceiveCardMoved | Card ID: ${cardId}, New List ID: ${newListId}, New Position: ${newPosition}`))
-    .catch(err => console.log('Lỗi: ' + err.toString()));
+    .catch(err => console.log('Error: ' + err.toString()));
 };
 
 // 6. UPDATE CARD DETAILS
@@ -279,7 +279,7 @@ export const deleteTask = async (
     taskId,
     deleteTaskCommand
   ).then(() => console.log('Sent DeleteTask command success!'))
-    .catch(err => console.log('Lỗi DeleteTask: ' + err.toString()));
+    .catch(err => console.log('DeleteTask Error: ' + err.toString()));
 };
 
 // 14. CREATE SUBTASK

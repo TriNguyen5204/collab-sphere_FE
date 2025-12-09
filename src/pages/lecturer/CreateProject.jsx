@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { createProject } from "../../services/projectApi";
+import { toast } from 'sonner';
 import { getAllSubject } from "../../services/userService";
 import LecturerBreadcrumbs from "../../features/lecturer/components/LecturerBreadcrumbs";
 // Reuse the dashboard layout to keep sidebar/nav consistent
@@ -222,7 +223,7 @@ const CreateProject = () => {
    const handleFileUpload = (file) => {
       if (!file) return;
       const allowed = file.type === "application/pdf" || file.type.includes("document") || file.type === "text/plain";
-      if (!allowed) { alert("Please upload a PDF, Word document, or text file."); return; }
+      if (!allowed) { toast.error("Please upload a PDF, Word document, or text file."); return; }
       setUploadedFile(file);
    };
 

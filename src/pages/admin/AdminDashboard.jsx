@@ -35,37 +35,37 @@ export default function AdminDashboard() {
   const recentActivities = [
     {
       id: 1,
-      user: 'Nguyễn Văn A',
-      action: 'Đăng nhập',
-      time: '2 phút trước',
+      user: 'Nguyen Van A',
+      action: 'Login',
+      time: '2 minutes ago',
       status: 'success',
     },
     {
       id: 2,
-      user: 'Trần Thị B',
-      action: 'Tạo tài khoản mới',
-      time: '5 phút trước',
+      user: 'Tran Thi B',
+      action: 'Create new account',
+      time: '5 minutes ago',
       status: 'success',
     },
     {
       id: 3,
-      user: 'Lê Văn C',
-      action: 'Cập nhật profile',
-      time: '12 phút trước',
+      user: 'Le Van C',
+      action: 'Update profile',
+      time: '12 minutes ago',
       status: 'success',
     },
     {
       id: 4,
-      user: 'Phạm Thị D',
-      action: 'Đăng xuất',
-      time: '18 phút trước',
+      user: 'Pham Thi D',
+      action: 'Logout',
+      time: '18 minutes ago',
       status: 'info',
     },
     {
       id: 5,
-      user: 'Hoàng Văn E',
-      action: 'Đăng nhập thất bại',
-      time: '25 phút trước',
+      user: 'Hoang Van E',
+      action: 'Login failed',
+      time: '25 minutes ago',
       status: 'error',
     },
   ];
@@ -139,7 +139,7 @@ export default function AdminDashboard() {
                         Admin Dashboard
                       </h1>
                       <p className='text-sm text-gray-500'>
-                        Tổng quan hệ thống và quản lý người dùng
+                        System overview and user management
                       </p>
                     </div>
                   </div>
@@ -149,10 +149,10 @@ export default function AdminDashboard() {
                       onChange={e => setTimeRange(e.target.value)}
                       className='px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
                     >
-                      <option value='24hours'>24 giờ qua</option>
-                      <option value='7days'>7 ngày qua</option>
-                      <option value='30days'>30 ngày qua</option>
-                      <option value='90days'>90 ngày qua</option>
+                      <option value='24hours'>Last 24 hours</option>
+                      <option value='7days'>Last 7 days</option>
+                      <option value='30days'>Last 30 days</option>
+                      <option value='90days'>Last 90 days</option>
                     </select>
                   </div>
                 </div>
@@ -163,7 +163,7 @@ export default function AdminDashboard() {
               {/* Main Statistics */}
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
                 <StatCard
-                  title='Tổng số người dùng'
+                  title='Total Users'
                   value={systemMetrics.totalUsers.toLocaleString()}
                   change='+12.5%'
                   icon={Users}
@@ -171,7 +171,7 @@ export default function AdminDashboard() {
                   color='bg-blue-500'
                 />
                 <StatCard
-                  title='Người dùng hoạt động'
+                  title='Active Users'
                   value={systemMetrics.activeUsers.toLocaleString()}
                   change='+8.2%'
                   icon={Activity}
@@ -179,7 +179,7 @@ export default function AdminDashboard() {
                   color='bg-green-500'
                 />
                 <StatCard
-                  title='Người dùng mới hôm nay'
+                  title='New Users Today'
                   value={systemMetrics.newUsersToday.toLocaleString()}
                   change='+5.3%'
                   icon={UserPlus}
@@ -187,7 +187,7 @@ export default function AdminDashboard() {
                   color='bg-purple-500'
                 />
                 <StatCard
-                  title='Tổng số yêu cầu'
+                  title='Total Requests'
                   value={systemMetrics.totalRequests}
                   change='+18.7%'
                   icon={BarChart3}
@@ -200,7 +200,7 @@ export default function AdminDashboard() {
               <div className='mb-8'>
                 <h2 className='text-xl font-bold text-gray-800 mb-4 flex items-center'>
                   <Server className='w-6 h-6 mr-2 text-blue-600' />
-                  Tình trạng hệ thống
+                  System Status
                 </h2>
                 <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
                   <SystemHealthCard
@@ -230,7 +230,7 @@ export default function AdminDashboard() {
                 <div className='bg-white rounded-lg shadow-md p-6'>
                   <h2 className='text-xl font-bold text-gray-800 mb-4 flex items-center'>
                     <Activity className='w-6 h-6 mr-2 text-green-600' />
-                    Hiệu suất hệ thống
+                    System Performance
                   </h2>
                   <div className='space-y-4'>
                     <div className='flex items-center justify-between p-4 bg-green-50 rounded-lg'>
@@ -273,7 +273,7 @@ export default function AdminDashboard() {
                 <div className='bg-white rounded-lg shadow-md p-6'>
                   <h2 className='text-xl font-bold text-gray-800 mb-4 flex items-center'>
                     <Clock className='w-6 h-6 mr-2 text-purple-600' />
-                    Hoạt động gần đây
+                    Recent Activities
                   </h2>
                   <div className='space-y-3'>
                     {recentActivities.map(activity => (
@@ -313,7 +313,7 @@ export default function AdminDashboard() {
               <div className='bg-white rounded-lg shadow-md p-6'>
                 <h2 className='text-xl font-bold text-gray-800 mb-6 flex items-center'>
                   <TrendingUp className='w-6 h-6 mr-2 text-blue-600' />
-                  Tăng trưởng người dùng
+                  User Growth
                 </h2>
                 <div className='flex items-end justify-between h-64 space-x-4'>
                   {userStats.map((stat, index) => {
