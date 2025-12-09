@@ -8,8 +8,9 @@ const getSocketServerUrl = () => {
   if (import.meta.env.DEV || window.location.hostname === 'localhost') {
     return 'http://localhost:5000';
   }
-  // Production - use Railway server
-  return 'https://server-webrtc-production-3be0.up.railway.app/';
+  // Production - use Railway server from environment variable
+  const portUrl = import.meta.env.VITE_PORT_URL;
+  return portUrl ? `https://${portUrl}` : 'https://server-webrtc-production-3be0.up.railway.app';
 };
 
 export const useSocket = (serverUrl = getSocketServerUrl()) => {

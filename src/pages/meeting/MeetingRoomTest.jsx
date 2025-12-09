@@ -90,16 +90,30 @@ function MeetingRoom() {
     }
 
     console.log('🔍 [MeetingRoom] Checking if room exists...');
+    
+    // Set timeout in case server doesn't have this handler (old version)
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ [MeetingRoom] Room check timeout - allowing access (server may not support this check)');
+      setRoomExists(true);
+    }, 2000);
+    
     socket.emit('check-room-exists', { roomId }, (response) => {
+      clearTimeout(timeoutId);
       console.log('🔍 [MeetingRoom] Room check result:', response);
       
-      if (response.exists) {
+      if (response && response.exists) {
         setRoomExists(true);
-      } else {
+      } else if (response && response.exists === false) {
         setRoomExists(false);
         setAuthError('This meeting room does not exist or has ended.');
+      } else {
+        // Unexpected response - allow access
+        console.log('⚠️ [MeetingRoom] Unexpected response - allowing access');
+        setRoomExists(true);
       }
     });
+    
+    return () => clearTimeout(timeoutId);
   }, [socket, roomId, isAuthorized, isHost]);
 
   // Handle room closed by host callback
@@ -149,7 +163,7 @@ function MeetingRoom() {
 
   const { groupPeers, peersSharingScreen, roomClosed } = usePeerConnections(
     socket,
-    isAuthorized && roomExists ? stream : null, // Only pass stream when authorized AND room exists
+    isAuthorized && roomExists !== false ? stream : null, // Pass stream when authorized AND room is not explicitly non-existent
     roomId,
     myName,
     isSharingRef,
