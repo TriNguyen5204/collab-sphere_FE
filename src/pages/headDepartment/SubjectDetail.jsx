@@ -432,7 +432,6 @@ const SubjectDetail = () => {
           <ModalWrapper
             isOpen={isUpdateModalOpen}
             onClose={handleCloseUpdateModal}
-            title='Update Subject'
           >
             <UpdateSubjectForm
               subject={subject}
