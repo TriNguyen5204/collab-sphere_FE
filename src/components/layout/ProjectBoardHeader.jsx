@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import ProjectBoardViewMenu from '../../features/student/components/ProjectBoardViewMenu';
 import ProjectMemberAvatars from '../../features/student/components/ProjectMemberAvatars';
 import ProjectBoardSetting from '../../features/student/components/ProjectBoardSetting';
-import { LogOut } from 'lucide-react';
+import { LogOut, MessageCircle } from 'lucide-react';
 import useTeam from "../../context/useTeam";
 import { useAvatar } from "../../hooks/useAvatar";
 import ProjectResourcesMenu from './ProjectResourcesMenu';
@@ -58,6 +58,14 @@ const ProjectBoardHeader = ({
         <ProjectMemberAvatars />
 
         <div className='h-6 w-px bg-gray-300'></div>
+
+        <button
+          onClick={() => navigate('/chat')}
+          className='p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200'
+          title='Messages'
+        >
+          <MessageCircle size={20} />
+        </button>
 
         <ProjectResourcesMenu />
 

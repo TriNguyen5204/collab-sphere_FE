@@ -16,6 +16,7 @@ import DashboardLayout from '../../../components/layout/DashboardLayout';
 import LecturerBreadcrumbs from '../../../features/lecturer/components/LecturerBreadcrumbs';
 import { getLecturerClasses, getClassTeams } from '../../../services/classApi';
 import { getTeamEvaluationSummary } from '../../../services/evaluationApi';
+import { Search } from 'lucide-react';
 
 // --- Helpers ---
 
@@ -41,6 +42,8 @@ const mapClassRecord = (record) => ({
   className: record?.className ?? record?.name ?? 'Class',
   subjectName: record?.subjectName ?? record?.subject?.subjectName ?? record?.subject?.name ?? '—',
   subjectCode: record?.subjectCode ?? record?.subject?.subjectCode ?? record?.subject?.code ?? '—',
+  semesterName: record?.semesterName ?? record?.semester?.name ?? '—',
+  createdDate: record?.createdDate ?? record?.createdAt ?? null,
 });
 
 const createTeamRecord = (record) => ({
@@ -58,12 +61,15 @@ const GradingDashboard = () => {
     pageCount: 1,
     totalItems: 0
   });
+  
+  // Filter & Sort State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('all');
+  const [semesterFilter, setSemesterFilter] = useState('all');
+  const [sortOrder, setSortOrder] = useState('newest');
+
   const cancelRef = useRef(false);
   const requestIdRef = useRef(0);
-
-  const breadcrumbItems = useMemo(() => [
-    { label: 'Grading overview' },
-  ], []);
 
   const loadOverview = async (activeLecturerId = lecturerId) => {
     const requestId = ++requestIdRef.current;
@@ -163,14 +169,49 @@ const GradingDashboard = () => {
     loadOverview(lecturerId);
   };
 
+  // --- Derived Data ---
+
+  const subjects = useMemo(
+    () => Array.from(new Set(cards.map((cls) => cls.subjectCode).filter(Boolean))),
+    [cards]
+  );
+
+  const semesters = useMemo(
+    () => Array.from(new Set(cards.map((cls) => cls.semesterName).filter(Boolean))),
+    [cards]
+  );
+
+  const filteredCards = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    
+    let result = cards.filter((cls) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        cls.className?.toLowerCase().includes(normalizedSearch) ||
+        cls.subjectName?.toLowerCase().includes(normalizedSearch) ||
+        cls.subjectCode?.toLowerCase().includes(normalizedSearch);
+
+      const matchesSubject = subjectFilter === 'all' || cls.subjectCode === subjectFilter;
+      const matchesSemester = semesterFilter === 'all' || cls.semesterName === semesterFilter;
+
+      return matchesSearch && matchesSubject && matchesSemester;
+    });
+
+    // Sorting
+    result.sort((a, b) => {
+      const dateA = new Date(a.createdDate || 0).getTime();
+      const dateB = new Date(b.createdDate || 0).getTime();
+      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+
+    return result;
+  }, [cards, searchTerm, subjectFilter, semesterFilter, sortOrder]);
+
   return (
     <DashboardLayout>
       <div className="min-h-screen space-y-8 bg-slate-50/50">
 
-        {/* --- HERO HEADER --- */}
-        <LecturerBreadcrumbs items={breadcrumbItems} />
-
-        <header className="mt-6 relative overflow-hidden rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50">
+        <header className="relative overflow-hidden rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50">
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-orangeFpt-100/50 blur-3xl"></div>
           <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div>
@@ -198,6 +239,58 @@ const GradingDashboard = () => {
           </div>
         </header>
 
+        {/* --- FILTERS & SEARCH --- */}
+        <div className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+          
+          {/* Search */}
+          <div className="relative flex-1 max-w-md">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <Search className="h-5 w-5 text-slate-400" />
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search class, subject..."
+              className="block w-full rounded-xl border-slate-200 bg-slate-50 pl-10 text-sm focus:border-orangeFpt-500 focus:ring-orangeFpt-500"
+            />
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-3">
+            
+            {/* Semester Filter */}
+            <select
+              value={semesterFilter}
+              onChange={(e) => setSemesterFilter(e.target.value)}
+              className="rounded-xl border-slate-200 bg-slate-50 py-2 pl-3 pr-8 text-sm font-medium text-slate-700 focus:border-orangeFpt-500 focus:ring-orangeFpt-500"
+            >
+              <option value="all">All Semesters</option>
+              {semesters.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+
+            {/* Subject Filter */}
+            <select
+              value={subjectFilter}
+              onChange={(e) => setSubjectFilter(e.target.value)}
+              className="rounded-xl border-slate-200 bg-slate-50 py-2 pl-3 pr-8 text-sm font-medium text-slate-700 focus:border-orangeFpt-500 focus:ring-orangeFpt-500"
+            >
+              <option value="all">All Subjects</option>
+              {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+
+            {/* Sort Order */}
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="rounded-xl border-slate-200 bg-slate-50 py-2 pl-3 pr-8 text-sm font-medium text-slate-700 focus:border-orangeFpt-500 focus:ring-orangeFpt-500"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+          </div>
+        </div>
+
         {/* --- MAIN GRID --- */}
         <div className="mx-auto">
           <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -211,8 +304,8 @@ const GradingDashboard = () => {
                   <div className="h-4 w-1/3 rounded-lg bg-slate-100" />
                 </div>
               ))
-            ) : cards.length > 0 ? (
-              cards.map((cls) => {
+            ) : filteredCards.length > 0 ? (
+              filteredCards.map((cls) => {
                 const completion = cls.totalTeams ? Math.round((cls.gradedTeams / cls.totalTeams) * 100) : 0;
                 const isComplete = cls.totalTeams > 0 && cls.gradedTeams === cls.totalTeams;
 
@@ -273,9 +366,13 @@ const GradingDashboard = () => {
             ) : (
               <div className="col-span-full flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50/50 py-16 text-center">
                 <AcademicCapIcon className="h-12 w-12 text-slate-300 mb-4" />
-                <h3 className="text-lg font-semibold text-slate-900">No Active Classes</h3>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  {cards.length === 0 ? 'No Active Classes' : 'No classes found'}
+                </h3>
                 <p className="text-sm text-slate-500 mt-1 max-w-md">
-                  You don't have any classes assigned for grading yet. Once you are linked to a class, it will appear here.
+                  {cards.length === 0 
+                    ? "You don't have any classes assigned for grading yet. Once you are linked to a class, it will appear here."
+                    : "Try adjusting your search or filters to find what you're looking for."}
                 </p>
               </div>
             )}

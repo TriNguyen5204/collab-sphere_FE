@@ -170,7 +170,7 @@ const ClassGradingOverview = () => {
         {/* --- HERO HEADER --- */}
           <LecturerBreadcrumbs items={breadcrumbItems} />
           
-          <div className="mt-6 relative overflow-hidden rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50">
+          <div className="relative overflow-hidden rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50">
             <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-orangeFpt-100/50 blur-3xl"></div>
             
             <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">

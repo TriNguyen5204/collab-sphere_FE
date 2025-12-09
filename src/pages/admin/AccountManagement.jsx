@@ -530,7 +530,7 @@ export default function AccountManagement() {
           isOpen={showCreateForm}
           onClose={() => setShowCreateForm(false)}
           title="Create New Account"
-          maxWidth='max-w-lgx'
+          maxWidth='max-w-lg'
         >
           <CreateAccountForm onClose={() => setShowCreateForm(false)}/>
         </ModalWrapper>

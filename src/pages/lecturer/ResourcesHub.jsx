@@ -510,9 +510,9 @@ const ResourcesHub = () => {
 
         <div className="relative z-10 flex h-full gap-6 p-4">
           {/* Left Sidebar: Class List */}
-          <div className="w-80 flex flex-col gap-5 rounded-3xl border border-white/40 bg-white/60 p-5 shadow-xl backdrop-blur-2xl overflow-hidden">
+          <div className="w-80 flex flex-col gap-5 rounded-3xl border border-white/40 p-5 shadow-xl backdrop-blur-2xl overflow-hidden">
             <div className="flex items-center gap-3 px-1">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orangeFpt-100 text-orangeFpt-600 shadow-sm">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl text-orangeFpt-600 shadow-sm">
                 <BookOpen size={18} />
               </div>
               <h2 className="text-lg font-bold text-slate-800 tracking-tight">My Classes</h2>
@@ -525,7 +525,7 @@ const ResourcesHub = () => {
                 placeholder="Search classes..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-white/50 bg-white/40 pl-10 pr-4 py-2.5 text-sm text-slate-700 focus:border-orangeFpt-400 focus:bg-white/80 focus:ring-2 focus:ring-orangeFpt-100 focus:outline-none transition-all placeholder-slate-400 shadow-sm"
+                className="w-full rounded-xl border border-white/50 pl-10 pr-4 py-2.5 text-sm text-slate-700 focus:border-orangeFpt-400 focus:bg-white/80 focus:ring-2 focus:ring-orangeFpt-100 focus:outline-none transition-all placeholder-slate-400 shadow-sm"
               />
             </div>
 

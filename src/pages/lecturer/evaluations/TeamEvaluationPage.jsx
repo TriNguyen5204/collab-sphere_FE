@@ -23,9 +23,10 @@ import DashboardLayout from '../../../components/layout/DashboardLayout';
 import LecturerBreadcrumbs from '../../../features/lecturer/components/LecturerBreadcrumbs';
 import { getTeamDetail } from '../../../services/teamApi';
 import { getMilestonesByTeam, getMilestoneDetail } from '../../../services/milestoneApi';
-import { getSubjectById, getClassDetail } from '../../../services/userService';
+import { getSubjectById, getClassDetail, getUserProfile } from '../../../services/userService';
 import { getMilestoneQuestionsAnswersByQuestionId,
-   patchGenerateNewReturnFileLinkByMilestoneIdAndMileReturnId
+   patchGenerateNewReturnFileLinkByMilestoneIdAndMileReturnId,
+   getAvatarByPublicId
  } from '../../../services/studentApi';
 import { 
   getTeamEvaluationSummary, 
@@ -94,6 +95,7 @@ const TeamEvaluationPage = () => {
   // Final Grading Form
   const [finalForm, setFinalForm] = useState({ components: {}, teamComment: '' });
   const [finalEvaluationSummary, setFinalEvaluationSummary] = useState(null);
+  const [memberProfiles, setMemberProfiles] = useState({});
 
   const [loading, setLoading] = useState({
     team: false,
@@ -133,6 +135,41 @@ const TeamEvaluationPage = () => {
     };
     loadContext();
   }, [teamId]);
+
+  // Fetch Member Profiles
+  useEffect(() => {
+    if (!teamInfo?.memberInfo?.members) return;
+
+    const fetchMemberAvatars = async () => {
+      const profiles = {};
+      
+      await Promise.all(teamInfo.memberInfo.members.map(async (member) => {
+        try {
+          const profileData = await getUserProfile(member.studentId);
+          const user = profileData?.user;
+          
+          if (user) {
+            let avatarUrl = user.avatarUrl;
+            if (user.avatarImg) {
+               try {
+                 const avatarRes = await getAvatarByPublicId(user.avatarImg);
+                 avatarUrl = avatarRes.data;
+               } catch (e) {
+                 console.error("Failed to fetch avatar image", e);
+               }
+            }
+            profiles[member.studentId] = avatarUrl;
+          }
+        } catch (err) {
+          console.error('Failed to fetch profile for', member.studentId);
+        }
+      }));
+      
+      setMemberProfiles(profiles);
+    };
+
+    fetchMemberAvatars();
+  }, [teamInfo]);
 
   // 2. Fetch Subject (Backup structure)
   useEffect(() => {
@@ -242,6 +279,16 @@ const TeamEvaluationPage = () => {
 
   // --- Derived Data ---
 
+  // Create a map of componentId -> percentage from subjectData
+  const percentageMap = useMemo(() => {
+    const map = {};
+    const components = subjectData?.subjectSyllabus?.subjectGradeComponents || [];
+    components.forEach(c => {
+        map[c.subjectGradeComponentId] = c.referencePercentage;
+    });
+    return map;
+  }, [subjectData]);
+
   const gradingList = useMemo(() => {
     if (finalEvaluationSummary?.evaluateDetails?.length > 0) {
       return finalEvaluationSummary.evaluateDetails;
@@ -328,10 +375,10 @@ const TeamEvaluationPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-slate-50/50 p-6 lg:p-8">
+      <div className="h-[calc(100vh-7rem)] flex flex-col bg-slate-50/50 overflow-hidden">
         
         {/* --- HERO HEADER --- */}
-        <div className="mx-auto">
+        <div className="mx-auto w-full shrink-0">
           <LecturerBreadcrumbs items={breadcrumbItems} />
           
           <div className="mt-6 relative overflow-hidden rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50">
@@ -370,11 +417,11 @@ const TeamEvaluationPage = () => {
           </div>
         </div>
 
-        <div className="mx-auto grid grid-cols-12 gap-6 mt-8 min-h-[600px]">
+        <div className="mx-auto w-full grid grid-cols-12 gap-6 mt-6 flex-1 min-h-0 pb-2">
           
           {/* COLUMN 1: Team & Milestones (Left) */}
-          <div className="col-span-12 xl:col-span-3 flex flex-col gap-6">
-             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="col-span-12 xl:col-span-3 flex flex-col gap-6 h-full overflow-hidden">
+             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm shrink-0">
                 <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100">
                    <div className="p-2 rounded-lg bg-orangeFpt-100 text-orangeFpt-600">
                       <UserGroupIcon className="h-5 w-5" />
@@ -382,28 +429,34 @@ const TeamEvaluationPage = () => {
                    <h3 className="font-bold text-slate-800">Team Roster</h3>
                 </div>
                 <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
-                  {(teamInfo?.memberInfo?.members || []).map(member => (
+                  {(teamInfo?.memberInfo?.members || []).map(member => {
+                    const avatarUrl = memberProfiles[member.studentId];
+                    return (
                     <div key={member.studentId} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all">
-                      <div className="h-8 w-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-xs ring-2 ring-white shadow-sm">
-                        {member.studentName?.charAt(0)}
-                      </div>
+                      {avatarUrl ? (
+                          <img src={avatarUrl} alt={member.studentName} className="h-8 w-8 rounded-full object-cover ring-2 ring-white shadow-sm" />
+                      ) : (
+                          <div className="h-8 w-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-xs ring-2 ring-white shadow-sm">
+                            {member.studentName?.charAt(0)}
+                          </div>
+                      )}
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-slate-900 truncate">{member.studentName}</p>
                         <p className="text-[11px] text-slate-500 truncate">{member.studentCode}</p>
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
              </div>
 
-             <div className="flex-1 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm flex flex-col max-h-screen">
+             <div className="flex-1 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm flex flex-col min-h-0">
                 <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100">
                    <div className="p-2 rounded-lg bg-indigo-100 text-indigo-600">
                       <ClockIcon className="h-5 w-5" />
                    </div>
                    <h3 className="font-bold text-slate-800">Milestones</h3>
                 </div>
-                <div className="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar max-h-screen">
+                <div className="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
                    {milestones.map(m => {
                       const isSelected = selectedMilestoneId === (m.teamMilestoneId || m.id);
                       const score = m.milestoneEvaluation?.score ?? m.score;
@@ -450,7 +503,7 @@ const TeamEvaluationPage = () => {
           </div>
 
           {/* COLUMN 2: Grading Workspace (Middle) */}
-          <div className="col-span-12 xl:col-span-5 flex flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm h-full overflow-hidden">
+          <div className="col-span-12 xl:col-span-6 flex flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm h-full overflow-hidden">
              {selectedMilestoneId ? (
                 // MODE A: Milestone Details
                 <div className="h-full flex flex-col">
@@ -550,11 +603,17 @@ const TeamEvaluationPage = () => {
                             const current = finalForm.components[compId] || { score: '', detailComment: '' };
                             
                             const name = comp.subjectGradeComponentName || comp.componentName || comp.name;
+                            const percentage = percentageMap[compId];
 
                             return (
                                <div key={compId} className="p-4 rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:border-orangeFpt-200">
                                   <div className="flex justify-between items-center mb-3">
-                                     <label className="font-bold text-slate-700 text-sm">{name}</label>
+                                     <label className="font-bold text-slate-800 text-base">{name}</label>
+                                     {percentage !== undefined && (
+                                         <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100 shadow-sm">
+                                             Weight: {percentage}%
+                                         </span>
+                                     )}
                                   </div>
                                   <div className="grid grid-cols-12 gap-3">
                                      <div className="col-span-3">
@@ -578,9 +637,9 @@ const TeamEvaluationPage = () => {
                                         </div>
                                      </div>
                                      <div className="col-span-9">
-                                        <input
-                                           type="text"
-                                           placeholder="Feedback..."
+                                        <textarea
+                                           rows={2}
+                                           placeholder="Detailed feedback..."
                                            value={current.detailComment}
                                            onChange={e => setFinalForm({
                                               ...finalForm,
@@ -589,7 +648,7 @@ const TeamEvaluationPage = () => {
                                                   [compId]: { ...current, detailComment: e.target.value } 
                                               }
                                            })}
-                                           className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:ring-2 focus:ring-orangeFpt-500/20 focus:border-orangeFpt-500 transition-all"
+                                           className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:ring-2 focus:ring-orangeFpt-500/20 focus:border-orangeFpt-500 transition-all resize-none"
                                         />
                                      </div>
                                   </div>
@@ -617,10 +676,10 @@ const TeamEvaluationPage = () => {
           </div>
 
           {/* COLUMN 3: Feedback (Right) */}
-          <div className="col-span-12 xl:col-span-4 flex flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm h-full overflow-hidden">
+          <div className="col-span-12 xl:col-span-3 flex flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm h-full overflow-hidden">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
                <ChatBubbleLeftRightIcon className="h-4 w-4" />
-               {selectedMilestoneId ? 'Feedback History' : 'General Comments'}
+               {selectedMilestoneId ? 'Feedback History' : 'Subject Evaluation Comments'}
             </h3>
 
             {selectedMilestoneId ? (
