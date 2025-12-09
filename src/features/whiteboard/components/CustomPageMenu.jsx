@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useEditor, useValue } from 'tldraw';
+import { useEditor, useValue, getIndexAbove } from 'tldraw';
 import {
   createPage,
   updatePageTitle,
@@ -118,11 +118,20 @@ export default function CustomPageMenu({
         console.log('✅ Creating page with ID:', pId, 'Title:', pTitle);
 
         // Create page record
+        let newIndex = 'a1'; // Default for first page
+        if (pages.length > 0) {
+          const sortedPages = [...pages].sort((a, b) =>
+            (a.index || '').localeCompare(b.index || '')
+          );
+          const lastPage = sortedPages[sortedPages.length - 1];
+          newIndex = getIndexAbove(lastPage.index || 'a1');
+        }
+
         const newRecord = {
           id: `page:${pId}`,
           typeName: 'page',
           name: pTitle,
-          index: `a${String(pId).padStart(6, '0')}`,
+          index: newIndex, // ✅ Proper fractional index
           meta: {},
         };
 
@@ -250,7 +259,7 @@ export default function CustomPageMenu({
     try {
       // 1. Gọi API
       console.log('Deleting page with ID:', page.id);
-      const numericId = page.id.replace("page:", "");
+      const numericId = page.id.replace('page:', '');
       const response = await deletePage(numericId);
       console.log('✅ API: Page deleted:', response);
       // 2. Cập nhật local editor ngay lập tức

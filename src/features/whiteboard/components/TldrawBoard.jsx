@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Tldraw, Editor } from 'tldraw';
+import { Tldraw, Editor, getIndexAbove  } from 'tldraw';
 import { useWhiteboardSync } from '../hooks/useWhiteboardSync';
 import CustomPageMenu from './CustomPageMenu';
 import {
@@ -222,14 +222,29 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
             return;
           }
 
-          const pageRecords = pages.map(p => ({
-            id: `page:${p.pageId}`,
-            typeName: 'page',
-            name: p.pageTitle,
-            index: `a${String(p.pageId).padStart(6, '0')}`,
-            meta: {},
-          }));
-          pageRecords.sort((a, b) => a.index.localeCompare(b.index));
+          const sortedPages = [...pages].sort((a, b) => a.pageId - b.pageId);
+
+          const pageRecords = [];
+          for (let i = 0; i < sortedPages.length; i++) {
+            const p = sortedPages[i];
+            let index;
+            
+            if (i === 0) {
+              index = 'a1'; // First page always starts with 'a1'
+            } else {
+              // Get the previous page's index and generate the next one
+              const prevIndex = pageRecords[i - 1].index;
+              index = getIndexAbove(prevIndex);
+            }
+
+            pageRecords.push({
+              id: `page:${p.pageId}`,
+              typeName: 'page',
+              name: p.pageTitle,
+              index: index,
+              meta: {},
+            });
+          }
           editor.store.put(pageRecords);
 
           // Remove default Tldraw page
