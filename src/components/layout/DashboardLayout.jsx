@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
+import React, { useMemo, useState, useRef, useCallback } from 'react';
 import {
   AcademicCapIcon,
   BookOpenIcon,
@@ -13,7 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { Search, User, LogOut, ChevronDown, LayoutDashboard, MessageCircleMoreIcon, MessageSquareWarning } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate, useLocation, href } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import AppSidebar from './AppSidebar';
 import logo from '../../assets/logov2.svg';
 import { logout } from '../../store/slices/userSlice';

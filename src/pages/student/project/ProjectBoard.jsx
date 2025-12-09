@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ProjectBoardHeader from '../../../components/layout/ProjectBoardHeader';
 import TrelloBoard from '../../../features/student/components/board/TrelloBoard';
-import NormalizePositionsButton from '../../../features/student/components/board/NormalizePositionsButton';
 import { getWorkspace } from '../../../services/kanbanApi';
 import { getTeamDetail } from '../../../services/teamApi';
 import { SignalRProvider } from '../../../context/kanban/SignalRContext';

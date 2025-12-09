@@ -10,7 +10,7 @@ import { BookOpen, Eye, Edit, Trash2 } from 'lucide-react';
  * @param {Function} props.onView - Callback when view button clicked
  * @param {Function} props.onEdit - Callback when edit button clicked
  */
-export default function SubjectListView({ subjects, onView, onEdit }) {
+export default function SubjectListView({ subjects, onView }) {
   return (
     <div className='overflow-x-auto'>
       <table className='w-full'>
@@ -75,13 +75,6 @@ export default function SubjectListView({ subjects, onView, onEdit }) {
                     title='View'
                   >
                     <Eye className='w-4 h-4' />
-                  </button>
-                  <button
-                    onClick={() => onEdit(subject)}
-                    className='p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors'
-                    title='Edit'
-                  >
-                    <Edit className='w-4 h-4' />
                   </button>
                 </div>
               </td>

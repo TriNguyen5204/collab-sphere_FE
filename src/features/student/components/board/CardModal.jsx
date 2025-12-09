@@ -10,13 +10,16 @@ import {
   Circle,
   Trash2,
   Plus,
-  Archive,
   Pencil,
   PencilLine,
+  AlertCircle,
 } from 'lucide-react';
 import useClickOutside from '../../../../hooks/useClickOutside';
 import ProjectMemberPopover from '../ProjectMemberPopover';
 import TaskModal from './TaskModal';
+import EditTaskModal from './EditTaskModal';
+import AddSubtaskModal from './AddSubtaskModal';
+import ConfirmDeleteModal from './ConfirmDeleteModal';
 import { useSignalRContext } from '../../../../context/kanban/useSignalRContext';
 import {
   updateCardDetails,
@@ -40,7 +43,7 @@ const CardModal = ({
   onDelete,
   members,
   workspaceId,
-  lists, // ✅ Receive lists from TrelloBoard
+  lists,
 }) => {
   const confirmWithToast = useToastConfirmation();
   const getMemberById = studentId => {
@@ -52,6 +55,13 @@ const CardModal = ({
   const [selectedMember, setSelectedMember] = useState(null);
   const [popoverAnchor, setPopoverAnchor] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // ✅ Modal states
+  const [editTaskModal, setEditTaskModal] = useState({ isOpen: false, taskId: null, title: '' });
+  const [editSubtaskModal, setEditSubtaskModal] = useState({ isOpen: false, taskId: null, subTaskId: null, title: '' });
+  const [addSubtaskModal, setAddSubtaskModal] = useState({ isOpen: false, taskId: null });
+  const [deleteTaskModal, setDeleteTaskModal] = useState({ isOpen: false, taskId: null });
+  const [deleteSubtaskModal, setDeleteSubtaskModal] = useState({ isOpen: false, taskId: null, subTaskId: null });
 
   const dateInputRef = useRef(null);
   const plusButtonRef = useRef(null);
@@ -77,7 +87,6 @@ const CardModal = ({
       };
     }
 
-    // Fallback
     return {
       ...card,
       assignedMembers: card.assignedMembers || [],
@@ -86,7 +95,7 @@ const CardModal = ({
       dueAt: card.dueAt || null,
     };
   }, [lists, listId, card]);
-  // ✅ Helper function to format date for input type="date"
+
   const formatDateForInput = dateString => {
     if (!dateString) return '';
 
@@ -94,7 +103,7 @@ const CardModal = ({
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return '';
 
-      // Format to YYYY-MM-DD
+      // Format thành YYYY-MM-DD
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
@@ -106,7 +115,6 @@ const CardModal = ({
     }
   };
 
-  // ✅ Separate state for fields being edited (title, description, risk, dueAt)
   const [editableFields, setEditableFields] = useState({
     title: card.title,
     description: card.description || '',
@@ -114,7 +122,7 @@ const CardModal = ({
     dueAt: formatDateForInput(card.dueAt) || null,
   });
 
-  // Sync editableFields when editedCard changes
+  // Sync editableFields khi editedCard thay đổi
   useEffect(() => {
     setEditableFields({
       title: editedCard.title,
@@ -131,6 +139,11 @@ const CardModal = ({
   };
 
   const handleSave = async () => {
+    if (!editableFields.title.trim()) {
+      toast.error('Card title cannot be empty');
+      return;
+    }
+
     setIsSaving(true);
     try {
       let formattedDueAt = null;
@@ -140,6 +153,7 @@ const CardModal = ({
           formattedDueAt = dateObj.toISOString();
         }
       }
+      
       await updateCardDetails(
         connection,
         workspaceId,
@@ -153,6 +167,7 @@ const CardModal = ({
         }
       );
 
+      toast.success('Card updated successfully!');
       onClose();
     } catch (error) {
       console.error('Error saving card:', error);
@@ -173,6 +188,7 @@ const CardModal = ({
     );
     if (confirmed) {
       onDelete(listId, editedCard.id);
+      toast.success('Card deleted successfully');
       onClose();
     }
   };
@@ -188,7 +204,7 @@ const CardModal = ({
         parseInt(editedCard.id),
         newStatus
       );
-      // ✅ No need to update state - SignalR will handle it
+      // ✅ Không cần update state - SignalR sẽ xử lý
     } catch (error) {
       console.error('Error toggling card completion:', error);
       toast.error('Failed to update card status');
@@ -210,6 +226,7 @@ const CardModal = ({
           parseInt(editedCard.id),
           member.studentId
         );
+        toast.success(`${member.studentName} removed from card`);
       } else {
         await assignMemberToCard(
           connection,
@@ -219,8 +236,9 @@ const CardModal = ({
           member.studentId,
           member.studentName
         );
+        toast.success(`${member.studentName} assigned to card`);
       }
-      // ✅ No need to update state - SignalR will handle it
+      // ✅ Không cần update state - SignalR sẽ xử lý
       setShowMemberMenu(false);
     } catch (error) {
       console.error('Error toggling member:', error);
@@ -238,7 +256,7 @@ const CardModal = ({
     setPopoverAnchor(null);
   };
 
-  // ✅ TASK HANDLERS - ONLY CALL SIGNALR, DO NOT UPDATE STATE
+  // ✅ TASK HANDLERS - CHỈ GỌI SIGNALR, KHÔNG UPDATE STATE
   const handleCreateTask = async taskData => {
     try {
       await createTask(
@@ -250,7 +268,7 @@ const CardModal = ({
       );
 
       setIsOpenTask(false);
-      console.log('✅ Create task request sent');
+      toast.success('Task created successfully!');
     } catch (error) {
       console.error('Error creating task:', error);
       toast.error('Failed to create task');
@@ -258,7 +276,10 @@ const CardModal = ({
   };
 
   const handleRenameTask = async (taskId, newTitle) => {
-    if (!newTitle.trim()) return;
+    if (!newTitle.trim()) {
+      toast.error('Task title cannot be empty');
+      return;
+    }
 
     try {
       await renameTask(
@@ -270,7 +291,7 @@ const CardModal = ({
         newTitle
       );
 
-      console.log('✅ Rename task request sent');
+      toast.success('Task renamed successfully!');
     } catch (error) {
       console.error('Error renaming task:', error);
       toast.error('Failed to rename task');
@@ -278,8 +299,6 @@ const CardModal = ({
   };
 
   const handleDeleteTask = async taskId => {
-    const confirmed = await confirmWithToast('Delete this task?', { confirmText: "Delete", cancelText: "Cancel" });
-    if (!confirmed) return;
 
     try {
       await deleteTask(
@@ -290,16 +309,15 @@ const CardModal = ({
         parseInt(taskId)
       );
 
-      console.log('✅ Delete task request sent');
+      toast.success('Task deleted successfully!');
     } catch (error) {
       console.error('Error deleting task:', error);
       toast.error('Failed to delete task');
     }
   };
 
-  // ✅ SUBTASK HANDLERS - ONLY CALL SIGNALR
-  const handleCreateSubtask = async taskId => {
-    const title = prompt('Enter subtask title:');
+  // ✅ SUBTASK HANDLERS - CHỈ GỌI SIGNALR
+  const handleCreateSubtask = async (taskId, title) => {
     if (!title) return;
 
     try {
@@ -313,7 +331,7 @@ const CardModal = ({
         false
       );
 
-      console.log('✅ Create subtask request sent');
+      toast.success('Subtask created successfully!');
     } catch (error) {
       console.error('Error creating subtask:', error);
       toast.error('Failed to create subtask');
@@ -321,7 +339,10 @@ const CardModal = ({
   };
 
   const handleRenameSubtask = async (taskId, subTaskId, newTitle) => {
-    if (!newTitle.trim()) return;
+    if (!newTitle.trim()) {
+      toast.error('Subtask title cannot be empty');
+      return;
+    }
 
     try {
       await renameSubTask(
@@ -334,7 +355,7 @@ const CardModal = ({
         newTitle
       );
 
-      console.log('✅ Rename subtask request sent');
+      toast.success('Subtask renamed successfully!');
     } catch (error) {
       console.error('Error renaming subtask:', error);
       toast.error('Failed to rename subtask');
@@ -342,8 +363,6 @@ const CardModal = ({
   };
 
   const handleDeleteSubtask = async (taskId, subTaskId) => {
-    const confirmed = await confirmWithToast('Delete this subtask?', { confirmText: "Delete", cancelText: "Cancel" });
-    if (!confirmed) return;
 
     try {
       await deleteSubTask(
@@ -355,7 +374,7 @@ const CardModal = ({
         parseInt(subTaskId)
       );
 
-      console.log('✅ Delete subtask request sent');
+      toast.success('Subtask deleted successfully!');
     } catch (error) {
       console.error('Error deleting subtask:', error);
       toast.error('Failed to delete subtask');
@@ -374,34 +393,59 @@ const CardModal = ({
         !currentStatus
       );
 
-      console.log('✅ Toggle subtask request sent');
+      toast.success(!currentStatus ? 'Subtask completed!' : 'Subtask reopened');
     } catch (error) {
       console.error('Error toggling subtask:', error);
       toast.error('Failed to update subtask status');
     }
   };
 
-  const isOverdue =
-    editedCard.dueAt &&
-    new Date(editedCard.dueAt) < new Date() &&
-    !editedCard.isCompleted;
+  // ✅ Calculate due date status
+  const getDueDateStatus = () => {
+    if (!editedCard.dueAt) return null;
+    
+    const dueDate = new Date(editedCard.dueAt);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+    
+    const diffTime = dueDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (editedCard.isCompleted) {
+      return { label: 'Complete', color: 'bg-green-100 text-green-700', icon: CheckCircle2 };
+    }
+    
+    if (diffDays < 0) {
+      return { label: 'Overdue', color: 'bg-red-100 text-red-700', icon: AlertCircle };
+    }
+    
+    if (diffDays === 0) {
+      return { label: 'Due Today', color: 'bg-orange-100 text-orange-700', icon: Clock };
+    }
+    
+    if (diffDays <= 3) {
+      return { label: 'Due Soon', color: 'bg-yellow-100 text-yellow-700', icon: Clock };
+    }
+    
+    return { label: 'Upcoming', color: 'bg-blue-100 text-blue-700', icon: Clock };
+  };
+
+  const dueDateStatus = getDueDateStatus();
 
   const riskLevels = [
     { name: 'Low', value: 'low', bg: 'bg-green-500' },
     { name: 'Medium', value: 'medium', bg: 'bg-yellow-500' },
     { name: 'High', value: 'high', bg: 'bg-red-500' },
   ];
+  
   const getAvatarUrl = member => {
-    // Check both possible field names
     const avatarUrl = member?.avatarImg || member?.avatar;
-    console.log('avatar', avatarUrl);
-    // Fallback if missing or invalid URL
+    
     if (
       !avatarUrl ||
       avatarUrl === 'https://res.cloudinary.com/dn5xgbmqq/image/upload'
     ) {
-      // Create avatar placeholder with first letter of name
-      // const initial = member?.studentName?.charAt(0)?.toUpperCase() || '?';
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(member?.studentName || 'User')}&background=random&color=fff&size=128`;
     }
 
@@ -452,7 +496,8 @@ const CardModal = ({
           <div className='flex items-start gap-3'>
             <button
               onClick={toggleComplete}
-              className='mt-1 transition-all duration-200 hover:scale-110'
+              disabled={!isConnected}
+              className='mt-1 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed'
               type='button'
             >
               {editedCard.isCompleted ? (
@@ -474,7 +519,8 @@ const CardModal = ({
                     title: e.target.value,
                   }))
                 }
-                className={`text-2xl font-bold text-gray-800 border-2 border-gray-200 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 w-full ${
+                disabled={!isConnected}
+                className={`text-2xl font-bold text-gray-800 border-2 border-gray-200 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 w-full disabled:opacity-50 disabled:cursor-not-allowed ${
                   editedCard.isCompleted ? 'line-through opacity-70' : ''
                 }`}
                 placeholder='Card title...'
@@ -512,7 +558,8 @@ const CardModal = ({
                   <button
                     ref={plusButtonRef}
                     onClick={() => setShowMemberMenu(!showMemberMenu)}
-                    className='w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all'
+                    disabled={!isConnected}
+                    className='w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed'
                     type='button'
                   >
                     <Plus size={20} className='text-gray-600' />
@@ -533,7 +580,7 @@ const CardModal = ({
                           <User size={16} />
                           Select Members
                         </h4>
-                        <div className='space-y-1'>
+                        <div className='space-y-1 max-h-[300px] overflow-y-auto'>
                           {members?.map(member => {
                             const isAssigned = editedCard.assignedMembers?.some(
                               m => m.studentId === member.studentId
@@ -590,11 +637,12 @@ const CardModal = ({
                         riskLevel: risk.value,
                       }))
                     }
+                    disabled={!isConnected}
                     className={`px-4 py-2 rounded-lg font-medium transition-all ${risk.bg} ${
                       editableFields.riskLevel === risk.value
                         ? 'text-white ring-2 ring-offset-2 ring-gray-400'
                         : 'opacity-50 hover:opacity-100 text-white'
-                    }`}
+                    } disabled:opacity-30 disabled:cursor-not-allowed`}
                     type='button'
                   >
                     {risk.name}
@@ -623,32 +671,34 @@ const CardModal = ({
                         dueAt: e.target.value || null,
                       }))
                     }
-                    className='flex-1 bg-transparent outline-none'
+                    disabled={!isConnected}
+                    className='flex-1 bg-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed'
                   />
                 </div>
                 <div className='text-sm text-gray-600'>
                   {editableFields.dueAt ? (
-                    <span>
-                      {new Date(editableFields.dueAt).toLocaleDateString(
-                        'en-US',
-                        {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        }
+                    <div className='flex items-center gap-2'>
+                      <span>
+                        {new Date(editableFields.dueAt).toLocaleDateString(
+                          'en-US',
+                          {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          }
+                        )}
+                      </span>
+                      {dueDateStatus && (
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${dueDateStatus.color}`}>
+                          <dueDateStatus.icon size={14} />
+                          {dueDateStatus.label}
+                        </span>
                       )}
-                    </span>
+                    </div>
                   ) : (
                     <span>No due date set</span>
                   )}
-                  {editableFields.dueAt &&
-                    !editedCard.isCompleted &&
-                    isOverdue && (
-                      <span className='ml-2 text-xs font-semibold bg-red-600 text-white px-2 py-0.5 rounded-full'>
-                        OVERDUE
-                      </span>
-                    )}
                 </div>
               </div>
             </div>
@@ -668,8 +718,9 @@ const CardModal = ({
                   description: e.target.value,
                 }))
               }
+              disabled={!isConnected}
               placeholder='Add a more detailed description...'
-              className='w-full px-4 py-3 bg-gray-50 text-gray-800 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all'
+              className='w-full px-4 py-3 bg-gray-50 text-gray-800 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all disabled:opacity-50 disabled:cursor-not-allowed'
               rows={6}
             />
           </div>
@@ -684,7 +735,7 @@ const CardModal = ({
               <button
                 onClick={() => setIsOpenTask(true)}
                 disabled={!isConnected}
-                className='flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg disabled:opacity-50'
+                className='flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
                 type='button'
               >
                 <Plus size={18} />
@@ -692,7 +743,7 @@ const CardModal = ({
               </button>
             </div>
 
-            {/* ✅ Tasks automatically sync from editedCard */}
+            {/* Tasks list */}
             {editedCard.tasks?.map(task => (
               <div
                 key={task.taskId}
@@ -710,25 +761,25 @@ const CardModal = ({
                   </div>
 
                   <div className='flex items-center gap-2'>
+                    {/* ✅ Rename Task - Modal */}
                     <button
-                      onClick={() => {
-                        const name = prompt(
-                          'Enter new task title:',
-                          task.taskTitle
-                        );
-                        if (name) handleRenameTask(task.taskId, name);
-                      }}
+                      onClick={() => setEditTaskModal({ 
+                        isOpen: true, 
+                        taskId: task.taskId, 
+                        title: task.taskTitle 
+                      })}
                       disabled={!isConnected}
-                      className='text-gray-300 hover:text-blue-400 px-2 py-1 rounded disabled:opacity-50'
+                      className='text-gray-300 hover:text-blue-400 px-2 py-1 rounded disabled:opacity-50 transition-colors'
                       title='Rename Task'
                     >
                       <Pencil size={18} />
                     </button>
 
+                    {/* ✅ Delete Task - Modal */}
                     <button
-                      onClick={() => handleDeleteTask(task.taskId)}
+                      onClick={() => setDeleteTaskModal({ isOpen: true, taskId: task.taskId })}
                       disabled={!isConnected}
-                      className='text-gray-300 hover:text-red-400 px-2 py-1 rounded disabled:opacity-50'
+                      className='text-gray-300 hover:text-red-400 px-2 py-1 rounded disabled:opacity-50 transition-colors'
                       title='Delete Task'
                     >
                       <Trash2 size={18} />
@@ -748,7 +799,7 @@ const CardModal = ({
                   </div>
                   <div className='w-full h-1 bg-gray-700 rounded'>
                     <div
-                      className='h-1 bg-blue-500 rounded'
+                      className='h-1 bg-blue-500 rounded transition-all'
                       style={{
                         width: `${
                           (task.subTaskDtos.filter(s => s.isDone).length /
@@ -767,7 +818,7 @@ const CardModal = ({
                       key={sub.subTaskId}
                       className='flex items-center justify-between pl-2'
                     >
-                      <label className='flex items-center gap-3 flex-1'>
+                      <label className='flex items-center gap-3 flex-1 cursor-pointer'>
                         <input
                           type='checkbox'
                           checked={sub.isDone}
@@ -779,7 +830,7 @@ const CardModal = ({
                             )
                           }
                           disabled={!isConnected}
-                          className='w-4 h-4'
+                          className='w-4 h-4 cursor-pointer disabled:cursor-not-allowed'
                         />
                         <span
                           className={
@@ -791,32 +842,30 @@ const CardModal = ({
                       </label>
 
                       <div className='flex items-center gap-2 pr-2'>
+                        {/* ✅ Rename Subtask - Modal */}
                         <button
-                          onClick={() => {
-                            const name = prompt(
-                              'Enter new subtask title:',
-                              sub.subTaskTitle
-                            );
-                            if (name)
-                              handleRenameSubtask(
-                                task.taskId,
-                                sub.subTaskId,
-                                name
-                              );
-                          }}
+                          onClick={() => setEditSubtaskModal({ 
+                            isOpen: true, 
+                            taskId: task.taskId, 
+                            subTaskId: sub.subTaskId, 
+                            title: sub.subTaskTitle 
+                          })}
                           disabled={!isConnected}
-                          className='text-gray-300 hover:text-blue-400 px-1 rounded disabled:opacity-50'
+                          className='text-gray-300 hover:text-blue-400 px-1 rounded disabled:opacity-50 transition-colors'
                           title='Rename Subtask'
                         >
                           <PencilLine size={16} />
                         </button>
 
+                        {/* ✅ Delete Subtask - Modal */}
                         <button
-                          onClick={() =>
-                            handleDeleteSubtask(task.taskId, sub.subTaskId)
-                          }
+                          onClick={() => setDeleteSubtaskModal({ 
+                            isOpen: true, 
+                            taskId: task.taskId, 
+                            subTaskId: sub.subTaskId 
+                          })}
                           disabled={!isConnected}
-                          className='text-gray-300 hover:text-red-400 px-1 rounded disabled:opacity-50'
+                          className='text-gray-300 hover:text-red-400 px-1 rounded disabled:opacity-50 transition-colors'
                           title='Delete Subtask'
                         >
                           <Trash2 size={16} />
@@ -825,9 +874,10 @@ const CardModal = ({
                     </div>
                   ))}
 
+                  {/* ✅ Add Subtask - Modal */}
                   <button
-                    className='mt-2 bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-sm disabled:opacity-50'
-                    onClick={() => handleCreateSubtask(task.taskId)}
+                    className='mt-2 bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+                    onClick={() => setAddSubtaskModal({ isOpen: true, taskId: task.taskId })}
                     disabled={!isConnected}
                   >
                     Add an item
@@ -836,27 +886,85 @@ const CardModal = ({
               </div>
             ))}
           </div>
+        </div>
 
-          {/* Footer */}
-          <div className='p-6 border-t border-gray-200 bg-gray-50 flex justify-end gap-3'>
-            <button
-              onClick={onClose}
-              className='px-6 py-2.5 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg font-medium transition-all'
-              type='button'
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={isSaving || !isConnected}
-              className='px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50'
-              type='button'
-            >
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
+        {/* Footer */}
+        <div className='p-6 border-t border-gray-200 bg-gray-50 flex justify-end gap-3'>
+          <button
+            onClick={onClose}
+            className='px-6 py-2.5 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg font-medium transition-all'
+            type='button'
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving || !isConnected}
+            className='px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed'
+            type='button'
+          >
+            {isSaving ? 'Saving...' : 'Save Changes'}
+          </button>
         </div>
       </div>
+
+      {/* ✅ All Modals */}
+      
+      {/* Edit Task Modal */}
+      <EditTaskModal
+        isOpen={editTaskModal.isOpen}
+        onClose={() => setEditTaskModal({ isOpen: false, taskId: null, title: '' })}
+        onSave={(newTitle) => {
+          handleRenameTask(editTaskModal.taskId, newTitle);
+          setEditTaskModal({ isOpen: false, taskId: null, title: '' });
+        }}
+        initialTitle={editTaskModal.title}
+        type='task'
+      />
+
+      {/* Edit Subtask Modal */}
+      <EditTaskModal
+        isOpen={editSubtaskModal.isOpen}
+        onClose={() => setEditSubtaskModal({ isOpen: false, taskId: null, subTaskId: null, title: '' })}
+        onSave={(newTitle) => {
+          handleRenameSubtask(editSubtaskModal.taskId, editSubtaskModal.subTaskId, newTitle);
+          setEditSubtaskModal({ isOpen: false, taskId: null, subTaskId: null, title: '' });
+        }}
+        initialTitle={editSubtaskModal.title}
+        type='subtask'
+      />
+
+      {/* Add Subtask Modal */}
+      <AddSubtaskModal
+        isOpen={addSubtaskModal.isOpen}
+        onClose={() => setAddSubtaskModal({ isOpen: false, taskId: null })}
+        onSave={(title) => {
+          handleCreateSubtask(addSubtaskModal.taskId, title);
+          setAddSubtaskModal({ isOpen: false, taskId: null });
+        }}
+      />
+
+      {/* Delete Task Modal */}
+      <ConfirmDeleteModal
+        isOpen={deleteTaskModal.isOpen}
+        onClose={() => setDeleteTaskModal({ isOpen: false, taskId: null })}
+        onConfirm={() => {
+          handleDeleteTask(deleteTaskModal.taskId);
+          setDeleteTaskModal({ isOpen: false, taskId: null });
+        }}
+        type='task'
+      />
+
+      {/* Delete Subtask Modal */}
+      <ConfirmDeleteModal
+        isOpen={deleteSubtaskModal.isOpen}
+        onClose={() => setDeleteSubtaskModal({ isOpen: false, taskId: null, subTaskId: null })}
+        onConfirm={() => {
+          handleDeleteSubtask(deleteSubtaskModal.taskId, deleteSubtaskModal.subTaskId);
+          setDeleteSubtaskModal({ isOpen: false, taskId: null, subTaskId: null });
+        }}
+        type='subtask'
+      />
 
       {/* Member Popover */}
       {selectedMember && popoverAnchor && (

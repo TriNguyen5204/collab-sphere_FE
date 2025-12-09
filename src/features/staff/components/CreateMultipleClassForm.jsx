@@ -163,7 +163,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
               <Download className='w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0' />
               <div className='flex-1'>
                 <h3 className='font-semibold text-gray-800 mb-1'>
-                  Step 1: Download template
+                  Bước 1: Tải file mẫu
                 </h3>
                 <p className='text-sm text-gray-600 mb-3'>
                   Download the Excel template and fill in the class information according to the format
@@ -357,7 +357,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
                 className='inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium shadow-sm'
               >
                 <Send className='w-4 h-4' />
-                Submit to server
+                Gửi lên server
               </button>
             </div>
           )}

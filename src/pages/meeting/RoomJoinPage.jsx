@@ -8,7 +8,7 @@ import ClipLoader from 'react-spinners/ClipLoader';
 
 function JoinPage() {
   const myName = useSelector(state => state.user.fullName);
-  // const roleName = useSelector(state => state.user.roleName);
+  const roleName = useSelector(state => state.user.roleName);
   const [groupId, setGroupId] = useState('');
   const [title, setTitle] = useState('');
   const navigate = useNavigate();
@@ -71,14 +71,19 @@ function JoinPage() {
   // 🟢 Join existing room
   const joinRoom = () => {
     if (groupId.trim()) {
-      cleanupAndNavigate(`/room/${groupId}`, { myName, isHost: false });
+      cleanupAndNavigate(`/room/${groupId}/${teamId}`, { myName, isHost: false });
     } else {
       toast.error('Please enter a room ID');
     }
   };
 
   const handleBack = () => {
-    navigate(`/lecturer/meetings?teamId=${teamId}`);
+    if(roleName === 'LECTURER'){
+      navigate(`/lecturer/meetings?teamId=${teamId}`);
+    } else if(roleName === 'STUDENT'){
+      navigate(`/meeting/${teamId}`);
+    }
+    
   };
 
   return (
@@ -127,7 +132,7 @@ function JoinPage() {
 
               <div className='flex-1 flex flex-col space-y-6'>
                 <div>
-                  <label className='block text-sm font-semibold text-slate-600 mb-3 ml-1 uppercase tracking-wider text-xs'>
+                  <label className='block text-sm font-semibold text-slate-600 mb-3 ml-1 uppercase tracking-wider'>
                     Meeting Title
                   </label>
                   <input
@@ -184,7 +189,7 @@ function JoinPage() {
 
               <div className='flex-1 flex flex-col space-y-6'>
                 <div>
-                  <label className='block text-sm font-semibold text-slate-600 mb-3 ml-1 uppercase tracking-wider text-xs'>
+                  <label className='block text-sm font-semibold text-slate-600 mb-3 ml-1 uppercase tracking-wider'>
                     Room ID
                   </label>
                   <input

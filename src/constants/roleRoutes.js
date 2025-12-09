@@ -1,7 +1,7 @@
 const ROLE_ROUTE_MAP = {
   student: '/student',
   lecturer: '/lecturer/classes',
-  headdepartment: '/head-department',
+  headdepartment: '/head-department/subject-management',
   staff: '/staff/lecturers',
   admin: '/admin/account-management',
 };

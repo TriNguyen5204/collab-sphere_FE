@@ -4,7 +4,6 @@ import ModalWrapper from '../../components/layout/ModalWrapper';
 import CreateMultipleSubjectForm from '../../features/staff/components/CreateMultipleSubjectForm';
 import UpdateSubjectForm from '../../features/head-department/components/UpdateSubjectForm';
 import { getAllSubject } from '../../services/userService';
-import HeadDepartmentSidebar from '../../components/layout/HeadDepartmentSidebar';
 
 // Import sub-components
 import {

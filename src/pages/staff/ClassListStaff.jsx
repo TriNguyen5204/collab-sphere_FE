@@ -24,7 +24,7 @@ import StaffDashboardLayout from '../../components/layout/StaffDashboardLayout';
 const glassPanelClass = 'backdrop-blur-sm bg-white/40 border border-white/60';
 
 // Helper function to get subject gradient (diagonal from top-right to bottom-left)
-const subjectGradient = (subjectCode) => {
+const subjectGradient = subjectCode => {
   const gradients = {
     DBI202: 'from-yellow-100 via-white to-yellow-100',
     CS102: 'from-blue-100 via-white to-blue-100',
@@ -43,9 +43,7 @@ const subjectGradient = (subjectCode) => {
 const StatusBadge = ({ isActive }) => (
   <span
     className={`rounded-full px-3 py-1.5 text-xs font-bold uppercase ${
-      isActive
-        ? 'bg-emerald-100 text-emerald-700'
-        : 'bg-gray-200 text-gray-600'
+      isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'
     }`}
   >
     {isActive ? 'ACTIVE' : 'INACTIVE'}
@@ -115,9 +113,7 @@ const ClassCard = ({ cls, onClick }) => {
 
       <div className='mt-4 text-xs text-slate-500'>
         Created{' '}
-        {cls.createdDate
-          ? new Date(cls.createdDate).toLocaleDateString()
-          : '—'}
+        {cls.createdDate ? new Date(cls.createdDate).toLocaleDateString() : '—'}
       </div>
     </button>
   );
@@ -196,235 +192,229 @@ export default function ClassListStaff() {
 
   return (
     <StaffDashboardLayout>
-      <div className='min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50'>
-        <div className='max-w-7xl mx-auto'>
-          {/* Header */}
-          <div className='mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4'>
-            <div>
-              <h1 className='text-4xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent mb-2'>
-                Class Management
-              </h1>
-              <p className='text-slate-600 text-lg'>
-                You are currently assigned to {totalClasses} classes 
-              </p>
-            </div>
-            <div className='flex gap-3'>
-              <button
-                onClick={() => setIsOpen(true)}
-                className='flex items-center bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl hover:from-orange-600 hover:to-orange-700 transition-all backdrop-blur-sm border border-orange-300/20'
-              >
-                <Plus className='w-5 h-5 mr-2' />
-                Create Class
-              </button>
-              <button
-                onClick={() => setIsMultiOpen(true)}
-                className='flex items-center bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl hover:from-amber-600 hover:to-orange-600 transition-all backdrop-blur-sm border border-amber-300/20'
-              >
-                <Plus className='w-5 h-5 mr-2' />
-                Import Classes
-              </button>
-            </div>
+      <div className='max-w-7xl mx-auto'>
+        {/* Header */}
+        <div className='mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4'>
+          <div>
+            <h1 className='text-4xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent mb-2'>
+              Class Management
+            </h1>
+            <p className='text-slate-600 text-lg'>
+              You are currently assigned to {totalClasses} classes
+            </p>
           </div>
-
-          {/* Filter Section - Glassmorphism */}
-          <form
-            onSubmit={handleSearch}
-            className='bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-lg border border-orange-200/30 mb-8 grid grid-cols-1 md:grid-cols-4 gap-4'
-          >
-            {/* ClassName */}
-            <div className='col-span-1'>
-              <label className='block text-sm font-semibold text-slate-700 mb-2'>
-                Class Name
-              </label>
-              <div className='relative'>
-                <input
-                  type='text'
-                  value={filters.ClassName}
-                  onChange={e =>
-                    setFilters({ ...filters, ClassName: e.target.value })
-                  }
-                  placeholder='Search class...'
-                  className='w-full bg-white/70 backdrop-blur-sm border border-orange-200/50 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400 focus:outline-none transition-all'
-                />
-                <Search
-                  className='absolute right-3 top-3 text-orange-400'
-                  size={18}
-                />
-              </div>
-            </div>
-
-            {/* Subject */}
-            <div>
-              <label className='block text-sm font-semibold text-slate-700 mb-2'>
-                Subject
-              </label>
-              <select
-                className='w-full bg-white/70 backdrop-blur-sm border border-orange-200/50 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400 focus:outline-none transition-all'
-                value={filters.SubjectIds ?? ''}
-                onChange={e =>
-                  setFilters({
-                    ...filters,
-                    SubjectIds: e.target.value
-                      ? parseInt(e.target.value)
-                      : null,
-                  })
-                }
-              >
-                <option value=''>All Subjects</option>
-                {subjectOptions.map(s => (
-                  <option key={s.subjectId} value={s.subjectId}>
-                    {s.subjectName}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Lecturer */}
-            <div>
-              <label className='block text-sm font-semibold text-slate-700 mb-2'>
-                Lecturer
-              </label>
-              <select
-                className='w-full bg-white/70 backdrop-blur-sm border border-orange-200/50 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400 focus:outline-none transition-all'
-                value={filters.LecturerIds ?? ''}
-                onChange={e =>
-                  setFilters({
-                    ...filters,
-                    LecturerIds: e.target.value
-                      ? parseInt(e.target.value)
-                      : null,
-                  })
-                }
-              >
-                <option value=''>All Lecturers</option>
-                {lecturerOptions.map(l => (
-                  <option key={l.uId} value={l.uId}>
-                    {l.fullname}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Sort Controls */}
-            <div>
-              <label className='block text-sm font-semibold text-slate-700 mb-2'>
-                Sort By
-              </label>
-              <div className='flex gap-2'>
-                <select
-                  className='flex-1 bg-white/70 backdrop-blur-sm border border-orange-200/50 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400 focus:outline-none transition-all'
-                  value={filters.OrderBy}
-                  onChange={e =>
-                    setFilters({ ...filters, OrderBy: e.target.value })
-                  }
-                >
-                  <option value='ClassName'>Class Name</option>
-                  <option value='SubjectName'>Subject</option>
-                  <option value='CreatedDate'>Created Date</option>
-                </select>
-                <button
-                  type='button'
-                  onClick={() =>
-                    setFilters(prev => ({
-                      ...prev,
-                      Descending: !prev.Descending,
-                    }))
-                  }
-                  className={`p-2.5 rounded-xl border backdrop-blur-sm transition-all ${
-                    filters.Descending
-                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-400/50 shadow-lg'
-                      : 'bg-white/70 text-slate-600 border-orange-200/50 hover:bg-white/90'
-                  }`}
-                  title='Toggle ascending/descending'
-                >
-                  <ArrowUpWideNarrow
-                    size={18}
-                    className={`transform transition-transform ${
-                      filters.Descending ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-
-            {/* Search Button */}
-            <div className='md:col-span-4 flex justify-end'>
-              <button
-                type='submit'
-                className='bg-gradient-to-r from-orange-500 to-orange-600 text-white px-8 py-2.5 rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl backdrop-blur-sm border border-orange-300/20'
-              >
-                Search
-              </button>
-            </div>
-          </form>
-
-          {/* Stats Card */}
-          <div className='bg-gradient-to-br from-orange-500/10 to-amber-500/10 backdrop-blur-xl rounded-3xl shadow-lg border border-orange-300/30 p-6 mb-8 flex items-center gap-4'>
-            <div className='w-16 h-16 bg-gradient-to-br from-orange-200 to-orange-600 rounded-2xl flex items-center justify-center shadow-xl'>
-              <BookOpen className='w-8 h-8 text-white' />
-            </div>
-            <div>
-              <p className='text-sm text-slate-600 font-semibold uppercase tracking-wide'>
-                Total Classes
-              </p>
-              <p className='text-4xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent'>
-                {totalClasses}
-              </p>
-            </div>
+          <div className='flex gap-3'>
+            <button
+              onClick={() => setIsOpen(true)}
+              className='flex items-center bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl hover:from-orange-600 hover:to-orange-700 transition-all backdrop-blur-sm border border-orange-300/20'
+            >
+              <Plus className='w-5 h-5 mr-2' />
+              Create Class
+            </button>
+            <button
+              onClick={() => setIsMultiOpen(true)}
+              className='flex items-center bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl hover:from-amber-600 hover:to-orange-600 transition-all backdrop-blur-sm border border-amber-300/20'
+            >
+              <Plus className='w-5 h-5 mr-2' />
+              Import Classes
+            </button>
           </div>
-
-          {/* Class List */}
-          {classes.length === 0 ? (
-            <div className='text-center py-20 bg-white/70 backdrop-blur-xl rounded-3xl border border-orange-200/30 shadow-lg'>
-              <BookOpen className='w-20 h-20 text-orange-300 mx-auto mb-4' />
-              <h3 className='text-2xl font-bold text-slate-700 mb-2'>
-                No classes found
-              </h3>
-              <p className='text-slate-500 mb-6 text-lg'>
-                Try adjusting your search or filter criteria
-              </p>
-              <button
-                onClick={() => setIsOpen(true)}
-                className='bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl border border-orange-300/20'
-              >
-                Create your first class
-              </button>
-            </div>
-          ) : (
-            <div className='bg-white/60 backdrop-blur-xl rounded-3xl border border-orange-200/30 shadow-lg p-6'>
-              {/* Grid display */}
-              <div
-                className='grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
-                style={{ minHeight: '500px', gridAutoRows: '1fr' }}
-              >
-                {classes.map(c => (
-                  <ClassCard key={c.classId} cls={c} onClick={handleClassClick} />
-                ))}
-              </div>
-
-              {/* Pagination */}
-              <div className='flex justify-center items-center gap-4 pt-6 mt-6 border-t border-orange-200/50'>
-                <button
-                  onClick={() => handlePageChange(filters.PageNum - 1)}
-                  disabled={filters.PageNum === 1}
-                  className='p-2.5 rounded-xl bg-white/70 backdrop-blur-sm border border-orange-200/50 hover:bg-orange-50 hover:border-orange-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all'
-                >
-                  <ChevronLeft size={20} className='text-slate-600' />
-                </button>
-                <span className='text-slate-700 text-sm font-semibold px-6 py-2.5 bg-white/70 backdrop-blur-sm rounded-xl border border-orange-200/50 shadow-sm'>
-                  Page {filters.PageNum} of {totalPages}
-                </span>
-                <button
-                  onClick={() => handlePageChange(filters.PageNum + 1)}
-                  disabled={filters.PageNum === totalPages}
-                  className='p-2.5 rounded-xl bg-white/70 backdrop-blur-sm border border-orange-200/50 hover:bg-orange-50 hover:border-orange-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all'
-                >
-                  <ChevronRight size={20} className='text-slate-600' />
-                </button>
-              </div>
-            </div>
-          )}
         </div>
+
+        {/* Filter Section - Glassmorphism */}
+        <form
+          onSubmit={handleSearch}
+          className='bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-lg border border-orange-200/30 mb-8 grid grid-cols-1 md:grid-cols-4 gap-4'
+        >
+          {/* ClassName */}
+          <div className='col-span-1'>
+            <label className='block text-sm font-semibold text-slate-700 mb-2'>
+              Class Name
+            </label>
+            <div className='relative'>
+              <input
+                type='text'
+                value={filters.ClassName}
+                onChange={e =>
+                  setFilters({ ...filters, ClassName: e.target.value })
+                }
+                placeholder='Search class...'
+                className='w-full bg-white/70 backdrop-blur-sm border border-orange-200/50 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400 focus:outline-none transition-all'
+              />
+              <Search
+                className='absolute right-3 top-3 text-orange-400'
+                size={18}
+              />
+            </div>
+          </div>
+
+          {/* Subject */}
+          <div>
+            <label className='block text-sm font-semibold text-slate-700 mb-2'>
+              Subject
+            </label>
+            <select
+              className='w-full bg-white/70 backdrop-blur-sm border border-orange-200/50 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400 focus:outline-none transition-all'
+              value={filters.SubjectIds ?? ''}
+              onChange={e =>
+                setFilters({
+                  ...filters,
+                  SubjectIds: e.target.value ? parseInt(e.target.value) : null,
+                })
+              }
+            >
+              <option value=''>All Subjects</option>
+              {subjectOptions.map(s => (
+                <option key={s.subjectId} value={s.subjectId}>
+                  {s.subjectName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Lecturer */}
+          <div>
+            <label className='block text-sm font-semibold text-slate-700 mb-2'>
+              Lecturer
+            </label>
+            <select
+              className='w-full bg-white/70 backdrop-blur-sm border border-orange-200/50 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400 focus:outline-none transition-all'
+              value={filters.LecturerIds ?? ''}
+              onChange={e =>
+                setFilters({
+                  ...filters,
+                  LecturerIds: e.target.value ? parseInt(e.target.value) : null,
+                })
+              }
+            >
+              <option value=''>All Lecturers</option>
+              {lecturerOptions.map(l => (
+                <option key={l.uId} value={l.uId}>
+                  {l.fullname}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Sort Controls */}
+          <div>
+            <label className='block text-sm font-semibold text-slate-700 mb-2'>
+              Sort By
+            </label>
+            <div className='flex gap-2'>
+              <select
+                className='flex-1 bg-white/70 backdrop-blur-sm border border-orange-200/50 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400 focus:outline-none transition-all'
+                value={filters.OrderBy}
+                onChange={e =>
+                  setFilters({ ...filters, OrderBy: e.target.value })
+                }
+              >
+                <option value='ClassName'>Class Name</option>
+                <option value='SubjectName'>Subject</option>
+                <option value='CreatedDate'>Created Date</option>
+              </select>
+              <button
+                type='button'
+                onClick={() =>
+                  setFilters(prev => ({
+                    ...prev,
+                    Descending: !prev.Descending,
+                  }))
+                }
+                className={`p-2.5 rounded-xl border backdrop-blur-sm transition-all ${
+                  filters.Descending
+                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-400/50 shadow-lg'
+                    : 'bg-white/70 text-slate-600 border-orange-200/50 hover:bg-white/90'
+                }`}
+                title='Toggle ascending/descending'
+              >
+                <ArrowUpWideNarrow
+                  size={18}
+                  className={`transform transition-transform ${
+                    filters.Descending ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* Search Button */}
+          <div className='md:col-span-4 flex justify-end'>
+            <button
+              type='submit'
+              className='bg-gradient-to-r from-orange-500 to-orange-600 text-white px-8 py-2.5 rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl backdrop-blur-sm border border-orange-300/20'
+            >
+              Search
+            </button>
+          </div>
+        </form>
+
+        {/* Stats Card */}
+        <div className='bg-gradient-to-br from-orange-500/10 to-amber-500/10 backdrop-blur-xl rounded-3xl shadow-lg border border-orange-300/30 p-6 mb-8 flex items-center gap-4'>
+          <div className='w-16 h-16 bg-gradient-to-br from-orange-200 to-orange-600 rounded-2xl flex items-center justify-center shadow-xl'>
+            <BookOpen className='w-8 h-8 text-white' />
+          </div>
+          <div>
+            <p className='text-sm text-slate-600 font-semibold uppercase tracking-wide'>
+              Total Classes
+            </p>
+            <p className='text-4xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent'>
+              {totalClasses}
+            </p>
+          </div>
+        </div>
+
+        {/* Class List */}
+        {classes.length === 0 ? (
+          <div className='text-center py-20 bg-white/70 backdrop-blur-xl rounded-3xl border border-orange-200/30 shadow-lg'>
+            <BookOpen className='w-20 h-20 text-orange-300 mx-auto mb-4' />
+            <h3 className='text-2xl font-bold text-slate-700 mb-2'>
+              No classes found
+            </h3>
+            <p className='text-slate-500 mb-6 text-lg'>
+              Try adjusting your search or filter criteria
+            </p>
+            <button
+              onClick={() => setIsOpen(true)}
+              className='bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl border border-orange-300/20'
+            >
+              Create your first class
+            </button>
+          </div>
+        ) : (
+          <div className='bg-white/60 backdrop-blur-xl rounded-3xl border border-orange-200/30 shadow-lg p-6'>
+            {/* Grid display */}
+            <div
+              className='grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
+              style={{ minHeight: '500px', gridAutoRows: '1fr' }}
+            >
+              {classes.map(c => (
+                <ClassCard key={c.classId} cls={c} onClick={handleClassClick} />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            <div className='flex justify-center items-center gap-4 pt-6 mt-6 border-t border-orange-200/50'>
+              <button
+                onClick={() => handlePageChange(filters.PageNum - 1)}
+                disabled={filters.PageNum === 1}
+                className='p-2.5 rounded-xl bg-white/70 backdrop-blur-sm border border-orange-200/50 hover:bg-orange-50 hover:border-orange-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all'
+              >
+                <ChevronLeft size={20} className='text-slate-600' />
+              </button>
+              <span className='text-slate-700 text-sm font-semibold px-6 py-2.5 bg-white/70 backdrop-blur-sm rounded-xl border border-orange-200/50 shadow-sm'>
+                Page {filters.PageNum} of {totalPages}
+              </span>
+              <button
+                onClick={() => handlePageChange(filters.PageNum + 1)}
+                disabled={filters.PageNum === totalPages}
+                className='p-2.5 rounded-xl bg-white/70 backdrop-blur-sm border border-orange-200/50 hover:bg-orange-50 hover:border-orange-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all'
+              >
+                <ChevronRight size={20} className='text-slate-600' />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Modals */}
         <ModalWrapper
@@ -437,7 +427,6 @@ export default function ClassListStaff() {
         <ModalWrapper
           isOpen={isMultiOpen}
           onClose={() => setIsMultiOpen(false)}
-          title='Import Classes'
         >
           <CreateMultipleClassForm onClose={() => setIsMultiOpen(false)} />
         </ModalWrapper>

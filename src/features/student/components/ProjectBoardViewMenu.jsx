@@ -16,12 +16,12 @@ const ProjectBoardViewMenu = () => {
 
   const menuItems = [
     { name: 'Team Workspace', icon: UsersRound, path: `/student/project/team-workspace` },
-    { name: 'Task Board', icon: Kanban, path: `/student/project/task-board` },
+    { name: 'Task Board', icon: Kanban, path: `/task-board` },
     { name: 'Milestones & Checkpoints', icon: Flag, path: `/student/project/milestones&checkpoints` },
     { name: 'Peer Evaluation', icon: UsersRound, path: `/student/project/peer-evaluation` },
     { name: 'Meeting room', icon: VideoIcon, path: `/meeting/${team?.teamId}`},
-    { name: 'Whiteboard', icon: CircuitBoardIcon, path: `/student/project/whiteboard`},
-    { name: 'Text Editor', icon: FileText, path: `/student/project/text-editor`},
+    { name: 'Whiteboard', icon: CircuitBoardIcon, path: `/whiteboard`},
+    { name: 'Text Editor', icon: FileText, path: `/text-editor`},
   ];
 
   const normalizePath = (p) => (p || '').replace(/\/+$/, '');

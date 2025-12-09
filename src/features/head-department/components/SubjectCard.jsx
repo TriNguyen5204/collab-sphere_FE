@@ -40,9 +40,8 @@ const StatusBadge = ({ isActive }) => (
  * @param {Object} props
  * @param {Object} props.subject - Subject data object
  * @param {Function} props.onView - Callback when view button clicked
- * @param {Function} props.onEdit - Callback when edit button clicked
  */
-export default function SubjectCard({ subject, onView, onEdit }) {
+export default function SubjectCard({ subject, onView }) {
   return (
     <div
       className={`${glassPanelClass} flex h-full flex-col rounded-3xl bg-gradient-to-br ${getSubjectGradient(
@@ -88,13 +87,6 @@ export default function SubjectCard({ subject, onView, onEdit }) {
         >
           <Eye className='w-4 h-4' />
           View
-        </button>
-        <button
-          onClick={() => onEdit(subject)}
-          className='flex items-center justify-center gap-2 px-3 py-2.5 bg-white/90 text-gray-700 rounded-xl hover:bg-white transition-all shadow-sm border border-gray-200 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-orange-400'
-          title='Edit Subject'
-        >
-          <Edit className='w-4 h-4' />
         </button>
       </div>
     </div>

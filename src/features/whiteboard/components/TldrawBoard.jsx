@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Tldraw, Editor } from 'tldraw';
+import { Tldraw, Editor, getIndexAbove  } from 'tldraw';
 import { useWhiteboardSync } from '../hooks/useWhiteboardSync';
 import CustomPageMenu from './CustomPageMenu';
 import {
   getPagesByWhiteboardId,
   getShapesByPageId,
-  parseShapeJson,
 } from '../services/whiteboardService';
 import 'tldraw/tldraw.css';
 
@@ -29,16 +28,16 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
     const container = containerRef.current;
 
     // ✅ FIX: Reduce mouse scroll sensitivity (zoom)
-    const handleWheel = (e) => {
+    const handleWheel = e => {
       if (e.cancelable) {
         // Reduce zoom speed to 40%
         Object.defineProperty(e, 'deltaY', {
           value: e.deltaY * 0.4,
-          writable: false
+          writable: false,
         });
         Object.defineProperty(e, 'deltaX', {
           value: e.deltaX * 0.4,
-          writable: false
+          writable: false,
         });
       }
     };
@@ -142,13 +141,14 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
         console.log(
           `📦 Received ${shapesFromApi.shapes?.length || 0} shapes from API`
         );
+        console.log('shape of page', shapesFromApi);
 
-        const formattedShapes = shapesFromApi.shapes.map(s =>
-          parseShapeJson(s)
-        );
+        // const formattedShapes = shapesFromApi.shapes.map(s =>
+        //   parseShapeJson(s)
+        // );
 
         // Cache the shapes
-        shapesCache.current.set(numericId, formattedShapes);
+        shapesCache.current.set(numericId, shapesFromApi);
 
         // Clear old shapes for this page only
         const oldShapeIds = Array.from(editor.store.allRecords())
@@ -159,11 +159,9 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
         }
 
         // Put new shapes
-        if (formattedShapes.length) {
-          editor.store.put(formattedShapes);
-          console.log(
-            `✅ Loaded ${formattedShapes.length} shapes for ${pageId}`
-          );
+        if (shapesFromApi.length) {
+          editor.store.put(shapesFromApi);
+          console.log(`✅ Loaded ${shapesFromApi.length} shapes for ${pageId}`);
         } else {
           console.log(`ℹ️ No shapes found for ${pageId}`);
         }
@@ -224,13 +222,29 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
             return;
           }
 
-          const pageRecords = pages.map(p => ({
-            id: `page:${p.pageId}`,
-            typeName: 'page',
-            name: p.pageTitle,
-            index: `a${p.pageId}`,
-            meta: {},
-          }));
+          const sortedPages = [...pages].sort((a, b) => a.pageId - b.pageId);
+
+          const pageRecords = [];
+          for (let i = 0; i < sortedPages.length; i++) {
+            const p = sortedPages[i];
+            let index;
+            
+            if (i === 0) {
+              index = 'a1'; // First page always starts with 'a1'
+            } else {
+              // Get the previous page's index and generate the next one
+              const prevIndex = pageRecords[i - 1].index;
+              index = getIndexAbove(prevIndex);
+            }
+
+            pageRecords.push({
+              id: `page:${p.pageId}`,
+              typeName: 'page',
+              name: p.pageTitle,
+              index: index,
+              meta: {},
+            });
+          }
           editor.store.put(pageRecords);
 
           // Remove default Tldraw page
@@ -246,14 +260,26 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
             console.log('🗑️ Removed default Tldraw page');
           }
 
-          const firstPageId = pageRecords[0].id;
+          const storageKey = `tldraw_current_page_${whiteboardId}`;
+          const savedPageId = localStorage.getItem(storageKey);
+
+          // Kiểm tra xem trang đã lưu có còn tồn tại trong danh sách mới load không
+          const targetPageExists =
+            savedPageId && pageRecords.some(p => p.id === savedPageId);
+
+          // Nếu có trang đã lưu thì dùng, không thì dùng trang đầu tiên (đã sort)
+          const targetPageId = targetPageExists
+            ? savedPageId
+            : pageRecords[0].id;
+
+          console.log('🎯 Setting current page to:', targetPageId);
 
           // Set current page FIRST
-          editor.setCurrentPage(firstPageId);
-          setCurrentPageId(firstPageId);
+          editor.setCurrentPage(targetPageId);
+          setCurrentPageId(targetPageId);
 
           // Load shapes for first page
-          await loadShapesForPage(firstPageId);
+          await loadShapesForPage(targetPageId);
 
           hasInitialized.current = true;
           console.log('✅ Initialization complete');
@@ -289,6 +315,7 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
         if (!newPageId || newPageId === currentPageId) return;
 
         console.log('🔄 User switched to page:', newPageId);
+        localStorage.setItem(`tldraw_current_page_${whiteboardId}`, newPageId);
         setCurrentPageId(newPageId);
 
         // Load shapes (will use cache if available)
@@ -298,7 +325,7 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
     );
 
     return () => unsub();
-  }, [editor, currentPageId, loadShapesForPage]);
+  }, [editor, currentPageId, loadShapesForPage, whiteboardId]);
 
   return (
     <div

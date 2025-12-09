@@ -1,5 +1,15 @@
 import apiClient from "../../../services/apiClient";
 
+//whiteboard
+export const getWhiteboardId = async (teamId) => {
+  try{
+    const response = await apiClient.get(`/whiteboards/team/${teamId}`)
+    return response.data;
+  }catch(error){
+    console.log('Error fetching whiteboardId', error)
+    throw error
+  }
+}
 export const getPagesByWhiteboardId = async whiteboardId => {
   try {
     const response = await apiClient.get(`/whiteboards/${whiteboardId}/pages`);
@@ -43,87 +53,35 @@ export const deletePage = async pageId => {
     throw error;
   }
 };
-export const getShapesByPageId = async pageId => {
+export const getShapesByPageId = async (pageId) => {
   try {
+    // 1. Gọi API lấy dữ liệu thô (Raw Data)
     const response = await apiClient.get(`/pages/${pageId}/shapes`);
-    return response.data;
+    
+    // 2. Map qua từng phần tử để "giải phóng" jsonData
+    const parsedShapes = response.data.shapes.map((item) => {
+        try {
+            // Kiểm tra nếu jsonData là string thì parse ra
+            let shape = typeof item.jsonData === 'string' 
+                ? JSON.parse(item.jsonData) 
+                : item.jsonData;
+
+            // ⚠️ QUAN TRỌNG: Đảm bảo parentId đúng format
+            // Nếu database lưu pageId là 12, nhưng tldraw cần "page:12"
+            // Đoạn json của bạn đã có "parentId": "page:12" là ĐÚNG rồi.
+            // Nhưng để chắc ăn, hãy đảm bảo shape.parentId khớp với pageId hiện tại
+            
+            return shape;
+        } catch (err) {
+            console.error("Lỗi parse shape:", err);
+            return null;
+        }
+    }).filter(item => item !== null); // Loại bỏ các item bị lỗi null
+
+    return parsedShapes;
   } catch (error) {
     console.error(`Error fetching shapes for page ${pageId}:`, error);
-    throw error;
-  }
-};
-export const saveShapes = async (pageId, shapes) => {
-  try {
-    const response = await apiClient.post(`/pages/${pageId}/shapes`, {
-      shapes,
-    });
-    return response.data;
-  } catch (error) {
-    console.error(`Error saving shapes for page ${pageId}:`, error);
-    throw error;
-  }
-};
-export const updateShapes = async (pageId, shapes) => {
-  try {
-    const response = await apiClient.put(`/pages/${pageId}/shapes`, {
-      shapes,
-    });
-    return response.data;
-  } catch (error) {
-    console.error(`Error updating shapes for page ${pageId}:`, error);
-    throw error;
-  }
-};
-export const deleteShapes = async (pageId, shapeIds) => {
-  try {
-    const response = await apiClient.delete(`/pages/${pageId}/shapes`, {
-      data: { shapeIds },
-    });
-    return response.data;
-  } catch (error) {
-    console.error(`Error deleting shapes for page ${pageId}:`, error);
-    throw error;
-  }
-};
-export const parseShapeJson = shapeObj => {
-  try {
-    // Check if shapeObj exists
-    if (!shapeObj) {
-      throw new Error('Shape object is null or undefined');
-    }
-
-    // ✅ CRITICAL FIX: Backend returns "jsonData" not "jsonDate"!
-    if (!shapeObj.jsonData) {
-      console.warn('⚠️ Shape has no jsonData property:', shapeObj);
-      throw new Error('Shape jsonData is missing');
-    }
-
-    // Check if jsonData is already an object (not a string)
-    if (typeof shapeObj.jsonData === 'object') {
-      console.log('ℹ️ jsonData is already an object, returning as-is');
-      return shapeObj.jsonData;
-    }
-
-    // Check if jsonData is undefined or null string
-    if (shapeObj.jsonData === 'undefined' || shapeObj.jsonData === 'null') {
-      throw new Error(`Invalid jsonData value: "${shapeObj.jsonData}"`);
-    }
-
-    // Parse the JSON string
-    const parsed = JSON.parse(shapeObj.jsonData);
-
-    if (!parsed) {
-      throw new Error('Parsed result is null or undefined');
-    }
-
-    console.log('✅ Successfully parsed shape:', parsed.id);
-    return parsed;
-  } catch (error) {
-    console.error('❌ Error parsing shape JSON:', error);
-    console.error('❌ Shape object:', shapeObj);
-    console.error('❌ jsonData value:', shapeObj?.jsonData);
-    console.error('❌ jsonData type:', typeof shapeObj?.jsonData);
-    throw error;
+    return []; // Trả về mảng rỗng để không crash app
   }
 };
 export const formatShapesForApi = shapes => {
@@ -141,11 +99,7 @@ export default {
 
   // Shapes
   getShapesByPageId,
-  saveShapes,
-  updateShapes,
-  deleteShapes,
 
   // Helpers
-  parseShapeJson,
   formatShapesForApi,
 };

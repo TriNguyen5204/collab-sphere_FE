@@ -506,16 +506,7 @@ export const postCreateCheckpoint = async (teamMilestoneId, title, description, 
     throw error;
   }
 };
-//whiteboard
-export const getWhiteboardId = async (teamId) => {
-  try{
-    const response = await apiClient.get(`/whiteboards/team/${teamId}`)
-    return response.data;
-  }catch(error){
-    console.log('Error fetching whiteboardId', error)
-    throw error
-  }
-}
+
 
 export const postSystemReport = async (data) => {
   try {

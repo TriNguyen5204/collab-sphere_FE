@@ -12,10 +12,34 @@ import {
   Target,
   Flag,
   ArrowLeft,
-  TrendingUp,
-  AlertTriangle, // Import icon cho modal
+  FileText,
+  GraduationCap,
+  Hash,
+  AlertTriangle,
+  X,
+  ListChecks // Icon mới
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import HeadDashboardLayout from '../../components/layout/HeadDashboardLayout';
+
+// --- Helper Components ---
+const DetailRow = ({ icon: Icon, label, value }) => (
+  <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50/50 border border-slate-100 hover:bg-white hover:shadow-sm transition-all duration-300">
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100">
+      <Icon className="h-5 w-5" />
+    </div>
+    <div className="flex-1">
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">{label}</p>
+      <p className="font-medium text-slate-800 leading-relaxed">{value || 'N/A'}</p>
+    </div>
+  </div>
+);
+
+const Badge = ({ children, className }) => (
+  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-sm ${className}`}>
+    {children}
+  </span>
+);
 
 const PendingProjectDetail = () => {
   const location = useLocation();
@@ -29,6 +53,23 @@ const PendingProjectDetail = () => {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
 
+  // Fallback if no project data passed
+  if (!project) {
+    return (
+      <HeadDashboardLayout>
+        <div className="flex h-[80vh] flex-col items-center justify-center gap-4">
+          <h2 className="text-xl font-bold text-slate-800">Project Not Found</h2>
+          <button 
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-indigo-600 hover:underline"
+          >
+            <ArrowLeft className="h-4 w-4" /> Go Back
+          </button>
+        </div>
+      </HeadDashboardLayout>
+    );
+  }
+
   const handleApproveProject = async () => {
     setLoading(true);
     try {
@@ -41,6 +82,7 @@ const PendingProjectDetail = () => {
         toast.error('Failed to approve project');
       }
     } catch (error) {
+      console.error(error);
       toast.error('An error occurred');
     } finally {
       setLoading(false);
@@ -52,397 +94,310 @@ const PendingProjectDetail = () => {
     try {
       const response = await handleProject(project.projectId, false);
       if (response) {
-        toast.success('Project rejected successfully');
+        toast.success('Project rejected');
         setShowRejectModal(false);
         navigate('/head-department/project-approvals');
       } else {
         toast.error('Failed to reject project');
       }
     } catch (error) {
+      console.error(error);
       toast.error('An error occurred');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!project) {
-    return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50'>
-        <div className='text-center p-8 bg-white rounded-2xl shadow-sm border border-gray-100'>
-          <div className='w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center'>
-            <XCircle className='w-8 h-8 text-gray-400' />
-          </div>
-          <p className='text-xl text-gray-600 font-medium'>
-            No project data found
-          </p>
-          <p className='text-gray-400 mt-2'>Project ID: {id}</p>
-        </div>
-      </div>
-    );
-  }
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-GB');
+  };
 
   return (
     <HeadDashboardLayout>
-      <div className='min-h-screen flex bg-gray-50 relative'>
-        <div className='flex-1 flex flex-col'>
-          {/* Simple Header */}
-          <div className='bg-white border-b border-gray-200'>
-            <div className='max-w-7xl mx-auto px-6 py-6'>
-              {/* Back Button */}
-              <button
-                onClick={() => navigate(-1)}
-                className='flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors'
-              >
-                <ArrowLeft className='w-5 h-5' />
-                <span className='font-medium'>Back to Approvals</span>
-              </button>
+      <div className="max-w-5xl mx-auto space-y-6 pb-20">
+        
+        {/* --- Header Navigation --- */}
+        <button
+          onClick={() => navigate(-1)}
+          className="group flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-[#F26F21] transition-colors"
+        >
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-200 group-hover:ring-[#F26F21] transition-all">
+            <ArrowLeft className="h-4 w-4" />
+          </div>
+          Back to List
+        </button>
 
-              {/* Project Header */}
-              <div className='flex items-start justify-between gap-6'>
-                <div className='flex-1'>
-                  <div className='flex items-center gap-3 mb-3'>
-                    <span className='bg-yellow-50 text-yellow-700 px-4 py-1.5 rounded-lg text-sm font-semibold uppercase'>
-                      {project.statusString}
-                    </span>
-                  </div>
-                  <h1 className='text-3xl font-bold text-gray-900 mb-2'>
-                    {project.projectName}
-                  </h1>
-                  <p className='text-gray-600 text-lg max-w-3xl leading-relaxed'>
-                    {project.description}
-                  </p>
+        {/* --- Main Content Card --- */}
+        <div className="rounded-3xl bg-white shadow-sm border border-slate-100 overflow-hidden">
+          
+          {/* Hero / Title Section */}
+          <div className="relative bg-gradient-to-br from-slate-50 to-white p-8 border-b border-slate-100">
+             <div className="absolute top-0 right-0 p-8 opacity-5">
+                <Target className="h-40 w-40" />
+             </div>
+             
+             <div className="relative z-10">
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                  <Badge className="bg-amber-100 text-amber-700 ring-1 ring-amber-500/20">
+                     <Clock className="w-3.5 h-3.5" /> {project.statusString || 'PENDING'}
+                  </Badge>
+                  <Badge className="bg-indigo-50 text-indigo-700 ring-1 ring-indigo-500/20">
+                     {project.subjectCode}
+                  </Badge>
                 </div>
-              </div>
-            </div>
+                
+                <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4 leading-tight">
+                  {project.projectName}
+                </h1>
+                
+                <div className="flex flex-wrap items-center gap-6 text-sm text-slate-600">
+                    <div className="flex items-center gap-2">
+                        <GraduationCap className="h-4 w-4 text-slate-400" />
+                        <span className="font-medium">Proposer: {project.lecturerName}</span>
+                    </div>
+                    <div className="h-4 w-px bg-slate-300"></div>
+                    <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-slate-400" />
+                        <span>Created: {formatDate(project.createdAt)}</span>
+                    </div>
+                </div>
+             </div>
           </div>
 
-          {/* Main Content */}
-          <div className='max-w-7xl mx-auto px-6 py-8 w-full'>
-            {/* Info Cards */}
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mb-8'>
-              {/* Subject Card */}
-              <div className='bg-white rounded-2xl shadow-sm p-6 border border-gray-100'>
-                <div className='flex items-center gap-3 mb-4'>
-                  <div className='w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center'>
-                    <BookOpen className='w-6 h-6 text-orange-600' />
-                  </div>
-                  <h2 className='text-lg font-bold text-gray-900'>
-                    Subject Information
-                  </h2>
-                </div>
-                <div className='space-y-3'>
-                  <div>
-                    <span className='text-sm text-gray-500 font-medium'>
-                      Subject Name
-                    </span>
-                    <p className='text-gray-900 font-semibold'>
-                      {project.subjectName}
-                    </p>
-                  </div>
-                  <div>
-                    <span className='text-sm text-gray-500 font-medium'>
-                      Subject Code
-                    </span>
-                    <p className='text-gray-900 font-mono bg-orange-50 px-3 py-1 rounded-lg inline-block mt-1'>
-                      {project.subjectCode}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Lecturer Card */}
-              <div className='bg-white rounded-2xl shadow-sm p-6 border border-gray-100'>
-                <div className='flex items-center gap-3 mb-4'>
-                  <div className='w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center'>
-                    <User className='w-6 h-6 text-orange-600' />
-                  </div>
-                  <h2 className='text-lg font-bold text-gray-900'>
-                    Lecturer Information
-                  </h2>
-                </div>
-                <div className='space-y-3'>
-                  <div>
-                    <span className='text-sm text-gray-500 font-medium'>
-                      Lecturer Name
-                    </span>
-                    <p className='text-gray-900 font-semibold'>
-                      {project.lecturerName}
-                    </p>
-                  </div>
-                  <div>
-                    <span className='text-sm text-gray-500 font-medium'>
-                      Lecturer Code
-                    </span>
-                    <p className='text-gray-900 font-mono bg-orange-50 px-3 py-1 rounded-lg inline-block mt-1'>
-                      {project.lecturerCode}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Timeline Info */}
-            <div className='bg-white rounded-2xl shadow-sm p-6 border border-gray-100 mb-8'>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                <div className='flex items-center gap-3'>
-                  <Calendar className='w-5 h-5 text-orange-500' />
-                  <div>
-                    <span className='text-sm text-gray-500 font-medium'>
-                      Created At
-                    </span>
-                    <p className='text-gray-900 font-semibold'>
-                      {new Date(project.createdAt).toLocaleString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
-                  </div>
-                </div>
-                <div className='flex items-center gap-3'>
-                  <Clock className='w-5 h-5 text-orange-500' />
-                  <div>
-                    <span className='text-sm text-gray-500 font-medium'>
-                      Last Updated
-                    </span>
-                    <p className='text-gray-900 font-semibold'>
-                      {new Date(project.updatedAt).toLocaleString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Objectives Section */}
-            <div className='bg-white rounded-2xl shadow-sm border border-gray-100'>
-              <div className='px-6 py-4 border-b border-gray-100'>
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center gap-3'>
-                    <Target className='w-6 h-6 text-orange-600' />
-                    <h2 className='text-xl font-bold text-gray-900'>
-                      Project Objectives
-                    </h2>
-                  </div>
-                  <span className='text-sm text-gray-500 font-medium'>
-                    {project.objectives.length} objectives
-                  </span>
-                </div>
-              </div>
-
-              <div className='p-6'>
-                <div className='space-y-6'>
-                  {project.objectives.map((objective, index) => (
-                    <div
-                      key={objective.objectiveId}
-                      className='bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 hover:border-gray-200 transition-all'
-                    >
-                      {/* Objective Header */}
-                      <div className='p-6 bg-white border-b border-gray-100'>
-                        <div className='flex justify-between items-start gap-4'>
-                          <div className='flex items-start gap-3 flex-1'>
-                            <div className='w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0'>
-                              <span className='text-white font-bold text-sm'>
-                                {index + 1}
-                              </span>
-                            </div>
-                            <div className='flex-1'>
-                              <div className='flex items-center gap-2 mb-2'>
-                                <h3 className='text-lg font-bold text-gray-900'>
-                                  Objective #{objective.objectiveId}
-                                </h3>
-                              </div>
-                              <p className='text-gray-600 leading-relaxed'>
-                                {objective.description}
-                              </p>
-                            </div>
-                          </div>
-                          <span
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${
-                              objective.priority === 'High'
-                                ? 'bg-red-50 text-red-700'
-                                : objective.priority === 'Medium'
-                                  ? 'bg-yellow-50 text-yellow-700'
-                                  : 'bg-green-50 text-green-700'
-                            }`}
-                          >
-                            <Flag className='w-3.5 h-3.5' />
-                            {objective.priority}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Milestones */}
-                      <div className='p-6'>
-                        {objective.objectiveMilestones.length > 0 ? (
-                          <>
-                            <div className='flex items-center gap-2 mb-4'>
-                              <TrendingUp className='w-5 h-5 text-orange-600' />
-                              <h4 className='text-sm font-semibold text-gray-700'>
-                                Milestones ({objective.objectiveMilestones.length})
-                              </h4>
-                            </div>
-                            <div className='space-y-3'>
-                              {objective.objectiveMilestones.map((m, mIndex) => (
-                                <div
-                                  key={m.objectiveMilestoneId}
-                                  className='bg-white rounded-xl p-4 border border-gray-100 hover:border-gray-200 transition-colors'
-                                >
-                                  <div className='flex items-start gap-3'>
-                                    <div className='w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center flex-shrink-0'>
-                                      <span className='text-orange-700 font-bold text-xs'>
-                                        {mIndex + 1}
-                                      </span>
-                                    </div>
-                                    <div className='flex-1'>
-                                      <h4 className='font-semibold text-gray-900 mb-1'>
-                                        {m.title}
-                                      </h4>
-                                      <p className='text-sm text-gray-600 leading-relaxed mb-2'>
-                                        {m.description}
-                                      </p>
-                                      <div className='flex items-center gap-2 text-xs text-gray-500'>
-                                        <Calendar className='w-3.5 h-3.5 text-orange-500' />
-                                        <span className='font-medium'>
-                                          {m.startDate}
-                                        </span>
-                                        <span>→</span>
-                                        <span className='font-medium'>
-                                          {m.endDate}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </>
-                        ) : (
-                          <div className='text-center py-8'>
-                            <div className='w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2'>
-                              <Calendar className='w-6 h-6 text-gray-400' />
-                            </div>
-                            <p className='text-sm text-gray-500'>
-                              No milestones available
-                            </p>
-                          </div>
-                        )}
-                      </div>
+          {/* Details Grid */}
+          <div className="p-8">
+            <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+               <FileText className="w-5 h-5 text-[#F26F21]" />
+               Project Details
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               {/* Subject Info */}
+               <DetailRow icon={Hash} label="Subject Code" value={project.subjectCode} />
+               <DetailRow icon={BookOpen} label="Subject Name" value={project.subjectName} />
+               
+               {/* Lecturer Info */}
+               <DetailRow icon={User} label="Lecturer Name" value={project.lecturerName} />
+               <DetailRow icon={Flag} label="Lecturer Code" value={project.lecturerCode} />
+               
+               {/* Description */}
+               <div className="md:col-span-2 mt-2">
+                 <div className="flex items-start gap-4 p-6 rounded-xl bg-slate-50/50 border border-slate-100">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100">
+                       <FileText className="h-5 w-5" />
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <div className="flex-1">
+                       <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Description</p>
+                       <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
+                          {project.description || "No description provided."}
+                       </p>
+                    </div>
+                 </div>
+               </div>
             </div>
 
-            {/* Bottom Action Buttons - Now trigger modals */}
-            <div className='flex gap-4 mt-8 pt-8 border-t border-gray-200'>
-              <button
-                onClick={() => setShowApproveModal(true)}
-                disabled={loading}
-                className='flex items-center gap-2 bg-green-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-green-600 transition-colors shadow-sm hover:shadow-green-100 disabled:opacity-50 disabled:cursor-not-allowed'
-              >
-                <CheckCircle className='w-5 h-5' />
-                Approve Project
-              </button>
-              <button
-                onClick={() => setShowRejectModal(true)}
-                disabled={loading}
-                className='flex items-center gap-2 bg-red-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-red-600 transition-colors shadow-sm hover:shadow-red-100 disabled:opacity-50 disabled:cursor-not-allowed'
-              >
-                <XCircle className='w-5 h-5' />
-                Reject Project
-              </button>
-            </div>
+            {/* --- OBJECTIVES & MILESTONES SECTION --- */}
+            {project.objectives && project.objectives.length > 0 && (
+              <div className="mt-10 pt-8 border-t border-slate-100">
+                 <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <Target className="w-5 h-5 text-[#F26F21]" />
+                    Objectives & Milestones
+                 </h2>
+
+                 <div className="space-y-6">
+                    {project.objectives.map((obj) => (
+                       <div key={obj.objectiveId} className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                          {/* Objective Header */}
+                          <div className="bg-slate-50 p-4 border-b border-slate-200 flex items-start justify-between gap-4">
+                             <div>
+                                <h3 className="font-bold text-slate-800 text-sm md:text-base">{obj.description}</h3>
+                                <p className="text-xs text-slate-500 mt-1">Priority: <span className={`font-semibold ${obj.priority === 'High' ? 'text-red-600' : 'text-blue-600'}`}>{obj.priority}</span></p>
+                             </div>
+                             <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-white border border-slate-200">
+                                <Target className="h-4 w-4 text-slate-400" />
+                             </div>
+                          </div>
+
+                          {/* Milestones List */}
+                          <div className="p-4 bg-white">
+                             {obj.objectiveMilestones && obj.objectiveMilestones.length > 0 ? (
+                                <div className="space-y-3">
+                                   {obj.objectiveMilestones.map((mile) => (
+                                      <div key={mile.objectiveMilestoneId} className="flex items-start gap-3 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
+                                         <div className="mt-1">
+                                            <Flag className="h-4 w-4 text-[#F26F21]" />
+                                         </div>
+                                         <div className="flex-1">
+                                            <h4 className="text-sm font-bold text-slate-700">{mile.title}</h4>
+                                            <p className="text-xs text-slate-500 mt-0.5">{mile.description}</p>
+                                            <div className="flex items-center gap-2 mt-2 text-[11px] font-medium text-slate-400 bg-slate-100 w-fit px-2 py-0.5 rounded">
+                                               <Calendar className="h-3 w-3" />
+                                               {formatDate(mile.startDate)} - {formatDate(mile.endDate)}
+                                            </div>
+                                         </div>
+                                      </div>
+                                   ))}
+                                </div>
+                             ) : (
+                                <p className="text-sm text-slate-400 italic">No milestones defined for this objective.</p>
+                             )}
+                          </div>
+                       </div>
+                    ))}
+                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* --- ACTION BUTTONS --- */}
+          <div className="p-6 bg-slate-50 border-t border-slate-100">
+             <div className="flex flex-col sm:flex-row items-center gap-4 max-w-2xl mx-auto">
+                
+                {/* REJECT BUTTON */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowRejectModal(true)}
+                  className="w-full flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl border-2 border-red-100 bg-white text-red-600 font-bold text-lg hover:bg-red-50 hover:border-red-200 hover:shadow-sm transition-all shadow-sm"
+                >
+                  <XCircle className="w-5 h-5" />
+                  Reject
+                </motion.button>
+
+                {/* APPROVE BUTTON */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowApproveModal(true)}
+                  className="w-full flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-gradient-to-r from-[#F26F21] to-[#E55A0F] text-white font-bold text-lg shadow-lg shadow-orange-200 hover:shadow-xl hover:shadow-orange-300/50 transition-all"
+                >
+                  <CheckCircle className="w-5 h-5" />
+                  Approve Project
+                </motion.button>
+
+             </div>
+             <p className="text-center text-xs text-slate-400 mt-4">
+                Please review the subject, lecturer, and objectives before taking action.
+             </p>
           </div>
         </div>
       </div>
 
-      {/* APPROVE MODAL */}
-      {showApproveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 transform transition-all scale-100">
-            {/* Icon */}
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-50 mb-6">
-              <AlertTriangle className="h-8 w-8 text-green-600" />
-            </div>
-            
-            {/* Content */}
-            <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Approve this project?
-              </h3>
-              <p className="text-sm text-gray-500 mb-8 leading-relaxed">
-                Are you sure you want to <span className="font-bold text-green-600">approve</span> this project? 
-                <br />This action cannot be undone.
-              </p>
-            </div>
+      {/* --- INLINE MODALS --- */}
+      <AnimatePresence>
+        
+        {/* REJECT MODAL */}
+        {showRejectModal && (
+          <motion.div
+            className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4'
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowRejectModal(false)}
+          >
+            <motion.div
+              className='relative w-full max-w-md overflow-hidden rounded-3xl bg-white p-8 shadow-2xl ring-1 ring-slate-100'
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+                <button 
+                  onClick={() => setShowRejectModal(false)}
+                  className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all"
+                >
+                   <X size={20} />
+                </button>
 
-            {/* Buttons */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowApproveModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleApproveProject}
-                disabled={loading}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-600 transition-colors shadow-md shadow-green-100 disabled:opacity-70"
-              >
-                {loading ? 'Processing...' : 'Confirm'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-50 blur-3xl pointer-events-none"></div>
+                
+                <div className="relative z-10 flex flex-col items-center text-center">
+                    <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-red-50 ring-8 ring-red-50/50 shadow-sm">
+                       <AlertTriangle className="h-10 w-10 text-red-500" />
+                    </div>
+                    
+                    <h3 className="mb-2 text-2xl font-bold text-slate-800">Reject Project?</h3>
+                    <p className="mb-8 text-slate-500 leading-relaxed max-w-[280px]">
+                      Are you sure you want to reject <span className="font-bold text-slate-800">"{project.projectName}"</span>? This cannot be undone.
+                    </p>
 
-      {/* REJECT MODAL */}
-      {showRejectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 transform transition-all scale-100">
-            {/* Icon */}
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 mb-6">
-              <AlertTriangle className="h-8 w-8 text-red-500" />
-            </div>
-            
-            {/* Content */}
-            <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Reject this project?
-              </h3>
-              <p className="text-sm text-gray-500 mb-8 leading-relaxed">
-                Are you sure you want to <span className="font-bold text-red-500">reject</span> this project? 
-                <br />This action cannot be undone.
-              </p>
-            </div>
+                    <div className="grid w-full grid-cols-2 gap-4">
+                       <button
+                          onClick={() => setShowRejectModal(false)}
+                          className="flex items-center justify-center rounded-xl border border-slate-200 bg-white py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-all active:scale-95"
+                       >
+                          Cancel
+                       </button>
+                       <button
+                          onClick={handleRejectProject}
+                          disabled={loading}
+                          className="flex items-center justify-center gap-2 rounded-xl bg-red-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-200 hover:bg-red-600 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+                       >
+                          {loading ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : 'Confirm Reject'}
+                       </button>
+                    </div>
+                </div>
+            </motion.div>
+          </motion.div>
+        )}
 
-            {/* Buttons */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowRejectModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleRejectProject}
-                disabled={loading}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors shadow-md shadow-red-100 disabled:opacity-70"
-              >
-                {loading ? 'Processing...' : 'Confirm'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        {/* APPROVE MODAL */}
+        {showApproveModal && (
+          <motion.div
+            className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4'
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowApproveModal(false)}
+          >
+            <motion.div
+              className='relative w-full max-w-md overflow-hidden rounded-3xl bg-white p-8 shadow-2xl ring-1 ring-slate-100'
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+                <button 
+                  onClick={() => setShowApproveModal(false)}
+                  className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all"
+                >
+                   <X size={20} />
+                </button>
+
+                <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-orange-50 blur-3xl pointer-events-none"></div>
+                
+                <div className="relative z-10 flex flex-col items-center text-center">
+                    <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-orange-50 ring-8 ring-orange-50/50 shadow-sm">
+                       <CheckCircle className="h-10 w-10 text-[#F26F21]" />
+                    </div>
+                    
+                    <h3 className="mb-2 text-2xl font-bold text-slate-800">Approve Project</h3>
+                    <p className="mb-8 text-slate-500 leading-relaxed">
+                      Confirm approval for <span className="font-bold text-slate-800">"{project.projectName}"</span>? <br/>
+                      Assigned to: <span className="inline-flex items-center rounded-md bg-orange-50 px-2 py-0.5 text-xs font-bold text-[#F26F21] ml-1">{project.subjectCode}</span>
+                    </p>
+
+                    <div className="grid w-full grid-cols-2 gap-4">
+                       <button
+                          onClick={() => setShowApproveModal(false)}
+                          className="flex items-center justify-center rounded-xl border border-slate-200 bg-white py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-all active:scale-95"
+                       >
+                          Cancel
+                       </button>
+                       <button
+                          onClick={handleApproveProject}
+                          disabled={loading}
+                          className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#F26F21] to-[#E55A0F] py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-200 hover:shadow-orange-300 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+                       >
+                          {loading ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : 'Confirm Approve'}
+                       </button>
+                    </div>
+                </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </HeadDashboardLayout>
   );
