@@ -5,7 +5,7 @@ import { Search, BookOpen, FolderKanban, User, LogOut, ChevronDown, LayoutDashbo
 import { getClassesByStudentId, getListOfTeamsByStudentId, getDetailOfTeamByTeamId } from '../../services/studentApi';
 import { logout } from '../../store/slices/userSlice';
 import useClickOutside from '../../hooks/useClickOutside';
-import logo from '../../assets/logov1.png';
+import logo from '../../assets/logov2.svg';
 import { useAvatar } from '../../hooks/useAvatar';
 import { useQueryClient } from '@tanstack/react-query';
 import useTeam from '../../context/useTeam';
@@ -145,7 +145,7 @@ const StudentHeader = () => {
         <div className='flex items-center gap-10 w-full'>
           {/* Brand */}
           <div className='flex items-center gap-3 min-w-0'>
-            <img src={logo} alt='CollabSphere' className='w-8 h-8 rounded' />
+            <img src={logo} alt='CollabSphere' className='w-8 h-8 rounded-xl' />
             <div className='leading-tight'>
               <div className='text-sm font-bold text-slate-900'>
                 CollabSphere

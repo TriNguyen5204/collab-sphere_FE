@@ -4,7 +4,7 @@ import { Search, User, LogOut, ChevronDown } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import AppSidebar from './AppSidebar';
-import logo from '../../assets/logov1.png';
+import logo from '../../assets/logov2.svg';
 import { logout } from '../../store/slices/userSlice';
 import useClickOutside from '../../hooks/useClickOutside';
 import { useAvatar } from '../../hooks/useAvatar';
