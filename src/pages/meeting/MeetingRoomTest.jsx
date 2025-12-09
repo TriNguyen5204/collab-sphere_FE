@@ -80,7 +80,7 @@ function MeetingRoom() {
 
   // Check if room exists when socket is ready and connected
   useEffect(() => {
-    // Wait for socket to be connected before checking room
+    // Wait for socket to be connected before proceeding
     if (!socket || !isConnected || !roomId || !isAuthorized) return;
 
     // If user is the host, they're creating the room - no need to check
@@ -90,39 +90,26 @@ function MeetingRoom() {
       return;
     }
 
-    console.log('🔍 [MeetingRoom] Checking if room exists (socket connected)...');
+    // For non-host users: Socket is connected, allow joining
+    // Note: Room existence check is disabled because deployed server may not support it
+    // The room-closed event from server will handle the case when host leaves
+    console.log('✅ [MeetingRoom] Socket connected - allowing room access');
+    setRoomExists(true);
     
-    // Set timeout - deny access if server doesn't respond (safer approach)
-    const timeoutId = setTimeout(() => {
-      console.log('⏰ [MeetingRoom] Room check timeout - denying access for safety');
-      setRoomExists(false);
-      setAuthError('Unable to verify meeting room. Please check your connection and try again.');
-    }, 5000);
-    
+    // Optional: Try to check room existence (won't block if server doesn't support it)
     socket.emit('check-room-exists', { roomId }, (response) => {
-      clearTimeout(timeoutId);
-      console.log('🔍 [MeetingRoom] Room check result:', response);
-      
-      if (response && response.exists && response.hasHost) {
-        // Room exists AND has a host - allow joining
-        setRoomExists(true);
-      } else if (response && response.exists && !response.hasHost) {
-        // Room has users but no host - orphaned room, don't allow
-        console.log('⚠️ [MeetingRoom] Room exists but has no host - denying access');
-        setRoomExists(false);
-        setAuthError('This meeting room has no host. The meeting may have ended.');
-      } else if (response && response.exists === false) {
+      console.log('🔍 [MeetingRoom] Room check response (informational):', response);
+      // Only deny access if server explicitly says room doesn't exist
+      if (response && response.exists === false) {
+        console.log('❌ [MeetingRoom] Server confirmed room does not exist');
         setRoomExists(false);
         setAuthError('This meeting room does not exist or has ended.');
-      } else {
-        // Unexpected response - deny access for safety
-        console.log('⚠️ [MeetingRoom] Unexpected response - denying access for safety');
+      } else if (response && response.exists && !response.hasHost) {
+        console.log('⚠️ [MeetingRoom] Room has no host');
         setRoomExists(false);
-        setAuthError('Unable to verify meeting room. Please try again.');
+        setAuthError('This meeting room has no host. The meeting may have ended.');
       }
     });
-    
-    return () => clearTimeout(timeoutId);
   }, [socket, isConnected, roomId, isAuthorized, isHost]);
 
   // Handle room closed by host callback
@@ -172,7 +159,7 @@ function MeetingRoom() {
 
   const { groupPeers, peersSharingScreen, roomClosed } = usePeerConnections(
     socket,
-    isAuthorized && roomExists !== false ? stream : null, // Pass stream when authorized AND room is not explicitly non-existent
+    isAuthorized && roomExists === true ? stream : null, // Only pass stream when room check passed (roomExists === true)
     roomId,
     myName,
     isSharingRef,
