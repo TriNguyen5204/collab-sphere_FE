@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import TildrawBoard from './components/TldrawBoard';
 import 'tldraw/tldraw.css';
 import { getWhiteboardId } from './services/whiteboardService';
@@ -13,21 +14,26 @@ export default function Whiteboard() {
   const [whiteboardId, setWhiteBoardId] = useState(null);
   const { team } = useTeam();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  // Allow teamId from query param (for lecturer review) or from team context (for students)
+  const teamIdFromQuery = searchParams.get('teamId');
+  const effectiveTeamId = teamIdFromQuery || team?.teamId;
 
   useEffect(() => {
     const fetchId = async () => {
       try {
-        const response = await getWhiteboardId(team?.teamId);
+        const response = await getWhiteboardId(effectiveTeamId);
         console.log('Fetched whiteboard ID:', response);
         setWhiteBoardId(response.whiteboardId);
       } catch (error) {
         console.log('Error fetching ID', error);
       }
     };
-    if (team?.teamId) {
+    if (effectiveTeamId) {
       fetchId();
     }
-  }, [team?.teamId]);
+  }, [effectiveTeamId]);
   return (
     <div
       style={{

@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import useTeam from "../../../context/useTeam";
 import { putUpdateTeamByTeamId, postAvatarOfTeam } from "../../../services/studentApi";
 import ReportSystemModal from "./ReportSystemModal";
+import { useAvatar } from "../../../hooks/useAvatar";
 
 const ProjectBoardSetting = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -33,6 +34,7 @@ const ProjectBoardSetting = () => {
   const { projectName } = useParams();
   const userId = useSelector((state) => state.user.userId);
   const { team, updateTeam } = useTeam();
+  const isLeader = team?.leaderId === userId;
 
   const getErrorMessage = (error, fallbackMessage) => {
     const message =
@@ -138,7 +140,7 @@ const ProjectBoardSetting = () => {
       setShowModal(null);
       return true;
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to save team settings.'));
+      toast.error(error?.response?.data?.errors?.TeamName?.[0] || 'Failed to save team settings.');
       return false;
     } finally {
       setIsSavingSettings(false);
@@ -284,6 +286,7 @@ const ProjectBoardSetting = () => {
         onAvatarUpload={handleAvatarUpload}
         isSaving={isSavingSettings}
         isUploading={isUploadingAvatar}
+        isLeader={isLeader}
       />
       <ReportSystemModal
         isOpen={showModal === 'report'}
@@ -303,6 +306,7 @@ const ProjectSettingsModal = ({
   onAvatarUpload,
   isSaving,
   isUploading,
+  isLeader,
 }) => {
   const [formValues, setFormValues] = useState({
     teamName: "",
@@ -312,6 +316,9 @@ const ProjectSettingsModal = ({
   const [selectedFile, setSelectedFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const fileInputRef = useRef(null);
+
+  const currentAvatar = avatarPreview || team?.teamImage;
+  const { initials, colorClass, imageError, setImageError, shouldShowImage } = useAvatar(formValues.teamName || "Team", currentAvatar);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -394,14 +401,23 @@ const ProjectSettingsModal = ({
     }
   };
 
-  const currentAvatar = avatarPreview || team?.teamImage;
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white text-gray-900 border border-gray-200 rounded-lg w-full max-w-3xl shadow-2xl">
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-2xl font-bold text-gray-900">Team Settings</h2>
           <p className="text-sm text-gray-500 mt-1">Update your team avatar and basic information.</p>
+          {!isLeader && (
+            <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-start gap-3">
+              <Shield className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-semibold text-orange-800">View Only Access</h4>
+                <p className="text-sm text-orange-700 mt-1">
+                  Only the team leader can modify team settings. You can view the current configuration but cannot make changes.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="p-6 space-y-6">
@@ -411,34 +427,39 @@ const ProjectSettingsModal = ({
                 <div>
                   <label className="block text-sm font-medium mb-2 text-gray-700">Team Avatar</label>
                   <div
-                    className="w-64 h-64 sm:w-56 sm:h-56 rounded-full overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500 cursor-pointer group relative"
-                    onClick={() => fileInputRef.current?.click()}
+                    className={`w-64 h-64 sm:w-56 sm:h-56 rounded-full overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500 relative ${isLeader ? 'cursor-pointer group' : 'cursor-default'}`}
+                    onClick={() => isLeader && fileInputRef.current?.click()}
                     role="button"
-                    tabIndex={0}
+                    tabIndex={isLeader ? 0 : -1}
                     onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
+                      if (isLeader && (event.key === "Enter" || event.key === " ")) {
                         event.preventDefault();
                         fileInputRef.current?.click();
                       }
                     }}
-                    aria-label="Change team avatar"
+                    aria-label={isLeader ? "Change team avatar" : "Team avatar"}
                   >
-                    {currentAvatar ? (
+                    {shouldShowImage ? (
                       <img
                         src={currentAvatar}
                         alt="Team avatar preview"
-                        className="w-full h-full object-cover transition-opacity group-hover:opacity-80 rounded-full"
-                        title="Upload"
+                        className={`w-full h-full object-cover rounded-full ${isLeader ? 'transition-opacity group-hover:opacity-80' : ''}`}
+                        title={isLeader ? "Upload" : "Team Avatar"}
+                        onError={() => setImageError(true)}
                       />
                     ) : (
-                      <span className="text-xs">No Image</span>
+                      <div className={`w-full h-full flex items-center justify-center text-4xl font-bold ${colorClass}`}>
+                        {initials}
+                      </div>
                     )}
 
-                    <span className="absolute inset-0 flex items-center justify-center rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 rounded-full flex items-center justify-center transition-all backdrop-blur-sm">
-                        <Upload size={16} className="text-white" />
+                    {isLeader && (
+                      <span className="absolute inset-0 flex items-center justify-center rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 rounded-full flex items-center justify-center transition-all backdrop-blur-sm">
+                          <Upload size={16} className="text-white" />
+                        </span>
                       </span>
-                    </span>
+                    )}
 
                     <input
                       id="team-avatar-upload"
@@ -447,6 +468,7 @@ const ProjectSettingsModal = ({
                       className="hidden"
                       ref={fileInputRef}
                       onChange={handleFileChange}
+                      disabled={!isLeader}
                     />
                   </div>
                 </div>
@@ -458,8 +480,9 @@ const ProjectSettingsModal = ({
                     type="text"
                     value={formValues.teamName}
                     onChange={handleChange('teamName')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:border-orangeFpt-400 focus:outline-none"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:border-orangeFpt-400 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500"
                     placeholder="Enter team name"
+                    disabled={!isLeader}
                   />
                 </div>
                 <div className="mb-2">
@@ -467,19 +490,10 @@ const ProjectSettingsModal = ({
                   <textarea
                     value={formValues.description}
                     onChange={handleChange('description')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:border-orangeFpt-400 focus:outline-none"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:border-orangeFpt-400 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500"
                     rows={3}
                     placeholder="Describe your team"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-700">Git Repository Link</label>
-                  <input
-                    type="url"
-                    value={formValues.gitLink}
-                    onChange={handleChange('gitLink')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:border-orangeFpt-400 focus:outline-none"
-                    placeholder="https://"
+                    disabled={!isLeader}
                   />
                 </div>
               </div>
@@ -491,15 +505,17 @@ const ProjectSettingsModal = ({
                 onClick={onClose}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 text-gray-700"
               >
-                Cancel
+                {isLeader ? 'Cancel' : 'Close'}
               </button>
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-orange-300"
-              >
-                {isSaving ? "Saving..." : "Save Changes"}
-              </button>
+              {isLeader && (
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-orange-300"
+                >
+                  {isSaving ? "Saving..." : "Save Changes"}
+                </button>
+              )}
             </div>
           </form>
         </div>

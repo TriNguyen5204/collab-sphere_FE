@@ -3,6 +3,7 @@ import { createContext, useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import { getDetailOfTeamByTeamId } from '../services/studentApi';
+import { TeamBoardService, EventHandlers } from '../services/teamBoardService';
 
 const STORAGE_KEY = 'teamDetail';
 
@@ -105,6 +106,8 @@ export function TeamProvider({ children, initialTeam = null }) {
 	const initialId =
 		normalizeTeamId(initialTeam?.teamId) ?? (isAuthenticated ? readStoredTeamId() : null);
 	const [activeTeamId, setActiveTeamId] = useState(initialId);
+	const [teamBoard, setTeamBoard] = useState(null);
+	const [notifications, setNotifications] = useState([]);
 
 	useEffect(() => {
 		if (!isAuthenticated || !initialTeam?.teamId) return;
@@ -161,6 +164,65 @@ export function TeamProvider({ children, initialTeam = null }) {
 
 	const normalizedTeamId = isAuthenticated ? normalizeTeamId(activeTeamId) : null;
 	const queryKey = normalizedTeamId ? teamQueryKey(normalizedTeamId) : ['team-detail', 'idle'];
+
+	// Effect 1: Manage Connection (depends on auth only)
+	useEffect(() => {
+		if (!isAuthenticated || !user?.accessToken) {
+			if (teamBoard) {
+				teamBoard.disconnect();
+				setTeamBoard(null);
+				setNotifications([]);
+			}
+			return;
+		}
+
+		const service = new TeamBoardService(user.accessToken);
+
+		// Global Notification Handlers
+		service.on(EventHandlers.NOTIFICATION, (notification) => {
+			setNotifications((prev) => [notification, ...prev]);
+		});
+
+		service.on(EventHandlers.NOTIFICATION_HISTORY, (history) => {
+			setNotifications(history || []);
+		});
+
+		service.joinServer();
+		setTeamBoard(service);
+
+		return () => {
+			service.disconnect();
+			setTeamBoard(null);
+		};
+	}, [isAuthenticated, user?.accessToken]);
+
+	// Effect 2: Manage Team Specific Listeners (depends on teamBoard and normalizedTeamId)
+	useEffect(() => {
+		if (!teamBoard) return;
+
+		const handleMilestoneChange = (payload) => {
+			const payloadTeamId = payload?.teamId;
+			// If we are currently viewing a team, and the event is for that team
+			if (normalizedTeamId && payloadTeamId === normalizedTeamId) {
+				queryClient.invalidateQueries({ queryKey: ['milestones', normalizedTeamId] });
+				queryClient.invalidateQueries({ queryKey: ['team-detail', normalizedTeamId] });
+			}
+		};
+
+		teamBoard.on(EventHandlers.MILESTONE_CREATE, handleMilestoneChange);
+		teamBoard.on(EventHandlers.MILESTONE_UPDATE, handleMilestoneChange);
+		teamBoard.on(EventHandlers.MILESTONE_DELETE, handleMilestoneChange);
+		teamBoard.on(EventHandlers.MILESTONE_CHECK_DONE, handleMilestoneChange);
+		teamBoard.on(EventHandlers.MILESTONE_EVALUATE, handleMilestoneChange);
+
+		return () => {
+			teamBoard.off(EventHandlers.MILESTONE_CREATE, handleMilestoneChange);
+			teamBoard.off(EventHandlers.MILESTONE_UPDATE, handleMilestoneChange);
+			teamBoard.off(EventHandlers.MILESTONE_DELETE, handleMilestoneChange);
+			teamBoard.off(EventHandlers.MILESTONE_CHECK_DONE, handleMilestoneChange);
+			teamBoard.off(EventHandlers.MILESTONE_EVALUATE, handleMilestoneChange);
+		};
+	}, [teamBoard, normalizedTeamId, queryClient]);
 
 	const teamQuery = useQuery({
 		queryKey,
@@ -278,6 +340,8 @@ export function TeamProvider({ children, initialTeam = null }) {
 		() => ({
 			teamId: normalizedTeamId,
 			team: teamQuery.data ?? null,
+			teamBoard,
+			notifications,
 			isLoading: Boolean(normalizedTeamId) && (teamQuery.isPending || teamQuery.isFetching),
 			error: teamQuery.error ?? null,
 			setTeam,
@@ -288,6 +352,8 @@ export function TeamProvider({ children, initialTeam = null }) {
 		[
 			normalizedTeamId,
 			teamQuery.data,
+			teamBoard,
+			notifications,
 			teamQuery.isPending,
 			teamQuery.isFetching,
 			teamQuery.error,

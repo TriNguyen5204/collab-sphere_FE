@@ -8,13 +8,18 @@ import useTeam from "../../context/useTeam";
 import { useAvatar } from "../../hooks/useAvatar";
 import ProjectResourcesMenu from './ProjectResourcesMenu';
 import { useSelector } from 'react-redux';
+import NotificationBell from '../../features/chat/components/NotificationBell';
 
 const ProjectBoardHeader = ({
 }) => {
   const navigate = useNavigate();
-  const { clearTeam, team } = useTeam();
+  const { clearTeam, team, notifications } = useTeam();
   const { initials, colorClass, imageError, setImageError, shouldShowImage } = useAvatar(team?.teamName, team?.teamImage);
 
+  useEffect(() => {
+    console.log('Team data in ProjectBoardHeader:', team);
+    console.log('Notifications in ProjectBoardHeader:', notifications);
+  }, [team, notifications]);
   const handleExitProject = async () => {
     await navigate('/student/projects');
     clearTeam();
@@ -53,12 +58,6 @@ const ProjectBoardHeader = ({
 
       {/* Right side */}
       <div className='flex items-center space-x-3'>
-        <div className='h-6 w-px bg-gray-300'></div>
-
-        <ProjectMemberAvatars />
-
-        <div className='h-6 w-px bg-gray-300'></div>
-
         <button
           onClick={() => navigate('/chat')}
           className='p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200'
@@ -68,6 +67,17 @@ const ProjectBoardHeader = ({
         </button>
 
         <ProjectResourcesMenu />
+
+        <div className='h-6 w-px bg-gray-300'></div>
+
+        <ProjectMemberAvatars />
+
+        <div className='h-6 w-px bg-gray-300'></div>
+
+        <NotificationBell 
+          notifications={notifications || []}
+          unreadCount={notifications?.length || 0}
+        />
 
         <ProjectBoardSetting />
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Search, BookOpen, FolderKanban, User, LogOut, ChevronDown, LayoutDashboard, MessageSquareWarning, MessageCircleMoreIcon } from 'lucide-react';
+import { Search, BookOpen, FolderKanban, User, LogOut, ChevronDown, LayoutDashboard, MessageSquareWarning, MessageCircleMoreIcon, MessageCircle } from 'lucide-react';
 import { getClassesByStudentId, getListOfTeamsByStudentId, getDetailOfTeamByTeamId } from '../../services/studentApi';
 import { logout } from '../../store/slices/userSlice';
 import useClickOutside from '../../hooks/useClickOutside';
@@ -11,6 +11,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import useTeam from '../../context/useTeam';
 import ReportSystemModal from '../../features/student/components/ReportSystemModal';
 import { getRoleLandingRoute } from '../../constants/roleRoutes';
+import NotificationBell from '../../features/chat/components/NotificationBell';
 const StudentHeader = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -26,7 +27,7 @@ const StudentHeader = () => {
   const avatar = useSelector((state) => state.user.avatar);
   const fullname = useSelector((state) => state.user.fullName);
   const queryClient = useQueryClient();
-  const { setTeam } = useTeam();
+  const { setTeam, notifications } = useTeam();
 
 
 
@@ -205,8 +206,23 @@ const StudentHeader = () => {
               </div>
             )}
           </div>
-          {/* Profile menu */}
-          <div className='relative' ref={profileRef}>
+          {/* Right Actions */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/chat')}
+              className='p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200'
+              title='Messages'
+            >
+              <MessageCircle size={20} />
+            </button>
+
+            <NotificationBell 
+              notifications={notifications || []}
+              unreadCount={notifications?.length || 0}
+            />
+
+            {/* Profile menu */}
+            <div className='relative' ref={profileRef}>
             <button
               onClick={() => setOpenProfile(!openProfile)}
               className="flex items-center gap-3 pl-4 border rounded-full hover:border-orangeFpt-100 hover:bg-gradient-to-tl hover:from-orangeFpt-200 hover:via-white/25 hover:to-white transition-all duration-300"
@@ -278,6 +294,7 @@ const StudentHeader = () => {
                 </button>
               </div>
             )}
+          </div>
           </div>
         </div>
       </div>

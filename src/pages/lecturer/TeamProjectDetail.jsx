@@ -32,6 +32,7 @@ import {
   Loader2,
   Download,
   Eye,
+  PenTool,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getTeamDetail, updateTeam } from '../../services/teamApi';
@@ -427,11 +428,14 @@ const TeamProjectDetail = () => {
             teamId: Number(teamId),
             teamName: teamDetail?.teamName ?? '',
             leaderId: Number(rosterLeaderId),
-            studentList: rosterDraft.map((member) => ({
-               studentId: Number(member.studentId),
-               classId: Number(member.classId || classIdNumber || 0),
-            })),
+            studentList: rosterDraft
+               .filter((member) => member.studentId !== Number(rosterLeaderId))
+               .map((member) => ({
+                  studentId: Number(member.studentId),
+                  classId: Number(member.classId || classIdNumber || 0),
+               })),
          };
+         console.log('Updating team roster with payload:', payload);
          await updateTeam(Number(teamId), payload);
          toast.success('Team roster updated.');
          shouldClose = true;
@@ -768,6 +772,13 @@ const TeamProjectDetail = () => {
                >
                   Resources
                </button>
+               <button
+                  onClick={() => navigate(`/whiteboard?teamId=${teamId}`)}
+                  className="px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-200 bg-white text-slate-500 hover:bg-slate-50 border border-slate-200 flex items-center gap-2"
+               >
+                  <PenTool size={16} />
+                  Whiteboard
+               </button>
             </div>
 
             {/* --- CONTENT --- */}
@@ -945,21 +956,21 @@ const TeamProjectDetail = () => {
                         </div>
                         <div className="space-y-4">
                            {teamMembersRaw.map((member, idx) => (
-                              <div key={idx} className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50 hover:bg-white hover:shadow-sm transition-all cursor-pointer" onClick={() => setMemberProfileModal(member)}>
+                              <div key={idx} className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:shadow-sm transition-all cursor-pointer">
                                  <div className="flex items-center gap-3">
                                     <Avatar
                                        src={member.avatar}
-                                       name={member.name}
+                                       name={member.studentName}
                                        className="h-9 w-9 rounded-full border border-slate-200 shadow-sm"
                                     />
                                     <div>
                                        <p className="font-semibold text-slate-900">{member.studentName}</p>
                                        {member.teamRole === 1 && (
-                                          <span className="inline-flex items-center gap-1 text-xs font-medium text-orangeFpt-600">
-                                             <GraduationCap className="h-3 w-3" /> Leader
+                                          <span className="inline-flex items-center gap-1 text-sm font-medium text-orangeFpt-600">
+                                             Leader
                                           </span>
                                        )}
-                                       {member.teamRole === 0 && <span className="text-slate-500">Member</span>}
+                                       {member.teamRole === 0 && <span className="inline-flex items-center gap-1 text-sm text-slate-500">Member</span>}
                                     </div>
                                  </div>
                               </div>
@@ -1086,7 +1097,6 @@ const TeamProjectDetail = () => {
                                        />
                                        <div>
                                           <p className="font-semibold text-slate-900">{student.studentName}</p>
-                                          <p className="text-xs text-slate-500">{student.studentCode || '—'}</p>
                                        </div>
                                     </div>
                                     <button

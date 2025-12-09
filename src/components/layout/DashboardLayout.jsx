@@ -11,7 +11,7 @@ import {
   FolderIcon,
   VideoCameraIcon,
 } from '@heroicons/react/24/outline';
-import { Search, User, LogOut, ChevronDown, LayoutDashboard, MessageCircleMoreIcon, MessageSquareWarning } from 'lucide-react';
+import { Search, User, LogOut, ChevronDown, LayoutDashboard, MessageCircleMoreIcon, MessageSquareWarning, MessageCircle } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AppSidebar from './AppSidebar';
@@ -22,12 +22,15 @@ import { useAvatar } from '../../hooks/useAvatar';
 import AIChatAssistant from '../../features/ai/components/AIChatAssistant';
 import { getRoleLandingRoute } from '../../constants/roleRoutes';
 import ReportSystemModal from '../../features/student/components/ReportSystemModal';
+import NotificationBell from '../../features/chat/components/NotificationBell';
+import useTeam from '../../context/useTeam';
 
 const LecturerHeader = ({
   fullName,
   avatar,
   isAuthenticated,
   onProfile,
+  notifications,
   onLogout,
   onOpenReport,
   navItems,
@@ -119,11 +122,27 @@ const LecturerHeader = ({
             )}
           </div>
 
-          <div className="relative" ref={profileRef}>
-                <button
-                  onClick={() => setOpenProfile(!openProfile)}
-                  className="flex items-center gap-3 pl-4 border rounded-full hover:border-orangeFpt-100 hover:bg-gradient-to-tl hover:from-orangeFpt-200 hover:via-white/25 hover:to-white transition-all duration-300"
-                >
+          {/* Right Actions */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/chat')}
+              className='p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200'
+              title='Messages'
+            >
+              <MessageCircle size={20} />
+            </button>
+
+            <NotificationBell 
+              notifications={notifications || []}
+              unreadCount={notifications?.length || 0}
+            />
+
+            {/* Profile menu */}
+            <div className="relative" ref={profileRef}>
+              <button
+                onClick={() => setOpenProfile(!openProfile)}
+                className="flex items-center gap-3 pl-4 border rounded-full hover:border-orangeFpt-100 hover:bg-gradient-to-tl hover:from-orangeFpt-200 hover:via-white/25 hover:to-white transition-all duration-300"
+              >
                   <div className='p-1 flex items-center gap-2'>
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium text-white overflow-hidden ${colorClass} ring-2 ring-white shadow-sm`}>
                       {shouldShowImage ? (
@@ -191,6 +210,7 @@ const LecturerHeader = ({
                     </button>
                   </div>
                 )}
+            </div>
           </div>
         </div>
       </div>
@@ -281,6 +301,7 @@ const DashboardLayout = ({ children }) => {
 
   const { accessToken, userId, fullName, avatar } = useSelector(state => state.user);
   const [showReportModal, setShowReportModal] = useState(false);
+  const { notifications } = useTeam();
   const isAuthenticated = Boolean(accessToken);
   const navigationItems = [
     {
@@ -312,13 +333,13 @@ const DashboardLayout = ({ children }) => {
       match: path =>
         path === '/lecturer/grading' || path.startsWith('/lecturer/grading/'),
     },
-    {
-      label: "Chat",
-      href: '/chat',
-      icon: MessageCircleMoreIcon,
-      match: path =>
-        path === '/chat' || path.startsWith('/chat/'),
-    },
+    // {
+    //   label: "Chat",
+    //   href: '/chat',
+    //   icon: MessageCircleMoreIcon,
+    //   match: path =>
+    //     path === '/chat' || path.startsWith('/chat/'),
+    // },
     {
       label: 'Meetings',
       href: '/lecturer/meetings',
@@ -381,6 +402,7 @@ const DashboardLayout = ({ children }) => {
         onSignup={handleSignup}
         navItems={isAuthenticated ? computedNavigationItems : []}
         onOpenReport={() => setShowReportModal(true)}
+        notifications={notifications}
       />
       <div className='flex'>
         <aside className='fixed top-16 left-0 h-[calc(100vh-4rem)] overflow-y-auto bg-slate-50 border-r border-slate-200'>

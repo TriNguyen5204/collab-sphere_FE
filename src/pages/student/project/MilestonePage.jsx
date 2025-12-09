@@ -38,7 +38,7 @@ const MilestonePage = () => {
   const [milestoneToUpdate, setMilestoneToUpdate] = useState(null);
   const [newCheckpoint, setNewCheckpoint] = useState({ title: '', description: '', startDate: '', dueDate: '', complexity: 'LOW' });
   const [activeTab, setActiveTab] = useState('all');
-  const { team } = useTeam();
+  const { team, teamBoard } = useTeam();
   const teamId = team?.teamId ?? null;
   const confirmWithToast = useToastConfirmation();
 
@@ -501,6 +501,17 @@ const MilestonePage = () => {
       const milestoneId = getMilestoneId(selectedMilestone);
       if (!milestoneId) return;
       await patchMarkDoneMilestoneByMilestoneId(milestoneId, true);
+
+      if (teamBoard) {
+        const linkForTeamMember = `/student/project/milestones&checkpoints`;
+        const classId = team?.classId || team?.classInfo?.classId;
+        const linkForLecturer = classId
+          ? `/lecturer/classes/${classId}/team/${teamId}/milestone/${milestoneId}`
+          : `/lecturer/grading/team/${teamId}/milestones/${milestoneId}`;
+
+        await teamBoard.broadcastMilestoneCheckDone(teamId, milestoneId, linkForTeamMember, linkForLecturer);
+      }
+
       const normalizedCompleteStatus = normalizeMilestoneStatus('completed');
       const completionTimestamp = new Date().toISOString();
       const updatedMilestones = milestones.map(milestone => {

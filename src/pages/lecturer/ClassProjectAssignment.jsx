@@ -117,7 +117,7 @@ const ClassProjectAssignment = () => {
 
          const [assignedData, candidateData] = await Promise.all([
             getClassProjects(classId),
-            getProjects(candidateQuery)
+            getProjects({ subjectIds: subjectId, ...candidateQuery}),
          ]);
          console.log('Raw assigned projects data:', assignedData);
          console.log('Raw candidate projects data:', candidateData);
@@ -224,6 +224,11 @@ const ClassProjectAssignment = () => {
       try {
          await assignProjectsToClass(classId, allIdsToAssign);
          toast.success(`Class with ID '${classId}'. Assigned ${newIds.length} project(s). Removed ${projectsToRemove.size} project(s)`);
+         
+         // Clear selections to close the footer
+         setSelectedProjectIds(new Set());
+         setProjectsToRemove(new Set());
+         
          await loadData();
       } catch (error) {
          console.error(error);

@@ -59,7 +59,7 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
             onOpen();
         }
         
-        navigate('/student/project/chat');
+        navigate('/chat');
     };
 
     // Show newest notifications first
@@ -70,11 +70,11 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
             {/* Bell Button */}
             <button
                 onClick={toggleDropdown}
-                className="relative p-2.5 rounded-full hover:bg-gray-100 active:bg-gray-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 group"
+                className="relative p-2.5 rounded-full hover:bg-gray-100 active:bg-gray-200 transition-all duration-200 focus:outline-none  group"
                 aria-label="Notifications"
             >
                 <Bell 
-                    className={`w-6 h-6 text-gray-600 group-hover:text-blue-600 transition-colors ${
+                    className={`w-6 h-6 text-gray-600 group-hover:text-orangeFpt-600 transition-colors ${
                         unreadCount > 0 ? 'animate-[wiggle_1s_ease-in-out_infinite]' : ''
                     }`}
                 />
@@ -119,7 +119,7 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                         style={{ animation: 'slideDown 0.2s ease-out' }}
                     >
                         {/* Header */}
-                        <div className="px-5 py-4 bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600">
+                        <div className="px-5 py-4 bg-gradient-to-r from-orangeFpt-500 via-orangeFpt-600 to-orange-600">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2">
                                     <Bell className="w-5 h-5 text-white" />
@@ -166,20 +166,20 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                                         <div
                                             key={notif.notificationId}
                                             onClick={() => handleNotificationClick(notif)}
-                                            className="px-5 py-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 cursor-pointer group relative"
+                                            className="px-5 py-4 hover:bg-gradient-to-r hover:from-orangeFpt-50 hover:to-orange-50 transition-all duration-200 cursor-pointer group relative"
                                             style={{ 
                                                 animation: `slideDown 0.3s ease-out ${index * 0.05}s backwards` 
                                             }}
                                         >
                                             <div className="flex items-start space-x-3">
                                                 {/* Notification Icon */}
-                                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center group-hover:from-blue-200 group-hover:to-indigo-200 transition-all duration-200 shadow-sm">
-                                                    <MessageCircle className="w-5 h-5 text-blue-600" />
+                                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-orangeFpt-100 to-orange-100 flex items-center justify-center group-hover:from-orangeFpt-200 group-hover:to-orange-200 transition-all duration-200 shadow-sm">
+                                                    <MessageCircle className="w-5 h-5 text-orangeFpt-600" />
                                                 </div>
 
                                                 {/* Notification Content */}
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 mb-1.5 group-hover:text-blue-700 transition-colors">
+                                                    <p className="text-sm font-semibold text-gray-900 mb-1.5 group-hover:text-orangeFpt-700 transition-colors">
                                                         {notif.title}
                                                     </p>
                                                     <p className="text-sm text-gray-600 line-clamp-2 mb-2 leading-relaxed">
@@ -192,7 +192,7 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                                                         </span>
                                                         
                                                         {/* Show "Open Chat" indicator */}
-                                                        <span className="text-xs font-semibold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                                                        <span className="text-xs font-semibold text-orangeFpt-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
                                                             <MessageCircle className="w-3 h-3" />
                                                             Open Chat
                                                         </span>
@@ -202,14 +202,14 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                                                 {/* Unread Indicator */}
                                                 {!notif.isRead && (
                                                     <div className="flex-shrink-0 pt-1">
-                                                        <div className="w-2 h-2 rounded-full bg-blue-500 shadow-sm"></div>
+                                                        <div className="w-2 h-2 rounded-full bg-orangeFpt-500 shadow-sm"></div>
                                                     </div>
                                                 )}
                                             </div>
 
                                             {/* Click indicator arrow */}
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1">
-                                                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg className="w-5 h-5 text-orangeFpt-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                                 </svg>
                                             </div>
@@ -225,9 +225,9 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                                 <button 
                                     onClick={() => {
                                         setIsOpen(false);
-                                        navigate('/student/project/chat');
+                                        navigate('/chat');
                                     }}
-                                    className="w-full text-sm font-semibold text-blue-600 hover:text-blue-700 py-2 hover:underline flex items-center justify-center gap-2 hover:gap-3 transition-all"
+                                    className="w-full text-sm font-semibold text-orangeFpt-600 hover:text-orangeFpt-700 py-2 hover:underline flex items-center justify-center gap-2 hover:gap-3 transition-all"
                                 >
                                     <MessageCircle className="w-4 h-4" />
                                     <span>Go to Messages</span>

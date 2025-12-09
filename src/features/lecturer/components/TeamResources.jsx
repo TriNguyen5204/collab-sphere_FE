@@ -247,7 +247,8 @@ const TeamResources = ({ teamId }) => {
       }
       toast.success("Resources uploaded successfully.");
       setPendingFiles([]);
-      setPendingFolder("");
+      // Navigate to the folder where files were uploaded
+      setCurrentFolder(normalizedPath);
       await fetchResources({ showSpinner: false });
     } catch (error) {
       console.error("Failed to upload team resources:", error);
@@ -427,7 +428,15 @@ const TeamResources = ({ teamId }) => {
               {folderKeys.map((folderKey) => (
                 <button
                   key={folderKey}
-                  onClick={() => setCurrentFolder(folderKey)}
+                  onClick={() => {
+                    setCurrentFolder(folderKey);
+                    // Auto-fill folder name field if not "General" (root), otherwise clear it
+                    if (folderKey !== "/") {
+                      setPendingFolder(stripFolderInput(folderKey));
+                    } else {
+                      setPendingFolder("");
+                    }
+                  }}
                   onDragOver={(event) => {
                     if (!draggedResource) return;
                     event.preventDefault();

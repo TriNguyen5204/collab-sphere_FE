@@ -387,7 +387,8 @@ const ResourcesHub = () => {
       }
       toast.success("Resources uploaded successfully.");
       setPendingFiles([]);
-      setPendingFolder("");
+      // Navigate to the folder where files were uploaded
+      setCurrentFolder(normalizedPath);
       await fetchResources({ showSpinner: false });
     } catch (error) {
       console.error("Failed to upload class resources:", error);
@@ -667,7 +668,15 @@ const ResourcesHub = () => {
                         {folderKeys.map((folderKey) => (
                           <button
                             key={folderKey}
-                            onClick={() => setCurrentFolder(folderKey)}
+                            onClick={() => {
+                              setCurrentFolder(folderKey);
+                              // Auto-fill folder name field if not "General" (root), otherwise clear it
+                              if (folderKey !== "/") {
+                                setPendingFolder(stripFolderInput(folderKey));
+                              } else {
+                                setPendingFolder("");
+                              }
+                            }}
                             className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 border ${
                               currentFolder === folderKey
                                 ? "bg-slate-800 text-white shadow-lg shadow-slate-800/20 border-transparent scale-105"
