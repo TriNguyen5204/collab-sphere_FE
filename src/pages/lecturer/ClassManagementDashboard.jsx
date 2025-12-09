@@ -425,7 +425,7 @@ const ClassManagementDashboard = () => {
               {/* Status Tabs */}
               <div className="flex rounded-xl bg-slate-200/50 p-1">
                 {[
-                  { id: 'all', label: 'All Classes' },
+                  { id: 'all', label: 'All' },
                   { id: 'active', label: 'Active' },
                   { id: 'inactive', label: 'Inactive' }
                 ].map((option) => (

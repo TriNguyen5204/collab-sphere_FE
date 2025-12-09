@@ -1,6 +1,5 @@
 import { SignalRChatProvider } from './hooks/SignalrChatProvider';
-import NotificationBell from './components/NotificationBell.jsx';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom'; 
 import React from 'react';
@@ -33,11 +32,157 @@ import {
   Phone,
   UserCircle,
   ArrowDown,
+  User,
 } from 'lucide-react';
+
+// --- Avatar Component with Fallback ---
+const AvatarWithFallback = ({ src, name, size = 'md', className = '' }) => {
+  const [imageError, setImageError] = useState(false);
+  
+  const sizeClasses = {
+    sm: 'w-8 h-8 text-xs',
+    md: 'w-10 h-10 text-sm',
+    lg: 'w-12 h-12 text-base',
+  };
+
+  const initials = useMemo(() => {
+    if (!name) return '?';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 0) return '?';
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }, [name]);
+
+  const colorClass = useMemo(() => {
+    if (!name) return 'bg-slate-100 text-slate-600';
+    const colors = [
+      'bg-red-100 text-red-700',
+      'bg-blue-100 text-blue-700',
+      'bg-green-100 text-green-700',
+      'bg-orangeFpt-100 text-orangeFpt-700',
+      'bg-purple-100 text-purple-700',
+      'bg-pink-100 text-pink-700',
+      'bg-teal-100 text-teal-700',
+      'bg-indigo-100 text-indigo-700',
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  }, [name]);
+
+  const shouldShowImage = src && !imageError && !src.endsWith('/image/upload');
+
+  return (
+    <div className={`${sizeClasses[size]} rounded-full overflow-hidden flex items-center justify-center font-semibold ${className} ${!shouldShowImage ? colorClass : 'bg-slate-100'}`}>
+      {shouldShowImage ? (
+        <img
+          src={src}
+          alt={name || 'Avatar'}
+          className="w-full h-full object-cover"
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <span>{initials}</span>
+      )}
+    </div>
+  );
+};
+
+// --- Chat Skeleton Loading Component ---
+const ChatSkeleton = () => {
+  return (
+    <div className="flex flex-col h-screen bg-slate-50 animate-pulse">
+      {/* Header Skeleton */}
+      <div className="bg-white border-b border-slate-200 shadow-sm">
+        <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-full bg-slate-200"></div>
+            <div className="h-6 w-32 bg-slate-200 rounded"></div>
+          </div>
+        </div>
+        <div className="px-6 py-3 bg-slate-50 border-t border-slate-200">
+          <div className="flex items-center space-x-4">
+            <div className="h-4 w-16 bg-slate-200 rounded"></div>
+            <div className="h-10 w-48 bg-slate-200 rounded-lg"></div>
+            <div className="h-10 w-48 bg-slate-200 rounded-lg"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Skeleton */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Conversations List Skeleton */}
+        <div className="w-80 bg-white border-r border-slate-200 flex flex-col">
+          <div className="p-4 border-b border-slate-200 bg-slate-50">
+            <div className="h-6 w-32 bg-slate-200 rounded"></div>
+          </div>
+          <div className="flex-1 p-4 space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="p-4 rounded-lg border border-slate-100 bg-slate-50">
+                <div className="h-4 w-3/4 bg-slate-200 rounded mb-2"></div>
+                <div className="h-3 w-1/2 bg-slate-200 rounded mb-2"></div>
+                <div className="h-3 w-2/3 bg-slate-200 rounded"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Chat Area Skeleton */}
+        <div className="flex-1 flex flex-col bg-white">
+          <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
+            <div className="h-5 w-48 bg-slate-200 rounded mb-2"></div>
+            <div className="h-4 w-32 bg-slate-200 rounded"></div>
+          </div>
+          <div className="flex-1 p-6 space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-md ${i % 2 === 0 ? 'bg-orangeFpt-100' : 'bg-slate-100'} rounded-2xl px-4 py-3`}>
+                  <div className="h-4 w-48 bg-slate-200 rounded mb-2"></div>
+                  <div className="h-3 w-24 bg-slate-200 rounded"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-slate-200 bg-white p-4">
+            <div className="h-24 bg-slate-100 rounded-2xl"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- Conversation Loading Skeleton ---
+const ConversationSkeleton = () => (
+  <div className="p-4 space-y-3 animate-pulse">
+    {[1, 2, 3].map((i) => (
+      <div key={i} className="p-4 rounded-lg border border-slate-100 bg-slate-50">
+        <div className="h-4 w-3/4 bg-slate-200 rounded mb-2"></div>
+        <div className="h-3 w-1/2 bg-slate-200 rounded mb-2"></div>
+        <div className="h-3 w-2/3 bg-slate-200 rounded"></div>
+      </div>
+    ))}
+  </div>
+);
+
+// --- Messages Loading Skeleton ---
+const MessagesSkeleton = () => (
+  <div className="flex-1 p-6 space-y-4 animate-pulse">
+    {[1, 2, 3, 4].map((i) => (
+      <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+        <div className={`max-w-md ${i % 2 === 0 ? 'bg-orangeFpt-50' : 'bg-slate-100'} rounded-2xl px-4 py-3`}>
+          <div className="h-4 w-48 bg-slate-200 rounded mb-2"></div>
+          <div className="h-3 w-24 bg-slate-200 rounded"></div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
 
 export default function ChatComponent() {
   const [provider, setProvider] = useState(null);
-  const [notifications, setNotifications] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const { team } = useTeam();
 
@@ -61,13 +206,14 @@ export default function ChatComponent() {
   const [currentConversationId, setCurrentConversationId] = useState(-1);
   const [currentConvDetail, setCurrentConvDetail] = useState(null);
 
+  // Loading states
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+
   // Create refs for the message list DOM element
   const messageListRef = useRef(null);
   const mainChatAreaRef = useRef(null);
   const quillRef = useRef(null);
-
-  // State for the unread count
-  const [unreadCount, setUnreadCount] = useState(0);
 
   // State for detail sidebar
   const [showDetailSidebar, setShowDetailSidebar] = useState(false);
@@ -115,19 +261,27 @@ export default function ChatComponent() {
         let response;
 
         if (roleName === 'LECTURER') {
-          response = await getLecturerClasses(userId);
+          // Pass semesterId to filter lecturer classes
+          response = await getLecturerClasses(userId, { semesterId: selectedSemesterId });
         } else if (roleName === 'STUDENT') {
-          response = await getClassesByStudentId(userId);
+          // Pass viewAll and semesterId to get all classes for the selected semester
+          response = await getClassesByStudentId(userId, { 
+            viewAll: true,
+            semesterId: selectedSemesterId 
+          });
         } else {
           console.warn('Unknown role:', roleName);
           return;
         }
 
+        console.log('Fetched classes for role', roleName, ':', response);
+
         if (response) {
-          // Filter classes by selected semester
+          // Filter classes by selected semester (as a safety check, use Number for comparison)
           const filteredClasses = response.filter(
-            cls => cls.semesterId === selectedSemesterId
+            cls => Number(cls.semesterId) === Number(selectedSemesterId)
           );
+          console.log('Filtered classes:', filteredClasses);
           setClasses(filteredClasses);
           
           // Auto-select first class if available
@@ -179,8 +333,16 @@ export default function ChatComponent() {
     }
 
     const onReceive = async receivedMessage => {
+      console.log("onReceive called:", { 
+        receivedMessage, 
+        currentConversationId,
+        match: Number(receivedMessage.conversationId) === Number(currentConversationId)
+      });
+      
       setCurrentConvDetail(prev => {
-        if (!prev || receivedMessage.conversationId != currentConversationId) {
+        console.log("setCurrentConvDetail:", { prev, receivedMessage });
+        if (!prev || Number(receivedMessage.conversationId) !== Number(currentConversationId)) {
+          console.log("Skipping message - no prev or conversation mismatch");
           return prev;
         }
         return {
@@ -216,21 +378,25 @@ export default function ChatComponent() {
         return updatedList;
       });
 
-      if (
-        receivedMessage.senderId !== userId &&
-        receivedMessage.conversationId === currentConversationId
-      ) {
-        try {
-          await ChatAPI.patchChatIsRead(currentConversationId);
-        } catch (error) {
-          console.error('Failed to mark message as read:', error);
+      // Only mark as read and broadcast if message is in the currently viewed conversation
+      if (Number(receivedMessage.conversationId) === Number(currentConversationId)) {
+        // Only call API if message is from someone else
+        if (Number(receivedMessage.senderId) !== Number(userId)) {
+          try {
+            await ChatAPI.patchChatIsRead(currentConversationId);
+          } catch (error) {
+            console.error('Failed to mark message as read:', error);
+          }
+        }
+
+        // Only broadcast if provider is connected
+        if (provider.isConnected()) {
+          provider.broadcastMessageReadUpdate(
+            currentConversationId,
+            receivedMessage.messageId
+          );
         }
       }
-
-      provider.broadcastMessageReadUpdate(
-        currentConversationId,
-        receivedMessage.messageId
-      );
     };
 
     const onReceiveHistory = receivedMessages => {
@@ -243,21 +409,12 @@ export default function ChatComponent() {
       });
     };
 
-    const onReceiveNoti = receivedNoti => {
-      setNotifications(prev => [...prev, receivedNoti]);
-      setUnreadCount(prev => prev + 1);
-    };
-
-    const onReceiveAllNoti = receivedNotis => {
-      setNotifications(receivedNotis);
-    };
-
     const onMessageReadUpdateReceived = (
       receivedUserId,
       conversationId,
       readMessageId
     ) => {
-      if (currentConversationId != conversationId) return;
+      if (Number(currentConversationId) !== Number(conversationId)) return;
 
       setCurrentConvDetail(prev => {
         if (!prev) return prev;
@@ -266,20 +423,20 @@ export default function ChatComponent() {
           ...prev,
           chatMessages: prev.chatMessages.map(msg => {
             if (
-              msg.messageId == readMessageId &&
-              !msg.readUserIds.find(x => x == receivedUserId)
+              Number(msg.messageId) === Number(readMessageId) &&
+              !msg.readUserIds.find(x => Number(x) === Number(receivedUserId))
             ) {
               return {
                 ...msg,
                 readUserIds: [...msg.readUserIds, receivedUserId],
               };
             } else if (
-              msg.messageId != readMessageId &&
-              msg.readUserIds.find(x => x == receivedUserId)
+              Number(msg.messageId) !== Number(readMessageId) &&
+              msg.readUserIds.find(x => Number(x) === Number(receivedUserId))
             ) {
               return {
                 ...msg,
-                readUserIds: msg.readUserIds.filter(x => x != receivedUserId),
+                readUserIds: msg.readUserIds.filter(x => Number(x) !== Number(receivedUserId)),
               };
             }
             return msg;
@@ -290,18 +447,14 @@ export default function ChatComponent() {
 
     provider.onMessageReceied(onReceive);
     provider.onReceiveHistory(onReceiveHistory);
-    provider.onNotiReceived(onReceiveNoti);
-    provider.onNotiHistoryReceived(onReceiveAllNoti);
     provider.onMessageReadUpdateReceived(onMessageReadUpdateReceived);
 
     return () => {
       provider.offMessageReceived(onReceive);
       provider.offReceiveHistory(onReceiveHistory);
-      provider.offNotiReceived(onReceiveNoti);
-      provider.offNotiHistoryReceived(onReceiveAllNoti);
       provider.offMessageReadUpdateReceived(onMessageReadUpdateReceived);
     };
-  }, [provider, currentConversationId, team, accessToken, userId]);
+  }, [provider, currentConversationId, accessToken, userId]);
 
   // Handle changing conversation focus
   useEffect(() => {
@@ -314,6 +467,7 @@ export default function ChatComponent() {
     }
 
     const loadConversationDetails = async () => {
+      setIsLoadingMessages(true);
       try {
         const markReadResponse = await ChatAPI.patchChatIsRead(
           currentConversationId
@@ -332,14 +486,21 @@ export default function ChatComponent() {
 
         setCurrentConvDetail(null);
         const response = await ChatAPI.getChatById(currentConversationId);
+        console.log("getChatById response:", response);
 
         if (response && response.isSuccess && response.chatConversation) {
           const conversation = response.chatConversation;
+          console.log("Conversation details:", {
+            lecturer: conversation.lecturer,
+            teamMembers: conversation.teamMembers
+          });
           setCurrentConvDetail(conversation);
 
+          // Only broadcast read update if provider is connected
           if (
             conversation.latestMessage &&
-            currentConversationId === conversation.conversationId
+            currentConversationId === conversation.conversationId &&
+            provider.isConnected()
           ) {
             provider.broadcastMessageReadUpdate(
               currentConversationId,
@@ -349,11 +510,13 @@ export default function ChatComponent() {
         }
       } catch (error) {
         console.error('Failed to load conversation details:', error);
+      } finally {
+        setIsLoadingMessages(false);
       }
     };
 
     loadConversationDetails();
-  }, [provider, currentConversationId, team, accessToken]);
+  }, [provider, currentConversationId, accessToken]);
 
   // ✨ IMPROVED: Handle scroll detection to show "Scroll to bottom" button
   useEffect(() => {
@@ -417,6 +580,7 @@ export default function ChatComponent() {
     }
 
     const fetchConversations = async () => {
+      setIsLoadingConversations(true);
       try {
         const response = await ChatAPI.getChat(selectedSemesterId, selectedClassId);
 
@@ -434,6 +598,8 @@ export default function ChatComponent() {
         console.error('Failed to fetch chat conversations:', error);
         setChatConversations([]);
         setConnectedConversationIds([]);
+      } finally {
+        setIsLoadingConversations(false);
       }
     };
 
@@ -518,10 +684,6 @@ export default function ChatComponent() {
     return plainText;
   };
 
-  const handleNotificationOpen = () => {
-    setUnreadCount(0);
-  };
-
   const handleBack = () => {
     navigate(-1);
   };
@@ -535,7 +697,7 @@ export default function ChatComponent() {
 
   if (!accessToken) {
     return (
-      <div className='flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 to-indigo-100'>
+      <div className='flex items-center justify-center h-screen bg-gradient-to-br from-orangeFpt-50 to-orangeFpt-100'>
         <div className='text-center p-8 bg-white rounded-2xl shadow-xl max-w-md'>
           <div className='flex justify-center mb-4'>
             <MessageCircle className='w-16 h-16 text-blue-500' />
@@ -566,23 +728,17 @@ export default function ChatComponent() {
               <ArrowLeft className='w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors' />
             </button>
 
-            <MessageCircle className='w-7 h-7 text-blue-500' />
-            <h1 className='text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent'>
+            <h1 className='text-2xl font-bold bg-gradient-to-r from-orangeFpt-600 to-orangeFpt-700 bg-clip-text text-transparent'>
               Messages
             </h1>
           </div>
-          <NotificationBell
-            notifications={notifications}
-            unreadCount={unreadCount}
-            onOpen={handleNotificationOpen}
-          />
         </div>
 
         {/* Filter Section */}
         <div className='px-6 py-3 bg-gradient-to-r from-gray-50 to-blue-50 border-t border-gray-200'>
           <div className='flex items-center space-x-4'>
             <div className='flex items-center text-sm font-medium text-gray-700'>
-              <Filter className='w-4 h-4 mr-2 text-blue-500' />
+              <Filter className='w-4 h-4 mr-2 text-orangeFpt-500' />
               Filters:
             </div>
 
@@ -592,7 +748,7 @@ export default function ChatComponent() {
                 value={selectedSemesterId || ''}
                 onChange={(e) => setSelectedSemesterId(Number(e.target.value))}
                 disabled={isLoadingFilters || semesters.length === 0}
-                className='appearance-none bg-white border-2 border-gray-300 rounded-lg px-4 py-2 pr-10 text-sm font-medium text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]'
+                className='appearance-none bg-white border-2 border-gray-300 rounded-lg px-4 py-2 pr-10 text-sm font-medium text-gray-700 hover:border-orangeFpt-400 focus:outline-none focus:ring-2 focus:ring-orangeFpt-500 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]'
               >
                 <option value='' disabled>Select Semester</option>
                 {semesters.map(semester => (
@@ -610,7 +766,7 @@ export default function ChatComponent() {
                 value={selectedClassId || ''}
                 onChange={(e) => setSelectedClassId(Number(e.target.value))}
                 disabled={isLoadingFilters || classes.length === 0 || !selectedSemesterId}
-                className='appearance-none bg-white border-2 border-gray-300 rounded-lg px-4 py-2 pr-10 text-sm font-medium text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]'
+                className='appearance-none bg-white border-2 border-gray-300 rounded-lg px-4 py-2 pr-10 text-sm font-medium text-gray-700 hover:border-orangeFpt-400 focus:outline-none focus:ring-2 focus:ring-orangeFpt-500 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]'
               >
                 <option value='' disabled>
                   {classes.length === 0 ? 'No classes available' : 'Select Class'}
@@ -626,7 +782,7 @@ export default function ChatComponent() {
 
             {isLoadingFilters && (
               <div className='flex items-center text-sm text-gray-500'>
-                <div className='animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent mr-2'></div>
+                <div className='animate-spin rounded-full h-4 w-4 border-2 border-orangeFpt-500 border-t-transparent mr-2'></div>
                 Loading...
               </div>
             )}
@@ -638,9 +794,9 @@ export default function ChatComponent() {
       <div className='flex flex-1 overflow-hidden' ref={mainChatAreaRef}>
         {/* Conversations List */}
         <div className='w-80 bg-white border-r border-gray-200 flex flex-col shadow-sm'>
-          <div className='p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50'>
+          <div className='p-4 border-b border-gray-200 bg-gradient-to-r from-orangeFpt-50 to-orangeFpt-100'>
             <h2 className='text-lg font-semibold text-gray-800 flex items-center'>
-              <MessageCircle className='w-5 h-5 mr-2 text-blue-500' />
+              <MessageCircle className='w-5 h-5 mr-2 text-orangeFpt-500' />
               Conversations
             </h2>
           </div>
@@ -656,6 +812,8 @@ export default function ChatComponent() {
                   to view conversations
                 </p>
               </div>
+            ) : isLoadingConversations ? (
+              <ConversationSkeleton />
             ) : chatConversations.length === 0 ? (
               <div className='flex flex-col items-center justify-center h-full text-gray-400 px-4 py-12'>
                 <MessageCircle className='w-12 h-12 mb-3 text-gray-300' />
@@ -671,10 +829,10 @@ export default function ChatComponent() {
                 {chatConversations.map(conv => (
                   <div
                     key={conv.conversationId}
-                    className={`p-4 cursor-pointer transition-all duration-200 hover:bg-blue-50 relative ${
+                    className={`p-4 cursor-pointer transition-all duration-200 hover:bg-orangeFpt-50 relative ${
                       conv.conversationId === currentConversationId
-                        ? 'bg-blue-50 border-l-4 border-blue-500'
-                        : 'border-l-4 border-transparent hover:border-blue-200'
+                        ? 'bg-orangeFpt-50 border-l-4 border-orangeFpt-500'
+                        : 'border-l-4 border-transparent hover:border-orangeFpt-200'
                     }`}
                     onClick={() =>
                       setCurrentConversationId(conv.conversationId)
@@ -685,7 +843,7 @@ export default function ChatComponent() {
                         {conv.conversationName}
                       </h3>
                       {(!conv.isRead || conv.unreadCount > 0) && (
-                        <span className='flex-shrink-0 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-blue-500 text-white text-xs font-bold shadow-sm'>
+                        <span className='flex-shrink-0 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-orangeFpt-500 text-white text-xs font-bold shadow-sm'>
                           {conv.unreadCount}
                         </span>
                       )}
@@ -721,10 +879,10 @@ export default function ChatComponent() {
         {/* Chat Window */}
         <div className='flex-1 flex flex-col bg-white relative'>
           {currentConversationId === -1 ? (
-            <div className='flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50'>
+            <div className='flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-orangeFpt-50'>
               <div className='text-center max-w-md px-6'>
-                <div className='inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 mb-6 shadow-lg'>
-                  <MessageCircle className='w-12 h-12 text-blue-500' />
+                <div className='inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-orangeFpt-100 to-orangeFpt-200 mb-6 shadow-lg'>
+                  <MessageCircle className='w-12 h-12 text-orangeFpt-500' />
                 </div>
                 <h3 className='text-2xl font-bold text-gray-800 mb-3'>
                   Select a conversation
@@ -739,11 +897,11 @@ export default function ChatComponent() {
             <>
               {/* Chat Header */}
               {currentConvDetail && (
-                <div className='border-b border-gray-200 bg-gradient-to-r from-white to-blue-50 px-6 py-4 shadow-sm'>
+                <div className='border-b border-gray-200 bg-gradient-to-r from-white to-orangeFpt-50 px-6 py-4 shadow-sm'>
                   <div className='flex items-center justify-between'>
                     <div>
                       <h2 className='text-lg font-bold text-gray-900 flex items-center'>
-                        <MessageCircle className='w-5 h-5 mr-2 text-blue-500' />
+                        <MessageCircle className='w-5 h-5 mr-2 text-orangeFpt-500' />
                         {currentConvDetail.conversationName}
                       </h2>
                       <div className='flex items-center mt-1 text-sm text-gray-600'>
@@ -759,10 +917,10 @@ export default function ChatComponent() {
                     {/* Info Button */}
                     <button
                       onClick={() => setShowDetailSidebar(!showDetailSidebar)}
-                      className='flex items-center justify-center w-10 h-10 rounded-full hover:bg-blue-100 active:bg-blue-200 transition-all duration-200 group'
+                      className='flex items-center justify-center w-10 h-10 rounded-full hover:bg-orangeFpt-100 active:bg-orangeFpt-200 transition-all duration-200 group'
                       title='Conversation details'
                     >
-                      <Info className='w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors' />
+                      <Info className='w-5 h-5 text-gray-600 group-hover:text-orangeFpt-600 transition-colors' />
                     </button>
                   </div>
                 </div>
@@ -777,7 +935,9 @@ export default function ChatComponent() {
                   scrollbarColor: '#cbd5e1 transparent',
                 }}
               >
-                {!currentConvDetail ||
+                {isLoadingMessages ? (
+                  <MessagesSkeleton />
+                ) : !currentConvDetail ||
                 currentConvDetail.chatMessages.length === 0 ? (
                   <div className='flex items-center justify-center h-full'>
                     <div className='text-center text-gray-400'>
@@ -792,9 +952,14 @@ export default function ChatComponent() {
                   </div>
                 ) : (
                   currentConvDetail.chatMessages.map((msg, index) => {
-                    const isMine = msg.senderId == userId;
+                    const isMine = Number(msg.senderId) === Number(userId);
                     let showDateHeader = false;
                     const currentDate = new Date(msg.sendAt);
+
+                    // Debug: Log message with readUserIds
+                    if (index === 0) {
+                      console.log('First message readUserIds:', msg.messageId, msg.readUserIds);
+                    }
 
                     if (index === 0) {
                       showDateHeader = true;
@@ -827,14 +992,14 @@ export default function ChatComponent() {
                           >
                             {!isMine && (
                               <div className='flex items-center text-xs font-medium text-gray-600 mb-1 ml-3'>
-                                <div className='w-2 h-2 rounded-full bg-blue-400 mr-1.5'></div>
+                                <div className='w-2 h-2 rounded-full bg-orangeFpt-400 mr-1.5'></div>
                                 {msg.senderName}
                               </div>
                             )}
                             <div
                               className={`rounded-2xl px-4 py-3 shadow-md transition-all duration-200 hover:shadow-lg ${
                                 isMine
-                                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-br-sm'
+                                  ? 'bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 text-white rounded-br-sm'
                                   : 'bg-white border border-gray-200 text-gray-800 rounded-bl-sm'
                               }`}
                             >
@@ -845,58 +1010,77 @@ export default function ChatComponent() {
                                 }}
                               />
                               <div
-                                className={`flex items-center text-xs mt-2 ${isMine ? 'text-blue-100' : 'text-gray-500'}`}
+                                className={`flex items-center text-xs mt-2 ${isMine ? 'text-orangeFpt-100' : 'text-gray-500'}`}
                               >
                                 <Clock className='w-3 h-3 mr-1' />
                                 {formatTime(msg.sendAt)}
                                 {isMine &&
                                   msg.readUserIds &&
                                   msg.readUserIds.length > 0 && (
-                                    <CheckCheck className='w-3.5 h-3.5 ml-2 text-blue-200' />
+                                    <CheckCheck className='w-3.5 h-3.5 ml-2 text-orangeFpt-200' />
                                   )}
                               </div>
                             </div>
 
-                            {msg.readUserIds && msg.readUserIds.length > 0 && (
-                              <div className='flex items-center space-x-1 mt-1.5 ml-3'>
-                                {msg.readUserIds.map(readUserId => {
-                                  let avatarUrl = '';
-                                  let fullName = '';
+                            {msg.readUserIds && msg.readUserIds.length > 0 && (() => {
+                              // Filter out the message sender from read receipts (they don't need to see themselves)
+                              const readersToShow = msg.readUserIds.filter(
+                                readerId => Number(readerId) !== Number(msg.senderId)
+                              );
+                              
+                              if (readersToShow.length === 0) return null;
+                              
+                              return (
+                                <div className={`flex items-center mt-1.5 ${isMine ? 'justify-end mr-1' : 'justify-start ml-3'}`}>
+                                  <div className='flex items-center -space-x-2'>
+                                    {readersToShow.map(readUserId => {
+                                      let avatarUrl = '';
+                                      let fullName = '';
 
-                                  if (
-                                    currentConvDetail.lecturer &&
-                                    currentConvDetail.lecturer.userId ===
-                                      readUserId
-                                  ) {
-                                    avatarUrl =
-                                      currentConvDetail.lecturer.avatarImg;
-                                    fullName =
-                                      currentConvDetail.lecturer.fullName;
-                                  } else {
-                                    let teamMember =
-                                      currentConvDetail.teamMembers.find(
-                                        x => x.userId == readUserId
+                                      // Check if reader is the lecturer (API returns userId, not lecturerId)
+                                      if (
+                                        currentConvDetail.lecturer &&
+                                        Number(currentConvDetail.lecturer.userId || currentConvDetail.lecturer.lecturerId) ===
+                                          Number(readUserId)
+                                      ) {
+                                        avatarUrl =
+                                          currentConvDetail.lecturer.avatarImg;
+                                        fullName =
+                                          currentConvDetail.lecturer.fullName || currentConvDetail.lecturer.lecturerName;
+                                      } else {
+                                        // Check if reader is a team member (API returns userId, not studentId)
+                                        let teamMember =
+                                          currentConvDetail.teamMembers?.find(
+                                            x => Number(x.userId || x.studentId) === Number(readUserId)
+                                          );
+                                        if (teamMember) {
+                                          avatarUrl = teamMember.avatarImg;
+                                          fullName = teamMember.fullName || teamMember.fullname;
+                                        } else {
+                                          // User not found in lecturer or teamMembers - skip
+                                          console.log('Read user not found:', readUserId, {
+                                            lecturer: currentConvDetail.lecturer,
+                                            teamMembers: currentConvDetail.teamMembers
+                                          });
+                                          return null;
+                                        }
+                                      }
+
+                                      return (
+                                        <AvatarWithFallback
+                                          key={readUserId}
+                                          src={avatarUrl}
+                                          alt={fullName}
+                                          name={fullName}
+                                          className='w-6 h-6 rounded-full border-2 border-white shadow-sm ring-1 ring-gray-100 hover:z-10 hover:scale-110 transition-transform cursor-pointer'
+                                          title={`Read by ${fullName}`}
+                                        />
                                       );
-                                    if (teamMember) {
-                                      avatarUrl = teamMember.avatarImg;
-                                      fullName = teamMember.fullName;
-                                    } else {
-                                      return null;
-                                    }
-                                  }
-
-                                  return (
-                                    <img
-                                      key={readUserId}
-                                      src={avatarUrl}
-                                      alt={fullName}
-                                      className='w-4 h-4 rounded-full border-2 border-white shadow-sm ring-1 ring-gray-200'
-                                      title={`Read by ${fullName}`}
-                                    />
-                                  );
-                                })}
-                              </div>
-                            )}
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       </React.Fragment>
@@ -908,7 +1092,7 @@ export default function ChatComponent() {
                 {showScrollToBottom && (
                   <button
                     onClick={scrollToBottom}
-                    className='fixed bottom-24 right-8 z-50 flex items-center justify-center w-12 h-12 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110 animate-bounce'
+                    className='fixed bottom-24 right-8 z-50 flex items-center justify-center w-12 h-12 bg-orangeFpt-500 hover:bg-orangeFpt-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110 animate-bounce'
                     title='Scroll to bottom'
                   >
                     <ArrowDown className='w-5 h-5' />
@@ -920,7 +1104,7 @@ export default function ChatComponent() {
               <div className='border-t border-gray-200 bg-white p-4 shadow-lg'>
                 <div className='flex items-end space-x-3'>
                   <div
-                    className='flex-1 bg-gray-50 rounded-2xl border-2 border-gray-200 overflow-hidden hover:border-blue-300 transition-colors duration-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100'
+                    className='flex-1 bg-gray-50 rounded-2xl border-2 border-gray-200 overflow-hidden hover:border-orangeFpt-300 transition-colors duration-200 focus-within:border-orangeFpt-500 focus-within:ring-2 focus-within:ring-orangeFpt-100'
                     onKeyDown={handleKeyPress}
                   >
                     <style>{`
@@ -950,12 +1134,12 @@ export default function ChatComponent() {
                       .quill-wrapper .ql-fill { fill: #6b7280; }
                       .quill-wrapper .ql-picker-label { color: #6b7280; }
                       .quill-wrapper .ql-toolbar button:hover .ql-stroke,
-                      .quill-wrapper .ql-toolbar button.ql-active .ql-stroke { stroke: #3b82f6; }
+                      .quill-wrapper .ql-toolbar button.ql-active .ql-stroke { stroke: #f26a1b; }
                       .quill-wrapper .ql-toolbar button:hover .ql-fill,
-                      .quill-wrapper .ql-toolbar button.ql-active .ql-fill { fill: #3b82f6; }
+                      .quill-wrapper .ql-toolbar button.ql-active .ql-fill { fill: #f26a1b; }
                       .quill-wrapper .ql-toolbar button:hover,
                       .quill-wrapper .ql-toolbar button.ql-active {
-                        background-color: #dbeafe;
+                        background-color: #fde1cf;
                         border-radius: 4px;
                       }
                       @keyframes fadeIn {
@@ -976,7 +1160,7 @@ export default function ChatComponent() {
                   <button
                     onClick={handleSendMessage}
                     disabled={!getMessagePreview(inputMessage).trim()}
-                    className='flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 disabled:transform-none'
+                    className='flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 hover:from-orangeFpt-600 hover:to-orangeFpt-700 text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 disabled:transform-none'
                     title='Send message (Enter)'
                   >
                     <Send className='w-5 h-5' />
@@ -1003,9 +1187,9 @@ export default function ChatComponent() {
         {showDetailSidebar && currentConvDetail && (
           <div className='w-80 bg-white border-l border-gray-200 flex flex-col shadow-xl overflow-y-auto'>
             {/* Header */}
-            <div className='p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-between'>
+            <div className='p-4 border-b border-gray-200 bg-gradient-to-r from-orangeFpt-50 to-orangeFpt-100 flex items-center justify-between'>
               <h3 className='text-lg font-semibold text-gray-800 flex items-center'>
-                <Info className='w-5 h-5 mr-2 text-blue-500' />
+                <Info className='w-5 h-5 mr-2 text-orangeFpt-500' />
                 Conversation Details
               </h3>
               <button
@@ -1016,21 +1200,6 @@ export default function ChatComponent() {
               </button>
             </div>
 
-            {/* Conversation Info */}
-            <div className='p-4 border-b border-gray-200'>
-              <div className='text-center'>
-                <div className='inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 mb-3 shadow-lg'>
-                  <MessageCircle className='w-8 h-8 text-white' />
-                </div>
-                <h4 className='text-lg font-bold text-gray-900'>
-                  {currentConvDetail.conversationName}
-                </h4>
-                <p className='text-sm text-gray-500 mt-1'>
-                  {currentConvDetail.teamName}
-                </p>
-              </div>
-            </div>
-
             {/* Lecturer Section */}
             {currentConvDetail.lecturer && (
               <div className='p-4 border-b border-gray-200'>
@@ -1038,15 +1207,21 @@ export default function ChatComponent() {
                   Lecturer
                 </h5>
                 <div className='flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors'>
-                  <img
+                  <AvatarWithFallback
                     src={currentConvDetail.lecturer.avatarImg}
-                    alt={currentConvDetail.lecturer.fullName}
-                    className='w-12 h-12 rounded-full border-2 border-blue-200 shadow-sm'
+                    alt={currentConvDetail.lecturer.fullName || currentConvDetail.lecturer.lecturerName || 'Lecturer'}
+                    name={currentConvDetail.lecturer.fullName || currentConvDetail.lecturer.lecturerName || 'Lecturer'}
+                    className='w-12 h-12 rounded-full border-2 border-orangeFpt-200 shadow-sm'
                   />
                   <div className='flex-1'>
                     <p className='font-semibold text-gray-900'>
-                      {currentConvDetail.lecturer.fullName}
+                      {currentConvDetail.lecturer.fullName || currentConvDetail.lecturer.lecturerName || 'Unknown Lecturer'}
                     </p>
+                    {(currentConvDetail.lecturer.lecturerCode || currentConvDetail.lecturer.isTeacher) && (
+                      <p className='text-xs text-gray-500'>
+                        {currentConvDetail.lecturer.lecturerCode || 'Instructor'}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1058,7 +1233,7 @@ export default function ChatComponent() {
                 <h5 className='text-xs font-semibold text-gray-500 uppercase tracking-wide'>
                   Team Members
                 </h5>
-                <span className='text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-medium'>
+                <span className='text-xs bg-orangeFpt-100 text-orangeFpt-600 px-2 py-1 rounded-full font-medium'>
                   {currentConvDetail.teamMembers?.length || 0}
                 </span>
               </div>
@@ -1067,18 +1242,31 @@ export default function ChatComponent() {
                 {currentConvDetail.teamMembers && currentConvDetail.teamMembers.length > 0 ? (
                   currentConvDetail.teamMembers.map(member => (
                     <div
-                      key={member.userId}
+                      key={member.userId || member.studentId || member.classMemberId}
                       className='flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer'
                     >
-                      <img
+                      <AvatarWithFallback
                         src={member.avatarImg}
-                        alt={member.fullName}
+                        alt={member.fullName || member.fullname || 'Member'}
+                        name={member.fullName || member.fullname || 'Member'}
                         className='w-10 h-10 rounded-full border-2 border-gray-200 shadow-sm'
                       />
                       <div className='flex-1 min-w-0'>
                         <p className='font-medium text-gray-900 truncate'>
-                          {member.fullName}
+                          {member.fullName || member.fullname || 'Unknown Member'}
                         </p>
+                        <div className='flex items-center gap-2 text-xs text-gray-500'>
+                          {member.studentCode && <span>{member.studentCode}</span>}
+                          {member.teamRole && (
+                            <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                              member.teamRole === 'LEADER' 
+                                ? 'bg-yellow-100 text-yellow-700' 
+                                : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {member.teamRole}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))
@@ -1094,12 +1282,6 @@ export default function ChatComponent() {
             {/* Additional Info */}
             <div className='p-4 border-t border-gray-200 bg-gray-50 mt-auto'>
               <div className='space-y-2 text-xs text-gray-600'>
-                <div className='flex items-center justify-between'>
-                  <span className='text-gray-500'>Conversation ID:</span>
-                  <span className='font-mono font-medium'>
-                    {currentConvDetail.conversationId}
-                  </span>
-                </div>
                 {currentConvDetail.latestMessage && (
                   <div className='flex items-center justify-between'>
                     <span className='text-gray-500'>Last activity:</span>

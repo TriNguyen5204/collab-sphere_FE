@@ -32,6 +32,7 @@ export class SignalRChatProvider {
         this.conversationIds = conversationIds;
         this.accessToken = accessToken;
         this.eventEmitter = new EventEmitter();
+        this.hasJoinedConversations = false;
 
         this.connection = new signalr.HubConnectionBuilder()
             .withUrl("https://collabsphere.azurewebsites.net/chathub", {
@@ -51,11 +52,13 @@ export class SignalRChatProvider {
     BindServerCalls() {
         // Fired when a new message is received in the team
         this.connection.on("ReceiveMessage", (message) => {
+            console.log("SignalR ReceiveMessage:", message);
             this.eventEmitter.emit("messageReceived", message);
         });
 
         // Fired when you first join, gives you recent messages
         this.connection.on("ReceiveHistory", (messages) => {
+            console.log("SignalR ReceiveHistory:", messages);
             this.eventEmitter.emit("historyReceived", messages);
         });
 
@@ -84,6 +87,36 @@ export class SignalRChatProvider {
         this.connection.on("UserLeft", (userId) => {
             this.eventEmitter.emit("userLeft", userId);
         });
+
+        // Handle reconnection - rejoin conversations after reconnect
+        this.connection.onreconnected(async (connectionId) => {
+            console.log("SignalR reconnected with connectionId:", connectionId);
+            this.hasJoinedConversations = false;
+            try {
+                await this.connection.invoke(JoinChatConversation, this.conversationIds);
+                this.hasJoinedConversations = true;
+                console.log("Rejoined conversations after reconnect");
+            } catch (err) {
+                console.error("Failed to rejoin conversations after reconnect:", err);
+                this.hasJoinedConversations = false;
+            }
+        });
+
+        this.connection.onreconnecting((error) => {
+            console.log("SignalR reconnecting...", error);
+            this.hasJoinedConversations = false;
+        });
+
+        this.connection.onclose((error) => {
+            console.log("SignalR connection closed", error);
+            this.hasJoinedConversations = false;
+        });
+    }
+    /**
+     * Checks if the connection is in the connected state and has joined conversations.
+     */
+    isConnected() {
+        return this.connection.state === signalr.HubConnectionState.Connected && this.hasJoinedConversations;
     }
 
     /**
@@ -96,8 +129,11 @@ export class SignalRChatProvider {
 
             // Tell the server we want to join this team's chat
             await this.connection.invoke(JoinChatConversation, this.conversationIds);
+            this.hasJoinedConversations = true;
+            console.log("Joined conversations:", this.conversationIds);
         } catch (err) {
             console.error("Chat connection failed: ", err);
+            this.hasJoinedConversations = false;
         }
     }
 
@@ -109,7 +145,15 @@ export class SignalRChatProvider {
     }
 
     async broadcastMessageReadUpdate(conversationId, readMessageId) {
-        await this.connection.invoke(BroadcastMessageReadUpdate, conversationId, readMessageId);
+        if (!this.isConnected()) {
+            console.warn("Cannot broadcast read update - not connected or not joined conversations");
+            return;
+        }
+        try {
+            await this.connection.invoke(BroadcastMessageReadUpdate, conversationId, readMessageId);
+        } catch (err) {
+            console.error("Failed to broadcast read update:", err);
+        }
     }
 
     /**
@@ -129,14 +173,17 @@ export class SignalRChatProvider {
      * @param {string} content - The text content of the message.
      */
     async sendMessage(conversationId, content) {
-        if (this.connection.state !== signalr.HubConnectionState.Connected) {
-            console.error("Cannot send message, not connected.");
+        console.log("sendMessage called:", { conversationId, content, connectionState: this.connection.state, hasJoined: this.hasJoinedConversations });
+        
+        if (!this.isConnected()) {
+            console.error("Cannot send message, not connected or not joined. State:", this.connection.state);
             return;
         }
 
         try {
             // The server will get the senderId/Name from the context.
             await this.connection.invoke(BroadCastMessage, conversationId, content);
+            console.log("Message sent successfully via SignalR");
         } catch (err) {
             console.error("Failed to send message: ", err);
         }
