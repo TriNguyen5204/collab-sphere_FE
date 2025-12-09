@@ -132,7 +132,7 @@ function JoinPage() {
 
               <div className='flex-1 flex flex-col space-y-6'>
                 <div>
-                  <label className='block text-sm font-semibold text-slate-600 mb-3 ml-1 uppercase tracking-wider text-xs'>
+                  <label className='block text-sm font-semibold text-slate-600 mb-3 ml-1 uppercase tracking-wider'>
                     Meeting Title
                   </label>
                   <input
@@ -189,7 +189,7 @@ function JoinPage() {
 
               <div className='flex-1 flex flex-col space-y-6'>
                 <div>
-                  <label className='block text-sm font-semibold text-slate-600 mb-3 ml-1 uppercase tracking-wider text-xs'>
+                  <label className='block text-sm font-semibold text-slate-600 mb-3 ml-1 uppercase tracking-wider'>
                     Room ID
                   </label>
                   <input

@@ -299,7 +299,6 @@ const CardModal = ({
   };
 
   const handleDeleteTask = async taskId => {
-    if (!window.confirm('Delete this task?')) return;
 
     try {
       await deleteTask(
@@ -318,8 +317,7 @@ const CardModal = ({
   };
 
   // ✅ SUBTASK HANDLERS - CHỈ GỌI SIGNALR
-  const handleCreateSubtask = async taskId => {
-    const title = prompt('Enter subtask title:');
+  const handleCreateSubtask = async (taskId, title) => {
     if (!title) return;
 
     try {
@@ -365,7 +363,6 @@ const CardModal = ({
   };
 
   const handleDeleteSubtask = async (taskId, subTaskId) => {
-    if (!window.confirm('Delete this subtask?')) return;
 
     try {
       await deleteSubTask(

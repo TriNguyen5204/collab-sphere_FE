@@ -28,16 +28,16 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
     const container = containerRef.current;
 
     // ✅ FIX: Reduce mouse scroll sensitivity (zoom)
-    const handleWheel = (e) => {
+    const handleWheel = e => {
       if (e.cancelable) {
         // Reduce zoom speed to 40%
         Object.defineProperty(e, 'deltaY', {
           value: e.deltaY * 0.4,
-          writable: false
+          writable: false,
         });
         Object.defineProperty(e, 'deltaX', {
           value: e.deltaX * 0.4,
-          writable: false
+          writable: false,
         });
       }
     };
@@ -141,7 +141,7 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
         console.log(
           `📦 Received ${shapesFromApi.shapes?.length || 0} shapes from API`
         );
-        console.log("shape of page", shapesFromApi)
+        console.log('shape of page', shapesFromApi);
 
         // const formattedShapes = shapesFromApi.shapes.map(s =>
         //   parseShapeJson(s)
@@ -161,9 +161,7 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
         // Put new shapes
         if (shapesFromApi.length) {
           editor.store.put(shapesFromApi);
-          console.log(
-            `✅ Loaded ${shapesFromApi.length} shapes for ${pageId}`
-          );
+          console.log(`✅ Loaded ${shapesFromApi.length} shapes for ${pageId}`);
         } else {
           console.log(`ℹ️ No shapes found for ${pageId}`);
         }
@@ -228,9 +226,10 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
             id: `page:${p.pageId}`,
             typeName: 'page',
             name: p.pageTitle,
-            index: `a${p.pageId}`,
+            index: `a${String(p.pageId).padStart(6, '0')}`,
             meta: {},
           }));
+          pageRecords.sort((a, b) => a.index.localeCompare(b.index));
           editor.store.put(pageRecords);
 
           // Remove default Tldraw page
@@ -246,14 +245,26 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
             console.log('🗑️ Removed default Tldraw page');
           }
 
-          const firstPageId = pageRecords[0].id;
+          const storageKey = `tldraw_current_page_${whiteboardId}`;
+          const savedPageId = localStorage.getItem(storageKey);
+
+          // Kiểm tra xem trang đã lưu có còn tồn tại trong danh sách mới load không
+          const targetPageExists =
+            savedPageId && pageRecords.some(p => p.id === savedPageId);
+
+          // Nếu có trang đã lưu thì dùng, không thì dùng trang đầu tiên (đã sort)
+          const targetPageId = targetPageExists
+            ? savedPageId
+            : pageRecords[0].id;
+
+          console.log('🎯 Setting current page to:', targetPageId);
 
           // Set current page FIRST
-          editor.setCurrentPage(firstPageId);
-          setCurrentPageId(firstPageId);
+          editor.setCurrentPage(targetPageId);
+          setCurrentPageId(targetPageId);
 
           // Load shapes for first page
-          await loadShapesForPage(firstPageId);
+          await loadShapesForPage(targetPageId);
 
           hasInitialized.current = true;
           console.log('✅ Initialization complete');
@@ -289,6 +300,7 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
         if (!newPageId || newPageId === currentPageId) return;
 
         console.log('🔄 User switched to page:', newPageId);
+        localStorage.setItem(`tldraw_current_page_${whiteboardId}`, newPageId);
         setCurrentPageId(newPageId);
 
         // Load shapes (will use cache if available)
@@ -298,7 +310,7 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
     );
 
     return () => unsub();
-  }, [editor, currentPageId, loadShapesForPage]);
+  }, [editor, currentPageId, loadShapesForPage, whiteboardId]);
 
   return (
     <div

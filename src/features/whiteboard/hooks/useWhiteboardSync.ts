@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 import type {
     Editor,
     TLRecord,
@@ -303,12 +303,14 @@ export function useWhiteboardSync(
 ) {
     const confirmWithToast = useToastConfirmation();
     const socketRef = useRef<WebSocket | null>(null)
+    const [activeSocket, setActiveSocket] = useState<WebSocket | null>(null);
     const batcherRef = useRef<OptimizedRAFBatcher | null>(null)
     const presenceRef = useRef<PresenceThrottler | null>(null)
     const msgBufferRef = useRef<string>('');
     const isConnecting = useRef(false)
     const isMounted = useRef(true)
     const reconnectTimeoutRef = useRef<number | null>(null)
+    const cleanupFunctionsRef = useRef<Array<() => void>>([])
 
     useEffect(() => {
         isMounted.current = true
@@ -371,6 +373,8 @@ export function useWhiteboardSync(
                 presenceRef.current.destroy();
                 presenceRef.current = null;
             }
+            cleanupFunctionsRef.current.forEach(cleanup => cleanup())
+            cleanupFunctionsRef.current = []
 
             // Auto-reconnect on abnormal closure
             if (isMounted.current && e.code !== 1000 && e.code !== 1001) {
@@ -387,6 +391,7 @@ export function useWhiteboardSync(
         socket.onopen = () => {
             console.log(`✅ Connected to page: ${pageId} as ${drawerId} (${drawerName})`);
             isConnecting.current = false
+            if (isMounted.current) setActiveSocket(socket);
 
             if (!editor) {
                 console.error('❌ Editor is null after connection opened!');
@@ -394,9 +399,9 @@ export function useWhiteboardSync(
                 return;
             }
 
-            editor.updateInstanceState({
-                cursor: { type: 'none', rotation: 0 },
-            })
+            // editor.updateInstanceState({
+            //     cursor: { type: 'none', rotation: 0 },
+            // })
 
             // Clear old shapes when connecting
             const oldShapeIds = Array.from(editor.store.allRecords())
@@ -495,13 +500,14 @@ export function useWhiteboardSync(
                 if (msg.type === 'new_page') {
                     console.log('📡 WebSocket: Received new_page', msg.page);
                     const tldrawPageId = `page:${msg.page.pageId}` as TLPageId;
+                    const pageIndex = `a${String(msg.page.pageId).padStart(6, '0')}` as IndexKey;
 
                     if (!editor.store.get(tldrawPageId)) {
                         editor.store.put([{
                             id: tldrawPageId,
                             typeName: 'page',
                             name: msg.page.pageTitle,
-                            index: `a${msg.page.pageId}` as IndexKey,
+                            index: pageIndex,
                             meta: {},
                         }]);
                         console.log(`✅ Added new page from WebSocket: ${msg.page.pageTitle}`);
@@ -586,9 +592,9 @@ export function useWhiteboardSync(
                         if (updated) {
                             Object.values(updated).forEach((u: any) => {
                                 let updateRec: TLRecord | null = null;
-                                
+
                                 if (Array.isArray(u) && u.length === 2) {
-                                    updateRec = u[1] as TLRecord; 
+                                    updateRec = u[1] as TLRecord;
                                 } else {
                                     updateRec = u as TLRecord;
                                 }
@@ -609,7 +615,7 @@ export function useWhiteboardSync(
                                         // Nếu chưa có, đây có thể là update rời rạc, cứ lưu vào
                                         recordsMap.set(updateRec.id, updateRec);
                                     }
-                                    
+
                                     idsToRemove.delete(updateRec.id as TLRecord['id']);
                                 }
                             });
@@ -623,7 +629,7 @@ export function useWhiteboardSync(
                             // TypeScript sẽ không báo lỗi nữa vì toRemove đã đúng kiểu
                             editor.store.remove(toRemove);
                         }
-                        
+
                         if (toPut.length > 0) {
                             editor.store.put(toPut);
                         }
@@ -799,5 +805,5 @@ export function useWhiteboardSync(
         }
     }, [editor, whiteboardId, pageId, drawerId, drawerName])
 
-    return socketRef.current;
+    return activeSocket;
 }
