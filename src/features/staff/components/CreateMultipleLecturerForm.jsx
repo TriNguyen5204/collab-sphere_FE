@@ -69,24 +69,27 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
   };
 
   // Validate file structure using utility
-  const validateFileStructure = (parsedData) => {
-    return validateExcelStructure(parsedData, LECTURER_TEMPLATE.requiredColumns);
+  const validateFileStructure = parsedData => {
+    return validateExcelStructure(
+      parsedData,
+      LECTURER_TEMPLATE.requiredColumns
+    );
   };
 
   // Validate data using utility
-  const validateData = (data) => {
+  const validateData = data => {
     return validateDataWithRules(data, LECTURER_TEMPLATE.validationRules);
   };
 
   // Check file type
-  const isValidExcelFile = (file) => {
+  const isValidExcelFile = file => {
     const validExtensions = ['.xlsx', '.xls'];
     const fileName = file.name.toLowerCase();
     return validExtensions.some(ext => fileName.endsWith(ext));
   };
 
   // Handle file upload
-  const handleFileUpload = (event) => {
+  const handleFileUpload = event => {
     const file = event.target.files[0];
     if (!file) return;
 
@@ -155,7 +158,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
       }
     };
 
-    reader.onload = (e) => {
+    reader.onload = e => {
       try {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
@@ -216,14 +219,20 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
         }
 
         // Show warnings if any
-        if (structureValidation.warnings && structureValidation.warnings.length > 0) {
+        if (
+          structureValidation.warnings &&
+          structureValidation.warnings.length > 0
+        ) {
           structureValidation.warnings.forEach(warning => {
             toast.warning(warning);
-            setStructureErrors(prev => [...prev, {
-              type: 'warning',
-              message: `⚠️ ${warning}`,
-              details: 'These columns will be ignored during import.',
-            }]);
+            setStructureErrors(prev => [
+              ...prev,
+              {
+                type: 'warning',
+                message: `⚠️ ${warning}`,
+                details: 'These columns will be ignored during import.',
+              },
+            ]);
           });
         }
 
@@ -239,7 +248,6 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
         } else {
           toast.warning(`⚠️ Found ${dataErrors.length} errors in file`);
         }
-
       } catch (error) {
         console.error('Error reading file:', error);
         setUploadStatus('error');
@@ -288,34 +296,43 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
       const file = new File([blob], 'lecturers.xlsx', { type: blob.type });
 
       const response = await importLecturerList(file);
-      
+      console.log('Import response:', response);
+
       // Use response parser to handle message
-      const isSuccess = handleImportResponse(response, toast, 'lecturers');
-      
-      if (isSuccess) {
-        setIsSubmitting(true);
-        setTimeout(() => {
-          if (onClose) onClose();
-        }, 2000); // Give time to read messages
+      if (response.isSuccess === true) {
+        toast.success('Lecturers imported successfully!');
       } else {
-        // If import failed (0 imported), show API errors if available
-        if (response.errorList && response.errorList.length > 0) {
-          setApiErrors(response.errorList);
+        const isSuccess = handleImportResponse(response, toast, 'lecturers');
+
+        if (isSuccess) {
+          setIsSubmitting(true);
+          setTimeout(() => {
+            if (onClose) onClose();
+          }, 2000); // Give time to read messages
+        } else {
+          // If import failed (0 imported), show API errors if available
+          if (response.errorList && response.errorList.length > 0) {
+            setApiErrors(response.errorList);
+          }
         }
       }
     } catch (error) {
       console.error('Error importing lecturers:', error);
-      
+
       const apiErrorList = error?.response?.data?.errorList || [];
       setApiErrors(apiErrorList);
-      
+
       if (apiErrorList.length > 0) {
         apiErrorList.forEach(err => {
           toast.error(`${err.field}: ${err.message}`);
         });
       } else if (error?.response?.data?.message) {
         // Try to parse error message
-        const isSuccess = handleImportResponse(error.response.data, toast, 'lecturers');
+        const isSuccess = handleImportResponse(
+          error.response.data,
+          toast,
+          'lecturers'
+        );
         if (!isSuccess && error.response.data.message) {
           toast.error(error.response.data.message);
         }
@@ -510,9 +527,13 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
               </h4>
               <div className='space-y-2 max-h-60 overflow-y-auto'>
                 {errors.map((err, idx) => (
-                  <div key={idx} className='text-sm bg-white p-2 rounded border border-orange-200'>
+                  <div
+                    key={idx}
+                    className='text-sm bg-white p-2 rounded border border-orange-200'
+                  >
                     <p className='text-orange-800'>
-                      <span className='font-medium'>Row {err.row}:</span> {err.name}
+                      <span className='font-medium'>Row {err.row}:</span>{' '}
+                      {err.name}
                     </p>
                     <p className='text-orange-700 ml-4'>
                       • {err.errors.join(', ')}
@@ -532,76 +553,80 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
       )}
 
       {/* Preview Section */}
-      {uploadStatus === 'success' && lecturers.length > 0 && errors.length === 0 && (
-        <div className='bg-white border border-gray-200 rounded-xl overflow-hidden mb-6'>
-          <div className='bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b'>
-            <div className='flex items-center justify-between'>
-              <h3 className='text-lg font-semibold text-gray-900 flex items-center gap-2'>
-                <Users size={20} />
-                ✅ Valid file! ({lecturers.length} lecturers)
-              </h3>
-              <button
-                onClick={resetForm}
-                className='text-gray-500 hover:text-gray-700 p-1'
-                title='Clear and upload again'
-              >
-                <X className='w-5 h-5' />
-              </button>
-            </div>
-          </div>
-
-          <div className='max-h-96 overflow-y-auto'>
-            <div className='divide-y divide-gray-100'>
-              {lecturers.map((lecturer, idx) => (
-                <div
-                  key={idx}
-                  className='p-4 hover:bg-gray-50 transition-colors'
+      {uploadStatus === 'success' &&
+        lecturers.length > 0 &&
+        errors.length === 0 && (
+          <div className='bg-white border border-gray-200 rounded-xl overflow-hidden mb-6'>
+            <div className='bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b'>
+              <div className='flex items-center justify-between'>
+                <h3 className='text-lg font-semibold text-gray-900 flex items-center gap-2'>
+                  <Users size={20} />✅ Valid file! ({lecturers.length}{' '}
+                  lecturers)
+                </h3>
+                <button
+                  onClick={resetForm}
+                  className='text-gray-500 hover:text-gray-700 p-1'
+                  title='Clear and upload again'
                 >
-                  <div className='flex items-start justify-between'>
-                    <div className='flex-1'>
-                      <div className='flex items-center gap-3 mb-2'>
-                        <div className='w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center'>
-                          <User size={16} className='text-blue-600' />
-                        </div>
-                        <div>
-                          <h4 className='font-semibold text-gray-900'>
-                            {lecturer.FullName}
-                          </h4>
-                          <div className='flex items-center gap-4 text-sm text-gray-600 mt-1'>
-                            <div className='flex items-center gap-1'>
-                              <Building size={14} />
-                              <span>{lecturer.Major}</span>
-                            </div>
-                            <div className='flex items-center gap-1'>
-                              <Phone size={14} />
-                              <span>{lecturer.PhoneNumber}</span>
+                  <X className='w-5 h-5' />
+                </button>
+              </div>
+            </div>
+
+            <div className='max-h-96 overflow-y-auto'>
+              <div className='divide-y divide-gray-100'>
+                {lecturers.map((lecturer, idx) => (
+                  <div
+                    key={idx}
+                    className='p-4 hover:bg-gray-50 transition-colors'
+                  >
+                    <div className='flex items-start justify-between'>
+                      <div className='flex-1'>
+                        <div className='flex items-center gap-3 mb-2'>
+                          <div className='w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center'>
+                            <User size={16} className='text-blue-600' />
+                          </div>
+                          <div>
+                            <h4 className='font-semibold text-gray-900'>
+                              {lecturer.FullName}
+                            </h4>
+                            <div className='flex items-center gap-4 text-sm text-gray-600 mt-1'>
+                              <div className='flex items-center gap-1'>
+                                <Building size={14} />
+                                <span>{lecturer.Major}</span>
+                              </div>
+                              <div className='flex items-center gap-1'>
+                                <Phone size={14} />
+                                <span>{lecturer.PhoneNumber}</span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                      <div className='flex items-start gap-1 text-sm text-gray-600 ml-11'>
-                        <MapPin size={14} className='mt-0.5 flex-shrink-0' />
-                        <span>{lecturer.Address}</span>
-                      </div>
-                      {lecturer.Email && (
-                        <div className='ml-11 text-sm text-gray-600 mt-1'>
-                          📧 {lecturer.Email}
+                        <div className='flex items-start gap-1 text-sm text-gray-600 ml-11'>
+                          <MapPin size={14} className='mt-0.5 flex-shrink-0' />
+                          <span>{lecturer.Address}</span>
                         </div>
-                      )}
+                        {lecturer.Email && (
+                          <div className='ml-11 text-sm text-gray-600 mt-1'>
+                            📧 {lecturer.Email}
+                          </div>
+                        )}
+                      </div>
+                      <div className='text-xs text-gray-400'>#{idx + 1}</div>
                     </div>
-                    <div className='text-xs text-gray-400'>#{idx + 1}</div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* API Errors */}
       {apiErrors.length > 0 && (
         <div className='mb-6 p-4 bg-red-50 border border-red-300 rounded-lg'>
-          <h3 className='text-red-600 font-semibold mb-2'>Error list from server:</h3>
+          <h3 className='text-red-600 font-semibold mb-2'>
+            Error list from server:
+          </h3>
           <ul className='list-disc list-inside text-red-700 space-y-1'>
             {apiErrors.map((err, index) => (
               <li key={index}>
@@ -616,7 +641,11 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
       {lecturers.length > 0 && errors.length === 0 && !isSubmitting && (
         <div className='flex items-center justify-between pt-4 border-t border-gray-200'>
           <p className='text-sm text-gray-600'>
-            Ready to create <span className='font-semibold text-gray-800'>{lecturers.length}</span> accounts
+            Ready to create{' '}
+            <span className='font-semibold text-gray-800'>
+              {lecturers.length}
+            </span>{' '}
+            accounts
           </p>
           <button
             onClick={handleConfirm}

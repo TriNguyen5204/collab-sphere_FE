@@ -17,6 +17,7 @@ import {
   getClass,
   getAllSubject,
   getAllLecturer,
+  getSemester,
 } from '../../services/userService';
 import StaffDashboardLayout from '../../components/layout/StaffDashboardLayout';
 
@@ -123,10 +124,12 @@ export default function ClassListStaff() {
   const [classes, setClasses] = useState([]);
   const [subjectOptions, setSubjectOptions] = useState([]);
   const [lecturerOptions, setLecturerOptions] = useState([]);
+  const [semesterOptions, setSemesterOptions] = useState([]);
   const navigate = useNavigate();
 
   const [filters, setFilters] = useState({
-    ClassName: '',
+    Descriptor: '',
+    SemesterId: null,
     SubjectIds: null,
     LecturerIds: null,
     OrderBy: 'ClassName',
@@ -142,12 +145,14 @@ export default function ClassListStaff() {
   useEffect(() => {
     const fetchDropdowns = async () => {
       try {
-        const [subjects, lecturers] = await Promise.all([
+        const [subjects, lecturers, semesters] = await Promise.all([
           getAllSubject(),
           getAllLecturer(true),
+          getSemester(),
         ]);
         setSubjectOptions(subjects || []);
         setLecturerOptions(lecturers.list || []);
+        setSemesterOptions(semesters || []);
       } catch (err) {
         console.error('Error loading filters:', err);
       }
@@ -224,7 +229,7 @@ export default function ClassListStaff() {
         {/* Filter Section - Glassmorphism */}
         <form
           onSubmit={handleSearch}
-          className='bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-lg border border-orange-200/30 mb-8 grid grid-cols-1 md:grid-cols-4 gap-4'
+          className='bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-lg border border-orange-200/30 mb-8 grid grid-cols-1 md:grid-cols-5 gap-4'
         >
           {/* ClassName */}
           <div className='col-span-1'>
@@ -234,9 +239,9 @@ export default function ClassListStaff() {
             <div className='relative'>
               <input
                 type='text'
-                value={filters.ClassName}
+                value={filters.Descriptor}
                 onChange={e =>
-                  setFilters({ ...filters, ClassName: e.target.value })
+                  setFilters({ ...filters, Descriptor: e.target.value })
                 }
                 placeholder='Search class...'
                 className='w-full bg-white/70 backdrop-blur-sm border border-orange-200/50 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400 focus:outline-none transition-all'
@@ -247,7 +252,30 @@ export default function ClassListStaff() {
               />
             </div>
           </div>
-
+          {/* Semester */}
+          <div>
+            <label className='block text-sm font-semibold text-slate-700 mb-2'>
+              Semester
+            </label>
+            <select
+              className='w-full bg-white/70 backdrop-blur-sm border border-orange-200/50 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400 focus:outline-none transition-all'
+              value={filters.SemesterId ?? ''}
+              onChange={e =>
+                setFilters({
+                  ...filters,
+                  SemesterId: e.target.value ? parseInt(e.target.value) : null,
+                })
+              }
+            >
+              <option value=''>All</option>{' '}
+              {/* Hoặc "All Semesters" tùy logic mặc định */}
+              {semesterOptions.map(sem => (
+                <option key={sem.semesterId} value={sem.semesterId}>
+                  {sem.semesterName} ({sem.semesterCode})
+                </option>
+              ))}
+            </select>
+          </div>
           {/* Subject */}
           <div>
             <label className='block text-sm font-semibold text-slate-700 mb-2'>
@@ -339,7 +367,7 @@ export default function ClassListStaff() {
           </div>
 
           {/* Search Button */}
-          <div className='md:col-span-4 flex justify-end'>
+          <div className='md:col-span-5 flex justify-end'>
             <button
               type='submit'
               className='bg-gradient-to-r from-orange-500 to-orange-600 text-white px-8 py-2.5 rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl backdrop-blur-sm border border-orange-300/20'
@@ -386,7 +414,6 @@ export default function ClassListStaff() {
             {/* Grid display */}
             <div
               className='grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
-              style={{ minHeight: '500px', gridAutoRows: '1fr' }}
             >
               {classes.map(c => (
                 <ClassCard key={c.classId} cls={c} onClick={handleClassClick} />

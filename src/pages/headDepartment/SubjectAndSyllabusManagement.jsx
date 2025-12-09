@@ -28,7 +28,6 @@ export default function SubjectManagement() {
 
   // Data state
   const [subjects, setSubjects] = useState([]);
-  const [selectedSubject, setSelectedSubject] = useState(null);
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,7 +39,6 @@ export default function SubjectManagement() {
 
   // Modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -104,11 +102,6 @@ export default function SubjectManagement() {
     navigate(`/head-department/subject-management/${subject.subjectId}`);
   };
 
-  const handleEditSubject = subject => {
-    setSelectedSubject(subject);
-    setIsUpdateModalOpen(true);
-  };
-
   const handleDeleteSubject = subject => {
     // TODO: Implement delete logic with confirmation
     console.log('Delete subject:', subject);
@@ -124,7 +117,6 @@ export default function SubjectManagement() {
 
   const handleModalClose = (shouldRefresh = false) => {
     setIsCreateModalOpen(false);
-    setIsUpdateModalOpen(false);
     if (shouldRefresh) {
       fetchSubjects();
     }
@@ -180,14 +172,12 @@ export default function SubjectManagement() {
                     <SubjectGridView
                       subjects={currentSubjects}
                       onView={handleViewSubject}
-                      onEdit={handleEditSubject}
                       onDelete={handleDeleteSubject}
                     />
                   ) : (
                     <SubjectListView
                       subjects={currentSubjects}
                       onView={handleViewSubject}
-                      onEdit={handleEditSubject}
                       onDelete={handleDeleteSubject}
                     />
                   )}
@@ -215,23 +205,12 @@ export default function SubjectManagement() {
         <ModalWrapper
           isOpen={isCreateModalOpen}
           onClose={() => handleModalClose(false)}
-          title='Add Multiple Subjects'
         >
           <CreateMultipleSubjectForm
             onClose={shouldRefresh => handleModalClose(shouldRefresh)}
           />
         </ModalWrapper>
 
-        <ModalWrapper
-          isOpen={isUpdateModalOpen}
-          onClose={() => handleModalClose(false)}
-          title='Update Subject'
-        >
-          <UpdateSubjectForm
-            subject={selectedSubject}
-            onClose={() => handleModalClose(true)}
-          />
-        </ModalWrapper>
       </div>
     </HeadDashboardLayout>
   );

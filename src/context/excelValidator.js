@@ -195,8 +195,8 @@ export const LECTURER_TEMPLATE = {
       required: true,
       type: 'number',
       min: 1950,
-      max: 1980,
-      errorMessage: 'YOB must be a number between 1950-1980',
+      max: 2004,
+      errorMessage: 'YOB must be a number between 1950-2004',
     },
     School: {
       required: true,

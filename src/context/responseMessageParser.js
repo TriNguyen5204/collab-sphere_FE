@@ -95,35 +95,46 @@ export const displayApiMessages = (parsedMessage, toast, entityType = 'records')
  * @returns {boolean} - Whether the import was successful (at least 1 record imported)
  */
 export const handleImportResponse = (response, toast, entityType = 'records') => {
-  // Check if response has isSuccess
+  // Check for explicit failure
   if (response.isSuccess === false) {
-    // Handle errorList if present
     if (response.errorList && response.errorList.length > 0) {
       response.errorList.forEach(err => {
-        toast.error(`${err.field}: ${err.message}`);
+        toast.error(`${err.field ? err.field + ': ' : ''}${err.message}`);
       });
       return false;
     }
     
-    // Handle message if present
     if (response.message) {
-      const parsed = parseApiResponseMessage(response.message);
-      displayApiMessages(parsed, toast, entityType);
-      return parsed.importCount > 0;
+      toast.error(response.message);
+      return false;
     }
     
     toast.error(`Failed to import ${entityType}`);
     return false;
   }
 
-  // Success case - parse and display messages
-  if (response.message) {
+  // Handle success case with message
+  if (response.isSuccess === true && response.message) {
     const parsed = parseApiResponseMessage(response.message);
-    displayApiMessages(parsed, toast, entityType);
-    return parsed.importCount > 0;
+    
+    // If there are parsed messages, display them
+    if (parsed.messages.length > 0) {
+      displayApiMessages(parsed, toast, entityType);
+      return parsed.importCount > 0 || !parsed.hasErrors;
+    }
+    
+    // If no parsed messages but has message, show it as success
+    toast.success(response.message);
+    return true;
   }
 
-  // Default success
-  toast.success(`${entityType} imported successfully!`);
+  // Default success case (no message)
+  if (response.isSuccess === true) {
+    toast.success(`Successfully imported ${entityType}`);
+    return true;
+  }
+
+  // Fallback for unclear response
+  toast.info('Import completed. Please check the results.');
   return true;
 };
