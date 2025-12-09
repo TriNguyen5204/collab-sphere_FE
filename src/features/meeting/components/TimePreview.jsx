@@ -1,21 +1,22 @@
-const TimePreview = ({ selectedDate, startTime, formatIsoString }) => {
-  if (!selectedDate || !startTime) return null;
+import { Clock, Globe } from 'lucide-react';
 
-  const dateStr = selectedDate?.dateStr?.split('T')[0];
+const TimePreview = ({ selectedDate, startTime, formatIsoString }) => {
+  if (!selectedDate?.dateStr || !startTime) return null;
+
+  const dateStr = selectedDate.dateStr.split('T')[0];
   const isoString = new Date(`${dateStr}T${startTime}`).toISOString();
 
   return (
-    <div className='mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200'>
+    <div className='p-3 bg-orangeFpt-50 rounded-xl border border-orangeFpt-100'>
       <div className='flex items-center gap-2 text-sm'>
-        <svg className='w-4 h-4 text-blue-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-          <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' />
-        </svg>
-        <span className='text-blue-900 font-medium'>
+        <Clock className='w-4 h-4 text-orangeFpt-500' />
+        <span className='text-orangeFpt-800 font-medium'>
           Scheduled for: {formatIsoString(isoString)}
         </span>
       </div>
-      <div className='mt-1 text-xs text-blue-700 ml-6'>
-        Timezone: Asia/Ho_Chi_Minh (GMT+7)
+      <div className='mt-1.5 flex items-center gap-1.5 text-xs text-orangeFpt-600 ml-6'>
+        <Globe className='w-3 h-3' />
+        <span>Timezone: Asia/Ho_Chi_Minh (GMT+7)</span>
       </div>
     </div>
   );

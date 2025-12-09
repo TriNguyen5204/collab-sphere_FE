@@ -127,7 +127,9 @@ const MeetingSchedulerFull = () => {
       return;
     }
 
-    const startDateTime = buildDateTime(selectedDate?.dateStr, eventForm.startTime);
+    // Use form's selectedDateStr if available (user changed date), otherwise use calendar's selectedDate
+    const dateToUse = eventForm.selectedDateStr || selectedDate?.dateStr;
+    const startDateTime = buildDateTime(dateToUse, eventForm.startTime);
 
     // Validate that the meeting time is not in the past for new meetings
     if (!selectedEvent) {
@@ -142,7 +144,7 @@ const MeetingSchedulerFull = () => {
       // Update existing event
       selectedEvent.setProp('title', eventForm.title);
       selectedEvent.setExtendedProp('description', eventForm.description);
-      toast.success('✅ Meeting updated successfully!');
+      toast.success('Meeting updated successfully!');
       setShowModal(false);
       resetForm();
       return;
@@ -157,7 +159,7 @@ const MeetingSchedulerFull = () => {
       const response = await createMeeting(payload);
       
       if (response?.isSuccess) {
-        toast.success(`🎉 Meeting created successfully at ${formattedTime}!`);
+        toast.success(`Meeting created successfully at ${formattedTime}!`);
         
         setEvents([
           ...events,

@@ -1,5 +1,5 @@
-import { useRef, useEffect, useState } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useRef, useEffect, useState, useCallback } from 'react';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useSocket } from '../../features/meeting/hooks/useSocket';
 import { useMediaStream } from '../../features/meeting/hooks/useMediaStream';
 import { useScreenShare } from '../../features/meeting/hooks/useScreenShare';
@@ -8,47 +8,122 @@ import { ParticipantVideo } from '../../features/meeting/components/ParticipantV
 import { ControlBar } from '../../features/meeting/components/ControlBar';
 import { useMeetingRecorder } from '../../features/meeting/hooks/useMeetingRecorder';
 import ChatBox from '../../features/meeting/components/ChatBox';
-import { useNavigate } from 'react-router-dom';
 import { updateMeeting } from '../../features/meeting/services/meetingApi';
 import { toast } from 'sonner';
 import { useSelector } from 'react-redux';
+import { ShieldAlert, Loader2 } from 'lucide-react';
 
+/**
+ * MeetingRoom - Simplified version
+ * Security: User must be logged in to join
+ * Logic: login = access (no waiting room)
+ */
 function MeetingRoom() {
   const { roomId } = useParams();
-  const { teamId } = useParams();
   const location = useLocation();
-  const myName = location.state?.myName || 'Anonymous';
+  const navigate = useNavigate();
+  
+  // Get teamId from navigation state (hidden from URL for security)
+  const [teamId] = useState(location.state?.teamId || null);
+  
+  // Get authenticated user data from Redux store (secure source)
+  const userId = useSelector(state => state.user.userId);
+  const fullName = useSelector(state => state.user.fullName);
+  const roleName = useSelector(state => state.user.roleName);
+  const accessToken = useSelector(state => state.user.accessToken);
+  
+  // Use authenticated user name
+  const myName = fullName || 'User';
+  
+  // Get meeting info from navigation state (optional metadata)
   const title = location.state?.title || '';
   const description = location.state?.description || '';
   const meetingId = location.state?.meetingId || null;
   const isHost = location.state?.isHost || false;
-  const navigate = useNavigate();
-  const roleName = useSelector(state => state.user.roleName);
+
+  // Simple authorization state
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [authError, setAuthError] = useState(null);
+  const [roomExists, setRoomExists] = useState(null); // null = checking, true/false = result
+  const [roomClosedByHost, setRoomClosedByHost] = useState(false);
 
   const myVideo = useRef();
   const peersRef = useRef({});
   const [showChat, setShowChat] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
 
-  // Custom hooks
+  // Initialize socket
   const { socket, me } = useSocket();
+  
+  // Simple authorization check: login = access
+  useEffect(() => {
+    const validateAccess = () => {
+      setIsCheckingAuth(true);
+      setAuthError(null);
+
+      // User must be authenticated (have valid token and userId)
+      if (!accessToken || !userId) {
+        setAuthError('You must be logged in to join a meeting.');
+        setIsCheckingAuth(false);
+        return;
+      }
+
+      // User is logged in → allow access
+      console.log('✅ [MeetingRoom] User authenticated - granting access');
+      setIsAuthorized(true);
+      setIsCheckingAuth(false);
+    };
+
+    validateAccess();
+  }, [accessToken, userId]);
+
+  // Check if room exists when socket is ready
+  useEffect(() => {
+    if (!socket || !roomId || !isAuthorized) return;
+
+    // If user is the host, they're creating the room - no need to check
+    if (isHost) {
+      console.log('🏠 [MeetingRoom] User is host - skipping room check');
+      setRoomExists(true);
+      return;
+    }
+
+    console.log('🔍 [MeetingRoom] Checking if room exists...');
+    socket.emit('check-room-exists', { roomId }, (response) => {
+      console.log('🔍 [MeetingRoom] Room check result:', response);
+      
+      if (response.exists) {
+        setRoomExists(true);
+      } else {
+        setRoomExists(false);
+        setAuthError('This meeting room does not exist or has ended.');
+      }
+    });
+  }, [socket, roomId, isAuthorized, isHost]);
+
+  // Handle room closed by host callback
+  const handleRoomClosed = useCallback((reason) => {
+    console.log('🚪 [MeetingRoom] Room closed:', reason);
+    setRoomClosedByHost(true);
+    toast.error(reason || 'The meeting has ended');
+  }, []);
+
+  // Media stream hook
   const { stream, localStreamRef, toggleAudio, toggleVideo } = useMediaStream();
 
-  // Callback function to handle recording completion
+  // Callback for recording completion
   const handleRecordingComplete = async (videoUrl) => {
     console.log('🎬 Recording complete. Video URL:', videoUrl);
     try {
-      const response = await updateMeeting({
+      await updateMeeting({
         meetingId: meetingId,
         Title: title,
         Description: description,
         RecordUrl: videoUrl,
       });
-
-      console.log('✅ Meeting updated successfully:', response.data);
       toast.success('Video has been saved and updated to the meeting!');
     } catch (error) {
-      console.error('❌ Failed to update meeting:', error);
       toast.error('Video has been uploaded but could not update the meeting. Please check again.');
     }
   };
@@ -72,21 +147,22 @@ function MeetingRoom() {
     stopScreenShare,
   } = useScreenShare(peersRef, localStreamRef, roomId, socket);
 
-  const { groupPeers, peersSharingScreen } = usePeerConnections(
+  const { groupPeers, peersSharingScreen, roomClosed } = usePeerConnections(
     socket,
-    stream,
+    isAuthorized && roomExists ? stream : null, // Only pass stream when authorized AND room exists
     roomId,
     myName,
     isSharingRef,
     screenStreamRef,
     peersRef,
-    me
+    me,
+    isHost,
+    handleRoomClosed // Pass callback for when room is closed by host
   );
 
   // Update my video source
   useEffect(() => {
     if (myVideo.current && stream) {
-      // When NOT sharing screen -> show camera
       if (!isSharing) {
         myVideo.current.srcObject = stream;
       }
@@ -114,10 +190,109 @@ function MeetingRoom() {
   const sharingPeer = groupPeers.find(({ id }) => peersSharingScreen.has(id));
   const hasScreenShare = isSharing || sharingPeer;
 
-  // ✅ DEBUG: Log showChat state
-  useEffect(() => {
-    console.log('🔍 showChat state changed:', showChat);
-  }, [showChat]);
+  // Handle back navigation for unauthorized users
+  const handleGoBack = () => {
+    if (roleName === 'STUDENT' && teamId) {
+      navigate(`/meeting/${teamId}`, { replace: true });
+    } else if (roleName === 'LECTURER') {
+      navigate(`/lecturer/meetings`, { replace: true });
+    } else if (roleName === 'STUDENT') {
+      navigate('/student/projects', { replace: true });
+    } else {
+      navigate('/', { replace: true });
+    }
+  };
+
+  // Loading state
+  if (isCheckingAuth) {
+    return (
+      <div className='h-screen bg-[#202124] flex flex-col items-center justify-center'>
+        <Loader2 className='w-12 h-12 text-blue-500 animate-spin mb-4' />
+        <p className='text-white text-lg font-medium'>Verifying access...</p>
+        <p className='text-[#9aa0a6] text-sm mt-2'>Please wait while we check your permissions</p>
+      </div>
+    );
+  }
+
+  // Checking if room exists (for non-host users)
+  if (isAuthorized && roomExists === null && !isHost) {
+    return (
+      <div className='h-screen bg-[#202124] flex flex-col items-center justify-center'>
+        <Loader2 className='w-12 h-12 text-blue-500 animate-spin mb-4' />
+        <p className='text-white text-lg font-medium'>Connecting to meeting...</p>
+        <p className='text-[#9aa0a6] text-sm mt-2'>Verifying room availability</p>
+      </div>
+    );
+  }
+
+  // Room was closed by host
+  if (roomClosedByHost || roomClosed) {
+    return (
+      <div className='h-screen bg-[#202124] flex items-center justify-center'>
+        <div className='text-center max-w-md px-6'>
+          <div className='w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-6'>
+            <ShieldAlert className='w-8 h-8 text-orange-500' />
+          </div>
+          <h2 className='text-xl font-bold text-white mb-3'>Meeting Ended</h2>
+          <p className='text-[#9aa0a6] mb-6'>
+            The host has left the meeting. This session has been closed.
+          </p>
+          <button
+            onClick={handleGoBack}
+            className='w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-xl transition-colors'
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Room doesn't exist
+  if (roomExists === false) {
+    return (
+      <div className='h-screen bg-[#202124] flex items-center justify-center'>
+        <div className='text-center max-w-md px-6'>
+          <div className='w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6'>
+            <ShieldAlert className='w-8 h-8 text-red-500' />
+          </div>
+          <h2 className='text-xl font-bold text-white mb-3'>Room Not Found</h2>
+          <p className='text-[#9aa0a6] mb-6'>
+            This meeting room does not exist or has already ended.
+          </p>
+          <button
+            onClick={handleGoBack}
+            className='w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-xl transition-colors'
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Access denied (not logged in)
+  if (authError || !isAuthorized) {
+    return (
+      <div className='h-screen bg-[#202124] flex items-center justify-center'>
+        <div className='text-center max-w-md px-6'>
+          <div className='w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6'>
+            <ShieldAlert className='w-8 h-8 text-red-500' />
+          </div>
+          <h2 className='text-xl font-bold text-white mb-3'>Access Denied</h2>
+          <p className='text-[#9aa0a6] mb-6'>
+            {authError || 'You do not have permission to join this meeting.'}
+          </p>
+          <button
+            onClick={handleGoBack}
+            className='w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-xl transition-colors'
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='h-screen bg-[#202124] flex flex-col overflow-hidden'>
@@ -147,7 +322,7 @@ function MeetingRoom() {
         </div>
       )}
 
-      {/* Top Bar - Google Meet Style */}
+      {/* Top Bar */}
       <div className='flex items-center justify-between px-6 py-4 bg-transparent backdrop-blur-sm z-10'>
         <div className='flex items-center gap-4'>
           {/* Time Badge */}

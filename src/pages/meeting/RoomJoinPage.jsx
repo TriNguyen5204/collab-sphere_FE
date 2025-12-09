@@ -1,35 +1,124 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
-import { LogIn, Video, Plus, Users, Clock, ArrowLeft } from 'lucide-react';
+import { LogIn, Plus, Users, Clock, ArrowLeft, ShieldAlert, Loader2 } from 'lucide-react';
 import { createMeeting } from '../../features/meeting/services/meetingApi';
+import { getTeamDetail } from '../../services/teamApi';
 import { toast } from 'sonner';
 import ClipLoader from 'react-spinners/ClipLoader';
 
 function JoinPage() {
+  // Get authenticated user data from Redux store (secure source)
+  const userId = useSelector(state => state.user.userId);
   const myName = useSelector(state => state.user.fullName);
   const roleName = useSelector(state => state.user.roleName);
+  const accessToken = useSelector(state => state.user.accessToken);
+  
   const [groupId, setGroupId] = useState('');
   const [title, setTitle] = useState('');
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const { teamId } = useParams();
 
-  // 🔧 Navigation function
+  // Authorization state
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [authError, setAuthError] = useState(null);
+  const [teamName, setTeamName] = useState('');
+
+  // Validate team membership on mount
+  useEffect(() => {
+    const validateAccess = async () => {
+      setIsCheckingAuth(true);
+      setAuthError(null);
+
+      // Check 1: User must be authenticated
+      if (!accessToken || !userId) {
+        setAuthError('You must be logged in to access meetings.');
+        setIsCheckingAuth(false);
+        return;
+      }
+
+      // Check 2: Validate team membership
+      try {
+        const teamDetail = await getTeamDetail(teamId);
+        
+        console.log('🔍 Team Detail Response:', teamDetail);
+        console.log('🔍 Current User ID:', userId, 'Type:', typeof userId);
+        console.log('🔍 Current Role:', roleName);
+        
+        if (!teamDetail) {
+          setAuthError('Team not found or you do not have access.');
+          setIsCheckingAuth(false);
+          return;
+        }
+
+        setTeamName(teamDetail.teamName || 'Team');
+
+        // Check if user is a team member
+        // API returns members in memberInfo.members structure
+        const members = teamDetail.memberInfo?.members || teamDetail.members || teamDetail.teamMembers || [];
+        console.log('🔍 Team Members:', members);
+        console.log('🔍 Full teamDetail structure:', JSON.stringify(teamDetail, null, 2));
+        
+        const isTeamMember = members.some(member => {
+          // API may return different id fields
+          const memberId = member.userId || member.studentId || member.id || member.memberId || member.classMemberId;
+          console.log('🔍 Checking member:', member, 'memberId:', memberId, 'against userId:', userId);
+          return Number(memberId) === Number(userId);
+        });
+        
+        // Check if user is the lecturer - also check memberInfo for lecturerId
+        const lecturerId = teamDetail.lecturerId || teamDetail.memberInfo?.lecturerId || teamDetail.teacherId || teamDetail.instructorId;
+        const isLecturer = Number(lecturerId) === Number(userId) || roleName === 'LECTURER';
+        
+        console.log('🔍 Is Team Member:', isTeamMember);
+        console.log('🔍 Is Lecturer:', isLecturer);
+
+        if (!isTeamMember && !isLecturer) {
+          setAuthError('You are not a member of this team.');
+          setIsCheckingAuth(false);
+          return;
+        }
+
+        // User is authorized
+        setIsAuthorized(true);
+        setIsCheckingAuth(false);
+        
+      } catch (error) {
+        console.error('Error validating team access:', error);
+        // If API fails, allow access (fail-open for better UX, backend should still validate)
+        console.warn('⚠️ Team validation failed, allowing access with warning');
+        setIsAuthorized(true);
+        setIsCheckingAuth(false);
+      }
+    };
+
+    validateAccess();
+  }, [accessToken, userId, teamId, roleName]);
+
+  // Navigation function - pass user data securely
   const cleanupAndNavigate = (path, navState) => {
     setTimeout(() => {
       navigate(path, {
         state: {
           ...navState,
+          // Always use authenticated user name from Redux
+          myName: myName,
         },
       });
     }, 100);
   };
 
-  // 🆕 Function to create meeting + room
+  // Create meeting + room
   const createRoom = async () => {
     if (!title.trim()) {
       toast.error('Please enter a meeting title');
+      return;
+    }
+
+    if (!isAuthorized) {
+      toast.error('You are not authorized to create meetings for this team');
       return;
     }
 
@@ -42,49 +131,93 @@ function JoinPage() {
       teamId: teamId,
       title,
       description: '',
-      meetingUrl: `https://collabsphere.space/room/${newRoomId}/${teamId}`,
+      meetingUrl: `https://collabsphere.space/room/${newRoomId}`,
       scheduleTime: new Date(now.getTime() + vnOffsetMs).toISOString(),
     };
 
     try {
       const response = await createMeeting(payload);
       if (response) {
-        toast.success('✅ Meeting created successfully!');
+        toast.success('Meeting created successfully!');
         const idMatch = response.message.match(/ID:\s*(\d+)/);
         const meetingId = idMatch ? parseInt(idMatch[1], 10) : null;
-        cleanupAndNavigate(`/room/${newRoomId}/${teamId}`, {
-          myName,
+        cleanupAndNavigate(`/room/${newRoomId}`, {
           title,
           description: '',
           meetingId,
           isHost: true,
+          teamId: teamId, // Pass teamId via state instead of URL
         });
       }
     } catch (error) {
-      console.error('❌ Failed to create meeting:', error);
-      toast.error('Error creating meeting, please try again.', error);
+      toast.error('Error creating meeting, please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // 🟢 Join existing room
+  // Join existing room
   const joinRoom = () => {
+    if (!isAuthorized) {
+      toast.error('You are not authorized to join meetings for this team');
+      return;
+    }
+
     if (groupId.trim()) {
-      cleanupAndNavigate(`/room/${groupId}/${teamId}`, { myName, isHost: false });
+      cleanupAndNavigate(`/room/${groupId}`, { 
+        isHost: false,
+        teamId: teamId, // Pass teamId via state instead of URL
+      });
     } else {
       toast.error('Please enter a room ID');
     }
   };
 
   const handleBack = () => {
-    if(roleName === 'LECTURER'){
+    if (roleName === 'LECTURER') {
       navigate(`/lecturer/meetings?teamId=${teamId}`);
-    } else if(roleName === 'STUDENT'){
+    } else if (roleName === 'STUDENT') {
       navigate(`/meeting/${teamId}`);
+    } else {
+      navigate('/');
     }
-    
   };
+
+  // Show loading state while checking authorization
+  if (isCheckingAuth) {
+    return (
+      <div className='min-h-screen bg-gradient-to-br from-indigo-50 via-white to-orange-50 flex items-center justify-center'>
+        <div className='text-center'>
+          <Loader2 className='w-12 h-12 text-orange-500 animate-spin mx-auto mb-4' />
+          <p className='text-slate-700 text-lg font-medium'>Verifying access...</p>
+          <p className='text-slate-500 text-sm mt-2'>Please wait while we check your permissions</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if not authorized
+  if (authError || !isAuthorized) {
+    return (
+      <div className='min-h-screen bg-gradient-to-br from-indigo-50 via-white to-orange-50 flex items-center justify-center p-6'>
+        <div className='bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-xl border border-gray-100'>
+          <div className='w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6'>
+            <ShieldAlert className='w-8 h-8 text-red-500' />
+          </div>
+          <h2 className='text-xl font-bold text-slate-800 mb-3'>Access Denied</h2>
+          <p className='text-slate-500 mb-6'>
+            {authError || 'You do not have permission to access this meeting room.'}
+          </p>
+          <button
+            onClick={handleBack}
+            className='w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-3 px-6 rounded-xl transition-colors'
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='min-h-screen bg-gradient-to-br from-indigo-50 via-white to-orange-50 flex items-center justify-center p-6 relative overflow-hidden'>
@@ -102,16 +235,6 @@ function JoinPage() {
       </button>
 
       <div className='w-full max-w-6xl relative z-10'>
-        {/* Header Section */}
-        <div className='text-center mb-16'>
-          <h1 className='text-5xl font-bold text-slate-800 mb-4 tracking-tight'>
-            Welcome back, {myName || 'Guest'}
-          </h1>
-          <p className='text-slate-500 text-xl font-light'>
-            Start a new meeting or join an existing one
-          </p>
-        </div>
-
         {/* Main Content - Two Glass Panels */}
         <div className='grid md:grid-cols-2 gap-12'>
           

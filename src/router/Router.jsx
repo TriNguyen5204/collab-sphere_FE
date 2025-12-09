@@ -116,7 +116,7 @@ const studentRoutes = [
   { path: '/task-board', element: protectRoute(['STUDENT', 'LECTURER'], <ProjectBoard />) },
   { path: '/meeting/:teamId', element: protectRoute(['STUDENT'], <Layout/>) },
   { path: '/join-room/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <RoomJoinPage/>)},
-  { path: '/room/:roomId/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingRoomTest/>)},
+  { path: '/room/:roomId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingRoomTest/>)},
   { path: '/meeting/history/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingManagement/> )},
   { path: '/meeting/schedule/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingSchedulerFull/> )},
   { path: '/whiteboard',  element: protectRoute(['STUDENT', 'LECTURER'], <Whiteboard/>)},
