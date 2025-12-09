@@ -31,6 +31,7 @@ const getSocketServerUrl = () => {
 
 export const useSocket = (serverUrl = getSocketServerUrl()) => {
   const [me, setMe] = useState('');
+  const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef(null);
   
   // Get authentication data from Redux store
@@ -64,6 +65,16 @@ export const useSocket = (serverUrl = getSocketServerUrl()) => {
     });
     socketRef.current = socket;
 
+    socket.on('connect', () => {
+      console.log('✅ Socket connected successfully');
+      setIsConnected(true);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('🔌 Socket disconnected');
+      setIsConnected(false);
+    });
+
     socket.on('me', id => {
       console.log('🆔 My socket ID:', id);
       setMe(id);
@@ -71,6 +82,7 @@ export const useSocket = (serverUrl = getSocketServerUrl()) => {
 
     socket.on('connect_error', (error) => {
       console.error('❌ Socket connection error:', error.message);
+      setIsConnected(false);
     });
 
     socket.on('unauthorized', (reason) => {
@@ -83,9 +95,10 @@ export const useSocket = (serverUrl = getSocketServerUrl()) => {
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
+        setIsConnected(false);
       }
     };
   }, [serverUrl, accessToken, userId, fullName]);
 
-  return { socket: socketRef.current, me };
+  return { socket: socketRef.current, me, isConnected };
 };

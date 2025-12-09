@@ -54,7 +54,7 @@ function MeetingRoom() {
   const [showInfo, setShowInfo] = useState(false);
 
   // Initialize socket
-  const { socket, me } = useSocket();
+  const { socket, me, isConnected } = useSocket();
   
   // Simple authorization check: login = access
   useEffect(() => {
@@ -78,9 +78,10 @@ function MeetingRoom() {
     validateAccess();
   }, [accessToken, userId]);
 
-  // Check if room exists when socket is ready
+  // Check if room exists when socket is ready and connected
   useEffect(() => {
-    if (!socket || !roomId || !isAuthorized) return;
+    // Wait for socket to be connected before checking room
+    if (!socket || !isConnected || !roomId || !isAuthorized) return;
 
     // If user is the host, they're creating the room - no need to check
     if (isHost) {
@@ -89,7 +90,7 @@ function MeetingRoom() {
       return;
     }
 
-    console.log('🔍 [MeetingRoom] Checking if room exists...');
+    console.log('🔍 [MeetingRoom] Checking if room exists (socket connected)...');
     
     // Set timeout - deny access if server doesn't respond (safer approach)
     const timeoutId = setTimeout(() => {
@@ -122,7 +123,7 @@ function MeetingRoom() {
     });
     
     return () => clearTimeout(timeoutId);
-  }, [socket, roomId, isAuthorized, isHost]);
+  }, [socket, isConnected, roomId, isAuthorized, isHost]);
 
   // Handle room closed by host callback
   const handleRoomClosed = useCallback((reason) => {
@@ -236,8 +237,19 @@ function MeetingRoom() {
     );
   }
 
+  // Waiting for socket connection
+  if (isAuthorized && !isConnected && !isHost) {
+    return (
+      <div className='h-screen bg-[#202124] flex flex-col items-center justify-center'>
+        <Loader2 className='w-12 h-12 text-blue-500 animate-spin mb-4' />
+        <p className='text-white text-lg font-medium'>Connecting to server...</p>
+        <p className='text-[#9aa0a6] text-sm mt-2'>Establishing secure connection</p>
+      </div>
+    );
+  }
+
   // Checking if room exists (for non-host users)
-  if (isAuthorized && roomExists === null && !isHost) {
+  if (isAuthorized && isConnected && roomExists === null && !isHost) {
     return (
       <div className='h-screen bg-[#202124] flex flex-col items-center justify-center'>
         <Loader2 className='w-12 h-12 text-blue-500 animate-spin mb-4' />
