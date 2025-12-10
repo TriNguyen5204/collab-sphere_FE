@@ -239,6 +239,13 @@ const ClassDetailPage = () => {
 
             <div className="flex items-center gap-3">
               <Link
+                to={`/lecturer/classes/${classId}/syllabus`}
+                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900"
+              >
+                <GraduationCap className="h-4 w-4" />
+                Syllabus
+              </Link>
+              <Link
                 to="/lecturer/resources"
                 state={{ classId: numericClassId }}
                 className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900"

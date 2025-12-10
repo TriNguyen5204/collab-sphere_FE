@@ -48,6 +48,7 @@ import LecturerGradingDashboard from '../pages/lecturer/grading/LecturerGradingD
 import CreateTeamPage from '../pages/lecturer/CreateTeamPage';
 import ResourcesHub from '../pages/lecturer/ResourcesHub';
 import LecturerMeetings from '../pages/lecturer/LecturerMeetings';
+import ClassSyllabusPage from '../pages/lecturer/ClassSyllabusPage';
 
 // academic services (staff) pages
 import AcademicList from '../pages/academic/AcademicList';
@@ -135,6 +136,7 @@ const lecturerRoutes = [
   { path: '/lecturer/classes', element: protectRoute(['LECTURER'], <ClassManagementDashboard />) },
   { path: '/lecturer/resources', element: protectRoute(['LECTURER'], <ResourcesHub />) },
   { path: '/lecturer/classes/:classId', element: protectRoute(['LECTURER'], <ClassDetailPage />) },
+  { path: '/lecturer/classes/:classId/syllabus', element: protectRoute(['LECTURER'], <ClassSyllabusPage />) },
   { path: '/lecturer/classes/:classId/projects', element: protectRoute(['LECTURER'], <ClassProjectOverview />) },
   { path: '/lecturer/classes/:classId/project-assignments', element: protectRoute(['LECTURER'], <ClassProjectAssignment />) },
   { path: '/lecturer/classes/:classId/team/:teamId', element: protectRoute(['LECTURER'], <TeamProjectDetail />) },
