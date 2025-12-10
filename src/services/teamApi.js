@@ -10,9 +10,9 @@ export const createTeam = async (payload = {}) => {
     console.log('Team created successfully:', response.data);
     return response.data;
   } catch (error) {
+    console.error('Error creating team:', error);
     throw new Error(
-      error.response?.data?.message ||
-      'An error occurred while creating the team.'
+      error.response?.data?.message || "An error occurred while creating the team."
     );
   }
 };

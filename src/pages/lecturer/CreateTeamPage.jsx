@@ -251,16 +251,17 @@ const CreateTeamPage = () => {
         projectAssignmentId: formData.projectAssignmentId ? Number(formData.projectAssignmentId) : 0,
         lecturerId: classInfo?.lecturerId ? Number(classInfo.lecturerId) : 0,
         leaderId: Number(finalLeaderId),
-        studentList: selectedMembers.map(m => ({
-          studentId: Number(m.studentId),
-          classId: Number(classId)
-        })),
+        studentList: selectedMembers
+          .filter(m => Number(m.studentId) !== Number(finalLeaderId))
+          .map(m => ({
+            studentId: Number(m.studentId),
+            classId: Number(classId)
+          })),
         createdDate: formatDateForApi(new Date()),
         endDate: formatDateForApi(formData.endDate)
       };
 
       const response = await createTeam(payload);
-      
       if (response && response.isSuccess === false) {
         const errorMsg = response.message || 'Failed to create team';
         if (response.errorList && Array.isArray(response.errorList)) {
