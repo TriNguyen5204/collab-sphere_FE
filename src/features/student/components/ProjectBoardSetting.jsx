@@ -89,11 +89,31 @@ const ProjectBoardSetting = () => {
       return false;
     }
 
+    // Get members from team
+    const members = team?.memberInfo?.members ?? [];
+    
+    // Find the leader (teamRole === 1)
+    const leader = members.find((member) => member.teamRole === 1);
+    const leaderId = leader?.studentId ?? null;
+    
+    // Get classId from team's classInfo or from members
+    const classId = team?.classInfo?.classId ?? members[0]?.classId ?? null;
+    
+    // Build studentList with non-leader members
+    const studentList = members
+      .filter((member) => member.teamRole !== 1)
+      .map((member) => ({
+        studentId: member.studentId,
+        classId: member.classId ?? classId,
+      }));
+
     const payload = {
       teamId: team.teamId,
       teamName: values?.teamName?.trim() || '',
       description: values?.description?.trim() || '',
       gitLink: values?.gitLink?.trim() || '',
+      leaderId,
+      studentList,
     };
 
     if (!payload.teamName) {
@@ -104,6 +124,7 @@ const ProjectBoardSetting = () => {
     setIsSavingSettings(true);
     try {
       const updateResponse = await putUpdateTeamByTeamId(team.teamId, payload);
+      console.log('Updating team with payload:', payload);
       const infoTeam = extractTeamPayload(updateResponse);
       let mergedTeam = {
         ...team,
