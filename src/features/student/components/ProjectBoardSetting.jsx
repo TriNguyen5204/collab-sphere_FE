@@ -34,7 +34,11 @@ const ProjectBoardSetting = () => {
   const { projectName } = useParams();
   const userId = useSelector((state) => state.user.userId);
   const { team, updateTeam } = useTeam();
-  const isLeader = team?.leaderId === userId;
+  
+  // Check if current user is the leader (teamRole: 1)
+  const isLeader = team?.memberInfo?.members?.some(
+    (member) => member.studentId === userId && member.teamRole === 1
+  ) ?? false;
 
   const getErrorMessage = (error, fallbackMessage) => {
     const message =
