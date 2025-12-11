@@ -19,7 +19,8 @@ import { getAllAccount, deactivateAccount } from '../../services/userService';
 import { toast } from 'sonner';
 import useToastConfirmation from '../../hooks/useToastConfirmation';
 import CreateAccountForm from '../../features/admin/components/CreateAccountForm';
-import ModalWrapper from '../../components/layout/ModalWrapper'
+import ModalWrapper from '../../components/layout/ModalWrapper';
+import { useAvatar } from '../../hooks/useAvatar';
 
 export default function AccountManagement() {
   const confirmWithToast = useToastConfirmation();
@@ -42,26 +43,27 @@ export default function AccountManagement() {
     Student: 0,
   });
 
+  const fetchUsers = async () => {
+    try {
+      const response = await getAllAccount();
+      setData({
+        headDepartmentList: response.headDepartmentList || [],
+        staffList: response.staffList || [],
+        lecturerList: response.lecturerList || [],
+        studentList: response.studentList || [],
+      });
+      setRoleStats({
+        HeadDepartment: response.headDepartmentCount || 0,
+        Staff: response.staffCount || 0,
+        Lecturer: response.lecturerCount || 0,
+        Student: response.studentCount || 0,
+      });
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await getAllAccount();
-        setData({
-          headDepartmentList: response.headDepartmentList || [],
-          staffList: response.staffList || [],
-          lecturerList: response.lecturerList || [],
-          studentList: response.studentList || [],
-        });
-        setRoleStats({
-          HeadDepartment: response.headDepartmentCount || 0,
-          Staff: response.staffCount || 0,
-          Lecturer: response.lecturerCount || 0,
-          Student: response.studentCount || 0,
-        });
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      }
-    };
     fetchUsers();
   }, []);
 
@@ -102,6 +104,26 @@ export default function AccountManagement() {
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+
+  const UserAvatar = ({ user }) => {
+    const { initials, colorClass, shouldShowImage, setImageError } = useAvatar(
+      user.fullname || user.email,
+      user.avatar
+    );
+
+    return shouldShowImage ? (
+      <img
+        src={user.avatar}
+        alt={user.fullname || user.email}
+        className='w-10 h-10 rounded-full object-cover shadow-sm flex-shrink-0 border'
+        onError={() => setImageError(true)}
+      />
+    ) : (
+      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold shadow-sm flex-shrink-0 border ${colorClass}`}>
+        {initials}
+      </div>
+    );
+  };
 
   // const handleToggleActive = email => {
   //   setData(prev => {
@@ -255,7 +277,7 @@ export default function AccountManagement() {
         <aside className='fixed top-0 left-0 h-full overflow-y-auto bg-slate-50 border-r border-slate-200'>
           <AdminSidebar />
         </aside>
-        <main className='flex-1 min-h-0 min-w-0 px-4 py-6 md:px-6 lg:px-8 ml-64 custom-scrollbar'>
+        <main className='flex-1 min-h-0 min-w-0 px-4 py-6 md:px-6 lg:px-8 ml-56 custom-scrollbar'>
           <div className=' bg-gradient-to-br from-gray-50 to-gray-100 p-6'>
             <div className=' mx-auto space-y-6'>
               
@@ -279,7 +301,7 @@ export default function AccountManagement() {
                             onClick={() => setShowCreateForm(!showCreateForm)}
                         >
                             <Plus className='w-4 h-4' />
-                            Create Account
+                            Create User
                         </button>
                       </div>
                     </div>
@@ -348,7 +370,14 @@ export default function AccountManagement() {
 
                 {/* Table */}
                 <div className='overflow-x-auto'>
-                  <table className='w-full'>
+                  <table className='w-full table-fixed'>
+                    <colgroup>
+                      <col className='w-[30%]' />
+                      <col className='w-[28%]' />
+                      <col className='w-[15%]' />
+                      <col className='w-[12%]' />
+                      <col className='w-[15%]' />
+                    </colgroup>
                     <thead className='bg-slate-50/50 border-b border-slate-200'>
                       <tr>
                         <th className='px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider'>
@@ -375,42 +404,38 @@ export default function AccountManagement() {
                           className='hover:bg-slate-50/80 transition-colors'
                         >
                           <td className='px-6 py-4'>
-                            <div className='flex items-center gap-3'>
-                              <div className='w-10 h-10 bg-gradient-to-br from-orangeFpt-400 to-orangeFpt-600 rounded-full flex items-center justify-center text-white font-semibold shadow-sm'>
-                                {(u.fullname || u.email)
-                                  .charAt(0)
-                                  .toUpperCase()}
-                              </div>
-                              <div>
-                                <p className='font-medium text-slate-800'>
+                            <div className='flex items-center gap-3 min-w-0'>
+                              <UserAvatar user={u} />
+                              <div className='min-w-0 flex-1'>
+                                <p className='font-medium text-slate-800 truncate'>
                                   {u.fullname || u.email.split('@')[0]}
                                 </p>
-                                <p className='text-xs text-slate-500'>
+                                <p className='text-xs text-slate-500 truncate'>
                                   {getRoleDisplayName(u.roleName)}
                                 </p>
                               </div>
                             </div>
                           </td>
                           <td className='px-6 py-4'>
-                            <div className='flex items-center gap-2 text-slate-600 text-sm'>
-                              <Mail className='w-3.5 h-3.5 text-slate-400' />
-                              {u.email}
+                            <div className='flex items-center gap-2 text-slate-600 text-sm min-w-0'>
+                              <Mail className='w-3.5 h-3.5 text-slate-400 flex-shrink-0' />
+                              <span className='truncate'>{u.email}</span>
                             </div>
                           </td>
                           <td className='px-6 py-4'>
-                            <div className='flex items-center gap-2 text-slate-600 text-sm'>
-                              <Calendar className='w-3.5 h-3.5 text-slate-400' />
+                            <div className='flex items-center gap-2 text-slate-600 text-sm whitespace-nowrap'>
+                              <Calendar className='w-3.5 h-3.5 text-slate-400 flex-shrink-0' />
                               {formatDate(u.createdDate)}
                             </div>
                           </td>
                           <td className='px-6 py-4'>
                             {u.isActive ? (
-                              <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100'>
+                              <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100 whitespace-nowrap'>
                                 <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
                                 Active
                               </span>
                             ) : (
-                              <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-100'>
+                              <span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-100 whitespace-nowrap'>
                                 <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
                                 Inactive
                               </span>
@@ -532,7 +557,13 @@ export default function AccountManagement() {
           title="Create New Account"
           maxWidth='max-w-lg'
         >
-          <CreateAccountForm onClose={() => setShowCreateForm(false)}/>
+          <CreateAccountForm 
+            onClose={() => setShowCreateForm(false)}
+            onSuccess={() => {
+              setShowCreateForm(false);
+              fetchUsers();
+            }}
+          />
         </ModalWrapper>
       </div>
     </>

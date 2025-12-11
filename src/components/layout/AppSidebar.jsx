@@ -82,9 +82,9 @@ const AppSidebar = ({
         </div>
       )}
 
-      {topSlot}
 
       <nav className={styles.navigation}>
+        {topSlot && <div>{topSlot}</div>}
         {effectiveSections.map((section, index) => (
           <div key={section.title ?? index} className={styles.navSection}>
             {section.title && <div className={styles.navTitle}>{section.title}</div>}

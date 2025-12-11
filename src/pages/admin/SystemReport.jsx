@@ -163,7 +163,7 @@ export default function SystemReport() {
         <AdminSidebar />
       </aside>
 
-      <main className='flex-1 min-h-0 min-w-0 px-4 py-6 md:px-6 lg:px-8 ml-64 custom-scrollbar'>
+      <main className='flex-1 min-h-0 min-w-0 px-4 py-6 md:px-6 lg:px-8 ml-56 custom-scrollbar'>
         <div className=' bg-gradient-to-br from-gray-50 to-gray-100 p-6'>
           <div className=' mx-auto space-y-6'>
             

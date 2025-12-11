@@ -17,11 +17,11 @@ import {
 } from '../../features/head-department/components';
 import HeadDashboardLayout from '../../components/layout/HeadDashboardLayout';
 
-const ITEMS_PER_PAGE = 9;
+const ITEMS_PER_PAGE = 6;
 
 /**
  * SubjectManagement Component
- * Main component for managing subjects with updated Dashboard UI
+ * Main component for managing subjects - matching Staff/Admin UI style
  */
 export default function SubjectManagement() {
   // ==================== STATE MANAGEMENT ====================
@@ -126,91 +126,73 @@ export default function SubjectManagement() {
 
   return (
     <HeadDashboardLayout>
-      <div className='flex h-screen bg-gray-50 overflow-hidden'>
-        {/* Main Content Area - Independent Scroll */}
-        <div className='flex-1 flex flex-col min-w-0 overflow-hidden'>
-          {/* Scrollable Container */}
-          <main
-            id='subjects-container'
-            className='flex-1 overflow-y-auto p-4 md:p-6 lg:p-8'
-          >
-            <div className='max-w-7xl mx-auto space-y-6'>
-              {/* Header Section */}
-              <div className='flex flex-col gap-6'>
-                <SubjectHeader onAddClick={() => setIsCreateModalOpen(true)} />
+      <div className='bg-gradient-to-br from-gray-50 to-gray-100 p-6'>
+        <div className='mx-auto space-y-6'>
+          
+          {/* Header Section - Matching Staff/Admin style */}
+          <SubjectHeader 
+            onAddClick={() => setIsCreateModalOpen(true)} 
+            stats={stats}
+          />
 
-                {/* Statistics */}
-                <SubjectStats
-                  total={stats.total}
-                  active={stats.active}
-                  inactive={stats.inactive}
-                  categories={stats.categories}
+          {/* User Table - Matching Staff/Admin style */}
+          <div className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden'>
+            {/* Table Header with Filters */}
+            <div className='p-2 border-b border-slate-100'>
+              <SubjectFilters
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                currentCount={currentSubjects.length}
+                totalCount={filteredSubjects.length}
+              />
+            </div>
+
+            {/* Content Area */}
+            <div className='p-2'>
+              {currentSubjects.length === 0 ? (
+                <EmptyState searchQuery={searchQuery} />
+              ) : viewMode === 'grid' ? (
+                <SubjectGridView
+                  subjects={currentSubjects}
+                  onView={handleViewSubject}
+                  onDelete={handleDeleteSubject}
+                />
+              ) : (
+                <SubjectListView
+                  subjects={currentSubjects}
+                  onView={handleViewSubject}
+                  onDelete={handleDeleteSubject}
+                />
+              )}
+            </div>
+
+            {/* Pagination Footer */}
+            {totalPages > 1 && (
+              <div className=' '>
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
                 />
               </div>
-
-              {/* Main Data Card */}
-              <div className='bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col'>
-                {/* Toolbar/Filters Area - With bottom border for separation */}
-                <div className='p-5 border-b border-gray-100'>
-                  <SubjectFilters
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    statusFilter={statusFilter}
-                    onStatusChange={setStatusFilter}
-                    viewMode={viewMode}
-                    onViewModeChange={setViewMode}
-                    currentCount={currentSubjects.length}
-                    totalCount={filteredSubjects.length}
-                  />
-                </div>
-
-                {/* Content Area */}
-                <div className='p-5 min-h-[400px]'>
-                  {currentSubjects.length === 0 ? (
-                    <EmptyState searchQuery={searchQuery} />
-                  ) : viewMode === 'grid' ? (
-                    <SubjectGridView
-                      subjects={currentSubjects}
-                      onView={handleViewSubject}
-                      onDelete={handleDeleteSubject}
-                    />
-                  ) : (
-                    <SubjectListView
-                      subjects={currentSubjects}
-                      onView={handleViewSubject}
-                      onDelete={handleDeleteSubject}
-                    />
-                  )}
-                </div>
-
-                {/* Pagination Footer - Light gray background for separation */}
-                {totalPages > 1 && (
-                  <div className='p-4 border-t border-gray-100 bg-gray-50/50 rounded-b-xl'>
-                    <Pagination
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      onPageChange={handlePageChange}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Bottom spacer for comfortable scrolling */}
-              <div className='h-6'></div>
-            </div>
-          </main>
+            )}
+          </div>
         </div>
 
         {/* Modals */}
         <ModalWrapper
           isOpen={isCreateModalOpen}
           onClose={() => handleModalClose(false)}
+          title="Create Multiple Subjects"
         >
           <CreateMultipleSubjectForm
             onClose={shouldRefresh => handleModalClose(shouldRefresh)}
           />
         </ModalWrapper>
-
       </div>
     </HeadDashboardLayout>
   );

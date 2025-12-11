@@ -27,13 +27,13 @@ const HeadDepartmentSidebar = () => {
                   match: path => path === '/head-department',
                 },
                 {
-                  label: 'Subject management',
+                  label: 'Subjects',
                   href: '/head-department/subject-management',
                   icon: BookOpen,
                   match: path => path.startsWith('/head-department/subject-management'),
                 },
                 {
-                  label: 'Project management',
+                  label: 'Projects',
                   href: '/head-department/project-management',
                   icon: FolderKanban,
                   match: path => path.startsWith('/head-department/project-management'),

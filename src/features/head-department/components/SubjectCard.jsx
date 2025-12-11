@@ -47,6 +47,7 @@ export default function SubjectCard({ subject, onView }) {
       className={`${glassPanelClass} flex h-full flex-col rounded-3xl bg-gradient-to-br ${getSubjectGradient(
         subject.subjectCode
       )} p-4 transition hover:-translate-y-1 hover:shadow-2xl focus-within:ring-4 focus-within:ring-orange-200`}
+      onClick={() => onView(subject)}
     >
       {/* Header */}
       <div className='flex items-center justify-between gap-3 mb-4'>
@@ -77,17 +78,6 @@ export default function SubjectCard({ subject, onView }) {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Actions */}
-      <div className='flex gap-2 pt-4 border-t border-gray-200/50'>
-        <button
-          onClick={() => onView(subject)}
-          className='flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-sm font-medium text-sm focus:outline-none focus:ring-2 focus:ring-orange-400'
-        >
-          <Eye className='w-4 h-4' />
-          View
-        </button>
       </div>
     </div>
   );

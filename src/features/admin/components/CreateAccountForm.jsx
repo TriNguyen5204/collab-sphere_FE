@@ -3,14 +3,38 @@ import { createAccount } from "../../../services/userService";
 import { toast } from "sonner";
 import { Mail, Lock, UserCircle, Shield, Users } from "lucide-react";
 
-const CreateAccountForm = ({ onClose }) => {
+const CreateAccountForm = ({ onClose, onSuccess }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isStaff, setIsStaff] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [emailError, setEmailError] = useState(false);
+  const [passwordError, setPasswordError] = useState(false);
+  const [emailShake, setEmailShake] = useState(false);
+  const [passwordShake, setPasswordShake] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate
+    let hasError = false;
+    if (!email || !email.includes('@')) {
+      setEmailError(true);
+      setEmailShake(true);
+      hasError = true;
+      setTimeout(() => setEmailShake(false), 600);
+    }
+    if (!password || password.length < 5) {
+      setPasswordError(true);
+      setPasswordShake(true);
+      hasError = true;
+      setTimeout(() => setPasswordShake(false), 600);
+    }
+
+    if (hasError) {
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -21,14 +45,18 @@ const CreateAccountForm = ({ onClose }) => {
       };
 
       const response = await createAccount(payload);
-      
+
       if (response) {
         toast.success("Account created successfully!");
         // Reset form
         setEmail("");
         setPassword("");
         setIsStaff(true);
-        onClose();
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          onClose();
+        }
       } else {
         toast.error("Failed to create account. Please try again.");
       }
@@ -42,72 +70,29 @@ const CreateAccountForm = ({ onClose }) => {
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full max-w-md space-y-6"
+      className="w-full max-w-md space-y-3"
     >
       {/* Header */}
-      <div className="text-center pb-4 border-b border-gray-200">
-        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+      {/* <div className="text-center pb-4 border-b border-slate-200">
+        <div className="w-16 h-16 bg-gradient-to-br from-orangeFpt-400 to-orangeFpt-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-orangeFpt-500/30">
           <UserCircle size={32} className="text-white" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-800">Create New Account</h2>
-        <p className="text-sm text-gray-500 mt-2">Fill in the details below to create a new user account</p>
-      </div>
-
-      {/* Email Field */}
-      <div className="space-y-2">
-        <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-          <Mail size={16} className="text-gray-500" />
-          Email Address
-        </label>
-        <div className="relative">
-          <input
-            type="email"
-            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 pl-11 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 text-gray-800 font-medium"
-            placeholder="example@company.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            disabled={isLoading}
-          />
-          <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-        </div>
-      </div>
-
-      {/* Password Field */}
-      <div className="space-y-2">
-        <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-          <Lock size={16} className="text-gray-500" />
-          Password
-        </label>
-        <div className="relative">
-          <input
-            type="password"
-            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 pl-11 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 text-gray-800 font-medium"
-            placeholder="Enter secure password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={5}
-            disabled={isLoading}
-          />
-          <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-        </div>
-        <p className="text-xs text-gray-500 mt-1 ml-1">Minimum 5 characters</p>
-      </div>
+        <h2 className="text-2xl font-bold text-slate-900">Create New Account</h2>
+        <p className="text-sm text-slate-600 mt-2">Fill in the details below to create a new user account</p>
+      </div> */}
 
       {/* Account Type */}
       <div className="space-y-3">
-        <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-          <Shield size={16} className="text-gray-500" />
+        <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+          <Shield size={16} className="text-slate-500" />
           Account Type
         </label>
 
         <div className="grid grid-cols-2 gap-3">
           {/* Staff Option */}
           <label
-            className={`relative cursor-pointer transition-all duration-200 ${
-              isLoading ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            className={`relative cursor-pointer transition-all duration-200 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
           >
             <input
               type="radio"
@@ -118,30 +103,26 @@ const CreateAccountForm = ({ onClose }) => {
               disabled={isLoading}
               className="sr-only peer"
             />
-            <div className="p-4 border-2 rounded-xl peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-blue-300 transition-all duration-200 peer-checked:ring-4 peer-checked:ring-blue-100">
+            <div className="p-4 border-2 rounded-xl peer-checked:border-orangeFpt-500 peer-checked:bg-orangeFpt-50 hover:border-orangeFpt-300 transition-all duration-200 peer-checked:ring-4 peer-checked:ring-orangeFpt-100">
               <div className="flex flex-col items-center gap-2">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
-                  isStaff === true 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-gray-100 text-gray-500'
-                }`}>
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${isStaff === true
+                    ? 'bg-orangeFpt-500 text-white'
+                    : 'bg-slate-100 text-slate-500'
+                  }`}>
                   <Users size={24} />
                 </div>
-                <span className={`font-semibold text-sm transition-colors duration-200 ${
-                  isStaff === true ? 'text-blue-700' : 'text-gray-600'
-                }`}>
+                <span className={`font-semibold text-sm transition-colors duration-200 ${isStaff === true ? 'text-orangeFpt-700' : 'text-slate-600'
+                  }`}>
                   Staff
                 </span>
-                <span className="text-xs text-gray-500 text-center">Regular user access</span>
               </div>
             </div>
           </label>
 
           {/* Head Department Option */}
           <label
-            className={`relative cursor-pointer transition-all duration-200 ${
-              isLoading ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            className={`relative cursor-pointer transition-all duration-200 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
           >
             <input
               type="radio"
@@ -152,40 +133,103 @@ const CreateAccountForm = ({ onClose }) => {
               disabled={isLoading}
               className="sr-only peer"
             />
-            <div className="p-4 border-2 rounded-xl peer-checked:border-purple-500 peer-checked:bg-purple-50 hover:border-purple-300 transition-all duration-200 peer-checked:ring-4 peer-checked:ring-purple-100">
+            <div className="p-4 border-2 rounded-xl peer-checked:border-orangeFpt-500 peer-checked:bg-orangeFpt-50 hover:border-orangeFpt-300 transition-all duration-200 peer-checked:ring-4 peer-checked:ring-orangeFpt-100">
               <div className="flex flex-col items-center gap-2">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
-                  isStaff === false 
-                    ? 'bg-purple-500 text-white' 
-                    : 'bg-gray-100 text-gray-500'
-                }`}>
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${isStaff === false
+                    ? 'bg-orangeFpt-500 text-white'
+                    : 'bg-slate-100 text-slate-500'
+                  }`}>
                   <Shield size={24} />
                 </div>
-                <span className={`font-semibold text-sm transition-colors duration-200 ${
-                  isStaff === false ? 'text-purple-700' : 'text-gray-600'
-                }`}>
+                <span className={`font-semibold text-sm transition-colors duration-200 ${isStaff === false ? 'text-orangeFpt-700' : 'text-slate-600'
+                  }`}>
                   Head Dept
                 </span>
-                <span className="text-xs text-gray-500 text-center">Admin privileges</span>
               </div>
             </div>
           </label>
         </div>
       </div>
 
+      {/* Email Field */}
+      <div className="space-y-2">
+        <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+          <Mail size={16} className="text-slate-500" />
+          Email Address
+        </label>
+        <div className="relative">
+          <input
+            type="text"
+            className={`w-full border-2 rounded-xl px-4 py-3 pl-11 outline-none transition-all duration-200 text-slate-800 font-medium ${emailError
+                ? `border-red-500 ring-4 ring-red-100 ${emailShake ? 'animate-shake' : ''}`
+                : 'border-slate-200 focus:border-orangeFpt-500 focus:ring-4 focus:ring-orangeFpt-100'
+              }`}
+            placeholder="example@company.com"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setEmailError(false);
+            }}
+            disabled={isLoading}
+          />
+          <Mail size={18} className={`absolute left-4 top-1/2 -translate-y-1/2 ${emailError ? 'text-red-500' : 'text-slate-400'}`} />
+        </div>
+        <div className="h-5">
+          {emailError && (
+            <p className="text-xs text-red-600 font-medium ml-1">
+              Please enter a valid email address
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Password Field */}
+      <div className="space-y-2">
+        <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+          <Lock size={16} className="text-slate-500" />
+          Password
+        </label>
+        <div className="relative">
+          <input
+            type="password"
+            className={`w-full border-2 rounded-xl px-4 py-3 pl-11 outline-none transition-all duration-200 text-slate-800 font-medium ${passwordError
+                ? `border-red-500 ring-4 ring-red-100 ${passwordShake ? 'animate-shake' : ''}`
+                : 'border-slate-200 focus:border-orangeFpt-500 focus:ring-4 focus:ring-orangeFpt-100'
+              }`}
+            placeholder="Enter secure password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setPasswordError(false);
+            }}
+            disabled={isLoading}
+          />
+          <Lock size={18} className={`absolute left-4 top-1/2 -translate-y-1/2 ${passwordError ? 'text-red-500' : 'text-slate-400'}`} />
+        </div>
+        <div className="h-5">
+          {passwordError && (
+            <p className="text-xs text-red-600 font-medium ml-1">
+              Password must be at least 5 characters long
+            </p>
+          )}
+        </div>
+      </div>
+
+
+
       {/* Action Buttons */}
       <div className="flex gap-3 pt-4">
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 px-6 py-3 text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-xl font-semibold transition-all duration-200 border-2 border-gray-200 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 px-6 py-3 text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl font-semibold transition-all duration-200 border-2 border-slate-200 hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={isLoading}
         >
           Cancel
         </button>
         <button
           type="submit"
-          className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+          className="flex-1 px-6 py-3 bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 hover:from-orangeFpt-600 hover:to-orangeFpt-700 text-white rounded-xl font-semibold shadow-lg shadow-orangeFpt-500/30 hover:shadow-xl hover:shadow-orangeFpt-500/40 transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
           disabled={isLoading}
         >
           {isLoading ? (

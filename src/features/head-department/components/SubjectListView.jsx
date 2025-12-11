@@ -13,19 +13,19 @@ import { BookOpen, Eye, Edit, Trash2 } from 'lucide-react';
 export default function SubjectListView({ subjects, onView }) {
   return (
     <div className='overflow-x-auto'>
-      <table className='w-full'>
+      <table className='w-full table-fixed'>
         <thead>
-          <tr className='border-b border-gray-200'>
-            <th className='px-4 py-3 text-left text-sm font-semibold text-gray-700'>
+          <tr className=''>
+            <th className='w-[140px] px-4 py-3 text-left text-sm font-semibold text-slate-700'>
               Subject Code
             </th>
-            <th className='px-4 py-3 text-left text-sm font-semibold text-gray-700'>
+            <th className='px-4 py-3 text-left text-sm font-semibold text-slate-700'>
               Subject Name
             </th>
-            <th className='px-4 py-3 text-left text-sm font-semibold text-gray-700'>
+            <th className='w-[120px] px-4 py-3 text-left text-sm font-semibold text-slate-700'>
               Status
             </th>
-            <th className='px-4 py-3 text-right text-sm font-semibold text-gray-700'>
+            <th className='w-[80px] px-4 py-3 text-right text-sm font-semibold text-slate-700'>
               Actions
             </th>
           </tr>
@@ -34,19 +34,16 @@ export default function SubjectListView({ subjects, onView }) {
           {subjects.map((subject) => (
             <tr
               key={subject.subjectId}
-              className='border-b border-gray-100 hover:bg-gray-50 transition-colors'
+              className='border-b border-slate-100 hover:bg-slate-50 transition-colors'
             >
               <td className='px-4 py-4'>
-                <span className='inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-mono font-semibold'>
+                <span className='inline-block px-3 py-1 bg-orangeFpt-100 text-orangeFpt-700 rounded-md text-sm font-mono font-semibold'>
                   {subject.subjectCode}
                 </span>
               </td>
               <td className='px-4 py-4'>
-                <div className='flex items-center gap-3'>
-                  <div className='w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0'>
-                    <BookOpen className='w-5 h-5 text-blue-600' />
-                  </div>
-                  <span className='font-medium text-gray-900'>
+                <div className='flex items-center gap-3 min-w-0'>
+                  <span className='font-medium text-slate-900 truncate' title={subject.subjectName}>
                     {subject.subjectName}
                   </span>
                 </div>
@@ -56,12 +53,12 @@ export default function SubjectListView({ subjects, onView }) {
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium ${
                     subject.isActive
                       ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-600'
+                      : 'bg-slate-100 text-slate-600'
                   }`}
                 >
                   <div
                     className={`w-1.5 h-1.5 rounded-full ${
-                      subject.isActive ? 'bg-green-500' : 'bg-gray-400'
+                      subject.isActive ? 'bg-green-500' : 'bg-slate-400'
                     }`}
                   ></div>
                   {subject.isActive ? 'Active' : 'Inactive'}
@@ -71,7 +68,7 @@ export default function SubjectListView({ subjects, onView }) {
                 <div className='flex items-center justify-end gap-2'>
                   <button
                     onClick={() => onView(subject)}
-                    className='p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors'
+                    className='p-2 text-orangeFpt-500 hover:bg-orangeFpt-50 rounded-lg transition-colors'
                     title='View'
                   >
                     <Eye className='w-4 h-4' />

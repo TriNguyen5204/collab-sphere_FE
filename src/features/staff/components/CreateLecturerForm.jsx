@@ -27,6 +27,7 @@ const CreateLecturerForm = ({ onClose }) => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
+  const [shakeFields, setShakeFields] = useState({});
 
   const handleInputChange = e => {
     const { name, value } = e.target;
@@ -44,23 +45,72 @@ const CreateLecturerForm = ({ onClose }) => {
 
   const validateForm = () => {
     const newErrors = {};
+    const newShakes = {};
 
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(formData.email))
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+      newShakes.email = true;
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Invalid email format';
-    if (!formData.password.trim()) newErrors.password = 'Password is required';
-    if (!formData.lecturerCode.trim())
+      newShakes.email = true;
+    }
+    if (!formData.password.trim()) {
+      newErrors.password = 'Password is required';
+      newShakes.password = true;
+    } else if (formData.password.length < 5) {
+      newErrors.password = 'Password must be at least 5 characters';
+      newShakes.password = true;
+    }
+    if (!formData.lecturerCode.trim()) {
       newErrors.lecturerCode = 'Lecturer code is required';
-    if (!formData.name.trim()) newErrors.name = 'Name is required';
-    if (!formData.address.trim()) newErrors.address = 'Address is required';
-    if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
-    else if (!/^\+?[\d\s-()]+$/.test(formData.phone))
+      newShakes.lecturerCode = true;
+    }
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+      newShakes.name = true;
+    }
+    if (!formData.address.trim()) {
+      newErrors.address = 'Address is required';
+      newShakes.address = true;
+    }
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Phone is required';
+      newShakes.phone = true;
+    } else if (!/^\+?[\d\s-()]+$/.test(formData.phone)) {
       newErrors.phone = 'Invalid phone format';
-    if (!formData.birth) newErrors.birth = 'Birth year is required';
-    if (!formData.school.trim()) newErrors.school = 'School is required';
-    if (!formData.major.trim()) newErrors.major = 'Major is required';
+      newShakes.phone = true;
+    }
+    if (!formData.birth) {
+      newErrors.birth = 'Birth year is required';
+      newShakes.birth = true;
+    } else {
+      const birthYear = parseInt(formData.birth, 10);
+      const currentYear = new Date().getFullYear();
+      if (birthYear < 1950) {
+        newErrors.birth = 'Birth year must be 1950 or later';
+        newShakes.birth = true;
+      } else if (birthYear > currentYear) {
+        newErrors.birth = `Birth year cannot exceed ${currentYear}`;
+        newShakes.birth = true;
+      }
+    }
+    if (!formData.school.trim()) {
+      newErrors.school = 'School is required';
+      newShakes.school = true;
+    }
+    if (!formData.major.trim()) {
+      newErrors.major = 'Major is required';
+      newShakes.major = true;
+    }
 
     setErrors(newErrors);
+    setShakeFields(newShakes);
+    
+    // Reset shake after animation
+    if (Object.keys(newShakes).length > 0) {
+      setTimeout(() => setShakeFields({}), 600);
+    }
+
     return Object.keys(newErrors).length === 0;
   };
 
@@ -127,8 +177,7 @@ const CreateLecturerForm = ({ onClose }) => {
 
   return (
     <form onSubmit={handleSubmit}>
-      <div className='bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden'>
-        <div className='p-8'>
+      <div className='space-y-8'>
           <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
             {/* Left Column */}
             <div className='space-y-6'>
@@ -144,15 +193,17 @@ const CreateLecturerForm = ({ onClose }) => {
                   value={formData.name}
                   onChange={handleInputChange}
                   placeholder="Enter lecturer's full name"
-                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none ${
                     errors.name
-                      ? 'border-red-300 bg-red-50'
-                      : 'border-gray-200 focus:border-blue-300'
+                      ? `border-red-500 ring-4 ring-red-100 ${shakeFields.name ? 'animate-shake' : ''}`
+                      : 'border-gray-200 focus:border-orangeFpt-500 focus:ring-4 focus:ring-orangeFpt-100'
                   }`}
                 />
-                {errors.name && (
-                  <p className='text-red-500 text-sm mt-1'>{errors.name}</p>
-                )}
+                <div className='h-5'>
+                  {errors.name && (
+                    <p className='text-red-500 text-xs mt-1'>{errors.name}</p>
+                  )}
+                </div>
               </div>
 
               {/* Address Field */}
@@ -167,15 +218,17 @@ const CreateLecturerForm = ({ onClose }) => {
                   onChange={handleInputChange}
                   placeholder='Enter complete address'
                   rows='3'
-                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${
+                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none resize-none ${
                     errors.address
-                      ? 'border-red-300 bg-red-50'
-                      : 'border-gray-200 focus:border-blue-300'
+                      ? `border-red-500 ring-4 ring-red-100 ${shakeFields.address ? 'animate-shake' : ''}`
+                      : 'border-gray-200 focus:border-orangeFpt-500 focus:ring-4 focus:ring-orangeFpt-100'
                   }`}
                 />
-                {errors.address && (
-                  <p className='text-red-500 text-sm mt-1'>{errors.address}</p>
-                )}
+                <div className='h-5'>
+                  {errors.address && (
+                    <p className='text-red-500 text-xs mt-1'>{errors.address}</p>
+                  )}
+                </div>
               </div>
 
               {/* Phone Field */}
@@ -190,15 +243,17 @@ const CreateLecturerForm = ({ onClose }) => {
                   value={formData.phone}
                   onChange={handleInputChange}
                   placeholder='+1 (555) 123-4567'
-                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none ${
                     errors.phone
-                      ? 'border-red-300 bg-red-50'
-                      : 'border-gray-200 focus:border-blue-300'
+                      ? `border-red-500 ring-4 ring-red-100 ${shakeFields.phone ? 'animate-shake' : ''}`
+                      : 'border-gray-200 focus:border-orangeFpt-500 focus:ring-4 focus:ring-orangeFpt-100'
                   }`}
                 />
-                {errors.phone && (
-                  <p className='text-red-500 text-sm mt-1'>{errors.phone}</p>
-                )}
+                <div className='h-5'>
+                  {errors.phone && (
+                    <p className='text-red-500 text-xs mt-1'>{errors.phone}</p>
+                  )}
+                </div>
               </div>
 
               {/* Birth Date Field */}
@@ -211,10 +266,10 @@ const CreateLecturerForm = ({ onClose }) => {
                   type='date'
                   name='birth'
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none ${
                     errors.birth
-                      ? 'border-red-300 bg-red-50'
-                      : 'border-gray-200 focus:border-blue-300'
+                      ? `border-red-500 ring-4 ring-red-100 ${shakeFields.birth ? 'animate-shake' : ''}`
+                      : 'border-gray-200 focus:border-orangeFpt-500 focus:ring-4 focus:ring-orangeFpt-100'
                   }`}
                 />
                 {formData.birth && (
@@ -222,9 +277,11 @@ const CreateLecturerForm = ({ onClose }) => {
                     Selected year: <strong>{formData.birth}</strong>
                   </p>
                 )}
-                {errors.birth && (
-                  <p className='text-red-500 text-sm mt-1'>{errors.birth}</p>
-                )}
+                <div className='h-5'>
+                  {errors.birth && (
+                    <p className='text-red-500 text-xs mt-1'>{errors.birth}</p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -241,15 +298,17 @@ const CreateLecturerForm = ({ onClose }) => {
                   value={formData.email}
                   onChange={handleInputChange}
                   placeholder='Enter email address'
-                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none ${
                     errors.email
-                      ? 'border-red-300 bg-red-50'
-                      : 'border-gray-200 focus:border-blue-300'
+                      ? `border-red-500 ring-4 ring-red-100 ${shakeFields.email ? 'animate-shake' : ''}`
+                      : 'border-gray-200 focus:border-orangeFpt-500 focus:ring-4 focus:ring-orangeFpt-100'
                   }`}
                 />
-                {errors.email && (
-                  <p className='text-red-500 text-sm mt-1'>{errors.email}</p>
-                )}
+                <div className='h-5'>
+                  {errors.email && (
+                    <p className='text-red-500 text-xs mt-1'>{errors.email}</p>
+                  )}
+                </div>
               </div>
 
               {/* Password Field */}
@@ -263,15 +322,17 @@ const CreateLecturerForm = ({ onClose }) => {
                   value={formData.password}
                   onChange={handleInputChange}
                   placeholder='Enter password'
-                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none ${
                     errors.password
-                      ? 'border-red-300 bg-red-50'
-                      : 'border-gray-200 focus:border-blue-300'
+                      ? `border-red-500 ring-4 ring-red-100 ${shakeFields.password ? 'animate-shake' : ''}`
+                      : 'border-gray-200 focus:border-orangeFpt-500 focus:ring-4 focus:ring-orangeFpt-100'
                   }`}
                 />
-                {errors.password && (
-                  <p className='text-red-500 text-sm mt-1'>{errors.password}</p>
-                )}
+                <div className='h-5'>
+                  {errors.password && (
+                    <p className='text-red-500 text-xs mt-1'>{errors.password}</p>
+                  )}
+                </div>
               </div>
 
               {/* Lecturer Code Field */}
@@ -285,17 +346,19 @@ const CreateLecturerForm = ({ onClose }) => {
                   value={formData.lecturerCode}
                   onChange={handleInputChange}
                   placeholder='Enter lecturer code'
-                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none ${
                     errors.lecturerCode
-                      ? 'border-red-300 bg-red-50'
-                      : 'border-gray-200 focus:border-blue-300'
+                      ? `border-red-500 ring-4 ring-red-100 ${shakeFields.lecturerCode ? 'animate-shake' : ''}`
+                      : 'border-gray-200 focus:border-orangeFpt-500 focus:ring-4 focus:ring-orangeFpt-100'
                   }`}
                 />
-                {errors.lecturerCode && (
-                  <p className='text-red-500 text-sm mt-1'>
-                    {errors.lecturerCode}
-                  </p>
-                )}
+                <div className='h-5'>
+                  {errors.lecturerCode && (
+                    <p className='text-red-500 text-xs mt-1'>
+                      {errors.lecturerCode}
+                    </p>
+                  )}
+                </div>
               </div>
               {/* School Field */}
               <div>
@@ -309,15 +372,17 @@ const CreateLecturerForm = ({ onClose }) => {
                   value={formData.school}
                   onChange={handleInputChange}
                   placeholder='Enter school/university name'
-                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none ${
                     errors.school
-                      ? 'border-red-300 bg-red-50'
-                      : 'border-gray-200 focus:border-blue-300'
+                      ? `border-red-500 ring-4 ring-red-100 ${shakeFields.school ? 'animate-shake' : ''}`
+                      : 'border-gray-200 focus:border-orangeFpt-500 focus:ring-4 focus:ring-orangeFpt-100'
                   }`}
                 />
-                {errors.school && (
-                  <p className='text-red-500 text-sm mt-1'>{errors.school}</p>
-                )}
+                <div className='h-5'>
+                  {errors.school && (
+                    <p className='text-red-500 text-xs mt-1'>{errors.school}</p>
+                  )}
+                </div>
               </div>
 
               {/* Major Field */}
@@ -332,35 +397,24 @@ const CreateLecturerForm = ({ onClose }) => {
                   value={formData.major}
                   onChange={handleInputChange}
                   placeholder='Enter major or department'
-                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-4 py-3 border-2 rounded-xl transition-all focus:outline-none ${
                     errors.major
-                      ? 'border-red-300 bg-red-50'
-                      : 'border-gray-200 focus:border-blue-300'
+                      ? `border-red-500 ring-4 ring-red-100 ${shakeFields.major ? 'animate-shake' : ''}`
+                      : 'border-gray-200 focus:border-orangeFpt-500 focus:ring-4 focus:ring-orangeFpt-100'
                   }`}
                 />
-                {errors.major && (
-                  <p className='text-red-500 text-sm mt-1'>{errors.major}</p>
-                )}
-              </div>
-
-              <div className='bg-blue-50 border border-blue-200 rounded-xl p-4'>
-                <h3 className='font-semibold text-blue-900 mb-2'>
-                  Additional Information
-                </h3>
-                <ul className='text-sm text-blue-700 space-y-1'>
-                  <li>• All fields marked with * are required</li>
-                  <li>• Birth date will be saved as year only</li>
-                  <li>• Phone number should include country code</li>
-                  <li>• Double-check all information before submitting</li>
-                </ul>
+                <div className='h-5'>
+                  {errors.major && (
+                    <p className='text-red-500 text-xs mt-1'>{errors.major}</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
         {/* Footer */}
-        <div className='bg-gray-50 px-8 py-6 border-t border-gray-200'>
-          <div className='flex items-center justify-between'>
+        <div className=' px-4 py-2'>
+          <div className='flex items-center justify-end gap-4'>
             <button
               type='button'
               onClick={handleReset}
@@ -376,7 +430,7 @@ const CreateLecturerForm = ({ onClose }) => {
               className={`flex items-center gap-2 px-8 py-3 rounded-xl font-semibold transition-all ${
                 isSubmitting
                   ? 'bg-gray-400 text-white cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl'
+                  : 'bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 text-white hover:from-orangeFpt-600 hover:to-orangeFpt-700 shadow-lg hover:shadow-xl'
               }`}
             >
               {isSubmitting ? (

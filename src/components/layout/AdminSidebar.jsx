@@ -28,7 +28,7 @@ const AdminSidebar = () => {
             //   match: path => path === '/admin',
             // },
             {
-              label: 'Account management',
+              label: 'Account',
               href: '/admin/account-management',
               icon: Users,
               match: path => path.startsWith('/admin/account-management'),
@@ -85,7 +85,7 @@ const AdminSidebar = () => {
   ) : undefined;
 
   const brand = (
-    <div className='flex items-center gap-3 px-4 py-4'>
+    <div className='flex items-center gap-3 border-b border-slate-200 pb-4 -mx-4 px-4'>
       <img src={logo} alt='CollabSphere' className='w-8 h-8 rounded-xl' />
       <div className='leading-tight'>
         <div className='text-sm font-bold text-slate-900'>
@@ -121,6 +121,7 @@ const AdminSidebar = () => {
         <>
           {brand}
           {unauthPrompt}
+          <span className='text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 flex items-center gap-1 py-2' >Management</span>
         </>
       }
       footerSlot={footer}

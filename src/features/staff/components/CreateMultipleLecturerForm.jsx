@@ -4,8 +4,6 @@ import {
   Upload,
   Users,
   Check,
-  AlertCircle,
-  FileText,
   User,
   MapPin,
   Phone,
@@ -14,6 +12,8 @@ import {
   FileX,
   AlertTriangle,
   X,
+  Mail,
+  Save,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { importLecturerList } from '../../../services/userService';
@@ -104,7 +104,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
       setStructureErrors([
         {
           type: 'structure',
-          message: '❌ Invalid file format!',
+          message: 'Invalid file format!',
           details: 'Only Excel files (.xlsx, .xls) are accepted',
         },
       ]);
@@ -124,7 +124,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
       setStructureErrors([
         {
           type: 'structure',
-          message: '❌ File too large!',
+          message: 'File too large!',
           details: 'Maximum file size is 10MB',
         },
       ]);
@@ -147,7 +147,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
       setStructureErrors([
         {
           type: 'structure',
-          message: '❌ Cannot read file!',
+          message: 'Cannot read file!',
           details: 'File may be corrupted or invalid.',
         },
       ]);
@@ -181,7 +181,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
           setStructureErrors([
             {
               type: 'structure',
-              message: '❌ File has no data!',
+              message: 'File has no data!',
               details: 'Please add data to the Excel file.',
             },
           ]);
@@ -198,14 +198,14 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
           row => row.FullName && row.FullName.trim() !== ''
         );
 
-        // ✅ VALIDATE FILE STRUCTURE
+        // VALIDATE FILE STRUCTURE
         const structureValidation = validateFileStructure(filteredData);
 
         if (!structureValidation.isValid) {
           setUploadStatus('error');
           const formattedErrors = structureValidation.errors.map(err => ({
             type: 'structure',
-            message: `❌ INVALID FILE STRUCTURE! ${err}`,
+            message: `INVALID FILE STRUCTURE! ${err}`,
             details: `Standard file must have ${LECTURER_TEMPLATE.requiredColumns.length} columns: ${LECTURER_TEMPLATE.requiredColumns.join(', ')}`,
           }));
           setStructureErrors(formattedErrors);
@@ -236,7 +236,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
           });
         }
 
-        // ✅ VALIDATE DATA
+        // VALIDATE DATA
         const dataErrors = validateData(filteredData);
 
         setErrors(dataErrors);
@@ -244,9 +244,9 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
         setUploadStatus('success');
 
         if (dataErrors.length === 0) {
-          toast.success(`✅ Loaded ${filteredData.length} lecturers from file`);
+          toast.success(`Loaded ${filteredData.length} lecturers from file`);
         } else {
-          toast.warning(`⚠️ Found ${dataErrors.length} errors in file`);
+          toast.warning(`Found ${dataErrors.length} errors in file`);
         }
       } catch (error) {
         console.error('Error reading file:', error);
@@ -255,7 +255,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
         setStructureErrors([
           {
             type: 'structure',
-            message: '❌ Error reading file!',
+            message: 'Error reading file!',
             details: error.message || 'Please check the file format.',
           },
         ]);
@@ -357,56 +357,41 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
   };
 
   return (
-    <div className='max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-lg'>
-      {/* Header */}
-      <div className='mb-8'>
-        <div className='flex items-center gap-3 mb-3'>
-          <div className='p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg'>
-            <Users className='w-6 h-6 text-white' />
-          </div>
-          <h2 className='text-2xl font-bold text-gray-900'>
-            Create Multiple Lecturer Accounts
-          </h2>
-        </div>
-        <p className='text-gray-600'>
-          Upload Excel file to create multiple lecturer accounts at once
-        </p>
-      </div>
-
+    <div className='space-y-6'>
       {/* Step indicator */}
-      <div className='mb-8'>
+      <div className='mb-6'>
         <div className='flex items-center justify-between text-sm'>
           <div
-            className={`flex items-center gap-2 ${uploadStatus !== 'idle' ? 'text-green-600' : 'text-blue-600'}`}
+            className={`flex items-center gap-2 ${uploadStatus !== 'idle' ? 'text-green-600' : 'text-orangeFpt-600'}`}
           >
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center ${uploadStatus !== 'idle' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}
+              className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${uploadStatus !== 'idle' ? 'bg-green-100 text-green-600' : 'bg-orangeFpt-100 text-orangeFpt-600'}`}
             >
               {uploadStatus !== 'idle' ? <Check size={16} /> : '1'}
             </div>
-            <span className='font-medium'>Download & Fill Template</span>
+            <span className='font-medium'>Download Template</span>
           </div>
           <div
-            className={`flex-1 h-px mx-4 ${uploadStatus === 'success' ? 'bg-green-200' : 'bg-gray-200'}`}
+            className={`flex-1 h-0.5 mx-4 rounded ${uploadStatus === 'success' ? 'bg-green-300' : 'bg-gray-200'}`}
           ></div>
           <div
-            className={`flex items-center gap-2 ${lecturers.length > 0 ? 'text-green-600' : 'text-gray-400'}`}
+            className={`flex items-center gap-2 ${lecturers.length > 0 && errors.length === 0 ? 'text-green-600' : 'text-gray-400'}`}
           >
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center ${lecturers.length > 0 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}
+              className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${lecturers.length > 0 && errors.length === 0 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}
             >
-              {lecturers.length > 0 ? <Check size={16} /> : '2'}
+              {lecturers.length > 0 && errors.length === 0 ? <Check size={16} /> : '2'}
             </div>
             <span className='font-medium'>Upload & Review</span>
           </div>
           <div
-            className={`flex-1 h-px mx-4 ${isSubmitting ? 'bg-green-200' : 'bg-gray-200'}`}
+            className={`flex-1 h-0.5 mx-4 rounded ${isSubmitting ? 'bg-green-300' : 'bg-gray-200'}`}
           ></div>
           <div
             className={`flex items-center gap-2 ${isSubmitting ? 'text-green-600' : 'text-gray-400'}`}
           >
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center ${isSubmitting ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}
+              className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${isSubmitting ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}
             >
               {isSubmitting ? <Check size={16} /> : '3'}
             </div>
@@ -416,20 +401,21 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
       </div>
 
       {/* Download & Upload Cards */}
-      <div className='grid md:grid-cols-2 gap-6 mb-6'>
+      <div className='grid md:grid-cols-2 gap-6'>
         {/* Download Template Card */}
-        <div className='bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6'>
-          <div className='flex items-center gap-3 mb-4'>
-            <div className='p-2 bg-green-100 rounded-lg'>
-              <Download className='w-5 h-5 text-green-600' />
+        <div className='bg-gradient-to-br from-orangeFpt-50 to-orange-50 border-2 border-orangeFpt-200 rounded-xl p-5'>
+          <div className='flex items-center gap-3 mb-3'>
+            <div className='p-2.5 bg-orangeFpt-100 rounded-xl'>
+              <Download className='w-5 h-5 text-orangeFpt-600' />
             </div>
-            <h3 className='font-semibold text-green-900'>
-              Step 1: Download Template
-            </h3>
+            <div>
+              <h3 className='font-semibold text-gray-800'>Step 1: Download Template</h3>
+              <p className='text-sm text-gray-500'>Get the Excel template file</p>
+            </div>
           </div>
           <button
             onClick={downloadTemplate}
-            className='w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium'
+            className='w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 text-white rounded-xl hover:from-orangeFpt-600 hover:to-orangeFpt-700 transition-all font-medium shadow-sm'
           >
             <Download size={18} />
             Download Template
@@ -437,38 +423,42 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
         </div>
 
         {/* Upload File Card */}
-        <div className='bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6'>
-          <div className='flex items-center gap-3 mb-4'>
-            <div className='p-2 bg-blue-100 rounded-lg'>
-              <Upload className='w-5 h-5 text-blue-600' />
+        <div className='bg-gradient-to-br from-slate-50 to-gray-50 border-2 border-gray-200 rounded-xl p-5'>
+          <div className='flex items-center gap-3 mb-3'>
+            <div className='p-2.5 bg-gray-100 rounded-xl'>
+              <Upload className='w-5 h-5 text-gray-600' />
             </div>
-            <h3 className='font-semibold text-blue-900'>Step 2: Upload File</h3>
+            <div>
+              <h3 className='font-semibold text-gray-800'>Step 2: Upload File</h3>
+              <p className='text-sm text-gray-500'>Excel files only (.xlsx, .xls), max 10MB</p>
+            </div>
           </div>
-          <p className='text-blue-700 text-sm mb-4'>
-            Only Excel files (.xlsx, .xls), maximum 10MB
-          </p>
           <div className='relative'>
             <input
               ref={fileInputRef}
               type='file'
-              id='file-upload'
+              id='lecturer-file-upload'
               accept='.xlsx,.xls'
               onChange={handleFileUpload}
               className='hidden'
             />
             <label
-              htmlFor='file-upload'
-              className='flex items-center justify-center gap-2 px-6 py-8 border-2 border-dashed border-blue-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-100 transition-colors'
+              htmlFor='lecturer-file-upload'
+              className={`flex items-center justify-center gap-2 px-4 py-6 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
+                fileName
+                  ? 'border-green-300 bg-green-50'
+                  : 'border-gray-300 hover:border-orangeFpt-400 hover:bg-orangeFpt-50'
+              }`}
             >
-              <FileSpreadsheet className='w-6 h-6 text-blue-400' />
-              <span className='text-blue-600 font-medium'>
+              <FileSpreadsheet className={`w-5 h-5 ${fileName ? 'text-green-500' : 'text-gray-400'}`} />
+              <span className={`font-medium ${fileName ? 'text-green-600' : 'text-gray-500'}`}>
                 {fileName || 'Click to upload Excel file'}
               </span>
             </label>
           </div>
           {uploadStatus === 'processing' && (
-            <div className='mt-2 text-blue-600 text-sm flex items-center gap-2'>
-              <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600'></div>
+            <div className='mt-2 text-orangeFpt-600 text-sm flex items-center gap-2'>
+              <div className='animate-spin rounded-full h-4 w-4 border-2 border-orangeFpt-600 border-t-transparent'></div>
               Processing file...
             </div>
           )}
@@ -477,39 +467,36 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
 
       {/* Structure Errors */}
       {structureErrors.length > 0 && (
-        <div className='mb-6 p-5 bg-red-50 border-2 border-red-300 rounded-lg'>
+        <div className='p-4 bg-red-50 border-2 border-red-200 rounded-xl'>
           <div className='flex items-start gap-3'>
-            <FileX className='w-6 h-6 text-red-600 mt-0.5 flex-shrink-0' />
+            <FileX className='w-5 h-5 text-red-500 mt-0.5 flex-shrink-0' />
             <div className='flex-1'>
-              <h4 className='font-bold text-red-900 mb-3 text-lg'>
-                ⛔ INCORRECT FILE STRUCTURE!
+              <h4 className='font-semibold text-red-800 mb-2'>
+                Invalid File Structure
               </h4>
               {structureErrors.map((err, idx) => (
-                <div key={idx} className='mb-3 last:mb-0'>
-                  <p className='text-red-800 font-semibold mb-1'>
-                    {err.message}
-                  </p>
-                  <p className='text-red-700 text-sm bg-red-100 p-2 rounded'>
+                <div key={idx} className='mb-2 last:mb-0'>
+                  <p className='text-red-700 text-sm font-medium'>{err.message}</p>
+                  <p className='text-red-600 text-xs mt-1 bg-red-100 p-2 rounded-lg'>
                     {err.details}
                   </p>
                 </div>
               ))}
-              <div className='mt-4 pt-3 border-t border-red-200'>
-                <p className='text-sm text-red-800 font-medium mb-2'>
-                  ✅ How to fix:
-                </p>
-                <ol className='list-decimal list-inside text-sm text-red-700 space-y-1'>
+              <div className='mt-3 pt-3 border-t border-red-200'>
+                <p className='text-xs text-red-700 font-medium mb-1'>How to fix:</p>
+                <ol className='list-decimal list-inside text-xs text-red-600 space-y-0.5'>
                   <li>Download the standard template above</li>
                   <li>Copy your data into the template file</li>
-                  <li>DO NOT add/remove/rename columns</li>
+                  <li>Do not add/remove/rename columns</li>
                   <li>Upload the corrected file</li>
                 </ol>
               </div>
               <button
                 onClick={resetForm}
-                className='mt-4 text-sm text-red-700 hover:text-red-800 font-medium underline'
+                className='mt-3 text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1'
               >
-                Upload different file
+                <X size={14} />
+                Clear and try again
               </button>
             </div>
           </div>
@@ -518,24 +505,23 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
 
       {/* Data Errors */}
       {errors.length > 0 && (
-        <div className='mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg'>
+        <div className='p-4 bg-amber-50 border-2 border-amber-200 rounded-xl'>
           <div className='flex items-start gap-3'>
-            <AlertTriangle className='w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0' />
+            <AlertTriangle className='w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0' />
             <div className='flex-1'>
-              <h4 className='font-semibold text-orange-900 mb-2'>
-                Data validation errors found ({errors.length} errors)
+              <h4 className='font-semibold text-amber-800 mb-2'>
+                Data Validation Errors ({errors.length})
               </h4>
-              <div className='space-y-2 max-h-60 overflow-y-auto'>
+              <div className='space-y-2 max-h-48 overflow-y-auto'>
                 {errors.map((err, idx) => (
                   <div
                     key={idx}
-                    className='text-sm bg-white p-2 rounded border border-orange-200'
+                    className='text-sm bg-white p-2 rounded-lg border border-amber-200'
                   >
-                    <p className='text-orange-800'>
-                      <span className='font-medium'>Row {err.row}:</span>{' '}
-                      {err.name}
+                    <p className='text-amber-800'>
+                      <span className='font-medium'>Row {err.row}:</span> {err.name}
                     </p>
-                    <p className='text-orange-700 ml-4'>
+                    <p className='text-amber-600 text-xs mt-0.5'>
                       • {err.errors.join(', ')}
                     </p>
                   </div>
@@ -543,8 +529,9 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
               </div>
               <button
                 onClick={resetForm}
-                className='mt-3 text-sm text-orange-700 hover:text-orange-800 font-medium underline'
+                className='mt-3 text-sm text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1'
               >
+                <X size={14} />
                 Fix file and upload again
               </button>
             </div>
@@ -556,80 +543,73 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
       {uploadStatus === 'success' &&
         lecturers.length > 0 &&
         errors.length === 0 && (
-          <div className='bg-white border border-gray-200 rounded-xl overflow-hidden mb-6'>
-            <div className='bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b'>
+          <div className='border-2 border-gray-200 rounded-xl overflow-hidden'>
+            <div className='bg-gradient-to-r from-green-50 to-emerald-50 px-4 py-3 border-b border-gray-200'>
               <div className='flex items-center justify-between'>
-                <h3 className='text-lg font-semibold text-gray-900 flex items-center gap-2'>
-                  <Users size={20} />✅ Valid file! ({lecturers.length}{' '}
-                  lecturers)
+                <h3 className='font-semibold text-gray-800 flex items-center gap-2'>
+                  <Users size={18} className='text-green-600' />
+                  <span className='text-green-600'>✓</span> Valid File - {lecturers.length} Lecturers
                 </h3>
                 <button
                   onClick={resetForm}
-                  className='text-gray-500 hover:text-gray-700 p-1'
+                  className='text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-lg transition-colors'
                   title='Clear and upload again'
                 >
-                  <X className='w-5 h-5' />
+                  <X className='w-4 h-4' />
                 </button>
               </div>
             </div>
 
-            <div className='max-h-96 overflow-y-auto'>
-              <div className='divide-y divide-gray-100'>
-                {lecturers.map((lecturer, idx) => (
-                  <div
-                    key={idx}
-                    className='p-4 hover:bg-gray-50 transition-colors'
-                  >
-                    <div className='flex items-start justify-between'>
-                      <div className='flex-1'>
-                        <div className='flex items-center gap-3 mb-2'>
-                          <div className='w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center'>
-                            <User size={16} className='text-blue-600' />
+            <div className='max-h-72 overflow-y-auto'>
+              <table className='w-full text-sm'>
+                <thead className='bg-gray-50 sticky top-0'>
+                  <tr>
+                    <th className='px-3 py-2 text-left font-semibold text-gray-600 w-12'>#</th>
+                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>Full Name</th>
+                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>Email</th>
+                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>Lecturer Code</th>
+                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>Major</th>
+                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>Phone</th>
+                  </tr>
+                </thead>
+                <tbody className='divide-y divide-gray-100'>
+                  {lecturers.map((lecturer, idx) => (
+                    <tr key={idx} className='hover:bg-gray-50 transition-colors'>
+                      <td className='px-3 py-2 text-gray-400 font-medium'>{idx + 1}</td>
+                      <td className='px-3 py-2'>
+                        <div className='flex items-center gap-2'>
+                          <div className='w-7 h-7 bg-orangeFpt-100 rounded-full flex items-center justify-center'>
+                            <User size={14} className='text-orangeFpt-600' />
                           </div>
-                          <div>
-                            <h4 className='font-semibold text-gray-900'>
-                              {lecturer.FullName}
-                            </h4>
-                            <div className='flex items-center gap-4 text-sm text-gray-600 mt-1'>
-                              <div className='flex items-center gap-1'>
-                                <Building size={14} />
-                                <span>{lecturer.Major}</span>
-                              </div>
-                              <div className='flex items-center gap-1'>
-                                <Phone size={14} />
-                                <span>{lecturer.PhoneNumber}</span>
-                              </div>
-                            </div>
-                          </div>
+                          <span className='font-medium text-gray-800'>{lecturer.FullName}</span>
                         </div>
-                        <div className='flex items-start gap-1 text-sm text-gray-600 ml-11'>
-                          <MapPin size={14} className='mt-0.5 flex-shrink-0' />
-                          <span>{lecturer.Address}</span>
-                        </div>
-                        {lecturer.Email && (
-                          <div className='ml-11 text-sm text-gray-600 mt-1'>
-                            📧 {lecturer.Email}
-                          </div>
-                        )}
-                      </div>
-                      <div className='text-xs text-gray-400'>#{idx + 1}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                      </td>
+                      <td className='px-3 py-2 text-gray-600'>{lecturer.Email}</td>
+                      <td className='px-3 py-2'>
+                        <span className='px-2 py-0.5 bg-orangeFpt-100 text-orangeFpt-700 rounded-md text-xs font-medium'>
+                          {lecturer.LecturerCode}
+                        </span>
+                      </td>
+                      <td className='px-3 py-2 text-gray-600'>{lecturer.Major}</td>
+                      <td className='px-3 py-2 text-gray-600'>{lecturer.PhoneNumber}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
       {/* API Errors */}
       {apiErrors.length > 0 && (
-        <div className='mb-6 p-4 bg-red-50 border border-red-300 rounded-lg'>
-          <h3 className='text-red-600 font-semibold mb-2'>
-            Error list from server:
-          </h3>
-          <ul className='list-disc list-inside text-red-700 space-y-1'>
+        <div className='p-4 bg-red-50 border-2 border-red-200 rounded-xl'>
+          <h4 className='text-red-700 font-semibold mb-2 flex items-center gap-2'>
+            <AlertTriangle size={16} />
+            Server Errors
+          </h4>
+          <ul className='space-y-1'>
             {apiErrors.map((err, index) => (
-              <li key={index}>
+              <li key={index} className='text-sm text-red-600'>
                 <strong>{err.field}</strong>: {err.message}
               </li>
             ))}
@@ -637,43 +617,58 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
         </div>
       )}
 
-      {/* Action Button */}
-      {lecturers.length > 0 && errors.length === 0 && !isSubmitting && (
-        <div className='flex items-center justify-between pt-4 border-t border-gray-200'>
-          <p className='text-sm text-gray-600'>
-            Ready to create{' '}
-            <span className='font-semibold text-gray-800'>
-              {lecturers.length}
-            </span>{' '}
-            accounts
-          </p>
-          <button
-            onClick={handleConfirm}
-            disabled={isLoading}
-            className='px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl transition-all font-semibold text-lg flex items-center gap-3 min-w-64 justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed'
-          >
-            {isLoading ? (
-              <>
-                <div className='w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
-                Creating Accounts...
-              </>
-            ) : (
-              <>
-                <Check size={20} />
-                Confirm & Create {lecturers.length} Accounts
-              </>
+      {/* Footer Actions */}
+      <div className='pt-4 border-t border-gray-200'>
+        <div className='flex items-center justify-between'>
+          <div className='text-sm text-gray-500'>
+            {lecturers.length > 0 && errors.length === 0 && !isSubmitting && (
+              <span>
+                Ready to create <strong className='text-gray-700'>{lecturers.length}</strong> lecturer accounts
+              </span>
             )}
-          </button>
+          </div>
+          <div className='flex items-center gap-3'>
+            <button
+              type='button'
+              onClick={resetForm}
+              className='flex items-center gap-2 px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 hover:border-gray-400 transition-all font-medium'
+            >
+              <X className='w-4 h-4' />
+              Reset
+            </button>
+
+            <button
+              onClick={handleConfirm}
+              disabled={isLoading || lecturers.length === 0 || errors.length > 0 || isSubmitting}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold transition-all ${
+                isLoading || lecturers.length === 0 || errors.length > 0 || isSubmitting
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 text-white hover:from-orangeFpt-600 hover:to-orangeFpt-700 shadow-lg hover:shadow-xl'
+              }`}
+            >
+              {isLoading ? (
+                <>
+                  <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin' />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Save className='w-4 h-4' />
+                  Create {lecturers.length > 0 ? lecturers.length : ''} Lecturers
+                </>
+              )}
+            </button>
+          </div>
         </div>
-      )}
+      </div>
 
       {/* Success State */}
       {isSubmitting && (
-        <div className='text-center py-8'>
-          <div className='inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4'>
-            <Check className='w-8 h-8 text-green-600' />
+        <div className='text-center py-8 bg-green-50 rounded-xl border-2 border-green-200'>
+          <div className='inline-flex items-center justify-center w-14 h-14 bg-green-100 rounded-full mb-3'>
+            <Check className='w-7 h-7 text-green-600' />
           </div>
-          <h3 className='text-xl font-semibold text-gray-900 mb-2'>
+          <h3 className='text-lg font-semibold text-gray-800 mb-1'>
             Accounts Created Successfully!
           </h3>
           <p className='text-gray-600'>

@@ -31,7 +31,7 @@ export default function Pagination({
   }
 
   return (
-    <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-4'>
+    <div className='p-4'>
       <div className='flex items-center justify-between'>
         <div className='text-sm text-gray-600'>
           Page {currentPage} of {totalPages}
@@ -68,7 +68,7 @@ export default function Pagination({
               onClick={() => onPageChange(page)}
               className={`px-3 py-2 rounded-lg transition-colors text-sm font-medium ${
                 currentPage === page
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-orangeFpt-500 text-white'
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >

@@ -32,6 +32,7 @@ const EditAccountForm = ({ id, onClose }) => {
   const [message, setMessage] = useState('');
   const [avatarImg, setAvartarImg] = useState('');
   const [errors, setErrors] = useState({});
+  const [shakeFields, setShakeFields] = useState({});
 
   // Validation functions
   const validateEmail = (email) => {
@@ -54,24 +55,35 @@ const EditAccountForm = ({ id, onClose }) => {
 
   const validateForm = () => {
     const newErrors = {};
+    const newShakes = {};
 
     // Full Name validation
     if (!form.fullName.trim()) {
       newErrors.fullName = 'Full name is required';
+      newShakes.fullName = true;
     } else if (form.fullName.trim().length < 2) {
       newErrors.fullName = 'Full name must be at least 2 characters';
+      newShakes.fullName = true;
     }
 
     // Email validation
     if (!form.email.trim()) {
       newErrors.email = 'Email is required';
+      newShakes.email = true;
     } else if (!validateEmail(form.email)) {
       newErrors.email = 'Please enter a valid email address';
+      newShakes.email = true;
     }
 
     // Phone validation
-    if (form.phoneNumber && !validatePhone(form.phoneNumber)) {
-      newErrors.phoneNumber = 'Phone must start with 0 and have 10-11 digits';
+    if (form.phoneNumber) {
+      if (!/^\d+$/.test(form.phoneNumber)) {
+        newErrors.phoneNumber = 'Phone number must contain only numbers';
+        newShakes.phoneNumber = true;
+      } else if (!validatePhone(form.phoneNumber)) {
+        newErrors.phoneNumber = 'Phone must start with 0 and have 10-11 digits';
+        newShakes.phoneNumber = true;
+      }
     }
 
     // Year of birth validation
@@ -79,15 +91,24 @@ const EditAccountForm = ({ id, onClose }) => {
       if (!validateYob(form.yob)) {
         const currentYear = new Date().getFullYear();
         newErrors.yob = `Year must be between 1940 and ${currentYear - 10}`;
+        newShakes.yob = true;
       }
     }
 
     // Code validation
     if (!form.code.trim()) {
       newErrors.code = 'Student/Lecturer code is required';
+      newShakes.code = true;
     }
 
     setErrors(newErrors);
+    setShakeFields(newShakes);
+
+    // Reset shake after animation
+    if (Object.keys(newShakes).length > 0) {
+      setTimeout(() => setShakeFields({}), 600);
+    }
+
     return Object.keys(newErrors).length === 0;
   };
 
@@ -309,7 +330,7 @@ const EditAccountForm = ({ id, onClose }) => {
                 value={form.fullName}
                 onChange={handleChange}
                 className={`w-full px-4 py-3 bg-white/60 backdrop-blur-sm border ${
-                  errors.fullName ? 'border-rose-400 ring-2 ring-rose-200' : 'border-slate-200/50'
+                  errors.fullName ? `border-rose-400 ring-2 ring-rose-200 ${shakeFields.fullName ? 'animate-shake' : ''}` : 'border-slate-200/50'
                 } rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 transition-all outline-none hover:bg-white/80`}
                 placeholder='John Doe'
               />
@@ -332,7 +353,7 @@ const EditAccountForm = ({ id, onClose }) => {
                 value={form.email}
                 onChange={handleChange}
                 className={`w-full px-4 py-3 bg-white/60 backdrop-blur-sm border ${
-                  errors.email ? 'border-rose-400 ring-2 ring-rose-200' : 'border-slate-200/50'
+                  errors.email ? `border-rose-400 ring-2 ring-rose-200 ${shakeFields.email ? 'animate-shake' : ''}` : 'border-slate-200/50'
                 } rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 transition-all outline-none hover:bg-white/80`}
                 placeholder='john@example.com'
               />
@@ -354,7 +375,7 @@ const EditAccountForm = ({ id, onClose }) => {
                 value={form.phoneNumber}
                 onChange={handleChange}
                 className={`w-full px-4 py-3 bg-white/60 backdrop-blur-sm border ${
-                  errors.phoneNumber ? 'border-rose-400 ring-2 ring-rose-200' : 'border-slate-200/50'
+                  errors.phoneNumber ? `border-rose-400 ring-2 ring-rose-200 ${shakeFields.phoneNumber ? 'animate-shake' : ''}` : 'border-slate-200/50'
                 } rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 transition-all outline-none hover:bg-white/80`}
                 placeholder='0123456789'
                 maxLength='11'
@@ -379,7 +400,7 @@ const EditAccountForm = ({ id, onClose }) => {
                 value={form.yob}
                 onChange={handleChange}
                 className={`w-full px-4 py-3 bg-white/60 backdrop-blur-sm border ${
-                  errors.yob ? 'border-rose-400 ring-2 ring-rose-200' : 'border-slate-200/50'
+                  errors.yob ? `border-rose-400 ring-2 ring-rose-200 ${shakeFields.yob ? 'animate-shake' : ''}` : 'border-slate-200/50'
                 } rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 transition-all outline-none hover:bg-white/80`}
                 placeholder='1990'
                 min='1940'
@@ -418,7 +439,7 @@ const EditAccountForm = ({ id, onClose }) => {
                 value={form.code}
                 onChange={handleChange}
                 className={`w-full px-4 py-3 bg-white/60 backdrop-blur-sm border ${
-                  errors.code ? 'border-rose-400 ring-2 ring-rose-200' : 'border-slate-200/50'
+                  errors.code ? `border-rose-400 ring-2 ring-rose-200 ${shakeFields.code ? 'animate-shake' : ''}` : 'border-slate-200/50'
                 } rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 transition-all outline-none hover:bg-white/80`}
                 placeholder='STU123456'
               />

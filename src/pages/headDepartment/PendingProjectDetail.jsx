@@ -115,7 +115,7 @@ const PendingProjectDetail = () => {
 
   return (
     <HeadDashboardLayout>
-      <div className="max-w-5xl mx-auto space-y-6 pb-20">
+      <div className=" mx-auto space-y-6 pb-20">
         
         {/* --- Header Navigation --- */}
         <button
