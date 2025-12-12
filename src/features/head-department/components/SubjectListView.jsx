@@ -15,18 +15,18 @@ export default function SubjectListView({ subjects, onView }) {
     <div className='overflow-x-auto'>
       <table className='w-full table-fixed'>
         <thead>
-          <tr className=''>
+          <tr className='border-b border-slate-200 bg-slate-100'>
             <th className='w-[140px] px-4 py-3 text-left text-sm font-semibold text-slate-700'>
-              Subject Code
+              Code
             </th>
             <th className='px-4 py-3 text-left text-sm font-semibold text-slate-700'>
-              Subject Name
+              Name
             </th>
-            <th className='w-[120px] px-4 py-3 text-left text-sm font-semibold text-slate-700'>
+            <th className='w-[180px] px-4 py-3 text-center text-sm font-semibold text-slate-700'>
               Status
             </th>
-            <th className='w-[80px] px-4 py-3 text-right text-sm font-semibold text-slate-700'>
-              Actions
+            <th className='w-[100px] px-4 py-3 text-center text-sm font-semibold text-slate-700'>
+              Action
             </th>
           </tr>
         </thead>
@@ -34,7 +34,7 @@ export default function SubjectListView({ subjects, onView }) {
           {subjects.map((subject) => (
             <tr
               key={subject.subjectId}
-              className='border-b border-slate-100 hover:bg-slate-50 transition-colors'
+              className='border-b border-slate-200 hover:bg-slate-200 transition-colors'
             >
               <td className='px-4 py-4'>
                 <span className='inline-block px-3 py-1 bg-orangeFpt-100 text-orangeFpt-700 rounded-md text-sm font-mono font-semibold'>
@@ -48,7 +48,7 @@ export default function SubjectListView({ subjects, onView }) {
                   </span>
                 </div>
               </td>
-              <td className='px-4 py-4'>
+              <td className='px-4 py-4 text-center'>
                 <span
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium ${
                     subject.isActive
@@ -64,8 +64,8 @@ export default function SubjectListView({ subjects, onView }) {
                   {subject.isActive ? 'Active' : 'Inactive'}
                 </span>
               </td>
-              <td className='px-4 py-4'>
-                <div className='flex items-center justify-end gap-2'>
+              <td className='px-4 py-4 text-center'>
+                <div className='flex items-center justify-center gap-2'>
                   <button
                     onClick={() => onView(subject)}
                     className='p-2 text-orangeFpt-500 hover:bg-orangeFpt-50 rounded-lg transition-colors'
