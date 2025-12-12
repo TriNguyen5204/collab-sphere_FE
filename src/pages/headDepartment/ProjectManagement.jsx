@@ -23,6 +23,16 @@ import { toast } from 'sonner';
 import HeadDashboardLayout from '../../components/layout/HeadDashboardLayout';
 import { Pagination } from '../../features/head-department/components';
 
+// Debounce hook - must be outside component
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
+
 export default function ProjectManagement() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,16 +52,6 @@ export default function ProjectManagement() {
   const [pageNum, setPageNum] = useState(1);
   const [pageCount, setPageCount] = useState(1);
   const [itemCount, setItemCount] = useState(0);
-
-  // Debounce helper
-  const useDebounce = (value, delay) => {
-    const [debouncedValue, setDebouncedValue] = useState(value);
-    useEffect(() => {
-      const handler = setTimeout(() => setDebouncedValue(value), delay);
-      return () => clearTimeout(handler);
-    }, [value, delay]);
-    return debouncedValue;
-  };
 
   // Debounced search value
   const debouncedSearch = useDebounce(search, 300);
@@ -242,7 +242,7 @@ export default function ProjectManagement() {
                 <h2 className='text-lg font-bold text-slate-800 flex items-center gap-2'>
                   Projects
                   <span className='px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium'>
-                    {projects.length} showing
+                    {projects?.length || 0} showing
                   </span>
                 </h2>
                 
@@ -309,7 +309,7 @@ export default function ProjectManagement() {
                 <div className='text-red-500 text-center py-8 bg-red-50 rounded-2xl border border-red-100'>
                   {error}
                 </div>
-              ) : projects.length === 0 ? (
+              ) : !projects || projects.length === 0 ? (
                 <div className='text-center py-20 bg-slate-50 rounded-2xl border border-dashed border-slate-300'>
                   <div className='bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4'>
                     <BookOpen className='h-8 w-8 text-slate-400' />
