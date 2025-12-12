@@ -507,11 +507,11 @@ const ResourcesHub = () => {
 
   return (
     <DashboardLayout>
-      <div className="relative h-[calc(100vh-8rem)] w-full overflow-hidden rounded-3xl p-1">
+      <div className="relative h-[calc(100vh-8rem)] w-full overflow-hidden rounded-3xl">
 
-        <div className="relative z-10 flex h-full gap-6 p-4">
+        <div className="relative z-10 flex h-full gap-2 xl:gap-6 p-2">
           {/* Left Sidebar: Class List */}
-          <div className="w-80 flex flex-col gap-5 rounded-3xl border border-white/40 p-5 shadow-xl backdrop-blur-2xl overflow-hidden">
+          <div className="w-56 xl:w-64 flex-shrink-0 flex flex-col gap-4 xl:gap-5 rounded-2xl xl:rounded-3xl border border-white/40 backdrop-blur-2xl overflow-hidden">
             <div className="flex items-center gap-3 px-1">
               <div className="flex h-8 w-8 items-center justify-center rounded-xl text-orangeFpt-600 shadow-sm">
                 <BookOpen size={18} />
@@ -526,11 +526,11 @@ const ResourcesHub = () => {
                 placeholder="Search classes..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-white/50 pl-10 pr-4 py-2.5 text-sm text-slate-700 focus:border-orangeFpt-400 focus:bg-white/80 focus:ring-2 focus:ring-orangeFpt-100 focus:outline-none transition-all placeholder-slate-400 shadow-sm"
+                className="w-full rounded-xl border border-white/50 pl-10 pr-4 py-2.5 text-sm text-slate-700 focus:border-orangeFpt-400 focus:bg-white/80 focus:ring-2 focus:ring-orangeFpt-100 focus:outline-none transition-all placeholder-slate-400"
               />
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pl-1 pr-1 -mr-2 pt-1">
+            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-1 pt-1">
               {isLoadingClasses ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="animate-spin text-slate-400" />
@@ -542,13 +542,13 @@ const ResourcesHub = () => {
                     onClick={() => setSelectedClass(cls)}
                     className={`group relative w-full text-left p-4 rounded-2xl transition-all duration-500 ease-out border overflow-hidden ${
                       selectedClass?.classId === cls.classId
-                        ? "border-orangeFpt-300/50 shadow-lg shadow-orangeFpt-500/10 scale-[1.02]"
-                        : "border-white/40 bg-white/30 hover:border-white/60 hover:shadow-md hover:-translate-y-0.5"
+                        ? "border-orangeFpt-300/50 scale-[1.02]"
+                        : "border-white/40 hover:border-white/40 hover:-translate-y-0.5"
                     }`}
                   >
                     {/* Aurora Background Effect */}
                     <div className={`absolute inset-0 transition-opacity duration-500 ${
-                      selectedClass?.classId === cls.classId ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      selectedClass?.classId === cls.classId ? "opacity-100" : "opacity-40 group-hover:opacity-100"
                     }`}>
                       <div className="absolute -top-12 -right-12 w-40 h-40 bg-blue-400/30 rounded-full blur-3xl animate-pulse" />
                       <div className="absolute top-1/2 -left-12 w-40 h-40 bg-purple-400/30 rounded-full blur-3xl animate-pulse delay-75" />
@@ -572,7 +572,7 @@ const ResourcesHub = () => {
                         {cls.isActive && (
                           <span className="relative flex h-2.5 w-2.5">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 shadow-sm ring-1 ring-white"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 ring-1 ring-white"></span>
                           </span>
                         )}
                       </div>
@@ -609,62 +609,62 @@ const ResourcesHub = () => {
             {selectedClass ? (
               <>
                 {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-3xl border border-white/40 bg-white/60 p-6 shadow-xl backdrop-blur-2xl flex-shrink-0 transition-all hover:bg-white/70">
-                  <div>
-                    <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-orangeFpt-50 text-orangeFpt-500 shadow-sm">
-                        <Folder size={24} />
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 xl:gap-4 rounded-2xl xl:rounded-3xl border border-white/40 bg-white/60 p-4 xl:p-6 backdrop-blur-2xl flex-shrink-0 transition-all hover:bg-white/70">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-lg xl:text-2xl font-bold text-slate-800 flex items-center gap-2 xl:gap-3">
+                      <div className="p-1.5 xl:p-2 rounded-lg xl:rounded-xl bg-orangeFpt-50 text-orangeFpt-500 flex-shrink-0">
+                        <Folder className="w-5 h-5 xl:w-6 xl:h-6" />
                       </div>
-                      {selectedClass.className}
+                      <span className="truncate">{selectedClass.className}</span>
                     </h2>
-                    <p className="text-sm font-medium text-slate-500 mt-1 ml-14">
+                    <p className="text-xs xl:text-sm font-medium text-slate-500 mt-1 ml-9 xl:ml-14 truncate">
                       {selectedClass.subjectCode} • {selectedClass.subjectName}
                     </p>
                   </div>
-                  <div className="flex items-center gap-4 bg-white/30 p-2 rounded-2xl border border-white/40 backdrop-blur-sm">
+                  <div className="flex items-center gap-2 xl:gap-4 bg-white/30 p-1.5 xl:p-2 rounded-xl xl:rounded-2xl border border-white/40 backdrop-blur-sm flex-shrink-0">
                     <Link
                       to={`/lecturer/classes/${selectedClass.classId}`}
-                      className="flex items-center gap-2 p-2.5 rounded-xl bg-white/60 text-slate-600 hover:bg-white hover:text-blue-600 transition-all shadow-sm border border-white/50 "
+                      className="flex items-center gap-1.5 xl:gap-2 p-2 xl:p-2.5 rounded-lg xl:rounded-xl bg-white/60 text-slate-600 hover:bg-white hover:text-blue-600 transition-all border border-white/50"
                       title="Go to Class Detail"
                     >
-                      <ExternalLink size={18} />
-                      <span className="text-sm font-bold">Go to Class Detail</span>
+                      <ExternalLink className="w-4 h-4 xl:w-[18px] xl:h-[18px]" />
+                      <span className="text-xs xl:text-sm font-bold hidden sm:inline">Go to Class Detail</span>
                     </Link>
                     <button
                       onClick={() => fetchResources()}
-                      className="p-2.5 rounded-xl bg-white/60 text-slate-600 hover:bg-white hover:text-orangeFpt-600 transition-all shadow-sm border border-white/50 hover:shadow-md hover:-translate-y-0.5 active:scale-95"
+                      className="p-2 xl:p-2.5 rounded-lg xl:rounded-xl bg-white/60 text-slate-600 hover:bg-white hover:text-orangeFpt-600 transition-all border border-white/50 hover:-translate-y-0.5 active:scale-95"
                       title="Refresh list"
                     >
-                      <RefreshCw size={18} className={isLoadingResources ? "animate-spin" : ""} />
+                      <RefreshCw className={`w-4 h-4 xl:w-[18px] xl:h-[18px] ${isLoadingResources ? "animate-spin" : ""}`} />
                     </button>
-                    <div className="h-8 w-px bg-slate-300/30"></div>
-                    <div className="text-right px-2">
-                      <p className="text-sm font-bold text-slate-700">{totalFiles} Files</p>
-                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">{folderKeys.length} Folders</p>
+                    <div className="h-6 xl:h-8 w-px bg-slate-300/30"></div>
+                    <div className="text-right px-1 xl:px-2">
+                      <p className="text-xs xl:text-sm font-bold text-slate-700">{totalFiles} Files</p>
+                      <p className="text-[9px] xl:text-[10px] font-medium text-slate-400 uppercase tracking-wide">{folderKeys.length} Folders</p>
                     </div>
                   </div>
                 </div>
 
                 {menuError && (
-                  <div className="p-4 rounded-2xl bg-red-50/90 text-red-600 text-sm border border-red-100 backdrop-blur-md flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-2">
+                  <div className="p-4 rounded-2xl bg-red-50/90 text-red-600 text-sm border border-red-100 backdrop-blur-md flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
                     <AlertCircle size={18} /> {menuError}
                   </div>
                 )}
 
-                <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-hidden">
+                <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-3 gap-4 xl:gap-6 overflow-hidden">
                   {/* Left Column: Folders & Upload */}
-                  <div className="space-y-6 overflow-y-auto custom-scrollbar pr-2 pb-4">
+                  <div className="space-y-4 xl:space-y-6 overflow-y-auto custom-scrollbar pr-2 pb-4">
                     {/* Folder Navigation */}
-                    <div className="rounded-3xl border border-white/40 bg-white/60 p-6 shadow-xl backdrop-blur-2xl transition-all hover:shadow-2xl hover:bg-white/70">
-                      <div className="flex items-center justify-between mb-5">
-                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                          <Folder size={16} className="text-slate-400" /> Folders
+                    <div className="rounded-2xl xl:rounded-3xl border border-white/40 bg-white/60 p-4 xl:p-6 backdrop-blur-2xl transition-all hover:bg-white/70">
+                      <div className="flex items-center justify-between mb-4 xl:mb-5">
+                        <h3 className="text-xs xl:text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                          <Folder className="w-4 h-4 text-slate-400" /> Folders
                         </h3>
-                        <span className="text-[10px] font-bold bg-white/50 px-2 py-1 rounded-full text-slate-500 border border-white/50">
+                        <span className="text-[9px] xl:text-[10px] font-bold bg-white/50 px-2 py-1 rounded-full text-slate-500 border border-white/50">
                           {folderKeys.length}
                         </span>
                       </div>
-                      <div className="flex flex-wrap gap-2.5">
+                      <div className="flex flex-wrap gap-2">
                         {folderKeys.map((folderKey) => (
                           <button
                             key={folderKey}
@@ -677,14 +677,14 @@ const ResourcesHub = () => {
                                 setPendingFolder("");
                               }
                             }}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 border ${
+                            className={`flex items-center gap-1.5 xl:gap-2 px-3 xl:px-4 py-1.5 xl:py-2 rounded-full text-xs xl:text-sm font-medium transition-all duration-300 border ${
                               currentFolder === folderKey
-                                ? "bg-slate-800 text-white shadow-lg shadow-slate-800/20 border-transparent scale-105"
-                                : "bg-white/40 text-slate-600 border-white/50 hover:bg-white/80 hover:shadow-md hover:-translate-y-0.5"
+                                ? "bg-slate-800 text-white border-transparent scale-105"
+                                : "bg-white/40 text-slate-600 border-white/50 hover:bg-white/80 hover:-translate-y-0.5"
                             }`}
                           >
-                            <span className="truncate max-w-[120px]">{formatFolderLabel(folderKey)}</span>
-                            <span className={`ml-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full text-[9px] px-1.5 ${
+                            <span className="truncate max-w-[80px] xl:max-w-[120px]">{formatFolderLabel(folderKey)}</span>
+                            <span className={`ml-0.5 xl:ml-1 flex h-4 xl:h-5 min-w-[1rem] xl:min-w-[1.25rem] items-center justify-center rounded-full text-[8px] xl:text-[9px] px-1 xl:px-1.5 ${
                               currentFolder === folderKey ? "bg-white/20 text-white" : "bg-slate-200/50 text-slate-600"
                             }`}>
                               {folderMap?.[folderKey]?.length ?? 0}
@@ -695,11 +695,11 @@ const ResourcesHub = () => {
                     </div>
 
                     {/* Upload Section */}
-                    <div className="rounded-3xl border border-white/40 bg-white/60 p-6 shadow-xl backdrop-blur-2xl transition-all hover:shadow-2xl hover:bg-white/70">
-                      <h3 className="text-sm font-bold text-slate-800 mb-5 uppercase tracking-wider flex items-center gap-2">
-                        <UploadCloud size={16} className="text-slate-400" /> Upload Files
+                    <div className="rounded-2xl xl:rounded-3xl border border-white/40 bg-white/60 p-4 xl:p-6 backdrop-blur-2xl transition-all hover:bg-white/70">
+                      <h3 className="text-xs xl:text-sm font-bold text-slate-800 mb-4 xl:mb-5 uppercase tracking-wider flex items-center gap-2">
+                        <UploadCloud className="w-4 h-4 text-slate-400" /> Upload Files
                       </h3>
-                      <div className="space-y-5">
+                      <div className="space-y-4 xl:space-y-5">
                         <div>
                           <label className="text-xs font-bold text-slate-500 mb-2 block ml-1">TARGET FOLDER</label>
                           <div className="relative">
@@ -709,22 +709,22 @@ const ResourcesHub = () => {
                               value={pendingFolder}
                               onChange={(e) => setPendingFolder(e.target.value)}
                               placeholder="e.g., reports/week-1"
-                              className="w-full rounded-xl border border-white/50 bg-white/40 pl-10 pr-4 py-2.5 text-sm focus:border-orangeFpt-400 focus:bg-white/80 focus:ring-2 focus:ring-orangeFpt-100 focus:outline-none transition-all placeholder-slate-400 shadow-sm"
+                              className="w-full rounded-xl border border-white/50 bg-white/40 pl-10 pr-4 py-2.5 text-sm focus:border-orangeFpt-400 focus:bg-white/80 focus:ring-2 focus:ring-orangeFpt-100 focus:outline-none transition-all placeholder-slate-400"
                             />
                           </div>
                         </div>
 
                         <div 
                           onClick={() => fileInputRef.current?.click()}
-                          className="group relative border-2 border-dashed border-slate-300/60 rounded-3xl p-8 text-center cursor-pointer hover:border-orangeFpt-400/60 hover:bg-orangeFpt-50/30 transition-all duration-300 bg-white/20"
+                          className="group relative border-2 border-dashed border-slate-300/60 rounded-2xl xl:rounded-3xl p-5 xl:p-8 text-center cursor-pointer hover:border-orangeFpt-400/60 hover:bg-orangeFpt-50/30 transition-all duration-300 bg-white/20"
                         >
-                          <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/40 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/40 rounded-2xl xl:rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
                           <div className="relative z-10">
-                            <div className="w-14 h-14 rounded-2xl bg-white/80 text-slate-400 mx-auto flex items-center justify-center mb-3 group-hover:text-orangeFpt-500 group-hover:scale-110 group-hover:shadow-lg transition-all duration-300 shadow-sm">
-                              <UploadCloud size={28} />
+                            <div className="w-10 h-10 xl:w-14 xl:h-14 rounded-xl xl:rounded-2xl bg-white/80 text-slate-400 mx-auto flex items-center justify-center mb-2 xl:mb-3 group-hover:text-orangeFpt-500 group-hover:scale-110 transition-all duration-300">
+                              <UploadCloud className="w-5 h-5 xl:w-7 xl:h-7" />
                             </div>
-                            <p className="text-sm font-bold text-slate-700 group-hover:text-orangeFpt-600 transition-colors">Click to browse</p>
-                            <p className="text-xs text-slate-400 mt-1">or drag and drop files here</p>
+                            <p className="text-xs xl:text-sm font-bold text-slate-700 group-hover:text-orangeFpt-600 transition-colors">Click to browse</p>
+                            <p className="text-[10px] xl:text-xs text-slate-400 mt-1">or drag and drop files here</p>
                           </div>
                           <input
                             ref={fileInputRef}
@@ -744,7 +744,7 @@ const ResourcesHub = () => {
                             
                             <div className="max-h-48 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                               {pendingFiles.map((file, idx) => (
-                                <div key={`${file.name}-${idx}`} className="flex items-center justify-between p-3 rounded-xl bg-white/60 border border-white/60 text-xs backdrop-blur-sm shadow-sm group hover:bg-white/90 transition-colors">
+                                <div key={`${file.name}-${idx}`} className="flex items-center justify-between p-3 rounded-xl bg-white/60 border border-white/60 text-xs backdrop-blur-sm group hover:bg-white/90 transition-colors">
                                   <div className="flex items-center gap-3 min-w-0">
                                     <div className="w-8 h-8 rounded-lg bg-orangeFpt-50 text-orangeFpt-500 flex items-center justify-center flex-shrink-0">
                                       <FileText size={14} />
@@ -767,14 +767,14 @@ const ResourcesHub = () => {
                             <button
                               onClick={handleUpload}
                               disabled={isUploading}
-                              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 text-white font-bold text-sm shadow-lg shadow-orangeFpt-500/30 hover:shadow-orangeFpt-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 backdrop-blur-sm"
+                              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 text-white font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 backdrop-blur-sm"
                             >
                               {isUploading ? <Loader2 className="animate-spin" size={20} /> : <Upload size={20} />}
                               {isUploading ? "Uploading..." : "Upload Files"}
                             </button>
                             
                             {uploadErrors.length > 0 && (
-                              <div className="mt-3 p-4 rounded-2xl bg-red-50/90 border border-red-100 backdrop-blur-md shadow-sm">
+                              <div className="mt-3 p-4 rounded-2xl bg-red-50/90 border border-red-100 backdrop-blur-md">
                                 <div className="flex items-center gap-2 text-red-600 font-bold text-xs mb-2">
                                   <AlertCircle size={14} />
                                   <span>Upload Failed</span>
@@ -795,17 +795,17 @@ const ResourcesHub = () => {
                   </div>
 
                   {/* Right Column: File List */}
-                  <div className="lg:col-span-2 overflow-y-auto custom-scrollbar pr-2 pb-4">
-                    <div className="rounded-3xl border border-white/40 bg-white/60 p-6 shadow-xl backdrop-blur-2xl min-h-[600px] transition-all hover:shadow-2xl hover:bg-white/70">
-                      <div className="flex items-center justify-between mb-6 sticky top-0 bg-white/0 backdrop-blur-xl z-20 py-2 -my-2">
-                        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                          <span className="text-slate-400 font-normal text-sm uppercase tracking-wider">Current Folder:</span> 
-                          <span className="text-orangeFpt-600 bg-orangeFpt-50/50 px-3 py-1 rounded-lg border border-orangeFpt-100/50">
+                  <div className="xl:col-span-2 overflow-y-auto custom-scrollbar pr-2 pb-4">
+                    <div className="rounded-2xl xl:rounded-3xl border border-white/40 bg-white/60 p-4 xl:p-6 backdrop-blur-2xl min-h-[400px] xl:min-h-[600px] transition-all hover:bg-white/70">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 xl:mb-6 sticky top-0 bg-white/0 backdrop-blur-xl z-20 py-2 -my-2">
+                        <h3 className="text-sm xl:text-lg font-bold text-slate-800 flex flex-wrap items-center gap-1.5 xl:gap-2">
+                          <span className="text-slate-400 font-normal text-xs xl:text-sm uppercase tracking-wider">Current Folder:</span> 
+                          <span className="text-orangeFpt-600 bg-orangeFpt-50/50 px-2 xl:px-3 py-0.5 xl:py-1 rounded-md xl:rounded-lg border border-orangeFpt-100/50 text-xs xl:text-base">
                             {formatFolderLabel(currentFolder)}
                           </span>
                         </h3>
                         {filesInFolder.length > 0 && (
-                          <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-white/50 text-slate-600 border border-white/60 shadow-sm backdrop-blur-md">
+                          <span className="text-[10px] xl:text-xs font-bold px-2 xl:px-3 py-1 xl:py-1.5 rounded-full bg-white/50 text-slate-600 border border-white/60 backdrop-blur-md self-start sm:self-auto">
                             {filesInFolder.length} items
                           </span>
                         )}
@@ -817,72 +817,72 @@ const ResourcesHub = () => {
                           <p className="text-sm font-medium">Loading files...</p>
                         </div>
                       ) : filesInFolder.length > 0 ? (
-                        <div className="grid gap-3">
+                        <div className="grid gap-2 xl:gap-3">
                           {filesInFolder.map((resource) => (
                             <div
                               key={resource.fileId}
-                              className="group flex items-center gap-4 p-4 rounded-2xl border border-white/40 bg-white/40 hover:bg-white/80 hover:shadow-lg hover:shadow-slate-200/40 hover:-translate-y-0.5 transition-all duration-300 backdrop-blur-sm cursor-pointer"
+                              className="group flex items-center gap-3 xl:gap-4 p-3 xl:p-4 rounded-xl xl:rounded-2xl border border-white/40 bg-white/40 hover:bg-white/80 hover:-translate-y-0.5 transition-all duration-300 backdrop-blur-sm cursor-pointer"
                               onClick={() => handleOpenResource(resource)}
                             >
-                              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-white to-slate-50 text-orangeFpt-500 flex items-center justify-center flex-shrink-0 shadow-sm border border-white/60 group-hover:scale-110 group-hover:shadow-md transition-all duration-300">
-                                <FileText size={24} />
+                              <div className="h-10 w-10 xl:h-12 xl:w-12 rounded-xl xl:rounded-2xl bg-gradient-to-br from-white to-slate-50 text-orangeFpt-500 flex items-center justify-center flex-shrink-0 border border-white/60 group-hover:scale-110 transition-all duration-300">
+                                <FileText className="w-5 h-5 xl:w-6 xl:h-6" />
                               </div>
                               
                               <div className="flex-1 min-w-0">
-                                <h4 className="font-bold text-slate-800 truncate group-hover:text-orangeFpt-600 transition-colors text-sm mb-1">
+                                <h4 className="font-bold text-slate-800 truncate group-hover:text-orangeFpt-600 transition-colors text-xs xl:text-sm mb-0.5 xl:mb-1">
                                   {resource.fileName}
                                 </h4>
-                                <div className="flex items-center gap-3 text-xs text-slate-500">
-                                  <span className="font-medium bg-white/50 px-2 py-0.5 rounded text-slate-600 border border-white/50">
+                                <div className="flex flex-wrap items-center gap-1.5 xl:gap-3 text-[10px] xl:text-xs text-slate-500">
+                                  <span className="font-medium bg-white/50 px-1.5 xl:px-2 py-0.5 rounded text-slate-600 border border-white/50">
                                     {formatFileSize(resource.fileSize)}
                                   </span>
-                                  <span className="text-slate-300">•</span>
-                                  <div className="flex items-center gap-1.5" title={`Uploaded by ${resource.userName}`}>
+                                  <span className="text-slate-300 hidden sm:inline">•</span>
+                                  <div className="hidden sm:flex items-center gap-1.5" title={`Uploaded by ${resource.userName}`}>
                                     {resource.avatarImg ? (
                                       <img 
                                         src={resource.avatarImg} 
                                         alt={resource.userName} 
-                                        className="w-4 h-4 rounded-full object-cover border border-white/50 shadow-sm"
+                                        className="w-4 h-4 rounded-full object-cover border border-white/50"
                                       />
                                     ) : (
                                       <div className="w-4 h-4 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-500 border border-white/50">
                                         {(resource.userName || "?").charAt(0).toUpperCase()}
                                       </div>
                                     )}
-                                    <span className="truncate max-w-[100px] font-medium">{resource.userName || "Unknown"}</span>
+                                    <span className="truncate max-w-[80px] xl:max-w-[100px] font-medium">{resource.userName || "Unknown"}</span>
                                   </div>
-                                  <span className="text-slate-300">•</span>
-                                  <span>{resource.createdAtLabel}</span>
+                                  <span className="text-slate-300 hidden sm:inline">•</span>
+                                  <span className="hidden sm:inline">{resource.createdAtLabel}</span>
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center gap-1 xl:gap-2 opacity-100 xl:opacity-0 group-hover:opacity-100 transition-all duration-300 xl:transform xl:translate-x-2 group-hover:translate-x-0 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                                 <button
                                   onClick={() => handleOpenResource(resource)}
-                                  className="p-2.5 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50/80 transition-all hover:shadow-sm active:scale-95"
+                                  className="p-2 xl:p-2.5 rounded-lg xl:rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50/80 transition-all active:scale-95"
                                   title="Download / Open"
                                 >
-                                  {openingFileId === resource.fileId ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
+                                  {openingFileId === resource.fileId ? <Loader2 className="animate-spin w-4 h-4 xl:w-[18px] xl:h-[18px]" /> : <Download className="w-4 h-4 xl:w-[18px] xl:h-[18px]" />}
                                 </button>
                                 <button
                                   onClick={() => handleDeleteResource(resource)}
                                   disabled={deletingFileId === resource.fileId}
-                                  className="p-2.5 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50/80 transition-all hover:shadow-sm active:scale-95"
+                                  className="p-2 xl:p-2.5 rounded-lg xl:rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50/80 transition-all active:scale-95"
                                   title="Delete"
                                 >
-                                  {deletingFileId === resource.fileId ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                                  {deletingFileId === resource.fileId ? <Loader2 className="animate-spin w-4 h-4 xl:w-[18px] xl:h-[18px]" /> : <Trash2 className="w-4 h-4 xl:w-[18px] xl:h-[18px]" />}
                                 </button>
                               </div>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center justify-center h-80 rounded-3xl border-2 border-dashed border-slate-200/60 bg-white/20 backdrop-blur-sm">
-                          <div className="h-20 w-20 rounded-full bg-white/60 flex items-center justify-center mb-4 text-slate-300 shadow-sm">
-                            <Folder size={40} />
+                        <div className="flex flex-col items-center justify-center h-48 xl:h-80 rounded-2xl xl:rounded-3xl border-2 border-dashed border-slate-200/60 bg-white/20 backdrop-blur-sm">
+                          <div className="h-14 w-14 xl:h-20 xl:w-20 rounded-full bg-white/60 flex items-center justify-center mb-3 xl:mb-4 text-slate-300">
+                            <Folder className="w-7 h-7 xl:w-10 xl:h-10" />
                           </div>
-                          <p className="text-slate-600 font-bold text-lg">No files in this folder</p>
-                          <p className="text-sm text-slate-400 mt-1">Upload files to share with your class</p>
+                          <p className="text-slate-600 font-bold text-sm xl:text-lg">No files in this folder</p>
+                          <p className="text-xs xl:text-sm text-slate-400 mt-1">Upload files to share with your class</p>
                         </div>
                       )}
                     </div>
@@ -890,8 +890,8 @@ const ResourcesHub = () => {
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center rounded-3xl border border-white/40 bg-white/60 shadow-xl backdrop-blur-2xl text-center p-8">
-                <div className="h-24 w-24 rounded-full bg-gradient-to-br from-orangeFpt-50 to-white flex items-center justify-center mb-6 shadow-lg shadow-orangeFpt-100">
+              <div className="flex-1 flex flex-col items-center justify-center rounded-3xl border border-white/40 bg-white/60 backdrop-blur-2xl text-center p-8">
+                <div className="h-24 w-24 rounded-full bg-gradient-to-br from-orangeFpt-50 to-white flex items-center justify-center mb-6">
                   <BookOpen size={48} className="text-orangeFpt-400" />
                 </div>
                 <h2 className="text-2xl font-bold text-slate-800 mb-2">Select a Class</h2>
