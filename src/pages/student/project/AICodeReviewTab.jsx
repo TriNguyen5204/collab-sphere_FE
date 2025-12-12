@@ -12,7 +12,9 @@ import {
   Octagon,
   Lightbulb,
   ArrowUpRight,
-  RefreshCcw
+  RefreshCcw,
+  Info,
+  GitBranch
 } from 'lucide-react';
 import { getPRAnalysesByTeam } from '../../../services/prAnalysisApi';
 import { initConnection, getProjectInstallation } from '../../../services/githubApi';
@@ -191,7 +193,7 @@ const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-orangeFpt-500" />
         <span className="ml-3 text-sm text-gray-600">Checking connection…</span>
       </div>
     );
@@ -345,6 +347,40 @@ const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
                 <span>Last sync: <span className="font-medium text-gray-700">{lastAnalyzedAt ? formatDate(lastAnalyzedAt, true) : 'Never'}</span></span>
             </div>
         </div>
+
+        {/* Branch Naming Convention Info Alert */}
+        <div className="rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50/80 to-indigo-50/60 px-4 py-4 shadow-sm">
+          <div className="flex gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+              <Info className="h-4 w-4" />
+            </div>
+            <div className="flex-1 space-y-2">
+              <h4 className="text-sm font-semibold text-gray-800">Branch Naming Convention Guidelines</h4>
+              <p className="text-xs leading-relaxed text-gray-600">
+                To <span className="font-medium text-blue-700">optimize resources</span> and focus on official integration paths, our AI only analyzes Pull Requests targeting these protected branches:
+              </p>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {['main', 'master', 'develop', 'development', 'staging', 'release/*', 'dev', 'test'].map((branch) => (
+                  <span
+                    key={branch}
+                    className="inline-flex items-center gap-1 rounded-md bg-white px-2 py-0.5 text-xs font-mono font-medium text-gray-700 ring-1 ring-gray-200/80 shadow-sm"
+                  >
+                    <GitBranch className="h-3 w-3 text-blue-500" />
+                    {branch}
+                  </span>
+                ))}
+              </div>
+              <div className="mt-3 rounded-lg bg-white/70 px-3 py-2.5 ring-1 ring-gray-100">
+                <p className="text-xs font-medium text-gray-700 mb-1.5">💡 Recommended Branch Naming Conventions:</p>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+                  <span><code className="rounded bg-emerald-50 px-1.5 py-0.5 font-mono text-emerald-700">feature/&lt;name&gt;</code> — New features</span>
+                  <span><code className="rounded bg-amber-50 px-1.5 py-0.5 font-mono text-amber-700">bugfix/&lt;issue&gt;</code> — Bug fixes</span>
+                  <span><code className="rounded bg-purple-50 px-1.5 py-0.5 font-mono text-purple-700">chore/&lt;task&gt;</code> — Maintenance tasks</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </header>
 
       {analysesError && (
@@ -377,7 +413,7 @@ const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
           </div>
           {loadingAnalyses ? (
             <div className="flex items-center justify-center px-6 py-16">
-              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
+              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-orangeFpt-500" />
               <span className="ml-3 text-sm text-gray-600">Loading analyses…</span>
             </div>
           ) : prAnalyses.length === 0 ? (

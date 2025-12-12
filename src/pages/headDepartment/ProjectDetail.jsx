@@ -95,7 +95,7 @@ const ProjectDetail = () => {
                   <h1 className='text-3xl font-bold text-gray-900 mb-2'>
                     {project.projectName}
                   </h1>
-                  <p className='text-gray-600 text-lg max-w-3xl leading-relaxed'>
+                  <p className='text-gray-600 text-md leading-relaxed'>
                     {project.description}
                   </p>
                 </div>
@@ -104,7 +104,7 @@ const ProjectDetail = () => {
           </div>
 
           {/* Main Content */}
-          <div className='max-w-7xl mx-auto px-6 py-8 w-full'>
+          <div className=' mx-auto px-6 py-8 w-full'>
             {/* Quick Stats */}
             <div className='grid grid-cols-1 md:grid-cols-4 gap-6 mb-8'>
               <div className='bg-white rounded-2xl shadow-sm p-6 border border-gray-100'>
@@ -191,14 +191,14 @@ const ProjectDetail = () => {
                         </h2>
                       </div>
                       <span className='text-sm text-gray-500 font-medium'>
-                        {project.objectives.length} objectives
+                        {project.objectives?.length || 0} objectives
                       </span>
                     </div>
                   </div>
 
                   <div className='p-6'>
                     <div className='space-y-6'>
-                      {project.objectives.map((obj, index) => (
+                      {(project.objectives || []).map((obj, index) => (
                         <div
                           key={obj.objectiveId}
                           className='bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 hover:border-gray-200 transition-all'
@@ -234,7 +234,7 @@ const ProjectDetail = () => {
 
                           {/* Milestones */}
                           <div className='p-6'>
-                            {obj.objectiveMilestones.length > 0 ? (
+                            {(obj.objectiveMilestones || []).length > 0 ? (
                               <>
                                 <div className='flex items-center gap-2 mb-4'>
                                   <TrendingUp className='w-5 h-5 text-orange-600' />
@@ -368,7 +368,7 @@ const ProjectDetail = () => {
                             Total Objectives
                           </p>
                           <p className='font-bold text-gray-900 text-lg'>
-                            {project.objectives.length}
+                            {project.objectives?.length || 0}
                           </p>
                         </div>
                       </div>

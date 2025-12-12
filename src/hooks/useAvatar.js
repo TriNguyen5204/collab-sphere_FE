@@ -1,12 +1,44 @@
 import { useState, useMemo, useEffect } from 'react';
 
 /**
+ * Validates if an image URL is complete and valid.
+ * Checks for incomplete Cloudinary URLs that end with just '/upload' without the actual image path.
+ * @param {string} url - The image URL to validate
+ * @returns {boolean} - True if URL is valid and complete
+ */
+const isValidImageUrl = (url) => {
+  if (!url || typeof url !== 'string') return false;
+  
+  // Check if it's a Cloudinary URL
+  if (url.includes('cloudinary.com')) {
+    // Valid Cloudinary URL should have content after '/upload/'
+    // Invalid: https://res.cloudinary.com/dn5xgbmqq/image/upload
+    // Valid: https://res.cloudinary.com/dn5xgbmqq/image/upload/v1/avatars/obpgbuicvfkqt27hm1dp
+    const uploadIndex = url.indexOf('/upload/');
+    if (uploadIndex === -1) return false;
+    
+    const afterUpload = url.substring(uploadIndex + 8); // '/upload/' is 8 characters
+    return afterUpload.length > 0 && afterUpload !== '/';
+  }
+  
+  // For non-Cloudinary URLs, do basic validation
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
  * Custom hook to generate avatar initials, consistent colors, and handle image loading errors.
  * * @param {string} name 
  * @param {string} src 
  */
 export function useAvatar(name, src) {
   const [imageError, setImageError] = useState(false);
+  const isValidUrl = useMemo(() => isValidImageUrl(src), [src]);
+  
   useEffect(() => {
     setImageError(false);
   }, [src]);
@@ -46,6 +78,6 @@ export function useAvatar(name, src) {
     colorClass,
     imageError,
     setImageError,
-    shouldShowImage: src && !imageError
+    shouldShowImage: isValidUrl && !imageError
   };
 }

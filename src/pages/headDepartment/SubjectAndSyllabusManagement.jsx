@@ -35,7 +35,6 @@ export default function SubjectManagement() {
 
   // UI state
   const [currentPage, setCurrentPage] = useState(1);
-  const [viewMode, setViewMode] = useState('grid');
 
   // Modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -52,6 +51,7 @@ export default function SubjectManagement() {
   const fetchSubjects = async () => {
     try {
       const data = await getAllSubject();
+      console.log('Fetched subjects:', data);
       setSubjects(data || []);
     } catch (error) {
       console.error('Error fetching subjects:', error);
@@ -104,13 +104,11 @@ export default function SubjectManagement() {
   };
 
   const handleDeleteSubject = subject => {
-    // TODO: Implement delete logic with confirmation
     console.log('Delete subject:', subject);
   };
 
   const handlePageChange = page => {
     setCurrentPage(page);
-    // Scroll to top of the table/grid container instead of window
     document
       .getElementById('subjects-container')
       ?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -141,29 +139,21 @@ export default function SubjectManagement() {
           {/* User Table - Matching Staff/Admin style */}
           <div className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden'>
             {/* Table Header with Filters */}
-            <div className='p-2 border-b border-slate-100'>
+            <div className=' border-b border-slate-200 p-2'>
               <SubjectFilters
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
                 statusFilter={statusFilter}
                 onStatusChange={setStatusFilter}
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
                 currentCount={currentSubjects.length}
                 totalCount={filteredSubjects.length}
               />
             </div>
 
             {/* Content Area */}
-            <div className='p-2'>
+            <div className=''>
               {currentSubjects.length === 0 ? (
                 <EmptyState searchQuery={searchQuery} />
-              ) : viewMode === 'grid' ? (
-                <SubjectGridView
-                  subjects={currentSubjects}
-                  onView={handleViewSubject}
-                  onDelete={handleDeleteSubject}
-                />
               ) : (
                 <SubjectListView
                   subjects={currentSubjects}
