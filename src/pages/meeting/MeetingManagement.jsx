@@ -24,7 +24,10 @@ import { useAvatar } from '../../hooks/useAvatar';
 
 // Avatar Component using useAvatar hook (consistent with ClassDetailPage)
 const Avatar = ({ src, name, className = '' }) => {
-  const { initials, colorClass, setImageError, shouldShowImage } = useAvatar(name, src);
+  const { initials, colorClass, setImageError, shouldShowImage } = useAvatar(
+    name,
+    src
+  );
 
   if (shouldShowImage) {
     return (
@@ -50,7 +53,7 @@ const Avatar = ({ src, name, className = '' }) => {
 const MeetingManagement = () => {
   const { teamId } = useParams();
   const teamIdNumber = parseInt(teamId) || 2;
-  
+
   const [meetings, setMeetings] = useState([]);
   const [filters, setFilters] = useState({
     teamId: teamIdNumber,
@@ -64,24 +67,6 @@ const MeetingManagement = () => {
   const [pagination, setPagination] = useState({ pageCount: 1, itemCount: 0 });
   const [loading, setLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-
-  // Status badge helper
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      0: { label: 'Cancelled', color: 'bg-red-50 text-red-700 border-red-200', icon: X },
-      1: { label: 'Completed', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: Check },
-      2: { label: 'Upcoming', color: 'bg-blue-50 text-blue-700 border-blue-200', icon: Clock },
-    };
-    
-    const config = statusConfig[status] || { label: 'Unknown', color: 'bg-slate-100 text-slate-700 border-slate-200', icon: AlertCircle };
-    // const Icon = config.icon; // Icon removed to match ProjectLibrary style more closely or keep it minimal
-    
-    return (
-      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${config.color}`}>
-        {config.label}
-      </span>
-    );
-  };
 
   // UTC conversion
   const convertToUTC = localDateStr => {
@@ -100,9 +85,9 @@ const MeetingManagement = () => {
         ...filters,
         scheduleTime: convertToUTC(filters.scheduleTime),
       };
-      
+
       const res = await getMeeting(payload);
-      
+
       if (res?.isSuccess && res.paginatedMeeting?.list) {
         setMeetings(res.paginatedMeeting.list);
         setPagination({
@@ -154,152 +139,176 @@ const MeetingManagement = () => {
     }
   };
 
-  // Format date
-  const formatDate = (dateString) => {
+  const formatDate = dateString => {
+    if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
+
+    if (isNaN(date.getTime())) {
+      return 'Invalid date';
+    }
+
+    // ✅ Giữ nguyên giờ UTC + hiển thị giờ phút
+    return date.toLocaleString('en-GB', {
       day: 'numeric',
+      month: 'short',
       year: 'numeric',
+      hour: '2-digit', 
+      minute: '2-digit', 
+      hour12: true, 
+      timeZone: 'UTC', 
     });
   };
 
   // Format time
-  const formatTime = (dateString) => {
+  const formatTime = dateString => {
+    if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true, // Hiện AM/PM
+      timeZone: 'UTC', // 👈 QUAN TRỌNG: Giữ nguyên giờ gốc
+    });
   };
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-slate-50/50">
-        
+      <div className='min-h-screen bg-slate-50/50'>
         {/* --- HERO SECTION --- */}
-        <header className="relative rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50 mb-6">
-          <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
-            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-orangeFpt-100/50 blur-3xl"></div>
+        <header className='relative rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50 mb-6'>
+          <div className='absolute inset-0 overflow-hidden rounded-3xl pointer-events-none'>
+            <div className='absolute -right-20 -top-20 h-64 w-64 rounded-full bg-orangeFpt-100/50 blur-3xl'></div>
           </div>
 
-          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-4">
+          <div className='relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between'>
+            <div className='space-y-4'>
               <div>
-                <LecturerBreadcrumbs 
+                <LecturerBreadcrumbs
                   items={[
-                    { label: 'Lecturer Workspace', href: '/lecturer/dashboard' },
-                    { label: 'Meeting History', href: null }
-                  ]} 
+                    {
+                      label: 'Lecturer Workspace',
+                      href: '/lecturer/dashboard',
+                    },
+                    { label: 'Meeting History', href: null },
+                  ]}
                 />
-                <h1 className="mt-2 text-3xl font-semibold text-slate-900">Meeting History</h1>
-                <p className="mt-1 text-sm text-slate-600">
+                <h1 className='mt-2 text-3xl font-semibold text-slate-900'>
+                  Meeting History
+                </h1>
+                <p className='mt-1 text-sm text-slate-600'>
                   View past meetings, schedules, and meeting details.
                 </p>
               </div>
 
               {/* Stats */}
-              <div className="flex items-center gap-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-orangeFpt-50 rounded-lg">
-                    <Video className="h-4 w-4 text-orangeFpt-600" />
+              <div className='flex items-center gap-6 text-sm'>
+                <div className='flex items-center gap-2'>
+                  <div className='p-2 bg-orangeFpt-50 rounded-lg'>
+                    <Video className='h-4 w-4 text-orangeFpt-600' />
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900">{pagination.itemCount}</p>
-                    <p className="text-xs text-slate-500">Total Meetings</p>
+                    <p className='font-semibold text-slate-900'>
+                      {pagination.itemCount}
+                    </p>
+                    <p className='text-xs text-slate-500'>Total Meetings</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-3">
-               <button
-                 onClick={fetchMeetings}
-                 disabled={loading}
-                 className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 transition-all hover:bg-slate-50 hover:text-orangeFpt-600 active:scale-95 disabled:opacity-50"
-               >
-                 <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-                 <span>Refresh</span>
-               </button>
+            <div className='flex items-center gap-3'>
+              <button
+                onClick={fetchMeetings}
+                disabled={loading}
+                className='flex items-center gap-2 rounded-xl bg-white px-4 py-3 font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 transition-all hover:bg-slate-50 hover:text-orangeFpt-600 active:scale-95 disabled:opacity-50'
+              >
+                <RefreshCw
+                  className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`}
+                />
+                <span>Refresh</span>
+              </button>
             </div>
           </div>
         </header>
 
         {/* Filters Card */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 mb-6 overflow-hidden">
-          <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
+        <div className='bg-white rounded-2xl shadow-lg border border-gray-100 mb-6 overflow-hidden'>
+          <div className='px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100'>
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center justify-between w-full"
+              className='flex items-center justify-between w-full'
             >
-              <div className="flex items-center gap-2">
-                <Filter className="w-5 h-5 text-gray-700" />
-                <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
+              <div className='flex items-center gap-2'>
+                <Filter className='w-5 h-5 text-gray-700' />
+                <h3 className='text-lg font-semibold text-gray-900'>Filters</h3>
               </div>
-              <span className="text-sm text-gray-500">
+              <span className='text-sm text-gray-500'>
                 {showFilters ? 'Hide' : 'Show'}
               </span>
             </button>
           </div>
 
           {showFilters && (
-            <div className="p-6 bg-white">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div className='p-6 bg-white'>
+              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4'>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
                     Search Title
                   </label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <div className='relative'>
+                    <Search className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400' />
                     <input
-                      type="text"
-                      name="title"
+                      type='text'
+                      name='title'
                       value={filters.title}
                       onChange={handleFilterChange}
-                      placeholder="Search meetings..."
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orangeFpt-500 focus:border-transparent transition-all"
+                      placeholder='Search meetings...'
+                      className='w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orangeFpt-500 focus:border-transparent transition-all'
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
                     Schedule Time
                   </label>
                   <input
-                    type="datetime-local"
-                    name="scheduleTime"
+                    type='datetime-local'
+                    name='scheduleTime'
                     value={filters.scheduleTime}
                     onChange={handleFilterChange}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orangeFpt-500 focus:border-transparent transition-all"
+                    className='w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orangeFpt-500 focus:border-transparent transition-all'
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
                     Sort Order
                   </label>
                   <select
-                    name="isDesc"
+                    name='isDesc'
                     value={filters.isDesc}
                     onChange={handleFilterChange}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orangeFpt-500 focus:border-transparent transition-all"
+                    className='w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orangeFpt-500 focus:border-transparent transition-all'
                   >
                     <option value={true}>Newest First</option>
                     <option value={false}>Oldest First</option>
                   </select>
                 </div>
 
-                <div className="flex items-end">
-                  <div className="flex gap-3 w-full">
+                <div className='flex items-end'>
+                  <div className='flex gap-3 w-full'>
                     <button
                       onClick={handleSearch}
-                      className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 text-white px-4 py-2.5 rounded-xl hover:from-orangeFpt-600 hover:to-orangeFpt-700 transition-all shadow-md hover:shadow-lg shadow-orangeFpt-500/20"
+                      className='flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 text-white px-4 py-2.5 rounded-xl hover:from-orangeFpt-600 hover:to-orangeFpt-700 transition-all shadow-md hover:shadow-lg shadow-orangeFpt-500/20'
                     >
-                      <Search className="w-4 h-4" />
+                      <Search className='w-4 h-4' />
                       Search
                     </button>
                     <button
                       onClick={handleReset}
-                      className="px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all"
+                      className='px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all'
                     >
                       Reset
                     </button>
@@ -311,60 +320,67 @@ const MeetingManagement = () => {
         </div>
 
         {/* Meetings Table */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        <div className='bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden'>
           {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="text-center">
-                <div className="w-16 h-16 border-4 border-orangeFpt-200 border-t-orangeFpt-600 rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading meetings...</p>
+            <div className='flex items-center justify-center py-20'>
+              <div className='text-center'>
+                <div className='w-16 h-16 border-4 border-orangeFpt-200 border-t-orangeFpt-600 rounded-full animate-spin mx-auto mb-4'></div>
+                <p className='text-gray-600'>Loading meetings...</p>
               </div>
             </div>
           ) : meetings.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="max-w-md mx-auto">
-                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Calendar className="w-10 h-10 text-gray-400" />
+            <div className='p-12 text-center'>
+              <div className='max-w-md mx-auto'>
+                <div className='w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4'>
+                  <Calendar className='w-10 h-10 text-gray-400' />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No meetings found</h3>
-                <p className="text-gray-600">Try adjusting your filters or create a new meeting</p>
+                <h3 className='text-xl font-semibold text-gray-900 mb-2'>
+                  No meetings found
+                </h3>
+                <p className='text-gray-600'>
+                  Try adjusting your filters or create a new meeting
+                </p>
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className='overflow-x-auto'>
+              <table className='w-full'>
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <tr className='bg-slate-50 border-b border-slate-200'>
+                    <th className='px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider'>
                       Meeting
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    <th className='px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider'>
                       Host
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    <th className='px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider'>
                       Date
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    <th className='px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider'>
                       Time
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    <th className='px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider'>
                       Description
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {meetings.map((meeting) => (
+                <tbody className='divide-y divide-slate-100'>
+                  {meetings.map(meeting => (
                     <tr
                       key={meeting.meetingId}
-                      className="hover:bg-slate-50/50 transition-colors"
+                      className='hover:bg-slate-50/50 transition-colors'
                     >
                       {/* Meeting Title */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-orangeFpt-50 rounded-lg shrink-0">
-                            <Video className="h-4 w-4 text-orangeFpt-600" />
+                      <td className='px-6 py-4'>
+                        <div className='flex items-center gap-3'>
+                          <div className='p-2 bg-orangeFpt-50 rounded-lg shrink-0'>
+                            <Video className='h-4 w-4 text-orangeFpt-600' />
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-slate-900 truncate max-w-[250px]" title={meeting.title}>
+                          <div className='min-w-0'>
+                            <p
+                              className='text-sm font-semibold text-slate-900 truncate max-w-[250px]'
+                              title={meeting.title}
+                            >
                               {meeting.title}
                             </p>
                           </div>
@@ -372,19 +388,22 @@ const MeetingManagement = () => {
                       </td>
 
                       {/* Host */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                      <td className='px-6 py-4'>
+                        <div className='flex items-center gap-3'>
                           <Avatar
                             src={meeting.creatorAvatar}
                             name={meeting.creatorName}
-                            className="h-9 w-9 rounded-full"
+                            className='h-9 w-9 rounded-full'
                           />
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-slate-900 truncate max-w-[150px]" title={meeting.creatorName}>
+                          <div className='min-w-0'>
+                            <p
+                              className='text-sm font-medium text-slate-900 truncate max-w-[150px]'
+                              title={meeting.creatorName}
+                            >
                               {meeting.creatorName || 'Unknown'}
                             </p>
-                            <span className="inline-flex items-center gap-1 text-xs text-orangeFpt-600 font-medium">
-                              <User className="h-3 w-3" />
+                            <span className='inline-flex items-center gap-1 text-xs text-orangeFpt-600 font-medium'>
+                              <User className='h-3 w-3' />
                               Host
                             </span>
                           </div>
@@ -392,29 +411,36 @@ const MeetingManagement = () => {
                       </td>
 
                       {/* Date */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-slate-400" />
-                          <span className="text-sm text-slate-700">
+                      <td className='px-6 py-4'>
+                        <div className='flex items-center gap-2'>
+                          <Calendar className='h-4 w-4 text-slate-400' />
+                          <span className='text-sm text-slate-700'>
                             {formatDate(meeting.scheduleTime)}
                           </span>
                         </div>
                       </td>
 
                       {/* Time */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-slate-400" />
-                          <span className="text-sm text-slate-700">
+                      <td className='px-6 py-4'>
+                        <div className='flex items-center gap-2'>
+                          <Clock className='h-4 w-4 text-slate-400' />
+                          <span className='text-sm text-slate-700'>
                             {formatTime(meeting.scheduleTime)}
                           </span>
                         </div>
                       </td>
 
                       {/* Description */}
-                      <td className="px-6 py-4">
-                        <p className="text-sm text-slate-600 line-clamp-2 max-w-[250px]" title={meeting.description}>
-                          {meeting.description || <span className="text-slate-400 italic">No description</span>}
+                      <td className='px-6 py-4'>
+                        <p
+                          className='text-sm text-slate-600 line-clamp-2 max-w-[250px]'
+                          title={meeting.description}
+                        >
+                          {meeting.description || (
+                            <span className='text-slate-400 italic'>
+                              No description
+                            </span>
+                          )}
                         </p>
                       </td>
                     </tr>
@@ -426,23 +452,24 @@ const MeetingManagement = () => {
 
           {/* Pagination */}
           {pagination.pageCount > 1 && (
-            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <p className="text-sm text-gray-600">
-                Showing page <span className="font-semibold">{filters.pageNum}</span> of{' '}
-                <span className="font-semibold">{pagination.pageCount}</span>
-                {' '}({pagination.itemCount} meetings)
+            <div className='px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50'>
+              <p className='text-sm text-gray-600'>
+                Showing page{' '}
+                <span className='font-semibold'>{filters.pageNum}</span> of{' '}
+                <span className='font-semibold'>{pagination.pageCount}</span> (
+                {pagination.itemCount} meetings)
               </p>
 
-              <div className="flex items-center gap-2">
+              <div className='flex items-center gap-2'>
                 <button
                   onClick={() => handlePageChange(filters.pageNum - 1)}
                   disabled={filters.pageNum <= 1}
-                  className="p-2 border border-gray-200 rounded-lg hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  className='p-2 border border-gray-200 rounded-lg hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all'
                 >
-                  <ChevronLeft className="w-5 h-5" />
+                  <ChevronLeft className='w-5 h-5' />
                 </button>
 
-                <div className="flex gap-1">
+                <div className='flex gap-1'>
                   {[...Array(Math.min(pagination.pageCount, 5))].map((_, i) => {
                     let pageNum;
                     if (pagination.pageCount <= 5) {
@@ -454,7 +481,7 @@ const MeetingManagement = () => {
                     } else {
                       pageNum = filters.pageNum - 2 + i;
                     }
-                    
+
                     return (
                       <button
                         key={pageNum}
@@ -474,9 +501,9 @@ const MeetingManagement = () => {
                 <button
                   onClick={() => handlePageChange(filters.pageNum + 1)}
                   disabled={filters.pageNum >= pagination.pageCount}
-                  className="p-2 border border-gray-200 rounded-lg hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  className='p-2 border border-gray-200 rounded-lg hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all'
                 >
-                  <ChevronRight className="w-5 h-5" />
+                  <ChevronRight className='w-5 h-5' />
                 </button>
               </div>
             </div>

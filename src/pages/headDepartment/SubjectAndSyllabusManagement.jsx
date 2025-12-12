@@ -37,7 +37,7 @@ export default function SubjectManagement() {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Modal state
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  // const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreateSubjectModalOpen, setIsCreateSubjectModalOpen] = useState(false);
 
   const navigate = useNavigate();
@@ -115,7 +115,7 @@ export default function SubjectManagement() {
   };
 
   const handleModalClose = (shouldRefresh = false) => {
-    setIsCreateModalOpen(false);
+    // setIsCreateModalOpen(false);
     setIsCreateSubjectModalOpen(false);
     if (shouldRefresh) {
       fetchSubjects();
@@ -131,7 +131,7 @@ export default function SubjectManagement() {
           
           {/* Header Section - Matching Staff/Admin style */}
           <SubjectHeader 
-            onAddClick={() => setIsCreateModalOpen(true)} 
+            // onAddClick={() => setIsCreateModalOpen(true)} 
             onCreateClick={() => setIsCreateSubjectModalOpen(true)}
             stats={stats}
           />
@@ -177,7 +177,7 @@ export default function SubjectManagement() {
         </div>
 
         {/* Modals */}
-        <ModalWrapper
+        {/* <ModalWrapper
           isOpen={isCreateModalOpen}
           onClose={() => handleModalClose(false)}
           title="Create Multiple Subjects"
@@ -185,7 +185,7 @@ export default function SubjectManagement() {
           <CreateMultipleSubjectForm
             onClose={shouldRefresh => handleModalClose(shouldRefresh)}
           />
-        </ModalWrapper>
+        </ModalWrapper> */}
         <ModalWrapper
           isOpen={isCreateSubjectModalOpen}
           onClose={() => handleModalClose(false)}

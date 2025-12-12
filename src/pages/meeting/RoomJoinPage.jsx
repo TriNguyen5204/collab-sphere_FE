@@ -24,7 +24,6 @@ function JoinPage() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [authError, setAuthError] = useState(null);
-  const [teamName, setTeamName] = useState('');
 
   // Validate team membership on mount
   useEffect(() => {
@@ -53,7 +52,6 @@ function JoinPage() {
           return;
         }
 
-        setTeamName(teamDetail.teamName || 'Team');
 
         // Check if user is a team member
         // API returns members in memberInfo.members structure
