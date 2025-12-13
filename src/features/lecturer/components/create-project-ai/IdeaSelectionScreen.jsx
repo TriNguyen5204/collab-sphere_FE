@@ -642,7 +642,7 @@ const EditIdeaModal = ({ idea, onSave, onClose }) => {
                       type="button"
                       onClick={() => handleAddActor(newActorInput)}
                       disabled={!newActorInput.trim()}
-                      className="px-4 py-3 rounded-xl bg-blue-500 text-white hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-3 rounded-xl bg-gradient-to-r from-[#e75710] to-[#fb8239] text-white hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Plus size={18} />
                     </button>

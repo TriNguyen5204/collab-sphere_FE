@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as Y from 'yjs';
 import { SignalRYjsProvider } from './hooks/SignalRYjsProvider';
 import useTeam from '../../context/useTeam';
@@ -60,6 +60,7 @@ const FontSize = TextStyle.extend({
 
 const CollabEditor = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const Confirm = useToastConfirmation();
   const [provider, setProvider] = useState(null);
   const [editor, setEditor] = useState(null);
@@ -72,7 +73,9 @@ const CollabEditor = () => {
   const userName = useSelector(state => state.user.fullName);
   const accessToken = useSelector(state => state.user.accessToken);
   const { team } = useTeam();
-  const teamId = team?.teamId ?? '';
+  const teamIdFromQuery = searchParams.get('teamId');
+  const rawTeamId = teamIdFromQuery || team?.teamId;
+  const teamId = rawTeamId ? Number(rawTeamId) : '';
 
   // Team Id and Room Name state
   const [roomList, setRoomList] = useState([]);
@@ -108,7 +111,7 @@ const CollabEditor = () => {
           class: 'editor-list-item',
         },
       }),
-      TextStyle,
+      // TextStyle, // Removed to avoid duplicate extension name with FontSize
       FontSize,
       Color,
       Highlight.configure({
@@ -268,7 +271,7 @@ const CollabEditor = () => {
   const handleBackNavigation = async () => {
     // Nếu đang ở trong một phòng, cần hỏi xác nhận trước khi thoát
     if (currentRoomName) {
-      const isConfirmed = confirm({
+      const isConfirmed = await Confirm({
         message: 'Leave this document?',
         description: 'Unsaved changes might be lost if you leave now. Are you sure?',
         confirmLabel: 'Leave',

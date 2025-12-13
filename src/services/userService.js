@@ -200,6 +200,7 @@ export const getAllSubject = async () => {
 export const getSyllabusBySubjectId = async subjectId => {
   try {
     const response = await apiClient.get(`/subject/${subjectId}`);
+    console.log('Syllabus data:', response.data);
     return response.data;
   } catch (error) {
     console.error(

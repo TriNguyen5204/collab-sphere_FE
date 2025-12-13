@@ -825,7 +825,7 @@ const CreateProjectAI = () => {
               className="fixed right-0 top-0 h-full w-full max-w-lg bg-white shadow-2xl z-50 flex flex-col"
             >
               {/* Panel Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-purple-50">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-[#fcd8b6]/50 to-[#fb8239]/20">
                 <div className="flex items-center gap-3">
                   <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#e75710] to-[#fb8239] flex items-center justify-center shadow-lg shadow-[#e75710]/20">
                     <BookOpen size={20} className="text-white" />
@@ -1679,7 +1679,7 @@ const CreateProjectAI = () => {
                       </p>
                       
                       <textarea
-                          className="w-full p-4 bg-white/50 border border-slate-200 rounded-2xl text-slate-700 placeholder-slate-400 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 outline-none min-h-[140px] resize-none transition-all text-sm"
+                          className="w-full p-4 bg-white/50 border border-slate-200 rounded-2xl text-slate-700 placeholder-slate-400 focus:ring-2 focus:ring-[#fcd8b6] focus:border-[#fb8239] outline-none min-h-[140px] resize-none transition-all text-sm"
                           placeholder="e.g., 'Add a QA phase before deployment', 'Extend the timeline by 2 weeks', 'Focus more on backend security'..."
                           value={refineFeedback}
                           onChange={(e) => setRefineFeedback(e.target.value)}

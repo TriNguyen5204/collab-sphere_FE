@@ -33,6 +33,21 @@ import {
   Download,
   Eye,
   PenTool,
+  Zap,
+  ShieldCheck,
+  RotateCw,
+  BellRing,
+  Lock,
+  UserCircle,
+  Stethoscope,
+  HeartHandshake,
+  LineChart,
+  Server,
+  Activity,
+  ChevronRight,
+  ChevronDown,
+  ListChecks,
+  ScrollText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getTeamDetail, updateTeam } from '../../services/teamApi';
@@ -51,6 +66,52 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useSecureFileHandler } from '../../hooks/useSecureFileHandler';
 import useFileSizeFormatter from '../../hooks/useFileSizeFormatter';
 import { useAvatar } from '../../hooks/useAvatar';
+
+// --- Actor Icons Mapping ---
+const ACTOR_CONFIG = {
+   'executive': { icon: UserCircle, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
+   'healthcare': { icon: Stethoscope, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200' },
+   'provider': { icon: Stethoscope, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200' },
+   'wellness': { icon: HeartHandshake, color: 'text-pink-600', bg: 'bg-pink-50', border: 'border-pink-200' },
+   'coach': { icon: HeartHandshake, color: 'text-pink-600', bg: 'bg-pink-50', border: 'border-pink-200' },
+   'analyst': { icon: LineChart, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
+   'data': { icon: LineChart, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
+   'admin': { icon: Server, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' },
+   'system': { icon: Server, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' },
+   'student': { icon: UserCircle, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-200' },
+   'lecturer': { icon: UserCircle, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
+   'user': { icon: UserCircle, color: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-200' },
+   'default': { icon: Users, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' },
+};
+
+const getActorConfig = (actorName) => {
+   const lowerName = (actorName || '').toLowerCase();
+   for (const [key, config] of Object.entries(ACTOR_CONFIG)) {
+      if (lowerName.includes(key)) return config;
+   }
+   return ACTOR_CONFIG.default;
+};
+
+const parseBusinessRules = (rulesString) => {
+   if (!rulesString) return [];
+   return rulesString
+      .split('\n')
+      .map(r => r.trim().replace(/^[-•]\s*/, ''))
+      .filter(r => r.length > 0);
+};
+
+const parseActors = (actorsString) => {
+   if (!actorsString) return [];
+   return actorsString
+      .split(',')
+      .map(a => a.trim())
+      .filter(a => a.length > 0);
+};
+
+const extractTeamSize = (description) => {
+   const match = description?.match(/(\d+)\s*members?/i);
+   return match ? parseInt(match[1], 10) : null;
+};
 
 // --- Avatar Component ---
 const Avatar = ({ src, name, className = '' }) => {
@@ -301,6 +362,8 @@ const TeamProjectDetail = () => {
    const [rosterSearch, setRosterSearch] = useState('');
    const [rosterLoading, setRosterLoading] = useState(false);
    const [rosterSaving, setRosterSaving] = useState(false);
+
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
 
   // Hooks
   const { openSecureFile } = useSecureFileHandler();
@@ -587,8 +650,12 @@ const TeamProjectDetail = () => {
         isCustom: true, // Custom milestone created by lecturer/team
       }));
 
-    return { objectives, customMilestones };
-  }, [projectRaw, milestones]);
+    const businessRules = parseBusinessRules(teamDetail?.projectInfo?.projectBusinessRule);
+    const actors = parseActors(teamDetail?.projectInfo?.projectActors);
+    const teamSize = extractTeamSize(teamDetail?.projectInfo?.projectDescription);
+
+    return { objectives, customMilestones, businessRules, actors, teamSize };
+  }, [projectRaw, milestones, teamDetail]);
 
    const breadcrumbItems = useMemo(() => [
       { label: 'Classes', href: '/lecturer/classes' },
@@ -714,9 +781,6 @@ const TeamProjectDetail = () => {
                   {projectData.teamName}
                 </div>
               </div>
-              <p className='text-slate-500 leading-relaxed max-w-xl'>
-                {projectData.description}
-              </p>
             </div>
 
             {/* Progress */}
@@ -779,6 +843,13 @@ const TeamProjectDetail = () => {
                   <PenTool size={16} />
                   Whiteboard
                </button>
+               <button
+                  onClick={() => navigate(`/text-editor?teamId=${teamId}`)}
+                  className="px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-200 bg-white text-slate-500 hover:bg-slate-50 border border-slate-200 flex items-center gap-2"
+               >
+                  <FileText size={16} />
+                  Text Editor
+               </button>
             </div>
 
             {/* --- CONTENT --- */}
@@ -790,94 +861,149 @@ const TeamProjectDetail = () => {
                   {/* LEFT: MILESTONES */}
                   <div className="space-y-8 lg:col-span-2">
 
-                     {/* 1. Objectives & Linked Milestones */}
-                     <section className="space-y-6">
-                        <div className="flex items-center gap-3">
-                           <div className="p-2 rounded-lg bg-orangeFpt-100 text-orangeFpt-600"><Target size={20} /></div>
-                           <h2 className="text-lg font-bold text-slate-800">Project Objectives</h2>
+                     {/* 1. Project Overview */}
+                     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <div className="flex items-start gap-4 mb-5">
+                           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-100 to-cyan-100 shadow-sm">
+                              <Activity size={28} className="text-teal-600" />
+                           </div>
+                           <div className="flex-1">
+                              <h2 className="text-lg font-bold text-slate-900 mb-1">Project Overview</h2>
+                              <p className="text-sm text-slate-500">
+                                 {teamDetail?.projectInfo?.projectName}
+                              </p>
+                           </div>
                         </div>
 
-                        <div className="space-y-6">
-                           {viewData.objectives.map((obj, idx) => (
-                              <div key={obj.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                                 <div className="mb-4 flex items-start justify-between">
-                                    <div>
-                                       <div className="flex items-center gap-2 mb-1">
-                                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500">{idx + 1}</span>
-                                          <h3 className="font-bold text-slate-800">{obj.title}</h3>
-                                       </div>
-                                       <p className="text-sm text-slate-500 pl-7">{obj.description}</p>
-                                    </div>
-                                    {obj.priority && (
-                                       <span className={`px-2 py-1 rounded-lg text-xs font-bold uppercase border ${getPriorityColor(obj.priority)}`}>{obj.priority}</span>
-                                    )}
-                                 </div>
+                        {/* Description */}
+                        <div className="mb-5">
+                           <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                              <FileText size={14} className="text-slate-400" />
+                              Description
+                           </h3>
+                           <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+                              {isDescExpanded ? teamDetail?.projectInfo?.projectDescription : (teamDetail?.projectInfo?.projectDescription?.slice(0, 200) + (teamDetail?.projectInfo?.projectDescription?.length > 200 ? '...' : ''))}
+                           </p>
+                           {teamDetail?.projectInfo?.projectDescription?.length > 200 && (
+                              <button
+                                 onClick={() => setIsDescExpanded(!isDescExpanded)}
+                                 className="mt-2 text-xs font-semibold text-teal-600 hover:text-teal-700 flex items-center gap-1"
+                              >
+                                 {isDescExpanded ? 'Show Less' : 'Read More'}
+                                 <ChevronDown size={14} className={`transition-transform ${isDescExpanded ? 'rotate-180' : ''}`} />
+                              </button>
+                           )}
+                        </div>
 
-                                 <div className="space-y-3 pl-7">
-                                    {obj.milestones.map((milestone) => (
-                                       <div key={milestone.id} className="group flex flex-col gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-4 transition-all hover:bg-white hover:shadow-sm">
-                                          <div className="flex items-start justify-between">
-                                             <div>
-                                                <h4 className="font-semibold text-slate-700 text-sm">{milestone.title}</h4>
-                                                <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
-                                                   <span className="flex items-center gap-1"><Calendar size={12} /> {milestone.isLinked ? `${formatDate(milestone.startDate)} — ${formatDate(milestone.endDate)}` : 'Not scheduled'}</span>
-                                                </div>
-                                             </div>
-                                             <div className="flex items-center gap-2">
-                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${getStatusColor(milestone.statusToken)}`}>
-                                                   {formatStatusLabel(milestone.statusToken)}
-                                                </span>
-                                                {/* ALLOW EDITING IF LINKED */}
-                                                {milestone.isLinked && (
-                                                   <div className="relative" tabIndex={-1} onBlur={handleMenuBlur}>
-                                                      <button
-                                                         onClick={() => toggleMilestoneMenu(milestone.displayId)}
-                                                         className="p-1.5 rounded-lg text-slate-400 hover:text-orangeFpt-600 hover:bg-orangeFpt-50 transition-colors"
-                                                      >
-                                                         <MoreHorizontal size={16} />
-                                                      </button>
-                                                      {openMilestoneMenuId === milestone.displayId && (
-                                                         <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-xl border border-slate-100 py-1 z-10 animate-in fade-in zoom-in-95">
-                                                            <button
-                                                               onClick={() => navigate(`/lecturer/classes/${classId}/team/${teamId}/milestone/${milestone.displayId || milestone.id}`)}
-                                                               className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center gap-2"
-                                                            >
-                                                               <Eye size={14} /> View Details
-                                                            </button>
-                                                            <button
-                                                               onClick={() => handleOpenMilestoneManager(milestone, 'edit')}
-                                                               className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center gap-2"
-                                                            >
-                                                               <Edit3 size={14} /> Edit
-                                                            </button>
-                                                         </div>
-                                                      )}
-                                                   </div>
-                                                )}
-                                             </div>
-                                          </div>
-                                       </div>
-                                    ))}
+                        {/* Key Metrics */}
+                        <div className="flex flex-wrap gap-4 pt-4 border-t border-slate-100">
+                           {viewData.teamSize && (
+                              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 border border-slate-100">
+                                 <Users size={18} className="text-indigo-500" />
+                                 <div>
+                                    <p className="text-xs text-slate-500">Team Size</p>
+                                    <p className="text-sm font-bold text-slate-900">{viewData.teamSize} Members</p>
                                  </div>
                               </div>
-                           ))}
+                           )}
+                           <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 border border-slate-100">
+                              <ListChecks size={18} className="text-amber-500" />
+                              <div>
+                                 <p className="text-xs text-slate-500">Business Rules</p>
+                                 <p className="text-sm font-bold text-slate-900">{viewData.businessRules.length} Rules</p>
+                              </div>
+                           </div>
+                           <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 border border-slate-100">
+                              <Users size={18} className="text-pink-500" />
+                              <div>
+                                 <p className="text-xs text-slate-500">System Actors</p>
+                                 <p className="text-sm font-bold text-slate-900">{viewData.actors.length} Actors</p>
+                              </div>
+                           </div>
                         </div>
-                     </section>
-
-                  {/* 2. Custom Milestones */}
-                  <section className="space-y-4">
-                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                           <div className="p-2 rounded-lg bg-blue-100 text-blue-600"><Flag size={20} /></div>
-                           <h2 className="text-lg font-bold text-slate-800">Custom Milestones</h2>
-                        </div>
-                        <button
-                           onClick={() => handleOpenMilestoneManager(null, 'create')}
-                           className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 text-sm font-semibold text-slate-600 hover:bg-orangeFpt-50 hover:text-orangeFpt-600 transition-colors"
-                        >
-                           <Plus size={16} /> Add
-                        </button>
                      </div>
+
+                     {/* 2. Business Rules */}
+                     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                        {/* Header */}
+                        <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-slate-100/50 border-b border-slate-200">
+                           <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-slate-200 shadow-sm">
+                                    <FileText size={20} className="text-slate-600" />
+                                 </div>
+                                 <div>
+                                    <h2 className="text-lg font-bold text-slate-900">Business Rules & Constraints</h2>
+                                    <p className="text-xs text-slate-500">Functional requirements governing system behavior</p>
+                                 </div>
+                              </div>
+                              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-sm">
+                                 <span className="text-xs font-medium text-slate-500">Total Rules:</span>
+                                 <span className="text-sm font-bold text-slate-900">{viewData.businessRules.length}</span>
+                              </div>
+                           </div>
+                        </div>
+
+                        {/* Rules Content */}
+                        <div className="p-6">
+                           {viewData.businessRules.length > 0 ? (
+                              <div className="space-y-0 divide-y divide-slate-100">
+                                 {viewData.businessRules.map((rule, idx) => (
+                                    <div
+                                       key={idx}
+                                       className="group flex items-start gap-4 py-4 first:pt-0 last:pb-0 hover:bg-slate-50/50 -mx-2 px-2 rounded-lg transition-colors"
+                                    >
+                                       {/* Rule Number */}
+                                       <div className="flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-lg bg-slate-100 border border-slate-200 group-hover:bg-indigo-100 group-hover:border-indigo-200 transition-colors">
+                                          <span className="text-sm font-bold text-slate-600 group-hover:text-indigo-700 transition-colors">
+                                             {String(idx + 1).padStart(2, '0')}
+                                          </span>
+                                       </div>
+                                       
+                                       {/* Rule Content */}
+                                       <div className="flex-1 min-w-0 pt-0.5">
+                                          <p className="text-sm text-slate-700 leading-relaxed">
+                                             {rule}
+                                          </p>
+                                       </div>
+
+                                       {/* Category Tag */}
+                                       <div className="hidden lg:flex flex-shrink-0 items-center">
+                                          <span className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 bg-slate-50 rounded border border-slate-100">
+                                             BR-{String(idx + 1).padStart(3, '0')}
+                                          </span>
+                                       </div>
+                                    </div>
+                                 ))}
+                              </div>
+                           ) : (
+                              <div className="text-center py-16">
+                                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 mx-auto mb-4">
+                                    <FileText size={28} className="text-slate-400" />
+                                 </div>
+                                 <p className="text-sm font-semibold text-slate-600">No Business Rules Defined</p>
+                                 <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                                    Business rules define the constraints and requirements that govern system behavior.
+                                 </p>
+                              </div>
+                           )}
+                        </div>
+                     </div>
+
+                     {/* 3. Custom Milestones */}
+                     <section className="space-y-4">
+                        <div className="flex items-center justify-between">
+                           <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-lg bg-blue-100 text-blue-600"><Flag size={20} /></div>
+                              <h2 className="text-lg font-bold text-slate-800">Custom Milestones</h2>
+                           </div>
+                           <button
+                              onClick={() => handleOpenMilestoneManager(null, 'create')}
+                              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 text-sm font-semibold text-slate-600 hover:bg-orangeFpt-50 hover:text-orangeFpt-600 transition-colors"
+                           >
+                              <Plus size={16} /> Add
+                           </button>
+                        </div>
 
                         <div className="grid gap-4">
                            {viewData.customMilestones.map(milestone => (
@@ -940,8 +1066,9 @@ const TeamProjectDetail = () => {
                      </section>
                   </div>
 
-                  {/* RIGHT: TEAM ROSTER */}
+                  {/* RIGHT: TEAM ROSTER & ACTORS */}
                   <aside className="space-y-6">
+                     {/* Team Roster */}
                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sticky top-6">
                         <div className="flex items-center gap-3 mb-6">
                            <div className="p-2 rounded-lg bg-emerald-100 text-emerald-600"><Users size={20} /></div>
@@ -975,6 +1102,45 @@ const TeamProjectDetail = () => {
                                  </div>
                               </div>
                            ))}
+                        </div>
+                     </div>
+
+                     {/* System Actors */}
+                     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <div className="flex items-center gap-2 mb-5">
+                           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-purple-100 to-pink-100">
+                              <Users size={18} className="text-purple-600" />
+                           </div>
+                           <h2 className="text-lg font-bold text-slate-900">System Actors</h2>
+                        </div>
+
+                        <div className="space-y-3">
+                           {viewData.actors.length > 0 ? (
+                              viewData.actors.map((actor, idx) => {
+                                 const config = getActorConfig(actor);
+                                 const ActorIcon = config.icon;
+                                 return (
+                                    <div
+                                       key={idx}
+                                       className={`flex items-center gap-3 p-3 rounded-xl border ${config.border} ${config.bg} transition-all hover:shadow-sm cursor-default`}
+                                    >
+                                       <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm`}>
+                                          <ActorIcon size={20} className={config.color} />
+                                       </div>
+                                       <div className="flex-1 min-w-0">
+                                          <p className="text-sm font-semibold text-slate-800 truncate">{actor}</p>
+                                          <p className="text-xs text-slate-500">System Role</p>
+                                       </div>
+                                       <ChevronRight size={16} className="text-slate-300" />
+                                    </div>
+                                 );
+                              })
+                           ) : (
+                              <div className="text-center py-8 text-slate-400">
+                                 <Users size={32} className="mx-auto mb-2 opacity-50" />
+                                 <p className="text-sm">No actors defined</p>
+                              </div>
+                           )}
                         </div>
                      </div>
                   </aside>

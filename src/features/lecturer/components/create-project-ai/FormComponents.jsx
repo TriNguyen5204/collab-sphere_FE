@@ -17,7 +17,7 @@ export const InfoTooltip = ({ text, example }) => {
         onMouseEnter={() => setIsVisible(true)}
         onMouseLeave={() => setIsVisible(false)}
         onClick={() => setIsVisible(!isVisible)}
-        className="ml-1.5 text-slate-400 hover:text-indigo-500 transition-colors"
+        className="ml-1.5 text-slate-400 hover:text-[#e75710] transition-colors"
       >
         <HelpCircle size={14} />
       </button>
@@ -35,7 +35,7 @@ export const InfoTooltip = ({ text, example }) => {
             {example && (
               <div className="mt-2 pt-2 border-t border-slate-700">
                 <span className="text-slate-400">Example: </span>
-                <span className="text-indigo-300 font-medium">{example}</span>
+                <span className="text-[#fb8239] font-medium">{example}</span>
               </div>
             )}
             <div className="absolute -top-1.5 left-3 w-3 h-3 bg-slate-900 rotate-45" />
@@ -168,7 +168,7 @@ export const TechStackSelector = ({ selected, onChange }) => {
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomTech())}
           placeholder="Search or add custom tech..."
-          className="flex-1 bg-slate-50 border-none shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.05)] rounded-xl px-4 py-2.5 text-sm focus:ring-4 focus:ring-indigo-100 focus:bg-white transition-all"
+          className="flex-1 bg-slate-50 border-none shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.05)] rounded-xl px-4 py-2.5 text-sm focus:ring-4 focus:ring-[#fcd8b6] focus:bg-white transition-all"
         />
         {input && !SUGGESTED_TECH.some(t => t.toLowerCase() === input.toLowerCase()) && (
           <button
@@ -190,8 +190,8 @@ export const TechStackSelector = ({ selected, onChange }) => {
               onClick={() => toggleTech(tech)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 isSelected
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'bg-gradient-to-r from-[#e75710] to-[#fb8239] text-white shadow-md'
+                  : 'bg-slate-100 text-slate-600 hover:bg-[#fcd8b6]/50'
               }`}
             >
               {isSelected && <span className="mr-1">✓</span>}
@@ -205,7 +205,7 @@ export const TechStackSelector = ({ selected, onChange }) => {
       {filteredSuggestions.length > 12 && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="text-xs text-indigo-600 font-medium hover:text-indigo-700 transition-colors"
+          className="text-xs text-[#e75710] font-medium hover:text-[#a51200] transition-colors"
         >
           {showAll ? '← Show Less' : `Show All (${filteredSuggestions.length - 12} more)`}
         </button>
@@ -216,7 +216,7 @@ export const TechStackSelector = ({ selected, onChange }) => {
         <div className="text-xs text-slate-500">
           {selected.length} selected
           {selected.some(t => !SUGGESTED_TECH.includes(t)) && (
-            <span className="ml-2 text-indigo-600">
+            <span className="ml-2 text-[#e75710]">
               (includes custom: {selected.filter(t => !SUGGESTED_TECH.includes(t)).join(', ')})
             </span>
           )}
@@ -241,7 +241,7 @@ export const ReferenceUrlsInput = ({ urls, onAdd, onUpdate, onRemove }) => {
               value={url}
               onChange={(e) => onUpdate(index, e.target.value)}
               placeholder="https://example.com/reference..."
-              className="w-full bg-slate-50 border-none shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.05)] rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium text-slate-700 placeholder-slate-400 focus:ring-4 focus:ring-indigo-100 focus:bg-white transition-all"
+              className="w-full bg-slate-50 border-none shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.05)] rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium text-slate-700 placeholder-slate-400 focus:ring-4 focus:ring-[#fcd8b6] focus:bg-white transition-all"
             />
           </div>
           <button
@@ -255,7 +255,7 @@ export const ReferenceUrlsInput = ({ urls, onAdd, onUpdate, onRemove }) => {
       {urls.length < 5 && (
         <button
           onClick={onAdd}
-          className="flex items-center gap-2 text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+          className="flex items-center gap-2 text-xs font-medium text-[#e75710] hover:text-[#a51200] transition-colors"
         >
           <Plus size={14} />
           Add another URL

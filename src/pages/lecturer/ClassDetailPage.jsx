@@ -499,17 +499,21 @@ const ClassDetailPage = () => {
                   <div className="flex flex-col gap-4 max-h-[600px] overflow-y-auto pr-1 custom-scrollbar">
                     {assignments.map((assignment) => (
                       <div key={assignment.projectAssignmentId} className="group flex flex-col gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 transition-all hover:border-orangeFpt-200 hover:bg-orangeFpt-50/30 hover:shadow-sm">
-                        <div className="flex  justify-between gap-2">
-                          <div className="flex-1">
+                        <div className="flex justify-between gap-2">
+                          <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-slate-800 line-clamp-2 leading-tight">
                               {assignment.projectName}
                             </h3>
-                            <h4 className="text-xs text-slate-500 mt-1">{assignment.description}</h4>
+                            {assignment.description && (
+                              <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">
+                                {assignment.description}
+                              </p>
+                            )}
                           </div>
-                          <span className={`h-2 w-2 rounded-full bg-green-500`}></span>
+                          <span className="h-2 w-2 rounded-full bg-green-500 flex-shrink-0 mt-1"></span>
                         </div>
-                        <div className="mt-2 flex items-center gap-2 border-t border-slate-200 pt-3">
-                          <Clock className="h-3.5 w-3.5 text-slate-400" />
+                        <div className="flex items-center gap-2 border-t border-slate-200 pt-3">
+                          <Clock className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
                           <span className="text-xs font-medium text-slate-600">
                             Assigned: {formatDate(assignment.assignedDate)}
                           </span>

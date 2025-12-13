@@ -804,32 +804,71 @@ const TeamEvaluationPage = () => {
                                  <div className="flex-1 overflow-y-auto pr-1 lg:pr-2 custom-scrollbar">
                                     {memberEvaluations?.memberScores && memberEvaluations.memberScores.length > 0 ? (
                                        <div className="space-y-2 px-3 lg:px-4 xl:px-5">
-                                          {memberEvaluations.memberScores.map(member => (
-                                             <div key={member.classMemberId} className="flex items-center justify-between p-2.5 lg:p-3 rounded-xl border border-slate-200 bg-slate-50 hover:border-orangeFpt-200 transition-all">
-                                                <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                   <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-indigo-100 flex items-center justify-center text-xs lg:text-sm font-bold text-indigo-700 shrink-0">
-                                                      {member.memberName?.charAt(0)?.toUpperCase()}
+                                          {memberEvaluations.memberScores.map(member => {
+                                             // Find matching member from teamInfo to get contribution data
+                                             const memberProgress = (teamInfo?.memberInfo?.members || []).find(
+                                                m => m.studentName === member.memberName || m.studentId === member.studentId
+                                             );
+                                             const questionPct = memberProgress?.milestoneAnsContributionPercentage 
+                                                ? Math.round(memberProgress.milestoneAnsContributionPercentage * 100) 
+                                                : 0;
+                                             const checkpointPct = memberProgress?.checkpointContributionPercentage 
+                                                ? Math.round(memberProgress.checkpointContributionPercentage * 100) 
+                                                : 0;
+                                             const isLeader = memberProgress?.teamRole === 1;
+                                             
+                                             return (
+                                                <div key={member.classMemberId} className="p-3 lg:p-4 rounded-xl border border-slate-200 bg-white hover:border-orangeFpt-200 transition-all shadow-sm">
+                                                   {/* Top Row: Avatar, Name, Score Input */}
+                                                   <div className="flex items-center justify-between gap-3 mb-3">
+                                                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${isLeader ? 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-300' : 'bg-indigo-100 text-indigo-700'}`}>
+                                                            {member.memberName?.charAt(0)?.toUpperCase()}
+                                                         </div>
+                                                         <div className="min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                               <span className="font-semibold text-slate-800 text-sm lg:text-base truncate">{member.memberName}</span>
+                                                               {isLeader && (
+                                                                  <span className="text-[9px] font-bold bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded border border-yellow-200 uppercase">Leader</span>
+                                                               )}
+                                                            </div>
+                                                         </div>
+                                                      </div>
+                                                      <div className="flex items-center gap-2 shrink-0">
+                                                         <input
+                                                            type="number"
+                                                            min="0"
+                                                            max="10"
+                                                            step="0.1"
+                                                            placeholder="Score"
+                                                            value={memberScores[member.classMemberId] || ''}
+                                                            onChange={e => setMemberScores({
+                                                               ...memberScores,
+                                                               [member.classMemberId]: e.target.value
+                                                            })}
+                                                            className="w-20 rounded-lg border border-slate-300 bg-slate-50 px-2 py-2 text-center text-lg font-bold text-slate-900 focus:ring-2 focus:ring-orangeFpt-500/20 focus:border-orangeFpt-500 transition-all"
+                                                         />
+                                                         <span className="text-sm text-slate-400 font-medium">/10</span>
+                                                      </div>
                                                    </div>
-                                                   <span className="font-medium text-slate-800 text-sm lg:text-base truncate">{member.memberName}</span>
+                                                   
+                                                   {/* Bottom Row: Contribution Stats */}
+                                                   <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                                                      <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">Contributions:</span>
+                                                      <div className="flex items-center gap-2 flex-1">
+                                                         <div className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 rounded-lg border border-indigo-100">
+                                                            <span className="text-[10px] text-indigo-600 font-semibold">Questions</span>
+                                                            <span className="text-sm font-bold text-indigo-700">{questionPct}%</span>
+                                                         </div>
+                                                         <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 rounded-lg border border-emerald-100">
+                                                            <span className="text-[10px] text-emerald-600 font-semibold">Checkpoints</span>
+                                                            <span className="text-sm font-bold text-emerald-700">{checkpointPct}%</span>
+                                                         </div>
+                                                      </div>
+                                                   </div>
                                                 </div>
-                                                <div className="flex items-center gap-2 shrink-0">
-                                                   <input
-                                                      type="number"
-                                                      min="0"
-                                                      max="10"
-                                                      step="0.1"
-                                                      placeholder="Score"
-                                                      value={memberScores[member.classMemberId] || ''}
-                                                      onChange={e => setMemberScores({
-                                                         ...memberScores,
-                                                         [member.classMemberId]: e.target.value
-                                                      })}
-                                                      className="w-16 lg:w-20 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center text-sm lg:text-base font-bold text-slate-900 focus:ring-2 focus:ring-orangeFpt-500/20 focus:border-orangeFpt-500 transition-all"
-                                                   />
-                                                   <span className="text-xs lg:text-sm text-slate-400 font-medium">/10</span>
-                                                </div>
-                                             </div>
-                                          ))}
+                                             );
+                                          })}
                                        </div>
                                     ) : (
                                        <div className="p-3 lg:p-4 rounded-xl bg-slate-50 border border-slate-200">
@@ -1005,18 +1044,6 @@ const MemberItem = ({ member }) => {
                }`}>
                {isLeader ? 'Leader' : 'Member'}
             </span>
-         </div>
-
-         {/* Contributions */}
-         <div className="flex gap-1.5 lg:gap-2 items-center shrink-0">
-            <div className="text-center px-2 lg:px-2.5 py-1 lg:py-1.5 bg-indigo-50 rounded-lg lg:rounded-xl border border-indigo-100">
-               <p className="text-[9px] lg:text-[10px] text-indigo-600 font-bold uppercase tracking-wider mb-0.5 whitespace-nowrap">Question</p>
-               <p className="text-sm lg:text-base font-bold text-indigo-700">{member.milestoneAnsContributionPercentage * 100 || 0}%</p>
-            </div>
-            <div className="text-center px-2 lg:px-2.5 py-1 lg:py-1.5 bg-emerald-50 rounded-lg lg:rounded-xl border border-emerald-100">
-               <p className="text-[9px] lg:text-[10px] text-emerald-600 font-bold uppercase tracking-wider mb-0.5 whitespace-nowrap">Checkpoint</p>
-               <p className="text-sm lg:text-base font-bold text-emerald-700">{member.checkpointContributionPercentage * 100 || 0}%</p>
-            </div>
          </div>
       </div>
    );

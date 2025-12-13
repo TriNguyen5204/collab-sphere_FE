@@ -17,6 +17,7 @@ const normalizePathPrefix = (rawValue) => {
 export const getSyllabusOfSubjectBySubjectId = async (subjectId) => {
   try {
     const response = await apiClient.get(`/subject/${subjectId}`);
+    console.log('Syllabus data:', response.data);
     return response.data;
   } catch (error) {
     console.error(`Error fetching syllabus for subject ID ${subjectId}:`, error);

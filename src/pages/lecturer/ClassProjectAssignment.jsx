@@ -1,21 +1,26 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
    CheckCircleIcon,
    ClipboardDocumentListIcon,
    MagnifyingGlassIcon,
-   SparklesIcon,
-   AcademicCapIcon,
    BookOpenIcon,
    CalendarIcon,
    ArrowPathIcon,
    UserIcon,
    InboxIcon,
    ChevronLeftIcon,
-   ChevronRightIcon
+   ChevronRightIcon,
+   ListBulletIcon,
+   UserGroupIcon,
+   EyeIcon,
+   XMarkIcon
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleSolidIcon } from '@heroicons/react/24/solid';
+import { FileText, Users, BookOpen, Target, UserCircle, Sparkles } from 'lucide-react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { getClassProjects, getProjects } from '../../services/projectApi';
 import { getClassDetail } from '../../services/userService';
@@ -38,6 +43,28 @@ const formatDate = (input) => {
    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
+/**
+ * Count business rules from string (format: "- rule1\n- rule2")
+ */
+const countRules = (rulesString) => {
+   if (!rulesString) return 0;
+   return rulesString
+      .split('\n')
+      .map(r => r.trim())
+      .filter(r => r.length > 0).length;
+};
+
+/**
+ * Count actors from string (format: "Actor1, Actor2, Actor3")
+ */
+const countActors = (actorsString) => {
+   if (!actorsString) return 0;
+   return actorsString
+      .split(',')
+      .map(a => a.trim())
+      .filter(a => a.length > 0).length;
+};
+
 const normaliseProject = (record) => {
    if (!record) return null;
    const idCandidates = [record.projectId, record.id, record.projectID, record.project?.projectId];
@@ -53,10 +80,289 @@ const normaliseProject = (record) => {
       subjectCode: record.subjectCode ?? record.subject?.subjectCode ?? '',
       description: record.description ?? record.summary ?? '',
       status: (record.statusString ?? record.projectStatus ?? '').toUpperCase(),
-      updatedAt: record.updatedAt ?? record.lastUpdated ?? null,
+      updatedAt: record.updatedAt ?? record.lastUpdated ?? record.createdAt ?? null,
       objectives: Array.isArray(record.objectives) ? record.objectives : [],
       lecturerName: record.lecturerName ?? '',
+      businessRules: record.businessRules ?? '',
+      actors: record.actors ?? '',
    };
+};
+
+/**
+ * Read-Only Project Detail Modal - Orange Color Scheme from style.md
+ * Displays full project information without editing capability
+ */
+const ProjectDetailModal = ({ project, onClose }) => {
+   if (!project) return null;
+
+   // Parse business rules - strip all prefixes: -, •, *, 1., 2., etc.
+   const businessRulesArray = useMemo(() => {
+      if (!project.businessRules) return [];
+      return project.businessRules
+         .split('\n')
+         .map(r => r.replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, '').trim())
+         .filter(Boolean);
+   }, [project.businessRules]);
+
+   // Parse actors
+   const actorsArray = useMemo(() => {
+      if (!project.actors) return [];
+      return project.actors.split(',').map(a => a.trim()).filter(Boolean);
+   }, [project.actors]);
+
+   const [activeTab, setActiveTab] = useState('overview');
+
+   const tabs = [
+      { id: 'overview', label: 'Overview', icon: FileText },
+      { id: 'rules', label: 'Business Rules', icon: BookOpen, count: businessRulesArray.length },
+      { id: 'actors', label: 'System Actors', icon: Users, count: actorsArray.length },
+   ];
+
+   return createPortal(
+      <motion.div
+         initial={{ opacity: 0 }}
+         animate={{ opacity: 1 }}
+         exit={{ opacity: 0 }}
+         className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+         onClick={onClose}
+      >
+         <motion.div
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden"
+         >
+            {/* Modal Header - Orange Gradient from style.md */}
+            <div className="relative overflow-hidden">
+               <div className="absolute inset-0 bg-gradient-to-r from-[#a51200] via-[#e75710] to-[#fb8239]" />
+               <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_20%_50%,rgba(255,255,255,0.3)_0%,transparent_50%),radial-gradient(circle_at_80%_50%,rgba(255,255,255,0.2)_0%,transparent_50%)]" />
+               
+               <div className="relative px-6 py-5 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                     <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
+                        <Target size={22} className="text-white" />
+                     </div>
+                     <div className="flex-1 min-w-0">
+                        <h2 className="text-xl font-bold text-white truncate" title={project.name}>
+                           {project.name}
+                        </h2>
+                        <p className="text-[#fcd8b6] text-sm flex items-center gap-2">
+                           <span className="px-2 py-0.5 rounded bg-white/20 text-xs font-semibold">
+                              {project.subjectCode || 'No Code'}
+                           </span>
+                           {project.lecturerName && (
+                              <span className="flex items-center gap-1">
+                                 <UserCircle size={14} />
+                                 {project.lecturerName}
+                              </span>
+                           )}
+                        </p>
+                     </div>
+                  </div>
+                  <button
+                     onClick={onClose}
+                     className="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur flex items-center justify-center transition-colors"
+                  >
+                     <XMarkIcon className="h-5 w-5 text-white" />
+                  </button>
+               </div>
+            </div>
+
+            {/* Tabs Navigation */}
+            <div className="px-6 pt-4 border-b border-slate-100">
+               <div className="flex gap-1">
+                  {tabs.map((tab) => {
+                     const Icon = tab.icon;
+                     const isActive = activeTab === tab.id;
+                     return (
+                        <button
+                           key={tab.id}
+                           onClick={() => setActiveTab(tab.id)}
+                           className={`flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-t-xl transition-all ${
+                              isActive
+                                 ? 'bg-[#fcd8b6]/30 text-[#a51200] border-b-2 border-[#e75710]'
+                                 : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                           }`}
+                        >
+                           <Icon size={16} />
+                           {tab.label}
+                           {tab.count !== undefined && tab.count > 0 && (
+                              <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded-full ${
+                                 isActive ? 'bg-[#e75710] text-white' : 'bg-slate-200 text-slate-600'
+                              }`}>
+                                 {tab.count}
+                              </span>
+                           )}
+                        </button>
+                     );
+                  })}
+               </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 max-h-[55vh] overflow-y-auto">
+               <AnimatePresence mode="wait">
+                  {/* Overview Tab */}
+                  {activeTab === 'overview' && (
+                     <motion.div
+                        key="overview"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 10 }}
+                        transition={{ duration: 0.2 }}
+                        className="space-y-5"
+                     >
+                        {/* Project Name */}
+                        <div>
+                           <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                              <Target size={12} />
+                              Project Name
+                           </label>
+                           <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-base font-semibold text-slate-800">
+                              {project.name || 'Untitled Project'}
+                           </div>
+                        </div>
+
+                        {/* Description */}
+                        <div>
+                           <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                              <FileText size={12} />
+                              Description
+                           </label>
+                           <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 leading-relaxed min-h-[100px]">
+                              {project.description || 'No description provided.'}
+                           </div>
+                        </div>
+
+                        {/* Quick Stats */}
+                        <div className="grid grid-cols-2 gap-4">
+                           <div className="bg-[#fcd8b6]/30 border border-[#fb8239]/20 rounded-xl p-4">
+                              <div className="flex items-center gap-2 text-[#a51200] mb-1">
+                                 <BookOpen size={16} />
+                                 <span className="text-xs font-bold uppercase tracking-wider">Business Rules</span>
+                              </div>
+                              <p className="text-2xl font-bold text-[#e75710]">{businessRulesArray.length}</p>
+                           </div>
+                           <div className="bg-[#fcd8b6]/30 border border-[#fb8239]/20 rounded-xl p-4">
+                              <div className="flex items-center gap-2 text-[#a51200] mb-1">
+                                 <Users size={16} />
+                                 <span className="text-xs font-bold uppercase tracking-wider">System Actors</span>
+                              </div>
+                              <p className="text-2xl font-bold text-[#e75710]">{actorsArray.length}</p>
+                           </div>
+                        </div>
+
+                        {/* Last Updated */}
+                        {project.updatedAt && (
+                           <div className="flex items-center gap-2 text-sm text-slate-500">
+                              <CalendarIcon className="h-4 w-4" />
+                              Last updated: {formatDate(project.updatedAt)}
+                           </div>
+                        )}
+                     </motion.div>
+                  )}
+
+                  {/* Business Rules Tab */}
+                  {activeTab === 'rules' && (
+                     <motion.div
+                        key="rules"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 10 }}
+                        transition={{ duration: 0.2 }}
+                        className="space-y-4"
+                     >
+                        <div className="flex items-center justify-between">
+                           <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                              <BookOpen size={12} />
+                              Business Rules
+                           </label>
+                           <span className="text-xs text-slate-400">{businessRulesArray.length} rules defined</span>
+                        </div>
+
+                        {businessRulesArray.length > 0 ? (
+                           <div className="space-y-2 max-h-[300px] overflow-y-auto p-3 rounded-xl bg-[#fcd8b6]/20 border border-[#e75710]/20">
+                              {businessRulesArray.map((rule, index) => (
+                                 <div
+                                    key={index}
+                                    className="flex items-start gap-3 p-3 bg-white rounded-lg border border-slate-100 shadow-sm"
+                                 >
+                                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#fcd8b6] text-[#e75710] text-xs font-bold flex items-center justify-center">
+                                       {index + 1}
+                                    </span>
+                                    <p className="flex-1 text-sm text-slate-700 leading-relaxed">{rule}</p>
+                                 </div>
+                              ))}
+                           </div>
+                        ) : (
+                           <div className="flex flex-col items-center justify-center p-8 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-center">
+                              <BookOpen size={32} className="text-slate-300 mb-2" />
+                              <p className="text-sm text-slate-400">No business rules defined for this project.</p>
+                           </div>
+                        )}
+                     </motion.div>
+                  )}
+
+                  {/* Actors Tab */}
+                  {activeTab === 'actors' && (
+                     <motion.div
+                        key="actors"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 10 }}
+                        transition={{ duration: 0.2 }}
+                        className="space-y-5"
+                     >
+                        <div className="flex items-center justify-between">
+                           <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                              <Users size={12} />
+                              System Actors
+                           </label>
+                           <span className="text-xs text-slate-400">{actorsArray.length} actors defined</span>
+                        </div>
+
+                        {actorsArray.length > 0 ? (
+                           <div className="flex flex-wrap gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200 min-h-[80px]">
+                              {actorsArray.map((actor, idx) => (
+                                 <span
+                                    key={idx}
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#fb8239]/30 rounded-lg text-sm font-medium text-slate-700 shadow-sm"
+                                 >
+                                    <UserCircle size={16} className="text-[#e75710]" />
+                                    {actor}
+                                 </span>
+                              ))}
+                           </div>
+                        ) : (
+                           <div className="flex flex-col items-center justify-center p-8 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-center">
+                              <Users size={32} className="text-slate-300 mb-2" />
+                              <p className="text-sm text-slate-400">No system actors defined for this project.</p>
+                           </div>
+                        )}
+                     </motion.div>
+                  )}
+               </AnimatePresence>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/80">
+               <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <Sparkles size={12} />
+                  Read-only view
+               </div>
+               <button
+                  onClick={onClose}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#a51200] to-[#e75710] hover:from-[#450b00] hover:to-[#a51200] rounded-xl transition-all shadow-lg shadow-[#fcd8b6] hover:shadow-xl"
+               >
+                  Close
+               </button>
+            </div>
+         </motion.div>
+      </motion.div>,
+      document.body
+   );
 };
 
 const ClassProjectAssignment = () => {
@@ -74,6 +380,7 @@ const ClassProjectAssignment = () => {
    const [selectedProjectIds, setSelectedProjectIds] = useState(new Set());
    const [projectsToRemove, setProjectsToRemove] = useState(new Set());
    const [projectErrors, setProjectErrors] = useState({});
+   const [detailProject, setDetailProject] = useState(null); // For modal view
    const [searchTerm, setSearchTerm] = useState('');
    const [filterMode, setFilterMode] = useState('ALL');
    const [pagination, setPagination] = useState({
@@ -403,14 +710,28 @@ const ClassProjectAssignment = () => {
                                     )}
                                  </div>
                                  <div className={`mt-3 pt-3 border-t flex justify-between items-center text-[10px] font-medium ${error ? 'border-red-200 text-red-600' : isRemoved ? 'border-rose-100 text-slate-400' : 'border-emerald-100/50 text-slate-500'}`}>
-                                    <span className="flex items-center gap-1">
-                                       <BookOpenIcon className="h-3 w-3" /> {project.subjectCode || 'No Code'}
-                                    </span>
-                                    {project.objectives?.length > 0 && (
-                                       <span className={`flex items-center gap-1 ${isRemoved ? 'text-slate-400' : 'text-emerald-600'}`}>
-                                          <AcademicCapIcon className="h-3 w-3" /> {project.objectives.length} Objs
+                                    <div className="flex items-center gap-2">
+                                       <span className="flex items-center gap-1">
+                                          <BookOpenIcon className="h-3 w-3" /> {project.subjectCode || 'No Code'}
                                        </span>
-                                    )}
+                                       <span className={`flex items-center gap-1 ${isRemoved ? 'text-slate-400' : 'text-slate-500'}`}>
+                                          <ListBulletIcon className="h-3 w-3" /> {countRules(project.businessRules)} Rules
+                                       </span>
+                                       <span className={`flex items-center gap-1 ${isRemoved ? 'text-slate-400' : 'text-slate-500'}`}>
+                                          <UserGroupIcon className="h-3 w-3" /> {countActors(project.actors)} Actors
+                                       </span>
+                                    </div>
+                                    <button
+                                       onClick={(e) => {
+                                          e.stopPropagation();
+                                          setDetailProject(project);
+                                       }}
+                                       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all ${isRemoved ? 'text-slate-400 bg-slate-100 hover:bg-slate-200' : 'text-white bg-gradient-to-r from-[#e75710] to-[#fb8239] hover:from-[#a51200] hover:to-[#e75710] shadow-sm'}`}
+                                       title="View details"
+                                    >
+                                       <EyeIcon className="h-3 w-3" />
+                                       Details
+                                    </button>
                                  </div>
                               </div>
                            );
@@ -521,14 +842,28 @@ const ClassProjectAssignment = () => {
                                  </div>
 
                                  <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500">
-                                    <span className="flex items-center gap-1">
-                                       <CalendarIcon className="h-3.5 w-3.5" /> {formatDate(project.updatedAt)}
-                                    </span>
-                                    {project.objectives?.length > 0 && (
-                                       <span className="flex items-center gap-1 font-medium bg-slate-100 px-2 py-0.5 rounded-full">
-                                          <SparklesIcon className="h-3 w-3 text-orangeFpt-500" />Objectives {project.objectives.length}
+                                    <div className="flex items-center gap-3">
+                                       <span className="flex items-center gap-1">
+                                          <CalendarIcon className="h-3.5 w-3.5" /> {formatDate(project.updatedAt)}
                                        </span>
-                                    )}
+                                       <span className="flex items-center gap-1 font-medium">
+                                          <ListBulletIcon className="h-3.5 w-3.5" /> {countRules(project.businessRules)} Rules
+                                       </span>
+                                       <span className="flex items-center gap-1 font-medium">
+                                          <UserGroupIcon className="h-3.5 w-3.5" /> {countActors(project.actors)} Actors
+                                       </span>
+                                    </div>
+                                    <button
+                                       onClick={(e) => {
+                                          e.stopPropagation();
+                                          setDetailProject(project);
+                                       }}
+                                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-white bg-gradient-to-r from-[#e75710] to-[#fb8239] hover:from-[#a51200] hover:to-[#e75710] shadow-sm transition-all"
+                                       title="View details"
+                                    >
+                                       <EyeIcon className="h-3.5 w-3.5" />
+                                       Details
+                                    </button>
                                  </div>
                               </div>
                            );
@@ -614,6 +949,16 @@ const ClassProjectAssignment = () => {
                </div>
             </div>
          </div>
+
+         {/* Project Detail Modal */}
+         <AnimatePresence>
+            {detailProject && (
+               <ProjectDetailModal
+                  project={detailProject}
+                  onClose={() => setDetailProject(null)}
+               />
+            )}
+         </AnimatePresence>
       </DashboardLayout>
    );
 };
