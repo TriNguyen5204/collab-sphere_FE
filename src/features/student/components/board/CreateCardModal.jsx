@@ -31,11 +31,11 @@ const CreateCardModal = ({
   members,
   list,
   onCardCreated,
-  listTitle // Optional: pass this if you want it in the header
+  listTitle, // Optional: pass this if you want it in the header
 }) => {
   const { connection, isConnected } = useSignalRContext();
   const [isCreating, setIsCreating] = useState(false);
-  
+
   // Member Dropdown State
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
   const memberMenuRef = useRef(null);
@@ -113,7 +113,7 @@ const CreateCardModal = ({
         }
         formattedDueDate = dateObj.toISOString();
       }
-      
+
       const assignmentList = selectedMembers.map(m => ({
         studentId: m.studentId,
         studentName: m.studentName,
@@ -132,7 +132,7 @@ const CreateCardModal = ({
               isDone: false,
             })),
         }));
-        
+
       const tempCardId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
       const newCardForUI = {
@@ -160,7 +160,7 @@ const CreateCardModal = ({
           })),
         })),
       };
-      
+
       if (onCardCreated) {
         onCardCreated(listId, newCardForUI);
       }
@@ -181,7 +181,13 @@ const CreateCardModal = ({
       // Reset
       setTitle('');
       setDescription('');
-      setTasks([{ id: Date.now(), title: '', subtasks: [{ id: Date.now() + 1, title: '', done: false }] }]);
+      setTasks([
+        {
+          id: Date.now(),
+          title: '',
+          subtasks: [{ id: Date.now() + 1, title: '', done: false }],
+        },
+      ]);
       setRisk('medium');
       setSelectedMembers([]);
       setDueDate('');
@@ -198,7 +204,10 @@ const CreateCardModal = ({
 
   const getAvatarUrl = member => {
     const avatarUrl = member?.avatarImg || member?.avatar;
-    if (!avatarUrl || avatarUrl.includes('cloudinary') && avatarUrl.endsWith('upload')) {
+    if (
+      !avatarUrl ||
+      (avatarUrl.includes('cloudinary') && avatarUrl.endsWith('upload'))
+    ) {
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(member?.studentName || 'User')}&background=random&color=fff&size=128`;
     }
     return avatarUrl;
@@ -207,7 +216,6 @@ const CreateCardModal = ({
   return (
     <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn'>
       <div className='bg-white rounded-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden shadow-2xl animate-slideUp'>
-        
         {/* Header - Gradient like CardModal */}
         <div className='bg-gradient-to-r from-blue-500 to-purple-600 p-6'>
           <div className='flex items-center justify-between mb-2'>
@@ -232,7 +240,6 @@ const CreateCardModal = ({
 
         {/* Scrollable Body */}
         <div className='p-6 overflow-y-auto max-h-[calc(95vh-180px)] space-y-6'>
-          
           {/* Creating Indicator */}
           {isCreating && (
             <div className='bg-blue-50 border-l-4 border-blue-400 text-blue-800 p-3 rounded-md'>
@@ -245,23 +252,22 @@ const CreateCardModal = ({
 
           {/* Title Input */}
           <div className='flex items-start gap-3'>
-             <Circle size={32} className='text-gray-300 mt-2' />
-             <div className='flex-1'>
-               <input
-                 type='text'
-                 value={title}
-                 onChange={e => setTitle(e.target.value)}
-                 disabled={isCreating}
-                 className='text-2xl font-bold text-gray-800 border-2 border-gray-200 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 w-full placeholder-gray-400'
-                 placeholder='Card title...'
-                 autoFocus
-               />
-             </div>
+            <Circle size={32} className='text-gray-300 mt-2' />
+            <div className='flex-1'>
+              <input
+                type='text'
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                disabled={isCreating}
+                className='text-2xl font-bold text-gray-800 border-2 border-gray-200 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 w-full placeholder-gray-400'
+                placeholder='Card title...'
+                autoFocus
+              />
+            </div>
           </div>
 
           {/* Grid: Members & Risk */}
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-            
             {/* Members Section */}
             <div>
               <h3 className='text-gray-800 font-semibold mb-3 flex items-center gap-2'>
@@ -282,12 +288,12 @@ const CreateCardModal = ({
                       alt={member.studentName}
                       className='w-10 h-10 rounded-full ring-2 ring-gray-200 hover:ring-red-400 transition-all object-cover'
                     />
-                    <div className="absolute inset-0 bg-black/20 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                       <X size={14} className="text-white" />
+                    <div className='absolute inset-0 bg-black/20 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity'>
+                      <X size={14} className='text-white' />
                     </div>
                   </button>
                 ))}
-                
+
                 {/* Add Member Button */}
                 <div className='relative'>
                   <button
@@ -303,18 +309,23 @@ const CreateCardModal = ({
                   {/* Dropdown - Matching CardModal Style */}
                   {showMemberDropdown && (
                     <>
-                      <div className='fixed inset-0 z-[60]' onClick={() => setShowMemberDropdown(false)} />
+                      <div
+                        className='fixed inset-0 z-[60]'
+                        onClick={() => setShowMemberDropdown(false)}
+                      />
                       <div
                         ref={memberMenuRef}
                         className='fixed z-[70] w-80 bg-white rounded-xl shadow-2xl p-3 border border-gray-200'
                         style={getMemberMenuPosition()}
                       >
-                         <h4 className='text-gray-800 font-semibold mb-3 px-2 flex items-center gap-2'>
+                        <h4 className='text-gray-800 font-semibold mb-3 px-2 flex items-center gap-2'>
                           <User size={16} /> Select Members
                         </h4>
                         <div className='space-y-1 max-h-[300px] overflow-y-auto'>
                           {members?.map(member => {
-                            const isSelected = selectedMembers.some(m => m.studentId === member.studentId);
+                            const isSelected = selectedMembers.some(
+                              m => m.studentId === member.studentId
+                            );
                             return (
                               <button
                                 key={member.studentId}
@@ -336,7 +347,12 @@ const CreateCardModal = ({
                                     {member.studentName}
                                   </span>
                                 </div>
-                                {isSelected && <CheckCircle2 size={18} className='text-blue-600' />}
+                                {isSelected && (
+                                  <CheckCircle2
+                                    size={18}
+                                    className='text-blue-600'
+                                  />
+                                )}
                               </button>
                             );
                           })}
@@ -377,18 +393,18 @@ const CreateCardModal = ({
           {/* Due Date */}
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div>
-               <h3 className='text-gray-800 font-semibold mb-3 flex items-center gap-2'>
+              <h3 className='text-gray-800 font-semibold mb-3 flex items-center gap-2'>
                 <Clock size={20} className='text-gray-600' />
                 Due Date
               </h3>
               <div className='w-full bg-gray-50 text-gray-700 px-3 py-2 rounded-lg border border-gray-200 flex items-center gap-2'>
-                  <input
-                    type='date'
-                    value={dueDate}
-                    onChange={e => setDueDate(e.target.value)}
-                    disabled={isCreating}
-                    className='flex-1 bg-transparent outline-none cursor-pointer'
-                  />
+                <input
+                  type='date'
+                  value={dueDate}
+                  onChange={e => setDueDate(e.target.value)}
+                  disabled={isCreating}
+                  className='flex-1 bg-transparent outline-none cursor-pointer'
+                />
               </div>
             </div>
           </div>
@@ -423,7 +439,9 @@ const CreateCardModal = ({
                     {
                       id: Date.now(),
                       title: '',
-                      subtasks: [{ id: Date.now() + 1, title: '', done: false }],
+                      subtasks: [
+                        { id: Date.now() + 1, title: '', done: false },
+                      ],
                     },
                   ])
                 }
@@ -438,30 +456,34 @@ const CreateCardModal = ({
 
             <div className='space-y-4'>
               {tasks.map((taskGroup, idx) => (
-                <div key={taskGroup.id} className='bg-gray-800 text-white p-4 rounded-xl shadow'>
-                  
+                <div
+                  key={taskGroup.id}
+                  className='bg-gray-800 text-white p-4 rounded-xl shadow'
+                >
                   {/* Task Header */}
                   <div className='flex items-center justify-between mb-3'>
                     <input
-                        className='bg-transparent text-lg font-semibold text-white placeholder-gray-500 outline-none w-full mr-2'
-                        placeholder={`Task Title ${idx + 1}...`}
-                        value={taskGroup.title}
-                        onChange={e =>
-                            setTasks(
-                            tasks.map(t =>
-                                t.id === taskGroup.id
-                                ? { ...t, title: e.target.value }
-                                : t
-                            )
-                            )
-                        }
+                      className='bg-transparent text-lg font-semibold text-white placeholder-gray-500 outline-none w-full mr-2'
+                      placeholder={`Task Title ${idx + 1}...`}
+                      value={taskGroup.title}
+                      onChange={e =>
+                        setTasks(
+                          tasks.map(t =>
+                            t.id === taskGroup.id
+                              ? { ...t, title: e.target.value }
+                              : t
+                          )
+                        )
+                      }
                     />
-                     <button
-                        onClick={() => setTasks(tasks.filter(t => t.id !== taskGroup.id))}
-                        className='text-gray-400 hover:text-red-400 p-1 transition-colors'
-                        title='Remove Task'
+                    <button
+                      onClick={() =>
+                        setTasks(tasks.filter(t => t.id !== taskGroup.id))
+                      }
+                      className='text-gray-400 hover:text-red-400 p-1 transition-colors'
+                      title='Remove Task'
                     >
-                        <Trash2 size={18} />
+                      <Trash2 size={18} />
                     </button>
                   </div>
 
@@ -470,77 +492,83 @@ const CreateCardModal = ({
 
                   {/* Subtasks */}
                   <div className='space-y-2'>
-                    {taskGroup.subtasks.map(sub => (
-                         <div key={sub.id} className='flex items-center justify-between pl-2 group'>
-                            <div className='flex items-center gap-3 flex-1'>
-                                <div className='w-4 h-4 border-2 border-gray-500 rounded-sm' />
-                                <input 
-                                    className='bg-transparent outline-none text-gray-200 placeholder-gray-500 w-full'
-                                    placeholder='Subtask title...'
-                                    value={sub.title}
-                                    onChange={e =>
-                                        setTasks(
-                                          tasks.map(t =>
-                                            t.id === taskGroup.id
-                                              ? {
-                                                  ...t,
-                                                  subtasks: t.subtasks.map(s =>
-                                                    s.id === sub.id
-                                                      ? { ...s, title: e.target.value }
-                                                      : s
-                                                  ),
-                                                }
-                                              : t
-                                          )
-                                        )
+                    {taskGroup.subtasks.map((sub, subIndex) => (
+                      <div
+                        key={sub.id}
+                        className='flex items-center justify-between pl-2 group'
+                      >
+                        <div className='flex items-center gap-3 flex-1'>
+                          <span
+                            className='text-gray-400 font-medium text-sm min-w-[24px]'
+                          >
+                            {subIndex + 1}.
+                          </span>
+                          <input
+                            className='bg-transparent outline-none text-gray-200 placeholder-gray-500 w-full'
+                            placeholder='Subtask title...'
+                            value={sub.title}
+                            onChange={e =>
+                              setTasks(
+                                tasks.map(t =>
+                                  t.id === taskGroup.id
+                                    ? {
+                                        ...t,
+                                        subtasks: t.subtasks.map(s =>
+                                          s.id === sub.id
+                                            ? { ...s, title: e.target.value }
+                                            : s
+                                        ),
                                       }
-                                />
-                            </div>
-                            <button
-                                onClick={() =>
-                                setTasks(
-                                    tasks.map(t =>
-                                    t.id === taskGroup.id
-                                        ? {
-                                            ...t,
-                                            subtasks: t.subtasks.filter(
-                                            s => s.id !== sub.id
-                                            ),
-                                        }
-                                        : t
-                                    )
+                                    : t
                                 )
-                                }
-                                className='text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all px-2'
-                            >
-                                <X size={16} />
-                            </button>
-                         </div>
+                              )
+                            }
+                          />
+                        </div>
+                        <button
+                          onClick={() =>
+                            setTasks(
+                              tasks.map(t =>
+                                t.id === taskGroup.id
+                                  ? {
+                                      ...t,
+                                      subtasks: t.subtasks.filter(
+                                        s => s.id !== sub.id
+                                      ),
+                                    }
+                                  : t
+                              )
+                            )
+                          }
+                          className='text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all px-2'
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
                     ))}
-                    
+
                     {/* Add Subtask Button */}
                     <button
-                        onClick={() =>
-                            setTasks(
-                            tasks.map(t =>
-                                t.id === taskGroup.id
-                                ? {
-                                    ...t,
-                                    subtasks: [
-                                        ...t.subtasks,
-                                        { id: Date.now(), title: '', done: false },
-                                    ],
-                                    }
-                                : t
-                            )
-                            )
-                        }
-                        className='mt-2 bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-sm text-gray-200 transition-colors flex items-center gap-1'
+                      onClick={() =>
+                        setTasks(
+                          tasks.map(t =>
+                            t.id === taskGroup.id
+                              ? {
+                                  ...t,
+                                  subtasks: [
+                                    ...t.subtasks,
+                                    { id: Date.now(), title: '', done: false },
+                                  ],
+                                }
+                              : t
+                          )
+                        )
+                      }
+                      className='mt-2 bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-sm text-gray-200 transition-colors flex items-center gap-1'
                     >
-                        <Plus size={14} /> Add item
+                      <Plus size={14} /> Add item
                     </button>
                   </div>
-
                 </div>
               ))}
             </div>
@@ -563,10 +591,9 @@ const CreateCardModal = ({
             className='px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
             type='button'
           >
-             {isCreating ? 'Creating...' : 'Create Card'}
+            {isCreating ? 'Creating...' : 'Create Card'}
           </button>
         </div>
-
       </div>
     </div>
   );

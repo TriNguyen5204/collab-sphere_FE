@@ -70,6 +70,9 @@ const CreateProjectAI = () => {
   const [aiResult, setAiResult] = useState(null);
   const [pollingInterval, setPollingInterval] = useState(null);
   const [progressLogs, setProgressLogs] = useState([]);
+  
+  // Anti-spam: Lock button while generating
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isLogExpanded, setIsLogExpanded] = useState(false);
   
   const [isRefineModalOpen, setIsRefineModalOpen] = useState(false);
@@ -110,6 +113,8 @@ const CreateProjectAI = () => {
     setIndustryContext,
     projectType,
     setProjectType,
+    customProjectType,
+    setCustomProjectType,
     complexity,
     setComplexity,
     teamSize,
@@ -125,6 +130,7 @@ const CreateProjectAI = () => {
     selectedSubjectId,
     setSelectedSubjectId,
     actualTopicDomain,
+    actualProjectType,
     mandatoryValidation,
     isConfigReady,
     addReferenceUrl,
@@ -236,14 +242,81 @@ const CreateProjectAI = () => {
     localStorage.removeItem(STORAGE_KEYS.SELECTED_IDS);
   };
 
+  // Clear job persistence from localStorage
+  const clearJobPersistence = () => {
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_JOB_ID);
+    localStorage.removeItem(STORAGE_KEYS.JOB_STATUS);
+    localStorage.removeItem(STORAGE_KEYS.JOB_START_TIME);
+    setIsGenerating(false);
+  };
+
+  // Save job to localStorage for persistence (resume after refresh)
+  const saveJobPersistence = (newJobId) => {
+    localStorage.setItem(STORAGE_KEYS.CURRENT_JOB_ID, newJobId);
+    localStorage.setItem(STORAGE_KEYS.JOB_STATUS, 'PROCESSING');
+    localStorage.setItem(STORAGE_KEYS.JOB_START_TIME, Date.now().toString());
+  };
+
+  // Resume polling for existing job on page load/refresh
+  // Use a ref to track if resume has already been attempted to prevent double execution
+  const resumeAttemptedRef = useRef(false);
+  
+  useEffect(() => {
+    // Prevent double execution (React 18 strict mode or re-renders)
+    if (resumeAttemptedRef.current) return;
+    resumeAttemptedRef.current = true;
+    
+    const savedJobId = localStorage.getItem(STORAGE_KEYS.CURRENT_JOB_ID);
+    const savedJobStatus = localStorage.getItem(STORAGE_KEYS.JOB_STATUS);
+    const savedStartTime = localStorage.getItem(STORAGE_KEYS.JOB_START_TIME);
+    
+    if (savedJobId && savedJobStatus === 'PROCESSING') {
+      const startTime = parseInt(savedStartTime, 10) || Date.now();
+      const elapsed = Date.now() - startTime;
+      const TIMEOUT_MS = 5.5 * 60 * 1000; // 5 minutes 30 seconds (match polling timeout)
+      
+      // Check if job hasn't timed out
+      if (elapsed < TIMEOUT_MS) {
+        console.log("Resuming poll for job:", savedJobId);
+        toast.info('Resuming AI generation from previous session...');
+        setJobId(savedJobId);
+        setPhase(2);
+        setAnalyzing(true);
+        setIsGenerating(true);
+        startPolling(savedJobId, startTime); // Pass original start time
+      } else {
+        // Job timed out while page was closed
+        console.log("Previous job timed out (exceeded 5m30s), clearing...");
+        clearJobPersistence();
+        toast.warning('Previous generation session expired. Please try again.');
+      }
+    }
+  }, []);
+
   // Handle AI Project Generation (replaces file upload)
   const handleGenerateProject = async () => {
+    // Anti-spam: Block if already generating
+    if (isGenerating || analyzing) {
+      toast.warning('Please wait, generation is in progress...');
+      return;
+    }
+    
     if (!isConfigReady) {
       toast.error('Please fill in all required fields.');
       return;
     }
 
+    // Clear any existing polling interval before starting new generation
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+    
+    // Clear any previous job persistence to prevent duplicate jobs
+    clearJobPersistence();
+
     try {
+      setIsGenerating(true); // Lock button
       setPhase(2);
       setAnalyzing(true);
       setProgressLogs([{ message: 'Initializing AI project generation...', timestamp: new Date() }]);
@@ -254,9 +327,14 @@ const CreateProjectAI = () => {
       const analyzeResponse = await axios.post(`${AI_API_BASE_URL}/analyze`, requestPayload);
 
       if (analyzeResponse.data && analyzeResponse.data.jobId) {
-        setJobId(analyzeResponse.data.jobId);
+        const newJobId = analyzeResponse.data.jobId;
+        setJobId(newJobId);
+        
+        // Persist job for resume after refresh
+        saveJobPersistence(newJobId);
+        
         setProgressLogs(prev => [...prev, { message: 'AI Architect is designing your project...', timestamp: new Date() }]);
-        startPolling(analyzeResponse.data.jobId);
+        startPolling(newJobId);
       } else {
         throw new Error('No job ID received');
       }
@@ -266,37 +344,72 @@ const CreateProjectAI = () => {
       toast.error('An error occurred. Please try again.');
       setPhase(1);
       setAnalyzing(false);
+      setIsGenerating(false); // Unlock button on error
+      clearJobPersistence();
     }
   };
 
-  const startPolling = (id) => {
-    const startTime = Date.now();
-    const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+  const startPolling = (id, resumeStartTime = null) => {
+    // Clear any existing polling interval before starting new one
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+    }
+    
+    const startTime = resumeStartTime || Date.now();
+    const TIMEOUT_MS = 5.5 * 60 * 1000; // 5 minutes 30 seconds (330 seconds)
+    let pollErrorCount = 0;
+    const MAX_POLL_ERRORS = 5;
 
     const interval = setInterval(async () => {
-      if (Date.now() - startTime > TIMEOUT_MS) {
+      const elapsed = Date.now() - startTime;
+      
+      // Extended timeout: 5m30s - if job still processing/null, redirect to form
+      if (elapsed > TIMEOUT_MS) {
         clearInterval(interval);
-        toast.error('AI Analysis timed out. Please try uploading the file again.');
-        setPhase(1);
+        clearJobPersistence();
+        setIsGenerating(false);
+        setIsGeneratingMore(false);
         setAnalyzing(false);
+        setPhase(1); // Return to project creation form
+        toast.error('Generation timed out after 5m30s. Please try again.', {
+          duration: 6000,
+          description: 'The AI service took too long to respond.'
+        });
         return;
       }
 
       try {
         const response = await axios.get(`${AI_API_BASE_URL}/jobs/${id}`);
+        console.log("=== Polling Response ===", response.data);
         const { status, result } = response.data;
+        pollErrorCount = 0; // Reset error count on success
 
         if (status === 'COMPLETED') {
+          console.log("Job COMPLETED, result:", result);
           clearInterval(interval);
+          clearJobPersistence(); // Clear persisted job
           handleAnalysisComplete(result);
         } else if (status === 'FAILED') {
           clearInterval(interval);
-          toast.error('AI Analysis failed. Please try another file.');
+          clearJobPersistence(); // Clear persisted job
+          toast.error('AI Analysis failed. Please try again.');
           setPhase(1);
           setAnalyzing(false);
+          setIsGenerating(false);
         }
       } catch (error) {
-        console.error('Polling error:', error);
+        pollErrorCount++;
+        console.error(`Polling error (${pollErrorCount}/${MAX_POLL_ERRORS}):`, error);
+        
+        // Stop polling after too many consecutive errors
+        if (pollErrorCount >= MAX_POLL_ERRORS) {
+          clearInterval(interval);
+          clearJobPersistence();
+          toast.error('Connection error. Please check your network and try again.');
+          setPhase(1);
+          setAnalyzing(false);
+          setIsGenerating(false);
+        }
       }
     }, 5000);
     setPollingInterval(interval);
@@ -321,8 +434,48 @@ const CreateProjectAI = () => {
     // Ensure we have an array of ideas
     const ideasArray = Array.isArray(ideas) ? ideas : [ideas];
     
+    // Check for error responses from AI service
+    const hasError = ideasArray.some(idea => 
+      idea.projectName === "Error Generating Ideas" || 
+      idea.description?.includes("ThrottlingException") ||
+      idea.description?.includes("Failed to process request")
+    );
+    
+    if (hasError) {
+      const errorIdea = ideasArray.find(idea => idea.projectName === "Error Generating Ideas");
+      const errorMessage = errorIdea?.description || "AI service error occurred";
+      
+      console.error("AI Service Error:", errorMessage);
+      toast.error("AI service is busy. Please wait a moment and try again.", {
+        duration: 5000,
+        description: "The AI model is experiencing high traffic."
+      });
+      
+      setPhase(1);
+      setAnalyzing(false);
+      setIsGeneratingMore(false);
+      setIsGenerating(false); // Unlock button
+      return;
+    }
+    
+    // Filter out any invalid ideas (no projectName or empty)
+    const validIdeas = ideasArray.filter(idea => 
+      idea.projectName && 
+      idea.projectName !== "Error Generating Ideas" &&
+      idea.description
+    );
+    
+    if (validIdeas.length === 0) {
+      toast.error("No valid project ideas were generated. Please try again.");
+      setPhase(1);
+      setAnalyzing(false);
+      setIsGeneratingMore(false);
+      setIsGenerating(false); // Unlock button
+      return;
+    }
+    
     // Add unique IDs to each idea for tracking
-    const ideasWithIds = ideasArray.map((idea, index) => ({
+    const ideasWithIds = validIdeas.map((idea, index) => ({
       ...idea,
       id: Date.now() + index,
     }));
@@ -341,6 +494,7 @@ const CreateProjectAI = () => {
     setPhase(2); // Go to Phase 2 (Idea Selection)
     setAnalyzing(false);
     setIsGeneratingMore(false);
+    setIsGenerating(false); // Unlock button - generation complete
   };
 
   // Toggle select/deselect a single idea
@@ -380,8 +534,11 @@ const CreateProjectAI = () => {
   // Generate more ideas (append to existing)
   const handleGenerateMore = async () => {
     setIsGeneratingMore(true);
+    let pollForMore = null;
+    
     try {
-      const requestPayload = buildRequestPayload(lecturerId);
+      // Pass existing ideas to avoid duplicates
+      const requestPayload = buildRequestPayload(lecturerId, aiIdeas);
       setProgressLogs(prev => [...prev, { message: 'Generating more project concepts...', timestamp: new Date() }]);
 
       const analyzeResponse = await axios.post(`${AI_API_BASE_URL}/analyze`, requestPayload);
@@ -389,11 +546,25 @@ const CreateProjectAI = () => {
       if (analyzeResponse.data && analyzeResponse.data.jobId) {
         setJobId(analyzeResponse.data.jobId);
         
-        // Poll for results
-        const pollForMore = setInterval(async () => {
+        const startTime = Date.now();
+        const TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes timeout
+        let pollErrorCount = 0;
+        const MAX_POLL_ERRORS = 3;
+        
+        // Poll for results with timeout and error handling
+        pollForMore = setInterval(async () => {
+          // Check timeout
+          if (Date.now() - startTime > TIMEOUT_MS) {
+            clearInterval(pollForMore);
+            toast.error('Generation timed out. Please try again later.');
+            setIsGeneratingMore(false);
+            return;
+          }
+          
           try {
             const response = await axios.get(`${AI_API_BASE_URL}/jobs/${analyzeResponse.data.jobId}`);
             const { status, result } = response.data;
+            pollErrorCount = 0; // Reset error count on success
 
             if (status === 'COMPLETED') {
               clearInterval(pollForMore);
@@ -404,13 +575,24 @@ const CreateProjectAI = () => {
               setIsGeneratingMore(false);
             }
           } catch (error) {
-            console.error('Polling error:', error);
+            pollErrorCount++;
+            console.error(`Polling error (${pollErrorCount}/${MAX_POLL_ERRORS}):`, error);
+            
+            // Stop polling after too many consecutive errors
+            if (pollErrorCount >= MAX_POLL_ERRORS) {
+              clearInterval(pollForMore);
+              toast.error('Connection error. Please check your network and try again.');
+              setIsGeneratingMore(false);
+            }
           }
         }, 5000);
+      } else {
+        throw new Error('No job ID received');
       }
     } catch (error) {
       console.error('Generate more failed:', error);
-      toast.error('Failed to generate more ideas');
+      if (pollForMore) clearInterval(pollForMore);
+      toast.error('Failed to generate more ideas. Please try again.');
       setIsGeneratingMore(false);
     }
   };
@@ -496,6 +678,11 @@ const CreateProjectAI = () => {
 
   // ORIGINAL: Handle Analysis Complete (for legacy flow or single project generation)
   const handleAnalysisComplete = (result) => {
+    console.log("=== handleAnalysisComplete called ===");
+    console.log("Result received:", result);
+    console.log("Result type:", typeof result);
+    console.log("Is Array:", Array.isArray(result));
+    
     // Check if result is an array (new Phase 2 flow) or single object (legacy flow)
     if (Array.isArray(result)) {
       handleIdeasGenerated(result);
@@ -1004,7 +1191,7 @@ const CreateProjectAI = () => {
                 </label>
                 <div className="flex items-center gap-3 bg-[#F9FAFB] rounded-2xl p-3 border-2 border-transparent transition-all duration-300 focus-within:border-[#FF7A59]/30 focus-within:ring-4 focus-within:ring-[#FF7A59]/5">
                   <button
-                    onClick={() => setDurationWeeks(Math.max(4, durationWeeks - 1))}
+                    onClick={() => setDurationWeeks(Math.max(8, durationWeeks - 1))}
                     className="w-11 h-11 rounded-xl bg-white shadow-sm border border-slate-200 flex items-center justify-center text-[#6B7280] hover:bg-[#FFF4F2] hover:border-[#FF7A59]/30 hover:text-[#FF7A59] transition-all duration-200"
                   >
                     <Minus size={16} />
@@ -1012,13 +1199,13 @@ const CreateProjectAI = () => {
                   <input
                     type="number"
                     value={durationWeeks}
-                    onChange={(e) => setDurationWeeks(Math.max(4, Math.min(52, parseInt(e.target.value) || 10)))}
+                    onChange={(e) => setDurationWeeks(Math.max(8, Math.min(15, parseInt(e.target.value) || 10)))}
                     className="flex-1 bg-transparent text-center text-xl font-bold text-[#1F2937] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    min={4}
-                    max={52}
+                    min={8}
+                    max={15}
                   />
                   <button
-                    onClick={() => setDurationWeeks(Math.min(52, durationWeeks + 1))}
+                    onClick={() => setDurationWeeks(Math.min(15, durationWeeks + 1))}
                     className="w-11 h-11 rounded-xl bg-white shadow-sm border border-slate-200 flex items-center justify-center text-[#6B7280] hover:bg-[#FFF4F2] hover:border-[#FF7A59]/30 hover:text-[#FF7A59] transition-all duration-200"
                   >
                     <Plus size={16} />
@@ -1182,6 +1369,21 @@ const CreateProjectAI = () => {
                   </button>
                 ))}
               </div>
+              
+              {/* Custom Project Type Input */}
+              {projectType === 'Custom' && (
+                <div className="mt-4">
+                  <input
+                    type="text"
+                    value={customProjectType}
+                    onChange={(e) => setCustomProjectType(e.target.value)}
+                    placeholder="Enter your custom project type..."
+                    className="w-full px-5 py-4 bg-white/80 backdrop-blur-sm border-2 border-[#FF7A59]/20 rounded-2xl text-[#1F2937] placeholder-[#9CA3AF] focus:outline-none focus:border-[#FF7A59]/50 focus:ring-4 focus:ring-[#FF7A59]/10 transition-all duration-300"
+                    maxLength={50}
+                  />
+                  <p className="text-[11px] text-[#6B7280] mt-2 pl-1">E.g., IoT System, Blockchain DApp, AR/VR Application, etc.</p>
+                </div>
+              )}
             </div>
 
             {/* Optional Tech Stack */}
@@ -1235,7 +1437,7 @@ const CreateProjectAI = () => {
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-[#6B7280]">Project Type:</span>
-                <span className="font-semibold text-[#1F2937]">{projectType || '-'}</span>
+                <span className="font-semibold text-[#1F2937] truncate max-w-[150px]">{actualProjectType || '-'}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-[#6B7280]">Complexity:</span>
@@ -1264,22 +1466,51 @@ const CreateProjectAI = () => {
               )}
             </div>
 
-            {/* Generate Button - Large Full-Width Action */}
+            {/* Generate Button - Large Full-Width Action with Anti-Spam */}
             <motion.button
-              disabled={!isConfigReady}
+              disabled={!isConfigReady || isGenerating}
               onClick={handleGenerateProject}
-              className={`w-full py-5 rounded-2xl font-bold text-base transition-all duration-300 flex items-center justify-center gap-3 ${
-                isConfigReady
-                  ? 'bg-gradient-to-r from-[#FF7A59] to-[#FF9F43] text-white shadow-[0_8px_32px_-4px_rgba(255,122,89,0.5)] hover:shadow-[0_12px_40px_-4px_rgba(255,122,89,0.6)] hover:-translate-y-0.5'
-                  : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+              className={`relative w-full py-5 rounded-2xl font-bold text-base transition-all duration-300 flex items-center justify-center gap-3 overflow-hidden ${
+                isGenerating
+                  ? 'bg-gradient-to-r from-[#FF7A59]/80 to-[#FF9F43]/80 text-white/90 cursor-wait'
+                  : isConfigReady
+                    ? 'bg-gradient-to-r from-[#FF7A59] to-[#FF9F43] text-white shadow-[0_8px_32px_-4px_rgba(255,122,89,0.5)] hover:shadow-[0_12px_40px_-4px_rgba(255,122,89,0.6)] hover:-translate-y-0.5'
+                    : 'bg-slate-100/80 backdrop-blur-sm text-slate-400 cursor-not-allowed border border-slate-200/50'
               }`}
-              whileHover={isConfigReady ? { y: -2 } : {}}
-              whileTap={isConfigReady ? { scale: 0.98 } : {}}
+              whileHover={isConfigReady && !isGenerating ? { y: -2 } : {}}
+              whileTap={isConfigReady && !isGenerating ? { scale: 0.98 } : {}}
             >
-              <Sparkles size={20} />
-              Generate Project Plan
-              <ArrowRight size={18} />
+              {/* Glassmorphism shine effect */}
+              {isConfigReady && !isGenerating && (
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full hover:translate-x-full transition-transform duration-700" />
+              )}
+              
+              {/* Loading spinner when generating */}
+              {isGenerating ? (
+                <>
+                  <Loader2 size={20} className="animate-spin" />
+                  <span>Generating...</span>
+                  <span className="text-white/60 text-sm font-normal">(Please wait)</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={20} />
+                  Generate Project Ideas
+                  <ArrowRight size={18} />
+                </>
+              )}
             </motion.button>
+            
+            {/* Generation status hint */}
+            {isGenerating && (
+              <motion.p 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center text-xs text-[#FF7A59] font-medium mt-2"
+              >
+                ⏳ AI is analyzing your requirements... This may take up to 2 minutes.
+              </motion.p>
+            )}
 
             {/* Validation Status */}
             <div className="mt-8 space-y-2.5">
@@ -1310,7 +1541,7 @@ const CreateProjectAI = () => {
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-all ${mandatoryValidation.duration ? 'bg-emerald-100' : 'bg-slate-100'}`}>
                   {mandatoryValidation.duration ? <Check size={12} /> : <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />}
                 </div>
-                Duration (4-20 weeks)
+                Duration (8-15 weeks)
               </div>
               
               <div className={`flex items-center gap-3 text-[13px] font-medium transition-colors ${mandatoryValidation.requiredTech ? 'text-emerald-600' : 'text-[#6B7280]'}`}>
@@ -1738,9 +1969,6 @@ const CreateProjectAI = () => {
                   <div className="flex items-center gap-3 mb-4">
                     <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-[#FF7A59] to-[#FF9F43] text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-[#FF7A59]/20">
                       <Sparkles size={12} /> AI Powered
-                    </span>
-                    <span className="px-3 py-1.5 rounded-full bg-white/70 text-[#6B7280] text-xs font-semibold border border-white/80">
-                      Beta
                     </span>
                   </div>
                   <h1 className="text-3xl xl:text-4xl font-bold text-[#1F2937] mb-3">AI Project Architect</h1>

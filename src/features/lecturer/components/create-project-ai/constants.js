@@ -2,6 +2,9 @@
 
 export const AI_API_BASE_URL = 'https://u8ls7dz738.execute-api.ap-southeast-1.amazonaws.com/dev';
 
+// Form version - increment when form structure changes to clear old localStorage data
+export const FORM_VERSION = 2;
+
 // LocalStorage Keys
 export const STORAGE_KEYS = {
   FORM_DATA: 'ai_project_form_data',
@@ -9,6 +12,10 @@ export const STORAGE_KEYS = {
   CONFIG: 'ai_project_config',
   PHASE: 'ai_project_phase',
   SELECTED_IDS: 'ai_project_selected_ids', // For multi-select persistence
+  // Job persistence keys (for resume polling after refresh)
+  CURRENT_JOB_ID: 'ai_project_current_job_id',
+  JOB_STATUS: 'ai_project_job_status',
+  JOB_START_TIME: 'ai_project_job_start_time',
 };
 
 // Topic Domain Options
@@ -31,6 +38,7 @@ export const PROJECT_TYPE_OPTIONS = [
   { value: 'Mobile Application', label: 'Mobile', icon: '📱' },
   { value: 'Desktop Application', label: 'Desktop', icon: '🖥️' },
   { value: 'API/Backend Service', label: 'API/Backend', icon: '⚙️' },
+  { value: 'Custom', label: 'Custom', icon: '✨' },
 ];
 
 // Complexity Options
@@ -43,7 +51,7 @@ export const COMPLEXITY_OPTIONS = [
 ];
 
 // Duration Options (weeks)
-export const DURATION_OPTIONS = [8, 10, 12, 14, 16];
+export const DURATION_OPTIONS = [8, 10, 12, 14, 15];
 
 // Suggested Tech Stack
 export const SUGGESTED_TECH = [
@@ -63,6 +71,7 @@ export const DEFAULT_FORM_VALUES = {
   customTopicDomain: '',
   industryContext: '',
   projectType: '',
+  customProjectType: '',
   complexity: 2,
   teamSize: 4,
   durationWeeks: 10,

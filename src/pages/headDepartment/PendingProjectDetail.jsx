@@ -1,4 +1,4 @@
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { handleProject } from '../../services/userService';
@@ -17,24 +17,13 @@ import {
   Hash,
   AlertTriangle,
   X,
-  ListChecks // Icon mới
+  Shield,
+  Users,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import HeadDashboardLayout from '../../components/layout/HeadDashboardLayout';
 
 // --- Helper Components ---
-const DetailRow = ({ icon: Icon, label, value }) => (
-  <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50/50 border border-slate-100 hover:bg-white hover:shadow-sm transition-all duration-300">
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100">
-      <Icon className="h-5 w-5" />
-    </div>
-    <div className="flex-1">
-      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">{label}</p>
-      <p className="font-medium text-slate-800 leading-relaxed">{value || 'N/A'}</p>
-    </div>
-  </div>
-);
-
 const Badge = ({ children, className }) => (
   <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-sm ${className}`}>
     {children}
@@ -43,7 +32,6 @@ const Badge = ({ children, className }) => (
 
 const PendingProjectDetail = () => {
   const location = useLocation();
-  const { id } = useParams();
   const project = location.state?.project;
   const navigate = useNavigate();
 
@@ -52,6 +40,21 @@ const PendingProjectDetail = () => {
   // State for Modals
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+
+  // Helper: Parse business rules
+  const parseBusinessRules = (rules) => {
+    if (!rules) return [];
+    return rules.split('\n')
+      .filter(line => line.trim())
+      .map(line => line.replace(/^[-•]\s*/, '').replace(/^\d+\.\s*/, '').trim())
+      .filter(Boolean);
+  };
+
+  // Helper: Parse actors
+  const parseActors = (actors) => {
+    if (!actors) return [];
+    return actors.split(',').map(actor => actor.trim());
+  };
 
   // Fallback if no project data passed
   if (!project) {
@@ -113,9 +116,12 @@ const PendingProjectDetail = () => {
     return new Date(dateString).toLocaleDateString('en-GB');
   };
 
+  const businessRules = parseBusinessRules(project.businessRules);
+  const actors = parseActors(project.actors);
+
   return (
     <HeadDashboardLayout>
-      <div className=" mx-auto space-y-6 pb-20">
+      <div className="mx-auto space-y-6 pb-20">
         
         {/* --- Header Navigation --- */}
         <button
@@ -165,96 +171,241 @@ const PendingProjectDetail = () => {
              </div>
           </div>
 
-          {/* Details Grid */}
+          {/* Main Content with Sidebar */}
           <div className="p-8">
-            <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-               <FileText className="w-5 h-5 text-[#F26F21]" />
-               Project Details
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               {/* Subject Info */}
-               <DetailRow icon={Hash} label="Subject Code" value={project.subjectCode} />
-               <DetailRow icon={BookOpen} label="Subject Name" value={project.subjectName} />
-               
-               {/* Lecturer Info */}
-               <DetailRow icon={User} label="Lecturer Name" value={project.lecturerName} />
-               <DetailRow icon={Flag} label="Lecturer Code" value={project.lecturerCode} />
-               
-               {/* Description */}
-               <div className="md:col-span-2 mt-2">
-                 <div className="flex items-start gap-4 p-6 rounded-xl bg-slate-50/50 border border-slate-100">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100">
-                       <FileText className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1">
-                       <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Description</p>
-                       <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
-                          {project.description || "No description provided."}
-                       </p>
-                    </div>
-                 </div>
-               </div>
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              
+              {/* Main Content Column */}
+              <div className="lg:col-span-2 space-y-8">
+                
+                {/* Description Section */}
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-[#F26F21]" />
+                    Project Overview
+                  </h2>
+                  <div className="p-6 rounded-xl bg-slate-50/50 border border-slate-100">
+                    <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
+                      {project.description || "No description provided."}
+                    </p>
+                  </div>
+                </div>
 
-            {/* --- OBJECTIVES & MILESTONES SECTION --- */}
-            {project.objectives && project.objectives.length > 0 && (
-              <div className="mt-10 pt-8 border-t border-slate-100">
-                 <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <Target className="w-5 h-5 text-[#F26F21]" />
-                    Objectives & Milestones
-                 </h2>
+                {/* Actors Section */}
+                {actors.length > 0 && (
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                      <Users className="w-5 h-5 text-[#F26F21]" />
+                      Actors
+                    </h2>
+                    <div className="flex flex-wrap gap-2">
+                      {actors.map((actor, idx) => (
+                        <span 
+                          key={idx}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-50 text-indigo-700 text-sm font-semibold border border-indigo-100 shadow-sm"
+                        >
+                          <User className="w-3.5 h-3.5" />
+                          {actor}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                 <div className="space-y-6">
-                    {project.objectives.map((obj) => (
-                       <div key={obj.objectiveId} className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                          {/* Objective Header */}
+                {/* Business Rules Section */}
+                {businessRules.length > 0 && (
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                      <Shield className="w-5 h-5 text-[#F26F21]" />
+                      Business Rules
+                    </h2>
+                    <div className="space-y-3">
+                      {businessRules.map((rule, idx) => (
+                        <div 
+                          key={idx}
+                          className="flex items-start gap-3 p-4 rounded-xl bg-purple-50/50 border border-purple-100 hover:bg-purple-50 transition-all"
+                        >
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-purple-500 text-white text-sm font-bold shadow-sm">
+                            {idx + 1}
+                          </div>
+                          <p className="flex-1 text-slate-700 leading-relaxed pt-0.5">
+                            {rule}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Objectives Section */}
+                {project.objectives && project.objectives.length > 0 && (
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                      <Target className="w-5 h-5 text-[#F26F21]" />
+                      Objectives & Milestones
+                    </h2>
+                    <div className="space-y-6">
+                      {project.objectives.map((obj) => (
+                        <div key={obj.objectiveId} className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                           <div className="bg-slate-50 p-4 border-b border-slate-200 flex items-start justify-between gap-4">
-                             <div>
-                                <h3 className="font-bold text-slate-800 text-sm md:text-base">{obj.description}</h3>
-                                <p className="text-xs text-slate-500 mt-1">Priority: <span className={`font-semibold ${obj.priority === 'High' ? 'text-red-600' : 'text-blue-600'}`}>{obj.priority}</span></p>
-                             </div>
-                             <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-white border border-slate-200">
-                                <Target className="h-4 w-4 text-slate-400" />
-                             </div>
+                            <div>
+                              <h3 className="font-bold text-slate-800 text-sm md:text-base">{obj.description}</h3>
+                              <p className="text-xs text-slate-500 mt-1">Priority: <span className={`font-semibold ${obj.priority === 'High' ? 'text-red-600' : 'text-blue-600'}`}>{obj.priority}</span></p>
+                            </div>
+                            <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-white border border-slate-200">
+                              <Target className="h-4 w-4 text-slate-400" />
+                            </div>
                           </div>
-
-                          {/* Milestones List */}
                           <div className="p-4 bg-white">
-                             {obj.objectiveMilestones && obj.objectiveMilestones.length > 0 ? (
-                                <div className="space-y-3">
-                                   {obj.objectiveMilestones.map((mile) => (
-                                      <div key={mile.objectiveMilestoneId} className="flex items-start gap-3 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
-                                         <div className="mt-1">
-                                            <Flag className="h-4 w-4 text-[#F26F21]" />
-                                         </div>
-                                         <div className="flex-1">
-                                            <h4 className="text-sm font-bold text-slate-700">{mile.title}</h4>
-                                            <p className="text-xs text-slate-500 mt-0.5">{mile.description}</p>
-                                            <div className="flex items-center gap-2 mt-2 text-[11px] font-medium text-slate-400 bg-slate-100 w-fit px-2 py-0.5 rounded">
-                                               <Calendar className="h-3 w-3" />
-                                               {formatDate(mile.startDate)} - {formatDate(mile.endDate)}
-                                            </div>
-                                         </div>
+                            {obj.objectiveMilestones && obj.objectiveMilestones.length > 0 ? (
+                              <div className="space-y-3">
+                                {obj.objectiveMilestones.map((mile) => (
+                                  <div key={mile.objectiveMilestoneId} className="flex items-start gap-3 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
+                                    <div className="mt-1">
+                                      <Flag className="h-4 w-4 text-[#F26F21]" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <h4 className="text-sm font-bold text-slate-700">{mile.title}</h4>
+                                      <p className="text-xs text-slate-500 mt-0.5">{mile.description}</p>
+                                      <div className="flex items-center gap-2 mt-2 text-[11px] font-medium text-slate-400 bg-slate-100 w-fit px-2 py-0.5 rounded">
+                                        <Calendar className="h-3 w-3" />
+                                        {formatDate(mile.startDate)} - {formatDate(mile.endDate)}
                                       </div>
-                                   ))}
-                                </div>
-                             ) : (
-                                <p className="text-sm text-slate-400 italic">No milestones defined for this objective.</p>
-                             )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-slate-400 italic">No milestones defined for this objective.</p>
+                            )}
                           </div>
-                       </div>
-                    ))}
-                 </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+
+              {/* Sidebar Column */}
+              <div className="space-y-6">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden sticky top-6">
+                  <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
+                    <h3 className="text-lg font-bold text-slate-900">Project Details</h3>
+                  </div>
+                  
+                  <div className="p-6 space-y-4">
+                    {/* Subject Code */}
+                    <div className="pb-4 border-b border-slate-100">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-indigo-50 rounded-lg">
+                          <Hash className="w-5 h-5 text-indigo-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                            Subject Code
+                          </p>
+                          <p className="font-bold text-slate-900 text-lg">
+                            {project.subjectCode}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Subject Name */}
+                    <div className="pb-4 border-b border-slate-100">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-blue-50 rounded-lg">
+                          <BookOpen className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                            Subject Name
+                          </p>
+                          <p className="font-bold text-slate-900 leading-tight">
+                            {project.subjectName}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Lecturer Name */}
+                    <div className="pb-4 border-b border-slate-100">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-orange-50 rounded-lg">
+                          <User className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                            Lecturer Name
+                          </p>
+                          <p className="font-bold text-slate-900">
+                            {project.lecturerName}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Lecturer Code */}
+                    <div className="pb-4 border-b border-slate-100">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-purple-50 rounded-lg">
+                          <Flag className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                            Lecturer Code
+                          </p>
+                          <p className="font-bold text-slate-900 font-mono">
+                            {project.lecturerCode}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Status */}
+                    <div className="pb-4 border-b border-slate-100">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-amber-50 rounded-lg">
+                          <Clock className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                            Status
+                          </p>
+                          <Badge className="bg-amber-100 text-amber-700 ring-1 ring-amber-500/20">
+                            <Clock className="w-3.5 h-3.5" /> 
+                            {project.statusString || 'PENDING'}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Created Date */}
+                    <div>
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-slate-50 rounded-lg">
+                          <Calendar className="w-5 h-5 text-slate-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                            Created
+                          </p>
+                          <p className="font-semibold text-slate-900 text-sm">
+                            {formatDate(project.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
 
           {/* --- ACTION BUTTONS --- */}
           <div className="p-6 bg-slate-50 border-t border-slate-100">
              <div className="flex flex-col sm:flex-row items-center gap-4 max-w-2xl mx-auto">
-                
-                {/* REJECT BUTTON */}
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -265,7 +416,6 @@ const PendingProjectDetail = () => {
                   Reject
                 </motion.button>
 
-                {/* APPROVE BUTTON */}
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -275,19 +425,16 @@ const PendingProjectDetail = () => {
                   <CheckCircle className="w-5 h-5" />
                   Approve Project
                 </motion.button>
-
              </div>
              <p className="text-center text-xs text-slate-400 mt-4">
-                Please review the subject, lecturer, and objectives before taking action.
+                Please review all project details before taking action.
              </p>
           </div>
         </div>
       </div>
 
-      {/* --- INLINE MODALS --- */}
+      {/* Modals remain the same... */}
       <AnimatePresence>
-        
-        {/* REJECT MODAL */}
         {showRejectModal && (
           <motion.div
             className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4'
@@ -342,7 +489,6 @@ const PendingProjectDetail = () => {
           </motion.div>
         )}
 
-        {/* APPROVE MODAL */}
         {showApproveModal && (
           <motion.div
             className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4'

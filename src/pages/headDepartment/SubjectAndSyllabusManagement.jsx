@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ModalWrapper from '../../components/layout/ModalWrapper';
-import CreateMultipleSubjectForm from '../../features/staff/components/CreateMultipleSubjectForm';
-import UpdateSubjectForm from '../../features/head-department/components/UpdateSubjectForm';
+import CreateMultipleSubjectForm from '../../features/head-department/components/CreateMultipleSubjectForm';
+import CreateSubjectForm from '../../features/head-department/components/CreateSubjectForm';
 import { getAllSubject } from '../../services/userService';
 
 // Import sub-components
@@ -37,7 +37,8 @@ export default function SubjectManagement() {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Modal state
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  // const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCreateSubjectModalOpen, setIsCreateSubjectModalOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -114,7 +115,8 @@ export default function SubjectManagement() {
   };
 
   const handleModalClose = (shouldRefresh = false) => {
-    setIsCreateModalOpen(false);
+    // setIsCreateModalOpen(false);
+    setIsCreateSubjectModalOpen(false);
     if (shouldRefresh) {
       fetchSubjects();
     }
@@ -129,7 +131,8 @@ export default function SubjectManagement() {
           
           {/* Header Section - Matching Staff/Admin style */}
           <SubjectHeader 
-            onAddClick={() => setIsCreateModalOpen(true)} 
+            // onAddClick={() => setIsCreateModalOpen(true)} 
+            onCreateClick={() => setIsCreateSubjectModalOpen(true)}
             stats={stats}
           />
 
@@ -174,7 +177,7 @@ export default function SubjectManagement() {
         </div>
 
         {/* Modals */}
-        <ModalWrapper
+        {/* <ModalWrapper
           isOpen={isCreateModalOpen}
           onClose={() => handleModalClose(false)}
           title="Create Multiple Subjects"
@@ -182,7 +185,16 @@ export default function SubjectManagement() {
           <CreateMultipleSubjectForm
             onClose={shouldRefresh => handleModalClose(shouldRefresh)}
           />
-        </ModalWrapper>
+        </ModalWrapper> */}
+        <ModalWrapper
+          isOpen={isCreateSubjectModalOpen}
+          onClose={() => handleModalClose(false)}
+          title="Create New Subject"
+          >
+          <CreateSubjectForm
+            onClose={shouldRefresh => handleModalClose(shouldRefresh)}
+          />
+          </ModalWrapper>
       </div>
     </HeadDashboardLayout>
   );
