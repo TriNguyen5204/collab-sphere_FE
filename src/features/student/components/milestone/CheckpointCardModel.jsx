@@ -35,6 +35,8 @@ const getStatusBadgeStyles = (status) => {
         case 'PROCESSING':
         case 'IN_PROGRESS':
             return 'bg-blue-100 text-blue-700 border border-blue-200';
+        case 'overdue':
+            return 'bg-red-50 text-red-600 border border-red-200';
         case 'NOT_DONE':
         default:
             return 'bg-gray-100 text-gray-700 border border-gray-200';
@@ -604,10 +606,16 @@ const CheckpointCardModal = ({
         badgeKey: statusBadgeKey,
         displayText: statusDisplayText,
     } = interpretStatusDisplay(statusRaw);
+    
     const complexity = resolvedDetail?.complexity ?? fallbackCheckpoint?.complexity ?? '';
     const description = resolvedDetail?.description ?? fallbackCheckpoint?.description ?? '';
     const startDate = resolvedDetail?.startDate ?? fallbackCheckpoint?.startDate ?? null;
     const dueDate = resolvedDetail?.dueDate ?? resolvedDetail?.deadline ?? resolvedDetail?.endDate ?? fallbackCheckpoint?.dueDate ?? null;
+    
+    // Check if checkpoint is overdue (must be after dueDate is declared)
+    const isOverdue = dueDate && new Date(dueDate) < new Date() && statusBadgeKey !== 'completed';
+    const finalStatusBadgeKey = isOverdue ? 'overdue' : statusBadgeKey;
+    const finalStatusDisplayText = isOverdue ? 'OVERDUE' : statusDisplayText;
     const submissionsCount = normalizedSubmissions.length;
     const assignmentsCount = assignments.length;
     const lacksAssignments = assignmentsCount === 0;
@@ -712,9 +720,9 @@ const CheckpointCardModal = ({
                                     {complexity || ''}
                                 </span>
                             </div>
-                            {statusDisplayText && (
-                                <span className={`rounded-full px-3 py-1 ml-2 text-xs font-semibold ${getStatusBadgeStyles(statusBadgeKey)}`}>
-                                    {statusDisplayText}
+                            {finalStatusDisplayText && (
+                                <span className={`rounded-full px-3 py-1 ml-2 text-xs font-semibold ${getStatusBadgeStyles(finalStatusBadgeKey)}`}>
+                                    {finalStatusDisplayText}
                                 </span>
                             )}
                         </div>
