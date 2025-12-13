@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
@@ -21,12 +22,90 @@ import {
   CheckSquare,
   Square,
   RefreshCw,
-  Layers
+  Layers,
+  BookOpen,
+  FileText,
+  List,
+  AlertCircle,
+  AlertTriangle
 } from 'lucide-react';
 import { COMPLEXITY_OPTIONS } from './constants';
 
 /**
- * Compact Idea Card for Multi-Select Grid
+ * Confirmation Modal for Back to Config - Elegant Soft Design
+ * Uses createPortal to render at document.body level for proper centering
+ */
+const ConfirmBackModal = ({ onConfirm, onCancel, ideasCount }) => {
+  return createPortal(
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      onClick={onCancel}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 20 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden"
+      >
+        {/* Header - Softer gradient */}
+        <div className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-rose-500 to-orange-400" />
+          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_20%_50%,rgba(255,255,255,0.3)_0%,transparent_50%)]" />
+          <div className="relative px-6 py-5 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
+              <AlertTriangle size={24} className="text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Discard Generated Concepts?</h2>
+              <p className="text-white/80 text-sm">This action cannot be undone</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="p-6">
+          <div className="flex items-start gap-3 p-4 bg-rose-50 border border-rose-200/60 rounded-xl mb-4">
+            <AlertCircle size={20} className="text-rose-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-rose-700">
+                You have {ideasCount} AI-generated concept{ideasCount > 1 ? 's' : ''} that will be lost.
+              </p>
+            </div>
+          </div>
+          <p className="text-sm text-slate-600">
+            Are you sure you want to go back? You'll need to regenerate concepts if you return.
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50/50">
+          <button
+            onClick={onCancel}
+            className="px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+          >
+            Keep Editing
+          </button>
+          <button
+            onClick={onConfirm}
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-rose-500 to-orange-400 hover:from-rose-600 hover:to-orange-500 rounded-xl transition-all shadow-md hover:shadow-lg"
+          >
+            <Trash2 size={16} />
+            Discard & Go Back
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>,
+    document.body
+  );
+};
+
+/**
+ * Enhanced Idea Card - Elegant Soft Design with Business Rules Preview
  */
 const IdeaCard = ({
   idea,
@@ -39,247 +118,518 @@ const IdeaCard = ({
   onDelete,
   isCreating
 }) => {
+  const complexityOption = COMPLEXITY_OPTIONS.find(c => c.value === complexity);
+  
+  // Parse business rules for preview (show first 2-3)
+  const businessRulesPreview = useMemo(() => {
+    if (!idea.businessRules) return [];
+    const rules = idea.businessRules
+      .split('\n')
+      .filter(r => r.trim().startsWith('-') || r.trim().startsWith('•'))
+      .map(r => r.replace(/^[-•]\s*/, '').trim())
+      .filter(r => r.length > 0)
+      .slice(0, 3);
+    return rules;
+  }, [idea.businessRules]);
+  
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-      transition={{ duration: 0.3, delay: index * 0.05 }}
-      className={`group relative transition-all duration-300 ${
-        isSelected ? 'ring-2 ring-emerald-400 ring-offset-2' : ''
-      } ${isCreating ? 'opacity-50 pointer-events-none' : ''}`}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+      transition={{ duration: 0.4, delay: index * 0.08 }}
+      className={`group relative ${isCreating ? 'opacity-50 pointer-events-none' : ''}`}
     >
-      {/* Glass Card */}
-      <div className={`relative h-full rounded-2xl border-2 p-5 transition-all duration-300 backdrop-blur-xl ${
-        isSelected
-          ? 'bg-gradient-to-br from-emerald-50/95 to-teal-50/90 border-emerald-300 shadow-lg shadow-emerald-100'
-          : 'bg-white/80 border-slate-200/60 hover:border-indigo-300 shadow-md hover:shadow-lg'
-      }`}>
+      {/* Main Card Container - Elegant soft design */}
+      <div 
+        onClick={() => onToggleSelect(idea.id)}
+        className={`relative h-full rounded-2xl border cursor-pointer transition-all duration-300 overflow-hidden ${
+          isSelected
+            ? 'bg-white border-orange-300 shadow-lg shadow-orange-100/50 ring-1 ring-orange-200'
+            : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-100/50'
+        }`}
+      >
+        {/* Top Gradient Bar - Subtle */}
+        <div className={`h-1 w-full ${
+          isSelected 
+            ? 'bg-gradient-to-r from-orange-400 via-orange-300 to-amber-300' 
+            : 'bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 group-hover:from-orange-100 group-hover:via-orange-50 group-hover:to-amber-100'
+        } transition-all duration-300`} />
         
-        {/* Selection Checkbox - Top Left */}
-        <button
-          onClick={() => onToggleSelect(idea.id)}
-          className={`absolute -top-2 -left-2 w-7 h-7 rounded-lg flex items-center justify-center transition-all z-10 ${
-            isSelected
-              ? 'bg-emerald-500 text-white shadow-md shadow-emerald-200'
-              : 'bg-white border-2 border-slate-300 text-slate-400 hover:border-indigo-400 hover:text-indigo-500'
-          }`}
-        >
-          {isSelected ? <Check size={14} strokeWidth={3} /> : <Square size={14} />}
-        </button>
+        <div className="p-5">
+          {/* Card Header */}
+          <div className="flex items-start justify-between mb-4">
+            {/* Number Badge - Softer */}
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-sm transition-all ${
+              isSelected
+                ? 'bg-orange-100 text-orange-600 border border-orange-200'
+                : 'bg-slate-100 text-slate-500 border border-slate-200 group-hover:bg-orange-50 group-hover:text-orange-500 group-hover:border-orange-200'
+            }`}>
+              {index + 1}
+            </div>
 
-        {/* Action Buttons - Top Right */}
-        <div className="absolute -top-2 -right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(idea.id);
-            }}
-            className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 flex items-center justify-center transition-all shadow-sm"
-            title="Edit"
-          >
-            <Edit3 size={12} />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(idea.id);
-            }}
-            className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-300 flex items-center justify-center transition-all shadow-sm"
-            title="Remove"
-          >
-            <Trash2 size={12} />
-          </button>
-        </div>
+            {/* Right Actions */}
+            <div className="flex items-center gap-2">
+              {/* Action Buttons */}
+              <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(idea.id);
+                  }}
+                  className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50 flex items-center justify-center transition-all"
+                  title="Remove concept"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+              
+              {/* Selection Indicator - Softer */}
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all border ${
+                isSelected
+                  ? 'bg-orange-500 border-orange-500 text-white'
+                  : 'bg-white border-slate-200 text-slate-300 group-hover:border-orange-200 group-hover:text-orange-400'
+              }`}>
+                {isSelected ? <Check size={14} strokeWidth={3} /> : <Square size={12} />}
+              </div>
+            </div>
+          </div>
 
-        {/* Card Content */}
-        <div className="pt-2">
-          {/* Project Name */}
-          <h3 className="text-base font-bold text-slate-900 leading-tight line-clamp-2 mb-2 group-hover:text-indigo-700 transition-colors">
+          {/* Project Name - Softer */}
+          <h3 className={`text-lg font-semibold leading-snug mb-3 transition-colors ${
+            isSelected ? 'text-slate-800' : 'text-slate-700 group-hover:text-slate-800'
+          }`}>
             {idea.projectName || 'Untitled Project'}
           </h3>
 
-          {/* Tags */}
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-md text-[10px] font-semibold">
-              <Users size={10} />
-              {teamSize}
-            </span>
-            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold ${
-              complexity <= 2 ? 'bg-emerald-100 text-emerald-700' :
-              complexity <= 3 ? 'bg-amber-100 text-amber-700' :
-              'bg-rose-100 text-rose-700'
+          {/* Meta Tags - Softer */}
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+              isSelected ? 'bg-orange-50 text-orange-600 border border-orange-200' : 'bg-slate-50 text-slate-500 border border-slate-200'
             }`}>
-              <Zap size={10} />
-              {COMPLEXITY_OPTIONS.find(c => c.value === complexity)?.label || 'Intermediate'}
+              <Users size={11} />
+              {teamSize} members
+            </span>
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border ${
+              complexity <= 2 ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+              complexity <= 3 ? 'bg-amber-50 text-amber-600 border-amber-200' :
+              'bg-rose-50 text-rose-600 border-rose-200'
+            }`}>
+              <Zap size={11} />
+              {complexityOption?.label || 'Intermediate'}
             </span>
           </div>
 
           {/* Description */}
-          <p className="text-xs text-slate-600 leading-relaxed line-clamp-3 mb-3">
-            {idea.description || 'No description provided.'}
+          <p className={`text-sm leading-relaxed mb-4 ${
+            isSelected ? 'text-slate-600' : 'text-slate-500'
+          }`}>
+            {idea.description?.length > 150 
+              ? `${idea.description.substring(0, 150)}...` 
+              : idea.description || 'No description provided.'}
           </p>
 
-          {/* Actors Preview */}
+          {/* Business Rules Preview - Softer */}
+          {businessRulesPreview.length > 0 && (
+            <div className={`mb-4 p-3 rounded-lg border transition-all ${
+              isSelected ? 'bg-orange-50/50 border-orange-100' : 'bg-slate-50/80 border-slate-100 group-hover:bg-orange-50/30 group-hover:border-orange-100/50'
+            }`}>
+              <p className={`text-[10px] font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5 ${
+                isSelected ? 'text-orange-600' : 'text-slate-400'
+              }`}>
+                <BookOpen size={10} />
+                Business Rules
+              </p>
+              <ul className="space-y-1">
+                {businessRulesPreview.map((rule, idx) => (
+                  <li key={idx} className={`text-xs flex items-start gap-2 ${
+                    isSelected ? 'text-slate-600' : 'text-slate-500'
+                  }`}>
+                    <span className={`mt-1.5 w-1 h-1 rounded-full flex-shrink-0 ${
+                      isSelected ? 'bg-orange-400' : 'bg-slate-300'
+                    }`} />
+                    <span className="line-clamp-1">{rule}</span>
+                  </li>
+                ))}
+              </ul>
+              {idea.businessRules?.split('\n').filter(r => r.trim()).length > 3 && (
+                <p className={`text-[10px] mt-2 ${isSelected ? 'text-orange-500' : 'text-slate-400'}`}>
+                  +{idea.businessRules.split('\n').filter(r => r.trim()).length - 3} more rules
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Actors Preview - Softer */}
           {idea.actors && (
-            <div className="flex flex-wrap gap-1 mb-3">
+            <div className="flex flex-wrap gap-1.5 mb-4">
               {idea.actors.split(',').slice(0, 3).map((actor, idx) => (
-                <span key={idx} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-medium">
-                  <UserCircle size={8} />
+                <span 
+                  key={idx} 
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border ${
+                    isSelected 
+                      ? 'bg-orange-50 text-orange-600 border-orange-200' 
+                      : 'bg-slate-50 text-slate-500 border-slate-200'
+                  }`}
+                >
+                  <UserCircle size={10} />
                   {actor.trim()}
                 </span>
               ))}
               {idea.actors.split(',').length > 3 && (
-                <span className="text-[10px] text-slate-400 font-medium">
-                  +{idea.actors.split(',').length - 3} more
+                <span className={`text-[11px] font-medium px-2 py-0.5 ${
+                  isSelected ? 'text-orange-500' : 'text-slate-400'
+                }`}>
+                  +{idea.actors.split(',').length - 3}
                 </span>
               )}
             </div>
           )}
 
-          {/* Select Button */}
-          <button
-            onClick={() => onToggleSelect(idea.id)}
-            className={`w-full py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
-              isSelected
-                ? 'bg-emerald-600 text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-indigo-100 hover:text-indigo-700'
-            }`}
-          >
+          {/* Footer - Softer */}
+          <div className={`pt-3 border-t flex items-center justify-between ${
+            isSelected ? 'border-orange-100' : 'border-slate-100'
+          }`}>
             {isSelected ? (
-              <>
-                <CheckSquare size={14} />
-                Selected
-              </>
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="flex items-center gap-1.5 text-orange-500"
+              >
+                <CheckCircle size={14} />
+                <span className="text-xs font-medium">Selected</span>
+              </motion.div>
             ) : (
-              <>
-                <Square size={14} />
-                Select
-              </>
+              <span className="text-xs text-slate-400">Click to select</span>
             )}
-          </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(idea.id);
+              }}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                isSelected
+                  ? 'bg-orange-500 text-white hover:bg-orange-600'
+                  : 'bg-slate-100 text-slate-600 hover:bg-orange-50 hover:text-orange-600'
+              }`}
+            >
+              <Eye size={12} />
+              Details
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>
   );
 }/**
- * Edit Idea Modal
+ * Elegant Edit Idea Modal - Balanced Color Palette with Tabs
+ * Uses createPortal to render at document.body level for proper centering
  */
 const EditIdeaModal = ({ idea, onSave, onClose }) => {
   const [editedIdea, setEditedIdea] = useState({ ...idea });
+  const [activeTab, setActiveTab] = useState('basic');
 
-  return (
+  const tabs = [
+    { id: 'basic', label: 'Basic Info', icon: FileText },
+    { id: 'rules', label: 'Business Rules', icon: BookOpen },
+    { id: 'actors', label: 'Actors & Roles', icon: Users },
+  ];
+
+  // Parse rules count
+  const rulesCount = (editedIdea.businessRules || '')
+    .split('\n')
+    .filter(r => r.trim()).length;
+
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
+        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 20 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden"
+        className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden"
       >
-        {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-indigo-50 to-purple-50">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Edit Project Concept</h2>
-            <p className="text-xs text-slate-500">Customize the AI-generated details</p>
+        {/* Modal Header - Balanced Gradient */}
+        <div className="relative overflow-hidden">
+          {/* Balanced Gradient Background */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#a51200] via-[#e75710] to-[#fb8239]" />
+          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_20%_50%,rgba(255,255,255,0.3)_0%,transparent_50%),radial-gradient(circle_at_80%_50%,rgba(255,255,255,0.2)_0%,transparent_50%)]" />
+          
+          <div className="relative px-6 py-5 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
+                <Edit3 size={22} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Edit Project Concept</h2>
+                <p className="text-[#fcd8b6] text-sm">Customize AI-generated details</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur flex items-center justify-center transition-colors"
+            >
+              <X size={20} className="text-white" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 flex items-center justify-center transition-colors shadow-sm"
-          >
-            <X size={16} />
-          </button>
+        </div>
+
+        {/* Tabs Navigation */}
+        <div className="px-6 pt-4 border-b border-slate-100">
+          <div className="flex gap-1">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-t-xl transition-all ${
+                    isActive
+                      ? 'bg-[#fcd8b6]/30 text-[#a51200] border-b-2 border-[#e75710]'
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <Icon size={16} />
+                  {tab.label}
+                  {tab.id === 'rules' && rulesCount > 0 && (
+                    <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded-full ${
+                      isActive ? 'bg-[#e75710] text-white' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                      {rulesCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-5 max-h-[60vh] overflow-y-auto custom-scrollbar">
-          {/* Project Name */}
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">
-              Project Name
-            </label>
-            <input
-              type="text"
-              value={editedIdea.projectName || ''}
-              onChange={(e) => setEditedIdea({ ...editedIdea, projectName: e.target.value })}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-400 transition-all"
-              placeholder="Enter project name..."
-            />
-          </div>
+        <div className="p-6 max-h-[55vh] overflow-y-auto">
+          <AnimatePresence mode="wait">
+            {/* Basic Info Tab */}
+            {activeTab === 'basic' && (
+              <motion.div
+                key="basic"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-5"
+              >
+                {/* Project Name */}
+                <div>
+                  <label className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+                    <Target size={12} />
+                    Project Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editedIdea.projectName || ''}
+                    onChange={(e) => setEditedIdea({ ...editedIdea, projectName: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-base font-semibold text-slate-800 focus:ring-4 focus:ring-[#fcd8b6] focus:border-[#fb8239] focus:bg-white transition-all outline-none"
+                    placeholder="Enter project name..."
+                  />
+                </div>
 
-          {/* Description */}
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">
-              Description
-            </label>
-            <textarea
-              value={editedIdea.description || ''}
-              onChange={(e) => setEditedIdea({ ...editedIdea, description: e.target.value })}
-              rows={4}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-400 transition-all resize-none"
-              placeholder="Describe the project concept..."
-            />
-          </div>
+                {/* Description */}
+                <div>
+                  <label className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+                    <FileText size={12} />
+                    Description
+                  </label>
+                  <textarea
+                    value={editedIdea.description || ''}
+                    onChange={(e) => setEditedIdea({ ...editedIdea, description: e.target.value })}
+                    rows={5}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 leading-relaxed focus:ring-4 focus:ring-[#fcd8b6] focus:border-[#fb8239] focus:bg-white transition-all resize-none outline-none"
+                    placeholder="Describe the project concept in detail..."
+                  />
+                  <p className="text-xs text-slate-400 mt-1.5">
+                    {(editedIdea.description || '').length} characters
+                  </p>
+                </div>
+              </motion.div>
+            )}
 
-          {/* Business Rules */}
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">
-              Business Rules
-            </label>
-            <textarea
-              value={editedIdea.businessRules || ''}
-              onChange={(e) => setEditedIdea({ ...editedIdea, businessRules: e.target.value })}
-              rows={5}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-mono focus:ring-4 focus:ring-indigo-100 focus:border-indigo-400 transition-all resize-none"
-              placeholder="- Rule 1&#10;- Rule 2&#10;- Rule 3"
-            />
-            <p className="text-xs text-slate-400 mt-1">Start each rule with a dash (-)</p>
-          </div>
+            {/* Business Rules Tab */}
+            {activeTab === 'rules' && (
+              <motion.div
+                key="rules"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-4"
+              >
+                {/* Help Banner - using balanced colors */}
+                <div className="flex items-start gap-3 p-4 bg-[#fcd8b6]/30 border border-[#fb8239]/40 rounded-xl">
+                  <AlertCircle size={18} className="text-[#a51200] mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-[#450b00]">Business Rules Format</p>
+                    <p className="text-xs text-[#a51200] mt-0.5">
+                      Start each rule with a dash (-) or bullet (•). Each rule should be on a new line.
+                    </p>
+                  </div>
+                </div>
 
-          {/* Actors */}
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">
-              Actors
-            </label>
-            <input
-              type="text"
-              value={editedIdea.actors || ''}
-              onChange={(e) => setEditedIdea({ ...editedIdea, actors: e.target.value })}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-400 transition-all"
-              placeholder="Admin, User, Manager (comma separated)"
-            />
-          </div>
+                {/* Rules Editor */}
+                <div>
+                  <label className="flex items-center justify-between mb-2">
+                    <span className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                      <BookOpen size={12} />
+                      Business Rules
+                    </span>
+                    <span className="text-xs text-slate-400">{rulesCount} rules defined</span>
+                  </label>
+                  <textarea
+                    value={editedIdea.businessRules || ''}
+                    onChange={(e) => setEditedIdea({ ...editedIdea, businessRules: e.target.value })}
+                    rows={10}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-mono leading-relaxed focus:ring-4 focus:ring-[#fcd8b6] focus:border-[#fb8239] focus:bg-white transition-all resize-none outline-none"
+                    placeholder="- Users must authenticate before accessing the dashboard&#10;- Orders cannot be canceled after shipment&#10;- Admin can override user permissions&#10;- Payment must be verified within 24 hours"
+                  />
+                </div>
+
+                {/* Quick Add Suggestions */}
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 mb-2">Quick Add Common Rules:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      '- Authentication required',
+                      '- Role-based access control',
+                      '- Data validation on input',
+                      '- Audit logging enabled',
+                    ].map((rule, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setEditedIdea({
+                          ...editedIdea,
+                          businessRules: editedIdea.businessRules
+                            ? `${editedIdea.businessRules}\n${rule}`
+                            : rule
+                        })}
+                        className="px-3 py-1.5 bg-slate-100 hover:bg-[#fcd8b6]/50 text-slate-600 hover:text-[#a51200] rounded-lg text-xs font-medium transition-colors"
+                      >
+                        + {rule.replace('- ', '')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Actors Tab */}
+            {activeTab === 'actors' && (
+              <motion.div
+                key="actors"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-5"
+              >
+                <div>
+                  <label className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+                    <Users size={12} />
+                    System Actors
+                  </label>
+                  <input
+                    type="text"
+                    value={editedIdea.actors || ''}
+                    onChange={(e) => setEditedIdea({ ...editedIdea, actors: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm text-slate-700 focus:ring-4 focus:ring-[#fcd8b6] focus:border-[#fb8239] focus:bg-white transition-all outline-none"
+                    placeholder="Admin, User, Manager, Guest (comma separated)"
+                  />
+                  <p className="text-xs text-slate-400 mt-1.5">
+                    Separate multiple actors with commas
+                  </p>
+                </div>
+
+                {/* Actor Preview */}
+                {editedIdea.actors && (
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 mb-2">Preview:</p>
+                    <div className="flex flex-wrap gap-2 p-4 bg-slate-50 rounded-xl">
+                      {editedIdea.actors.split(',').map((actor, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 shadow-sm"
+                        >
+                          <UserCircle size={14} className="text-[#e75710]" />
+                          {actor.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Common Actors */}
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 mb-2">Suggested Actors:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {['Admin', 'User', 'Manager', 'Guest', 'System', 'Moderator', 'Customer', 'Vendor'].map((actor) => (
+                      <button
+                        key={actor}
+                        onClick={() => {
+                          const current = editedIdea.actors || '';
+                          const actors = current.split(',').map(a => a.trim()).filter(a => a);
+                          if (!actors.includes(actor)) {
+                            actors.push(actor);
+                            setEditedIdea({ ...editedIdea, actors: actors.join(', ') });
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-slate-100 hover:bg-[#fcd8b6]/50 text-slate-600 hover:text-[#a51200] rounded-lg text-xs font-medium transition-colors"
+                      >
+                        + {actor}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50">
-          <button
-            onClick={onClose}
-            className="px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-xl transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => onSave(editedIdea)}
-            className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors shadow-lg shadow-indigo-200"
-          >
-            Save Changes
-          </button>
+        <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/80">
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <Sparkles size={12} />
+            AI-generated content can be customized
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-xl transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => onSave(editedIdea)}
+              className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#a51200] to-[#e75710] hover:from-[#450b00] hover:to-[#a51200] rounded-xl transition-all shadow-lg shadow-[#fcd8b6] hover:shadow-xl"
+            >
+              <Save size={16} />
+              Save Changes
+            </button>
+          </div>
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 };
 
 /**
- * Creating Projects Progress Modal
+ * Creating Projects Progress Modal - Uses createPortal for full screen
  */
 const CreatingProgressModal = ({ 
   selectedIdeas, 
@@ -287,33 +637,38 @@ const CreatingProgressModal = ({
   completedIds,
   onClose 
 }) => {
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
     >
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
+        className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden"
       >
-        <div className="p-6">
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
-              <Package size={28} className="text-white" />
+        {/* Header with gradient - using balanced palette */}
+        <div className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-[#a51200] via-[#e75710] to-[#fb8239]" />
+          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_20%_50%,rgba(255,255,255,0.3)_0%,transparent_50%),radial-gradient(circle_at_80%_50%,rgba(255,255,255,0.2)_0%,transparent_50%)]" />
+          <div className="relative px-6 py-5 text-center">
+            <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
+              <Package size={26} className="text-white" />
             </div>
-            <h2 className="text-xl font-bold text-slate-900">Creating Projects</h2>
-            <p className="text-sm text-slate-500 mt-1">
+            <h2 className="text-xl font-bold text-white">Creating Projects</h2>
+            <p className="text-[#fcd8b6] text-sm mt-1">
               {completedIds.length} of {selectedIdeas.length} completed
             </p>
           </div>
+        </div>
 
-          {/* Progress Bar */}
+        <div className="p-6">
+          {/* Progress Bar - using balanced gradient */}
           <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden mb-6">
             <motion.div
-              className="h-full bg-gradient-to-r from-emerald-500 to-teal-500"
+              className="h-full bg-gradient-to-r from-[#a51200] via-[#e75710] to-[#fb8239]"
               initial={{ width: 0 }}
               animate={{ 
                 width: `${(completedIds.length / selectedIdeas.length) * 100}%` 
@@ -335,7 +690,7 @@ const CreatingProgressModal = ({
                     isCompleted 
                       ? 'bg-emerald-50 border border-emerald-200' 
                       : isCurrent 
-                      ? 'bg-indigo-50 border border-indigo-200' 
+                      ? 'bg-[#fcd8b6]/30 border border-[#fb8239]/40' 
                       : 'bg-slate-50 border border-slate-200'
                   }`}
                 >
@@ -343,7 +698,7 @@ const CreatingProgressModal = ({
                     isCompleted 
                       ? 'bg-emerald-500 text-white' 
                       : isCurrent 
-                      ? 'bg-indigo-500 text-white' 
+                      ? 'bg-gradient-to-br from-[#a51200] to-[#e75710] text-white' 
                       : 'bg-slate-300 text-white'
                   }`}>
                     {isCompleted ? (
@@ -356,7 +711,7 @@ const CreatingProgressModal = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-medium truncate ${
-                      isCompleted ? 'text-emerald-700' : isCurrent ? 'text-indigo-700' : 'text-slate-600'
+                      isCompleted ? 'text-emerald-700' : isCurrent ? 'text-[#a51200]' : 'text-slate-600'
                     }`}>
                       {idea.projectName}
                     </p>
@@ -370,23 +725,13 @@ const CreatingProgressModal = ({
           </div>
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 };
 
 /**
- * Aurora Background Effect
- */
-const AuroraBackground = () => (
-  <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-    <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-purple-200/40 via-indigo-200/30 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-    <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-gradient-to-tl from-teal-200/40 via-cyan-200/30 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-gradient-to-r from-rose-200/20 via-orange-200/20 to-amber-200/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '12s', animationDelay: '4s' }} />
-  </div>
-);
-
-/**
- * Empty State Component
+ * Empty State Component - Balanced Color Palette
  */
 const EmptyState = ({ onGenerateMore }) => (
   <motion.div
@@ -394,16 +739,16 @@ const EmptyState = ({ onGenerateMore }) => (
     animate={{ opacity: 1, y: 0 }}
     className="text-center py-16"
   >
-    <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-      <Layers size={32} className="text-slate-400" />
+    <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#fcd8b6] to-[#fb8239]/30 flex items-center justify-center shadow-lg shadow-[#fcd8b6]/50">
+      <Layers size={32} className="text-[#a51200]" />
     </div>
-    <h3 className="text-lg font-bold text-slate-700 mb-2">No concepts remaining</h3>
+    <h3 className="text-lg font-bold text-[#450b00] mb-2">No concepts remaining</h3>
     <p className="text-sm text-slate-500 mb-6 max-w-sm mx-auto">
       You've reviewed all the AI-generated concepts. Generate more to continue exploring ideas.
     </p>
     <button
       onClick={onGenerateMore}
-      className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-indigo-200 transition-all"
+      className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#e75710] to-[#fb8239] text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-[#fcd8b6] hover:from-[#a51200] hover:to-[#e75710] transition-all"
     >
       <Plus size={18} />
       Generate More Concepts
@@ -413,6 +758,7 @@ const EmptyState = ({ onGenerateMore }) => (
 
 /**
  * Main Idea Selection Screen Component - Multi-select with delete and generate more
+ * Color Palette: #450b00, #a51200, #e75710, #fb8239, #fcd8b6
  */
 const IdeaSelectionScreen = ({
   ideas,
@@ -436,6 +782,7 @@ const IdeaSelectionScreen = ({
 }) => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingIdeaId, setEditingIdeaId] = useState(null);
+  const [confirmBackModalOpen, setConfirmBackModalOpen] = useState(false);
 
   // Calculate selected ideas for progress modal
   const selectedIdeas = useMemo(() => 
@@ -454,74 +801,99 @@ const IdeaSelectionScreen = ({
     setEditingIdeaId(null);
   };
 
+  // Handle back to config with confirmation
+  const handleBackToConfigClick = () => {
+    if (ideas.length > 0) {
+      setConfirmBackModalOpen(true);
+    } else {
+      onBackToConfig();
+    }
+  };
+
+  const handleConfirmBack = () => {
+    setConfirmBackModalOpen(false);
+    onBackToConfig();
+  };
+
   const editingIdea = ideas.find(i => i.id === editingIdeaId);
 
   return (
     <div className="relative min-h-[80vh] animate-in fade-in duration-700">
-      <AuroraBackground />
-
       {/* Header Section */}
-      <div className="mb-8">
+      <div className="mb-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="text-center"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-full border border-indigo-200/50 mb-4">
-            <Sparkles size={16} className="text-indigo-600" />
-            <span className="text-sm font-semibold text-indigo-700">AI Generated Concepts</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#fcd8b6]/40 to-[#fb8239]/10 rounded-full border border-[#fb8239]/30 mb-4">
+            <Sparkles size={16} className="text-[#e75710]" />
+            <span className="text-sm font-semibold text-[#a51200]">AI Generated Concepts</span>
+            <span className="px-2 py-0.5 bg-gradient-to-r from-[#a51200] to-[#e75710] text-white text-xs font-bold rounded-full">{ideas.length}</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">
-            {ideas.length} Concepts for <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">{topicDomain || 'Your Project'}</span>
+          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3">
+            Choose Your Project Concepts
           </h1>
-          <p className="text-slate-500 text-sm max-w-lg mx-auto">
+          <p className="text-slate-600 text-base max-w-2xl mx-auto mb-2">
+            <span className="font-semibold text-[#e75710]">{topicDomain || 'Your Project'}</span>
+          </p>
+          <p className="text-slate-500 text-sm max-w-xl mx-auto">
             Select multiple concepts to save, remove ones you don't like, or generate more ideas.
           </p>
         </motion.div>
 
         {/* Action Bar */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
           <button
-            onClick={onBackToConfig}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-600 bg-white/80 backdrop-blur border border-slate-200 rounded-xl hover:bg-slate-50 transition-all shadow-sm"
+            onClick={handleBackToConfigClick}
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white backdrop-blur border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
           >
             <ArrowLeft size={16} />
-            Back
+            Back to Config
           </button>
           
           {ideas.length > 0 && (
-            <button
-              onClick={selectedIdeaIds.length === ideas.length ? onDeselectAll : onSelectAll}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-600 bg-white/80 backdrop-blur border border-slate-200 rounded-xl hover:bg-slate-50 transition-all shadow-sm"
-            >
-              {selectedIdeaIds.length === ideas.length ? (
-                <>
-                  <Square size={16} />
-                  Deselect All
-                </>
-              ) : (
-                <>
-                  <CheckSquare size={16} />
-                  Select All ({ideas.length})
-                </>
-              )}
-            </button>
+            <>
+              {/* Selection Info */}
+              <div className="hidden sm:flex items-center gap-2 px-4 py-2.5 bg-[#fcd8b6]/30 border border-[#fb8239]/20 rounded-xl">
+                <span className="text-sm text-slate-600">
+                  <span className="font-bold text-[#e75710]">{selectedIdeaIds.length}</span> of {ideas.length} selected
+                </span>
+              </div>
+              
+              <button
+                onClick={selectedIdeaIds.length === ideas.length ? onDeselectAll : onSelectAll}
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white backdrop-blur border border-slate-200 rounded-xl hover:bg-[#fcd8b6]/30 hover:border-[#fb8239]/30 hover:text-[#a51200] transition-all shadow-sm"
+              >
+                {selectedIdeaIds.length === ideas.length ? (
+                  <>
+                    <Square size={16} />
+                    Deselect All
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare size={16} />
+                    Select All
+                  </>
+                )}
+              </button>
+            </>
           )}
           
           <button
             onClick={onGenerateMore}
             disabled={isGeneratingMore}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl hover:shadow-lg hover:shadow-indigo-200 transition-all shadow-sm disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#e75710] to-[#fb8239] rounded-xl hover:from-[#a51200] hover:to-[#e75710] hover:shadow-lg hover:shadow-[#fcd8b6] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md disabled:opacity-50 disabled:hover:scale-100"
           >
             {isGeneratingMore ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
-                Generating...
+                Generating more...
               </>
             ) : (
               <>
-                <Plus size={16} />
+                <RefreshCw size={16} />
                 Generate More
               </>
             )}
@@ -529,9 +901,9 @@ const IdeaSelectionScreen = ({
         </div>
       </div>
 
-      {/* Ideas Grid */}
+      {/* Ideas Grid - 2 columns for better readability */}
       {ideas.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-7xl mx-auto px-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto px-4">
           <AnimatePresence mode="popLayout">
             {ideas.map((idea, index) => (
               <IdeaCard
@@ -563,9 +935,9 @@ const IdeaSelectionScreen = ({
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40"
           >
-            <div className="flex items-center gap-4 px-6 py-4 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.25)] border border-slate-200">
+            <div className="flex items-center gap-4 px-6 py-4 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_20px_60px_-15px_rgba(165,18,0,0.2)] border border-[#fb8239]/30">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#a51200] to-[#e75710] flex items-center justify-center shadow-lg shadow-[#fcd8b6]">
                   <CheckCircle size={24} className="text-white" />
                 </div>
                 <div>
@@ -587,7 +959,7 @@ const IdeaSelectionScreen = ({
                 </button>
                 <button
                   onClick={onCreateSelectedProjects}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-emerald-200 transition-all"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#a51200] to-[#e75710] text-white rounded-xl text-sm font-bold hover:from-[#450b00] hover:to-[#a51200] hover:shadow-lg hover:shadow-[#fcd8b6] transition-all"
                 >
                   <Save size={16} />
                   Create {selectedIdeaIds.length > 1 ? 'Projects' : 'Project'}
@@ -620,6 +992,17 @@ const IdeaSelectionScreen = ({
             selectedIdeas={selectedIdeas}
             creatingIndex={creatingIndex}
             completedIds={completedProjectIds}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Confirm Back to Config Modal */}
+      <AnimatePresence>
+        {confirmBackModalOpen && (
+          <ConfirmBackModal
+            ideasCount={ideas.length}
+            onConfirm={handleConfirmBack}
+            onCancel={() => setConfirmBackModalOpen(false)}
           />
         )}
       </AnimatePresence>

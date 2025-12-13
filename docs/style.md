@@ -25,3 +25,11 @@ Visual Identity: Hero sections or key visuals using realistic 3D objects, depth 
 Color Strategy: Limited base palette, with 3D assets providing richer color and light accents.
 
 Implementation Notes: Integrate 3D renders or Lottie-style animations, parallax scroll, and depth via layered foreground/background elements.
+
+Color that go with orange:
+HEX CODES:
+#450b00
+#a51200
+#e75710
+#fb8239
+#fcd8b6

@@ -94,7 +94,6 @@ const CreateProjectAI = () => {
   // Project output state (Phase 3)
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
-  const [objectives, setObjectives] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [loadingSubjects, setLoadingSubjects] = useState(true);
 
@@ -148,7 +147,6 @@ const CreateProjectAI = () => {
       try {
         setLoadingSubjects(true);
         const result = await getAllSubject();
-        console.log("Loaded subjects:", result);
         const list = Array.isArray(result) ? result : (result.data || []);
         setSubjects(list);
       } catch (error) {
@@ -277,7 +275,6 @@ const CreateProjectAI = () => {
       
       // Check if job hasn't timed out
       if (elapsed < TIMEOUT_MS) {
-        console.log("Resuming poll for job:", savedJobId);
         toast.info('Resuming AI generation from previous session...');
         setJobId(savedJobId);
         setPhase(2);
@@ -286,7 +283,6 @@ const CreateProjectAI = () => {
         startPolling(savedJobId, startTime); // Pass original start time
       } else {
         // Job timed out while page was closed
-        console.log("Previous job timed out (exceeded 5m30s), clearing...");
         clearJobPersistence();
         toast.warning('Previous generation session expired. Please try again.');
       }
@@ -341,7 +337,9 @@ const CreateProjectAI = () => {
 
     } catch (error) {
       console.error('AI Generation failed:', error);
-      toast.error('An error occurred. Please try again.');
+      // Show exact error from API response if available
+      const errorMessage = error.response?.data?.error || 'An error occurred. Please try again.';
+      toast.error(errorMessage);
       setPhase(1);
       setAnalyzing(false);
       setIsGenerating(false); // Unlock button on error
@@ -380,12 +378,10 @@ const CreateProjectAI = () => {
 
       try {
         const response = await axios.get(`${AI_API_BASE_URL}/jobs/${id}`);
-        console.log("=== Polling Response ===", response.data);
         const { status, result } = response.data;
         pollErrorCount = 0; // Reset error count on success
 
         if (status === 'COMPLETED') {
-          console.log("Job COMPLETED, result:", result);
           clearInterval(interval);
           clearJobPersistence(); // Clear persisted job
           handleAnalysisComplete(result);
@@ -424,13 +420,10 @@ const CreateProjectAI = () => {
   const loadVersion = (versionData) => {
     setProjectName(versionData.projectName || '');
     setDescription(versionData.description || '');
-    setObjectives(versionData.objectives || []);
   };
 
   // NEW: Handle AI Ideas Generation Complete (Phase 2)
   const handleIdeasGenerated = (ideas, append = false) => {
-    console.log("AI Generated Ideas:", ideas);
-    
     // Ensure we have an array of ideas
     const ideasArray = Array.isArray(ideas) ? ideas : [ideas];
     
@@ -533,6 +526,12 @@ const CreateProjectAI = () => {
 
   // Generate more ideas (append to existing)
   const handleGenerateMore = async () => {
+    // Validate required fields before generating more
+    if (!selectedSubjectId) {
+      toast.error('Please select a subject before generating more ideas.');
+      return;
+    }
+    
     setIsGeneratingMore(true);
     let pollForMore = null;
     
@@ -592,7 +591,9 @@ const CreateProjectAI = () => {
     } catch (error) {
       console.error('Generate more failed:', error);
       if (pollForMore) clearInterval(pollForMore);
-      toast.error('Failed to generate more ideas. Please try again.');
+      // Show exact error from API response if available
+      const errorMessage = error.response?.data?.error || 'Failed to generate more ideas. Please try again.';
+      toast.error(errorMessage);
       setIsGeneratingMore(false);
     }
   };
@@ -630,7 +631,7 @@ const CreateProjectAI = () => {
       const idea = selectedIdeas[i];
       
       try {
-        // Build payload matching API schema: businessRules and actors (not objectives)
+        // Build payload matching API schema: businessRules and actors
         const payload = {
           project: {
             projectName: idea.projectName || 'Untitled Project',
@@ -642,7 +643,6 @@ const CreateProjectAI = () => {
           }
         };
 
-        console.log('Creating project with payload:', payload);
         await createProject(payload);
         setCompletedProjectIds(prev => [...prev, idea.id]);
         
@@ -678,11 +678,6 @@ const CreateProjectAI = () => {
 
   // ORIGINAL: Handle Analysis Complete (for legacy flow or single project generation)
   const handleAnalysisComplete = (result) => {
-    console.log("=== handleAnalysisComplete called ===");
-    console.log("Result received:", result);
-    console.log("Result type:", typeof result);
-    console.log("Is Array:", Array.isArray(result));
-    
     // Check if result is an array (new Phase 2 flow) or single object (legacy flow)
     if (Array.isArray(result)) {
       handleIdeasGenerated(result);
@@ -692,33 +687,11 @@ const CreateProjectAI = () => {
     // Legacy single project flow
     setProjectName(result.projectName || '');
     setDescription(result.description || '');
-    setObjectives(result.objectives || []);
-    console.log("AI Analysis Result:", result);
-    
-    const objectivesWithDates = (result.objectives || []).map(obj => {
-      const milestonesWithDates = (obj.milestones || []).map(ms => {
-        return {
-          ...ms,
-          startDate: ms.startDate || '',
-          endDate: ms.endDate || '',
-          matchedOutcomes: ms.matchedOutcomes || [],
-          warnings: ms.warnings || null
-        };
-      });
-      
-      return {
-        ...obj,
-        milestones: milestonesWithDates
-      };
-    });
 
     const newVersion = {
         id: Date.now(),
         timestamp: new Date(),
-        data: {
-            ...result,
-            objectives: objectivesWithDates
-        },
+        data: result,
         feedback: refineFeedback || 'Initial Analysis'
     };
 
@@ -802,40 +775,14 @@ const CreateProjectAI = () => {
       if (!selectedSubjectId || isNaN(subjectIdInt)) return toast.error("Invalid Subject ID.");
       if (!lecturerId || isNaN(lecturerIdInt)) return toast.error("Invalid Lecturer ID.");
 
-      for (const obj of objectives) {
-        for (const ms of obj.milestones) {
-          if (!ms.startDate || !ms.endDate) return toast.error(`Set dates for milestone: "${ms.title}"`);
-
-          const start = new Date(ms.startDate);
-          const end = new Date(ms.endDate);
-          const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-
-          if (diffDays < 2) return toast.error(`Milestone "${ms.title}" must be at least 2 days.`);
-        }
-      }
-
-      const formattedObjectives = objectives.map(obj => ({
-        description: obj.description,
-        priority: obj.priority,
-        objectiveMilestones: (obj.milestones || []).map(ms => ({
-          title: ms.title,
-          description: ms.description || ms.title,
-          startDate: ms.startDate && ms.startDate.includes('T') ? ms.startDate.split('T')[0] : ms.startDate,
-          endDate: ms.endDate && ms.endDate.includes('T') ? ms.endDate.split('T')[0] : ms.endDate
-        }))
-      }));
-
       const payload = {
         project: {
           projectName,
           description,
           lecturerId: lecturerIdInt,
-          subjectId: subjectIdInt,
-          objectives: formattedObjectives
+          subjectId: subjectIdInt
         }
       };
-      
-      console.log("Creating Project Payload:", JSON.stringify(payload, null, 2));
       
       await createProject(payload);
       toast.success('Project created successfully!');
@@ -880,7 +827,7 @@ const CreateProjectAI = () => {
               {/* Panel Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-purple-50">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#FF7A59] to-[#FF9F43] flex items-center justify-center shadow-lg shadow-[#FF7A59]/20">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#e75710] to-[#fb8239] flex items-center justify-center shadow-lg shadow-[#e75710]/20">
                     <BookOpen size={20} className="text-white" />
                   </div>
                   <div>
@@ -900,13 +847,13 @@ const CreateProjectAI = () => {
               <div className="flex-1 overflow-y-auto p-6">
                 {loadingSyllabus ? (
                   <div className="flex flex-col items-center justify-center h-64">
-                    <Loader2 size={32} className="text-[#FF7A59] animate-spin mb-3" />
+                    <Loader2 size={32} className="text-[#e75710] animate-spin mb-3" />
                     <p className="text-[#6B7280] text-sm font-medium">Loading syllabus...</p>
                   </div>
                 ) : !selectedSubjectId ? (
                   <div className="flex flex-col items-center justify-center h-64 text-center">
-                    <div className="w-16 h-16 rounded-2xl bg-[#FFF4F2] flex items-center justify-center mb-4 border border-[#FF7A59]/10">
-                      <BookOpen size={28} className="text-[#FF7A59]/60" />
+                    <div className="w-16 h-16 rounded-2xl bg-[#fcd8b6] flex items-center justify-center mb-4 border border-[#e75710]/10">
+                      <BookOpen size={28} className="text-[#e75710]/60" />
                     </div>
                     <h3 className="font-semibold text-[#1F2937] mb-1">No Subject Selected</h3>
                     <p className="text-sm text-[#6B7280]">Select a subject to view its syllabus</p>
@@ -922,9 +869,9 @@ const CreateProjectAI = () => {
                 ) : (
                   <div className="space-y-6">
                     {/* Subject Info */}
-                    <div className="bg-gradient-to-br from-[#FFF4F2]/80 to-white rounded-2xl p-5 border border-[#FF7A59]/10 shadow-sm">
+                    <div className="bg-gradient-to-br from-[#fcd8b6]/80 to-white rounded-2xl p-5 border border-[#e75710]/10 shadow-sm">
                       <h3 className="font-bold text-[#1F2937] text-lg mb-1">{selectedSubject?.subjectName}</h3>
-                      <p className="text-sm text-[#FF7A59] font-medium">{syllabus.syllabusName}</p>
+                      <p className="text-sm text-[#e75710] font-medium">{syllabus.syllabusName}</p>
                       {syllabus.description && (
                         <p className="text-sm text-[#6B7280] mt-3 leading-relaxed">{syllabus.description}</p>
                       )}
@@ -959,16 +906,16 @@ const CreateProjectAI = () => {
                     {/* Learning Outcomes */}
                     {syllabus.subjectOutcomes?.length > 0 && (
                       <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm">
-                        <div className="px-5 py-4 border-b border-slate-100/80 bg-gradient-to-r from-[#FFF4F2]/50 to-white/50">
+                        <div className="px-5 py-4 border-b border-slate-100/80 bg-gradient-to-r from-[#fcd8b6]/50 to-white/50">
                           <div className="flex items-center gap-2">
-                            <GraduationCap size={18} className="text-[#FF7A59]" />
+                            <GraduationCap size={18} className="text-[#e75710]" />
                             <h4 className="font-bold text-[#1F2937]">Learning Outcomes</h4>
                           </div>
                         </div>
                         <div className="p-4 space-y-3">
                           {syllabus.subjectOutcomes.map((outcome, index) => (
                             <div key={outcome.subjectOutcomeId || index} className="flex gap-3 p-3.5 bg-slate-50/80 rounded-xl border border-slate-100/50 hover:bg-slate-50 transition-colors">
-                              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#FF7A59] to-[#FF9F43] flex items-center justify-center flex-shrink-0 shadow-sm">
+                              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#e75710] to-[#fb8239] flex items-center justify-center flex-shrink-0 shadow-sm">
                                 <span className="text-white text-xs font-bold">{index + 1}</span>
                               </div>
                               <p className="text-sm text-[#1F2937] leading-relaxed">{outcome.outcomeDetail}</p>
@@ -1011,7 +958,7 @@ const CreateProjectAI = () => {
               </div>
 
               {/* Panel Footer */}
-              <div className="px-6 py-5 border-t border-slate-100/80 bg-gradient-to-r from-white/80 to-[#FFF4F2]/30 backdrop-blur-sm">
+              <div className="px-6 py-5 border-t border-slate-100/80 bg-gradient-to-r from-white/80 to-[#fcd8b6]/30 backdrop-blur-sm">
                 <button
                   onClick={() => setIsSyllabusPanelOpen(false)}
                   className="w-full py-3.5 bg-gradient-to-r from-[#1F2937] to-[#374151] text-white rounded-xl font-semibold hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
@@ -1037,7 +984,7 @@ const CreateProjectAI = () => {
           {/* Subject Selector - Hero Input Style */}
           <div className="mb-10">
             <label className="flex items-center gap-2.5 text-[11px] font-semibold text-[#6B7280] uppercase tracking-[0.1em] mb-4">
-              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#FF7A59] to-[#FF9F43] flex items-center justify-center">
+              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#e75710] to-[#fb8239] flex items-center justify-center">
                 <Layers size={12} className="text-white" />
               </div>
               Select Subject
@@ -1049,8 +996,8 @@ const CreateProjectAI = () => {
                   onChange={(e) => setSelectedSubjectId(e.target.value)}
                   className={`w-full appearance-none bg-white border-2 text-[#1F2937] font-medium rounded-2xl px-6 py-5 pr-14 text-[15px] shadow-[0_4px_24px_-4px_rgba(0,0,0,0.08)] outline-none transition-all duration-300 cursor-pointer hover:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.1)] ${
                     selectedSubjectId 
-                      ? 'border-[#FF7A59]/30 ring-4 ring-[#FF7A59]/5' 
-                      : 'border-slate-200/80 focus:border-[#FF7A59]/50 focus:ring-4 focus:ring-[#FF7A59]/10'
+                      ? 'border-[#e75710]/30 ring-4 ring-[#e75710]/5' 
+                      : 'border-slate-200/80 focus:border-[#e75710]/50 focus:ring-4 focus:ring-[#e75710]/10'
                   }`}
                 >
                   <option value="">-- Choose a Subject --</option>
@@ -1060,7 +1007,7 @@ const CreateProjectAI = () => {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className={`absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none transition-colors ${selectedSubjectId ? 'text-[#FF7A59]' : 'text-slate-400'}`} size={20} />
+                <ChevronDown className={`absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none transition-colors ${selectedSubjectId ? 'text-[#e75710]' : 'text-slate-400'}`} size={20} />
               </div>
               
               {/* View Syllabus Button */}
@@ -1070,7 +1017,7 @@ const CreateProjectAI = () => {
                 disabled={!selectedSubjectId}
                 className={`flex items-center gap-2.5 px-6 py-5 rounded-2xl font-semibold text-sm transition-all duration-300 whitespace-nowrap ${
                   selectedSubjectId
-                    ? 'bg-gradient-to-r from-[#FF7A59] to-[#FF9F43] text-white shadow-[0_8px_24px_-4px_rgba(255,122,89,0.4)] hover:shadow-[0_12px_32px_-4px_rgba(255,122,89,0.5)] hover:-translate-y-0.5'
+                    ? 'bg-gradient-to-r from-[#e75710] to-[#fb8239] text-white shadow-[0_8px_24px_-4px_rgba(231,87,16,0.4)] hover:shadow-[0_12px_32px_-4px_rgba(231,87,16,0.5)] hover:-translate-y-0.5'
                     : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                 }`}
                 whileHover={selectedSubjectId ? { scale: 1.02 } : {}}
@@ -1086,7 +1033,7 @@ const CreateProjectAI = () => {
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-4 flex items-center gap-2 text-xs text-[#6B7280] bg-[#FFF4F2] rounded-xl px-4 py-3"
+                className="mt-4 flex items-center gap-2 text-xs text-[#6B7280] bg-[#fcd8b6] rounded-xl px-4 py-3"
               >
                 <CheckCircle size={14} className="text-emerald-500" />
                 <span>
@@ -1094,7 +1041,7 @@ const CreateProjectAI = () => {
                 </span>
                 <button
                   onClick={() => setIsSyllabusPanelOpen(true)}
-                  className="ml-auto text-[#FF7A59] hover:text-[#e86a4a] font-semibold hover:underline"
+                  className="ml-auto text-[#e75710] hover:text-[#e86a4a] font-semibold hover:underline"
                 >
                   View details →
                 </button>
@@ -1115,15 +1062,15 @@ const CreateProjectAI = () => {
             {/* Topic Domain - Hero Input Style */}
             <div>
               <label className="flex items-center text-[11px] font-semibold text-[#6B7280] uppercase tracking-[0.1em] mb-3">
-                <Globe size={12} className="mr-2 text-[#FF7A59]" />
-                Topic Domain <span className="text-[#FF7A59] ml-1">*</span>
+                <Globe size={12} className="mr-2 text-[#e75710]" />
+                Topic Domain <span className="text-[#e75710] ml-1">*</span>
                 <InfoTooltip 
                   text="The core theme of your project. AI needs this to understand the business domain and generate relevant features, workflows, and technical requirements."
                   example="Jewelry Retail Business, E-commerce Platform, Healthcare System"
                 />
               </label>
               <div className="relative">
-                <Globe className={`absolute left-5 top-1/2 -translate-y-1/2 transition-colors ${topicDomain ? 'text-[#FF7A59]' : 'text-slate-400'}`} size={20} />
+                <Globe className={`absolute left-5 top-1/2 -translate-y-1/2 transition-colors ${topicDomain ? 'text-[#e75710]' : 'text-slate-400'}`} size={20} />
                 <select
                   value={topicDomain}
                   onChange={(e) => setTopicDomain(e.target.value)}
@@ -1131,8 +1078,8 @@ const CreateProjectAI = () => {
                     mandatoryValidation.topicDomain 
                       ? 'border-emerald-300 ring-4 ring-emerald-50' 
                       : topicDomain 
-                        ? 'border-[#FF7A59]/30 ring-4 ring-[#FF7A59]/5' 
-                        : 'border-slate-200 focus:border-[#FF7A59]/50 focus:ring-4 focus:ring-[#FF7A59]/10'
+                        ? 'border-[#e75710]/30 ring-4 ring-[#e75710]/5' 
+                        : 'border-slate-200 focus:border-[#e75710]/50 focus:ring-4 focus:ring-[#e75710]/10'
                   }`}
                 >
                   <option value="">-- Select Domain --</option>
@@ -1157,7 +1104,7 @@ const CreateProjectAI = () => {
                       value={customTopicDomain}
                       onChange={(e) => setCustomTopicDomain(e.target.value)}
                       placeholder="Enter your custom domain..."
-                      className="w-full bg-white border-2 border-[#FF7A59]/30 rounded-2xl px-5 py-4 text-[15px] font-medium text-[#1F2937] placeholder-slate-400 focus:ring-4 focus:ring-[#FF7A59]/10 focus:border-[#FF7A59]/50 transition-all outline-none"
+                      className="w-full bg-white border-2 border-[#e75710]/30 rounded-2xl px-5 py-4 text-[15px] font-medium text-[#1F2937] placeholder-slate-400 focus:ring-4 focus:ring-[#e75710]/10 focus:border-[#e75710]/50 transition-all outline-none"
                     />
                   </motion.div>
                 )}
@@ -1169,8 +1116,8 @@ const CreateProjectAI = () => {
               {/* Team Size Selector */}
               <div>
                 <label className="flex items-center text-[11px] font-semibold text-[#6B7280] uppercase tracking-[0.1em] mb-3">
-                  <Users size={12} className="mr-2 text-[#FF7A59]" />
-                  Team Size <span className="text-[#FF7A59] ml-1">*</span>
+                  <Users size={12} className="mr-2 text-[#e75710]" />
+                  Team Size <span className="text-[#e75710] ml-1">*</span>
                   <InfoTooltip 
                     text="Number of team members. AI uses this to calculate workload distribution, determine project scope, and suggest appropriate task breakdown for the semester."
                     example="5 members for a standard capstone project"
@@ -1182,17 +1129,17 @@ const CreateProjectAI = () => {
               {/* Duration Weeks */}
               <div>
                 <label className="flex items-center text-[11px] font-semibold text-[#6B7280] uppercase tracking-[0.1em] mb-3">
-                  <Clock size={12} className="mr-2 text-[#FF7A59]" />
-                  Duration (Weeks) <span className="text-[#FF7A59] ml-1">*</span>
+                  <Clock size={12} className="mr-2 text-[#e75710]" />
+                  Duration (Weeks) <span className="text-[#e75710] ml-1">*</span>
                   <InfoTooltip 
-                    text="Project duration in weeks. Combined with team size, AI calculates feasible workload and milestone distribution across the semester."
+                    text="Project duration in weeks. Combined with team size, AI calculates feasible workload distribution across the semester."
                     example="14 weeks for a full semester project"
                   />
                 </label>
-                <div className="flex items-center gap-3 bg-[#F9FAFB] rounded-2xl p-3 border-2 border-transparent transition-all duration-300 focus-within:border-[#FF7A59]/30 focus-within:ring-4 focus-within:ring-[#FF7A59]/5">
+                <div className="flex items-center gap-3 bg-[#F9FAFB] rounded-2xl p-3 border-2 border-transparent transition-all duration-300 focus-within:border-[#e75710]/30 focus-within:ring-4 focus-within:ring-[#e75710]/5">
                   <button
                     onClick={() => setDurationWeeks(Math.max(8, durationWeeks - 1))}
-                    className="w-11 h-11 rounded-xl bg-white shadow-sm border border-slate-200 flex items-center justify-center text-[#6B7280] hover:bg-[#FFF4F2] hover:border-[#FF7A59]/30 hover:text-[#FF7A59] transition-all duration-200"
+                    className="w-11 h-11 rounded-xl bg-white shadow-sm border border-slate-200 flex items-center justify-center text-[#6B7280] hover:bg-[#fcd8b6] hover:border-[#e75710]/30 hover:text-[#e75710] transition-all duration-200"
                   >
                     <Minus size={16} />
                   </button>
@@ -1206,7 +1153,7 @@ const CreateProjectAI = () => {
                   />
                   <button
                     onClick={() => setDurationWeeks(Math.min(15, durationWeeks + 1))}
-                    className="w-11 h-11 rounded-xl bg-white shadow-sm border border-slate-200 flex items-center justify-center text-[#6B7280] hover:bg-[#FFF4F2] hover:border-[#FF7A59]/30 hover:text-[#FF7A59] transition-all duration-200"
+                    className="w-11 h-11 rounded-xl bg-white shadow-sm border border-slate-200 flex items-center justify-center text-[#6B7280] hover:bg-[#fcd8b6] hover:border-[#e75710]/30 hover:text-[#e75710] transition-all duration-200"
                   >
                     <Plus size={16} />
                   </button>
@@ -1217,8 +1164,8 @@ const CreateProjectAI = () => {
             {/* Required Tech Stack */}
             <div>
               <label className="flex items-center text-[11px] font-semibold text-[#6B7280] uppercase tracking-[0.1em] mb-3">
-                <Settings2 size={12} className="mr-2 text-[#FF7A59]" />
-                Required Tech Stack <span className="text-[#FF7A59] ml-1">*</span>
+                <Settings2 size={12} className="mr-2 text-[#e75710]" />
+                Required Tech Stack <span className="text-[#e75710] ml-1">*</span>
                 <InfoTooltip 
                   text="Core technologies that must be used. AI needs this to suggest appropriate architecture (Microservices vs Monolith), integration patterns, and technical best practices."
                   example="ASP.NET Core, React, SQL Server"
@@ -1253,8 +1200,8 @@ const CreateProjectAI = () => {
             {/* Industry Context Textarea */}
             <div>
               <label className="flex items-center text-[11px] font-semibold text-[#6B7280] uppercase tracking-[0.1em] mb-3">
-                <Briefcase size={12} className="mr-2 text-[#FF7A59]" />
-                Industry Context & Scope <span className="text-[#FF7A59] ml-1">*</span>
+                <Briefcase size={12} className="mr-2 text-[#e75710]" />
+                Industry Context & Scope <span className="text-[#e75710] ml-1">*</span>
                 <InfoTooltip 
                   text="Specific business context and scope. Without this, AI generates generic features. With this, AI creates tailored business rules, workflows, and domain-specific functionality."
                   example="A premium diamond jewelry management system for PNJ Vietnam, serving both individual customers and corporate clients with GIA certification tracking"
@@ -1268,7 +1215,7 @@ const CreateProjectAI = () => {
                 className={`w-full bg-white border-2 rounded-2xl px-5 py-4 text-sm font-medium text-[#1F2937] placeholder-slate-400 outline-none transition-all duration-300 resize-none ${
                   mandatoryValidation.industryContext 
                     ? 'border-emerald-300 ring-4 ring-emerald-50' 
-                    : 'border-slate-200 focus:border-[#FF7A59]/50 focus:ring-4 focus:ring-[#FF7A59]/10'
+                    : 'border-slate-200 focus:border-[#e75710]/50 focus:ring-4 focus:ring-[#e75710]/10'
                 }`}
               />
             </div>
@@ -1276,8 +1223,8 @@ const CreateProjectAI = () => {
             {/* Complexity Slider */}
             <div>
               <label className="flex items-center text-[11px] font-semibold text-[#6B7280] uppercase tracking-[0.1em] mb-3">
-                <Activity size={12} className="mr-2 text-[#FF7A59]" />
-                Project Complexity <span className="text-[#FF7A59] ml-1">*</span>
+                <Activity size={12} className="mr-2 text-[#e75710]" />
+                Project Complexity <span className="text-[#e75710] ml-1">*</span>
                 <InfoTooltip 
                   text="Complexity level affects AI's suggestions. Basic = simple CRUD, Intermediate = standard business logic, Advanced = enterprise patterns with AI/ML integration possibilities."
                   example="Level 3 (Advanced) for a capstone with complex business rules"
@@ -1320,7 +1267,7 @@ const CreateProjectAI = () => {
                         value={url}
                         onChange={(e) => updateReferenceUrl(index, e.target.value)}
                         placeholder="https://example.com/reference..."
-                        className="w-full bg-[#F9FAFB] border-2 border-transparent rounded-xl pl-11 pr-4 py-3 text-sm font-medium text-[#1F2937] placeholder-slate-400 focus:ring-4 focus:ring-[#FF7A59]/10 focus:border-[#FF7A59]/30 focus:bg-white transition-all outline-none"
+                        className="w-full bg-[#F9FAFB] border-2 border-transparent rounded-xl pl-11 pr-4 py-3 text-sm font-medium text-[#1F2937] placeholder-slate-400 focus:ring-4 focus:ring-[#e75710]/10 focus:border-[#e75710]/30 focus:bg-white transition-all outline-none"
                       />
                     </div>
                     <button
@@ -1334,7 +1281,7 @@ const CreateProjectAI = () => {
                 {referenceUrls.length < 5 && (
                   <button
                     onClick={addReferenceUrl}
-                    className="flex items-center gap-2 text-xs font-semibold text-[#FF7A59] hover:text-[#e86a4a] transition-colors"
+                    className="flex items-center gap-2 text-xs font-semibold text-[#e75710] hover:text-[#e86a4a] transition-colors"
                   >
                     <Plus size={14} />
                     Add another URL
@@ -1361,7 +1308,7 @@ const CreateProjectAI = () => {
                     onClick={() => setProjectType(projectType === opt.value ? '' : opt.value)}
                     className={`flex items-center justify-center gap-2 px-5 py-4 rounded-2xl text-sm font-semibold transition-all duration-300 ${
                       projectType === opt.value
-                        ? 'bg-white text-[#FF7A59] border-2 border-[#FF7A59] shadow-[0_4px_16px_-4px_rgba(255,122,89,0.3)]'
+                        ? 'bg-white text-[#e75710] border-2 border-[#e75710] shadow-[0_4px_16px_-4px_rgba(231,87,16,0.3)]'
                         : 'bg-[#F3F4F6] text-[#6B7280] border-2 border-transparent hover:bg-white hover:border-slate-200'
                     }`}
                   >
@@ -1378,7 +1325,7 @@ const CreateProjectAI = () => {
                     value={customProjectType}
                     onChange={(e) => setCustomProjectType(e.target.value)}
                     placeholder="Enter your custom project type..."
-                    className="w-full px-5 py-4 bg-white/80 backdrop-blur-sm border-2 border-[#FF7A59]/20 rounded-2xl text-[#1F2937] placeholder-[#9CA3AF] focus:outline-none focus:border-[#FF7A59]/50 focus:ring-4 focus:ring-[#FF7A59]/10 transition-all duration-300"
+                    className="w-full px-5 py-4 bg-white/80 backdrop-blur-sm border-2 border-[#e75710]/20 rounded-2xl text-[#1F2937] placeholder-[#9CA3AF] focus:outline-none focus:border-[#e75710]/50 focus:ring-4 focus:ring-[#e75710]/10 transition-all duration-300"
                     maxLength={50}
                   />
                   <p className="text-[11px] text-[#6B7280] mt-2 pl-1">E.g., IoT System, Blockchain DApp, AR/VR Application, etc.</p>
@@ -1420,8 +1367,8 @@ const CreateProjectAI = () => {
           }`}>
             
             <div className="text-center mb-8">
-              <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-[#FFF4F2] via-white to-[#FFF4F2] flex items-center justify-center mb-5 shadow-lg border border-[#FF7A59]/10">
-                <BrainCircuit size={36} className="text-[#FF7A59]" strokeWidth={1.5} />
+              <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-[#fcd8b6] via-white to-[#fcd8b6] flex items-center justify-center mb-5 shadow-lg border border-[#e75710]/10">
+                <BrainCircuit size={36} className="text-[#e75710]" strokeWidth={1.5} />
               </div>
               <h3 className="text-xl font-bold text-[#1F2937] mb-2">AI Project Generator</h3>
               <p className="text-sm text-[#6B7280]">Configure parameters and generate</p>
@@ -1456,7 +1403,7 @@ const CreateProjectAI = () => {
                   <span className="text-[#6B7280]">Required Tech:</span>
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {requiredTechStack.slice(0, 3).map(tech => (
-                      <span key={tech} className="px-2.5 py-1 bg-gradient-to-r from-[#FF7A59] to-[#FF9F43] text-white rounded-full text-[11px] font-semibold">{tech}</span>
+                      <span key={tech} className="px-2.5 py-1 bg-gradient-to-r from-[#e75710] to-[#fb8239] text-white rounded-full text-[11px] font-semibold">{tech}</span>
                     ))}
                     {requiredTechStack.length > 3 && (
                       <span className="px-2.5 py-1 bg-slate-200 text-[#6B7280] rounded-full text-[11px] font-semibold">+{requiredTechStack.length - 3}</span>
@@ -1472,9 +1419,9 @@ const CreateProjectAI = () => {
               onClick={handleGenerateProject}
               className={`relative w-full py-5 rounded-2xl font-bold text-base transition-all duration-300 flex items-center justify-center gap-3 overflow-hidden ${
                 isGenerating
-                  ? 'bg-gradient-to-r from-[#FF7A59]/80 to-[#FF9F43]/80 text-white/90 cursor-wait'
+                  ? 'bg-gradient-to-r from-[#e75710]/80 to-[#fb8239]/80 text-white/90 cursor-wait'
                   : isConfigReady
-                    ? 'bg-gradient-to-r from-[#FF7A59] to-[#FF9F43] text-white shadow-[0_8px_32px_-4px_rgba(255,122,89,0.5)] hover:shadow-[0_12px_40px_-4px_rgba(255,122,89,0.6)] hover:-translate-y-0.5'
+                    ? 'bg-gradient-to-r from-[#e75710] to-[#fb8239] text-white shadow-[0_8px_32px_-4px_rgba(231,87,16,0.5)] hover:shadow-[0_12px_40px_-4px_rgba(231,87,16,0.6)] hover:-translate-y-0.5'
                     : 'bg-slate-100/80 backdrop-blur-sm text-slate-400 cursor-not-allowed border border-slate-200/50'
               }`}
               whileHover={isConfigReady && !isGenerating ? { y: -2 } : {}}
@@ -1506,7 +1453,7 @@ const CreateProjectAI = () => {
               <motion.p 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-center text-xs text-[#FF7A59] font-medium mt-2"
+                className="text-center text-xs text-[#e75710] font-medium mt-2"
               >
                 ⏳ AI is analyzing your requirements... This may take up to 2 minutes.
               </motion.p>
@@ -1569,13 +1516,13 @@ const CreateProjectAI = () => {
               <div className="pt-4 mt-4 border-t border-slate-200">
                 <div className="flex items-center justify-between text-xs mb-2">
                   <span className="text-[#6B7280] font-medium">Completion</span>
-                  <span className={`font-bold ${isConfigReady ? 'text-emerald-600' : 'text-[#FF7A59]'}`}>
+                  <span className={`font-bold ${isConfigReady ? 'text-emerald-600' : 'text-[#e75710]'}`}>
                     {Object.values(mandatoryValidation).filter(Boolean).length}/{Object.keys(mandatoryValidation).length}
                   </span>
                 </div>
                 <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
                   <motion.div 
-                    className={`h-full rounded-full ${isConfigReady ? 'bg-emerald-500' : 'bg-gradient-to-r from-[#FF7A59] to-[#FF9F43]'}`}
+                    className={`h-full rounded-full ${isConfigReady ? 'bg-emerald-500' : 'bg-gradient-to-r from-[#e75710] to-[#fb8239]'}`}
                     initial={{ width: 0 }}
                     animate={{ width: `${(Object.values(mandatoryValidation).filter(Boolean).length / Object.keys(mandatoryValidation).length) * 100}%` }}
                     transition={{ duration: 0.5, ease: "easeOut" }}
@@ -1715,181 +1662,6 @@ const CreateProjectAI = () => {
             </div>
           </div>
         </div>
-
-        {/* Objectives */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between px-2">
-            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <Cpu size={20} className="text-orangeFpt-500" /> Objectives & Milestones
-            </h3>
-            <button
-              onClick={() => setObjectives([...objectives, { description: 'New Objective', priority: 'Medium', milestones: [] }])}
-              className="text-xs font-bold text-orangeFpt-600 hover:text-orangeFpt-700 flex items-center gap-1 bg-orangeFpt-50 px-3 py-1.5 rounded-lg hover:bg-orangeFpt-100 transition-colors"
-            >
-              <Plus size={14} /> Add Objective
-            </button>
-          </div>
-
-          {objectives.map((obj, objIndex) => (
-            <div key={objIndex} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
-              {/* Objective Header */}
-              <div className="flex items-start gap-4 mb-6 pb-4 border-b border-slate-100">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold text-sm shrink-0">
-                  {objIndex + 1}
-                </div>
-                <div className="flex-1 grid gap-3">
-                  <input
-                    type="text"
-                    value={obj.description}
-                    onChange={(e) => {
-                      const newObjs = [...objectives];
-                      newObjs[objIndex].description = e.target.value;
-                      setObjectives(newObjs);
-                    }}
-                    className="w-full text-base font-semibold text-slate-800 bg-transparent border-none p-0 focus:ring-0 placeholder-slate-300"
-                    placeholder="Enter objective description..."
-                  />
-                  <div className="flex items-center gap-3">
-                    <PrioritySelector
-                      priority={obj.priority}
-                      onChange={(value) => {
-                        const newObjs = [...objectives];
-                        newObjs[objIndex].priority = value;
-                        setObjectives(newObjs);
-                      }}
-                    />
-                  </div>
-                </div>
-                <button
-                  onClick={() => setObjectives(objectives.filter((_, i) => i !== objIndex))}
-                  className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-
-              {/* Milestones */}
-              <div className="space-y-3 pl-4 md:pl-12">
-                {obj.milestones.map((ms, msIndex) => {
-                  const startDate = ms.startDate?.split('T')[0] || '';
-                  const endDate = ms.endDate?.split('T')[0] || '';
-
-                  // Date Validation Visuals
-                  let dateError = null;
-                  if (startDate && endDate) {
-                    if (new Date(endDate) <= new Date(startDate)) dateError = "End date must be after start date";
-                  }
-
-                  return (
-                    <div key={msIndex} className={`group flex flex-col gap-3 p-4 rounded-2xl border transition-all ${dateError ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-100 hover:border-orangeFpt-200 hover:bg-white'}`}>
-                      <div className="flex items-start gap-4">
-                        <div className="flex-1 space-y-2">
-                          <input
-                            type="text"
-                            value={ms.title}
-                            onChange={(e) => {
-                              const newObjs = [...objectives];
-                              newObjs[objIndex].milestones[msIndex].title = e.target.value;
-                              setObjectives(newObjs);
-                            }}
-                            className="w-full bg-transparent font-semibold text-sm text-slate-700 focus:outline-none placeholder-slate-400"
-                            placeholder="Milestone Title"
-                          />
-                          <input
-                            type="text"
-                            value={ms.description || ''}
-                            onChange={(e) => {
-                              const newObjs = [...objectives];
-                              newObjs[objIndex].milestones[msIndex].description = e.target.value;
-                              setObjectives(newObjs);
-                            }}
-                            className="w-full bg-transparent text-xs text-slate-500 focus:outline-none placeholder-slate-300"
-                            placeholder="Optional description..."
-                          />
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <div className="flex flex-col">
-                            <label className="text-[10px] font-bold uppercase text-slate-400 mb-0.5 ml-1">Start</label>
-                            <input
-                              type="date"
-                              value={startDate}
-                              onChange={(e) => {
-                                const newObjs = [...objectives];
-                                newObjs[objIndex].milestones[msIndex].startDate = e.target.value;
-                                setObjectives(newObjs);
-                              }}
-                              className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-600 focus:border-orangeFpt-400 outline-none"
-                            />
-                          </div>
-                          <div className="h-px w-2 bg-slate-300 mt-4"></div>
-                          <div className="flex flex-col">
-                            <label className="text-[10px] font-bold uppercase text-slate-400 mb-0.5 ml-1">End</label>
-                            <input
-                              type="date"
-                              value={endDate}
-                              onChange={(e) => {
-                                const newObjs = [...objectives];
-                                newObjs[objIndex].milestones[msIndex].endDate = e.target.value;
-                                setObjectives(newObjs);
-                              }}
-                              className={`bg-white border rounded-lg px-2 py-1 text-xs text-slate-600 focus:outline-none ${dateError ? 'border-red-300 text-red-600' : 'border-slate-200 focus:border-orangeFpt-400'}`}
-                            />
-                          </div>
-                          <button
-                            onClick={() => {
-                              const newObjs = [...objectives];
-                              newObjs[objIndex].milestones = newObjs[objIndex].milestones.filter((_, i) => i !== msIndex);
-                              setObjectives(newObjs);
-                            }}
-                            className="ml-2 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors mt-4"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                      {dateError && <p className="text-xs text-red-500 font-medium flex items-center gap-1"><AlertCircle size={12} /> {dateError}</p>}
-
-                      {/* Display AI Warnings for specific milestone */}
-                      {ms.warnings && ms.warnings !== "None" && (
-                        <div className="mt-2 flex items-center gap-2 text-xs text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">
-                          <AlertCircle size={12} />
-                          <span className="font-medium">Compliance Alert: {ms.warnings}</span>
-                        </div>
-                      )}
-                      
-                      {/* Display Matched Outcomes */}
-                      {ms.matchedOutcomes && ms.matchedOutcomes.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {ms.matchedOutcomes.map((outcome, i) => (
-                            <span key={i} className="text-[10px] px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full border border-indigo-100">
-                              {outcome}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                <button
-                  onClick={() => {
-                    const newObjs = [...objectives];
-                    newObjs[objIndex].milestones.push({
-                      title: 'New Milestone',
-                      startDate: new Date().toISOString().split('T')[0],
-                      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-                    });
-                    setObjectives(newObjs);
-                  }}
-                  className="w-full py-2 border border-dashed border-slate-200 rounded-xl text-xs font-semibold text-slate-400 hover:text-orangeFpt-500 hover:border-orangeFpt-200 hover:bg-orangeFpt-50 transition-all flex items-center justify-center gap-1"
-                >
-                  <Plus size={14} /> Add Milestone
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
 
       <AnimatePresence>
@@ -1903,7 +1675,7 @@ const CreateProjectAI = () => {
                   >
                       <h3 className="text-xl font-semibold text-slate-900 mb-2">Refine Project Structure</h3>
                       <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-                          Provide specific instructions to the AI Architect to adjust the timeline, objectives, or scope.
+                          Provide specific instructions to the AI Architect to adjust the project details.
                       </p>
                       
                       <textarea
@@ -1950,7 +1722,7 @@ const CreateProjectAI = () => {
       <div className="relative min-h-screen">
         {/* Soft Gradient Background - Only for Phase 1 */}
         {phase === 1 && (
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#FFF4F2]/60 via-white/50 to-[#FFF9F8]/40 pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#fcd8b6]/60 via-white/50 to-[#FFF9F8]/40 pointer-events-none" />
         )}
         
         <div className="relative z-10 space-y-8">
@@ -1961,19 +1733,19 @@ const CreateProjectAI = () => {
               <LecturerBreadcrumbs items={breadcrumbItems} />
               <div className="mt-6 relative overflow-hidden rounded-[28px] bg-white/80 backdrop-blur-[20px] border border-white/40 shadow-[0_10px_40px_rgba(0,0,0,0.05)] p-8 xl:p-10">
                 {/* Soft Orange Blobs */}
-                <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-[#FF7A59]/10 blur-3xl"></div>
-                <div className="absolute -left-10 -bottom-10 h-56 w-56 rounded-full bg-[#FF9F43]/10 blur-3xl"></div>
-                <div className="absolute right-1/3 top-1/2 h-40 w-40 rounded-full bg-[#FF7A59]/5 blur-2xl"></div>
+                <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-[#e75710]/10 blur-3xl"></div>
+                <div className="absolute -left-10 -bottom-10 h-56 w-56 rounded-full bg-[#fb8239]/10 blur-3xl"></div>
+                <div className="absolute right-1/3 top-1/2 h-40 w-40 rounded-full bg-[#e75710]/5 blur-2xl"></div>
                 
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-4">
-                    <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-[#FF7A59] to-[#FF9F43] text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-[#FF7A59]/20">
+                    <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-[#e75710] to-[#fb8239] text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-[#e75710]/20">
                       <Sparkles size={12} /> AI Powered
                     </span>
                   </div>
                   <h1 className="text-3xl xl:text-4xl font-bold text-[#1F2937] mb-3">AI Project Architect</h1>
                   <p className="text-[#6B7280] max-w-2xl leading-relaxed text-base">
-                    Configure your project parameters, upload a syllabus or brief, and let our AI structure a complete project plan with objectives and timelines in seconds.
+                    Configure your project parameters, upload a syllabus or brief, and let our AI generate complete project concepts with business rules in seconds.
                   </p>
                 </div>
               </div>

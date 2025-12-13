@@ -61,9 +61,12 @@ const CreateProject = () => {
       projectName: "",
       subjectId: "",
       description: "",
-      businessRules: "",
       actors: "",
    });
+
+   // Business rules as array for controlled input
+   const [businessRulesArray, setBusinessRulesArray] = useState([]);
+   const [newRuleInput, setNewRuleInput] = useState("");
 
    const [formErrors, setFormErrors] = useState({});
    const [submissionError, setSubmissionError] = useState("");
@@ -97,15 +100,13 @@ const CreateProject = () => {
       return () => { isMounted = false; };
    }, []);
 
-   // Count business rules (lines starting with - or numbers)
-   const businessRulesCount = useMemo(() => {
-      if (!formState.businessRules.trim()) return 0;
-      const lines = formState.businessRules.split('\n').filter(line => {
-         const trimmed = line.trim();
-         return trimmed.startsWith('-') || /^\d+\./.test(trimmed);
-      });
-      return lines.length;
-   }, [formState.businessRules]);
+   // Count business rules from array
+   const businessRulesCount = businessRulesArray.length;
+
+   // Format business rules for API submission (with dashes)
+   const formattedBusinessRules = useMemo(() => {
+      return businessRulesArray.map(rule => `- ${rule}`).join('\n');
+   }, [businessRulesArray]);
 
    // Count actors (comma separated)
    const actorsCount = useMemo(() => {
@@ -118,7 +119,7 @@ const CreateProject = () => {
       const projectNameReady = Boolean(formState.projectName.trim());
       const subjectReady = Boolean(formState.subjectId);
       const descriptionReady = Boolean(formState.description.trim());
-      const businessRulesReady = Boolean(formState.businessRules.trim());
+      const businessRulesReady = businessRulesArray.length > 0;
       const actorsReady = Boolean(formState.actors.trim());
 
       return [
@@ -128,7 +129,7 @@ const CreateProject = () => {
          { id: "businessRules", label: "Business rules defined", complete: businessRulesReady },
          { id: "actors", label: "Actors specified", complete: actorsReady },
       ];
-   }, [formState]);
+   }, [formState, businessRulesArray]);
 
    const readinessProgress = useMemo(() => {
       const total = readinessChecklist.length;
@@ -177,6 +178,27 @@ const CreateProject = () => {
       handleBaseFieldChange('actors', newActors);
    };
 
+   // Business Rules Handlers
+   const handleAddBusinessRule = (rule) => {
+      const trimmedRule = rule.trim();
+      if (trimmedRule && !businessRulesArray.includes(trimmedRule)) {
+         setBusinessRulesArray(prev => [...prev, trimmedRule]);
+         setNewRuleInput("");
+         // Clear error if exists
+         if (formErrors.businessRules) {
+            setFormErrors(prev => {
+               const next = { ...prev };
+               delete next.businessRules;
+               return next;
+            });
+         }
+      }
+   };
+
+   const handleRemoveBusinessRule = (ruleToRemove) => {
+      setBusinessRulesArray(prev => prev.filter(rule => rule !== ruleToRemove));
+   };
+
    // Get current actors as array
    const currentActorsArray = useMemo(() => {
       return formState.actors.split(',').map(a => a.trim()).filter(Boolean);
@@ -195,7 +217,7 @@ const CreateProject = () => {
       if (!formState.projectName.trim()) errors.projectName = "Project name is required.";
       if (!formState.description.trim()) errors.description = "Project description is required.";
       if (!formState.subjectId) errors.subjectId = "Subject is required.";
-      if (!formState.businessRules.trim()) errors.businessRules = "Business rules are required.";
+      if (businessRulesArray.length === 0) errors.businessRules = "At least one business rule is required.";
       if (!formState.actors.trim()) errors.actors = "At least one actor is required.";
       return errors;
    };
@@ -223,7 +245,7 @@ const CreateProject = () => {
             description: formState.description.trim(),
             lecturerId: Number(lecturerId),
             subjectId: Number(formState.subjectId),
-            businessRules: formState.businessRules.trim(),
+            businessRules: formattedBusinessRules,
             actors: formState.actors.trim(),
          }
       };
@@ -251,7 +273,7 @@ const CreateProject = () => {
             <LecturerBreadcrumbs items={breadcrumbItems} />
 
             <div className="mt-6 relative overflow-hidden rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50">
-               <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-orangeFpt-100/50 blur-3xl"></div>
+               <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#fcd8b6]/50 blur-3xl"></div>
 
                <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-4 max-w-2xl">
@@ -266,11 +288,11 @@ const CreateProject = () => {
                   </div>
 
                   <div className="flex gap-4">
-                     <div className="flex flex-col items-end rounded-2xl bg-slate-50 border border-slate-100 p-4 min-w-[140px]">
+                     <div className="flex flex-col items-end rounded-2xl bg-[#fcd8b6]/30 border border-[#e75710]/10 p-4 min-w-[140px]">
                         <span className="text-xs font-bold uppercase text-slate-400">Rules</span>
-                        <span className="text-3xl font-bold text-orangeFpt-600">{businessRulesCount}</span>
+                        <span className="text-3xl font-bold text-[#e75710]">{businessRulesCount}</span>
                      </div>
-                     <div className="flex flex-col items-end rounded-2xl bg-slate-50 border border-slate-100 p-4 min-w-[140px]">
+                     <div className="flex flex-col items-end rounded-2xl bg-blue-50 border border-blue-100 p-4 min-w-[140px]">
                         <span className="text-xs font-bold uppercase text-slate-400">Actors</span>
                         <span className="text-3xl font-bold text-blue-600">{actorsCount}</span>
                      </div>
@@ -293,11 +315,11 @@ const CreateProject = () => {
                      <div className="space-y-6">
                         {/* Project Name */}
                         <div className="space-y-2">
-                           <label className="text-sm font-semibold text-slate-700">Project Name <span className="text-red-500">*</span></label>
+                           <label className="text-sm font-semibold text-slate-700">Project Name <span className="text-[#e75710]">*</span></label>
                            <input
                               type="text"
-                              className={`w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-orangeFpt-500/10 ${
-                                 formErrors.projectName ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-orangeFpt-500'
+                              className={`w-full rounded-xl border-2 px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-[#e75710]/10 transition-all ${
+                                 formErrors.projectName ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-[#e75710]/50'
                               }`}
                               placeholder="e.g. E-Commerce Microservices Architecture"
                               value={formState.projectName}
@@ -309,13 +331,13 @@ const CreateProject = () => {
 
                         {/* Subject Select */}
                         <div className="space-y-2">
-                           <label className="text-sm font-semibold text-slate-700">Subject <span className="text-red-500">*</span></label>
+                           <label className="text-sm font-semibold text-slate-700">Subject <span className="text-[#e75710]">*</span></label>
                            {isLoadingSubjects ? (
                               <div className="h-11 w-full animate-pulse rounded-xl bg-slate-100"></div>
                            ) : (
                               <select
-                                 className={`w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-orangeFpt-500/10 ${
-                                    formErrors.subjectId ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-orangeFpt-500'
+                                 className={`w-full rounded-xl border-2 px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-[#e75710]/10 transition-all ${
+                                    formErrors.subjectId ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-[#e75710]/50'
                                  }`}
                                  value={formState.subjectId}
                                  onChange={(e) => handleBaseFieldChange("subjectId", e.target.value)}
@@ -332,11 +354,11 @@ const CreateProject = () => {
 
                         {/* Description */}
                         <div className="space-y-2">
-                           <label className="text-sm font-semibold text-slate-700">Description <span className="text-red-500">*</span></label>
+                           <label className="text-sm font-semibold text-slate-700">Description <span className="text-[#e75710]">*</span></label>
                            <textarea
                               rows={5}
-                              className={`w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-orangeFpt-500/10 ${
-                                 formErrors.description ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-orangeFpt-500'
+                              className={`w-full rounded-xl border-2 px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-[#e75710]/10 transition-all ${
+                                 formErrors.description ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-[#e75710]/50'
                               }`}
                               placeholder="Describe the project goals, scope, and expected outcomes..."
                               value={formState.description}
@@ -350,7 +372,7 @@ const CreateProject = () => {
                         <div className="space-y-2">
                            <label className="text-sm font-semibold text-slate-700">Supporting Documents (Optional)</label>
                            <div
-                              className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 transition-colors ${isDragOver ? 'border-orangeFpt-500 bg-orangeFpt-50' : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50'
+                              className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 transition-colors ${isDragOver ? 'border-[#e75710] bg-[#fcd8b6]/30' : 'border-slate-200 bg-slate-50/50 hover:bg-[#fcd8b6]/20'
                                  }`}
                               onDragEnter={(e) => { e.preventDefault(); setIsDragOver(true); }}
                               onDragLeave={(e) => { e.preventDefault(); setIsDragOver(false); }}
@@ -362,8 +384,8 @@ const CreateProject = () => {
                               }}
                            >
                               {uploadedFile ? (
-                                 <div className="flex items-center gap-4 w-full bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orangeFpt-100 text-orangeFpt-600">
+                                 <div className="flex items-center gap-4 w-full bg-white p-3 rounded-xl border border-[#e75710]/20 shadow-sm">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#fcd8b6] text-[#e75710]">
                                        <FileText size={20} />
                                     </div>
                                     <div className="flex-1 min-w-0">
@@ -380,7 +402,7 @@ const CreateProject = () => {
                                  </div>
                               ) : (
                                  <div className="text-center">
-                                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-orangeFpt-100 text-orangeFpt-500 mb-3">
+                                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#fcd8b6] text-[#e75710] mb-3">
                                        <UploadCloud size={24} />
                                     </div>
                                     <p className="text-sm font-medium text-slate-700">Click to upload or drag and drop</p>
@@ -405,31 +427,78 @@ const CreateProject = () => {
                      {/* Business Rules */}
                      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <div className="flex items-center gap-2 mb-4">
-                           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
-                              <ScrollText size={18} />
+                           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#e75710] to-[#fb8239] shadow-sm">
+                              <ScrollText size={18} className="text-white" />
                            </div>
                            <h3 className="font-bold text-slate-800">Business Rules</h3>
-                           <InfoTooltip text="Define the constraints and logic that govern your project. Use bullet points or numbered lists for clarity." />
+                           <InfoTooltip text="Define the constraints and logic that govern your project. Add each rule separately for proper formatting." />
                         </div>
 
-                        <div className="space-y-2">
+                        {/* Add Rule Input */}
+                        <div className="space-y-3">
                            <label className="text-xs font-bold uppercase text-slate-500">
-                              Rules & Constraints <span className="text-red-500">*</span>
+                              Add Rule <span className="text-[#e75710]">*</span>
                            </label>
-                           <textarea
-                              rows={6}
-                              className={`w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-orangeFpt-500/10 ${
-                                 formErrors.businessRules ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-orangeFpt-500'
-                              }`}
-                              placeholder="Enter business rules (one per line):&#10;- Users must register before making purchases&#10;- Orders over $100 get free shipping&#10;- Passwords must be at least 8 characters"
-                              value={formState.businessRules}
-                              onChange={(e) => handleBaseFieldChange("businessRules", e.target.value)}
-                              onBlur={(e) => handleFieldBlur("businessRules", e.target.value)}
-                           />
+                           <div className="flex gap-2">
+                              <div className="flex-1 relative">
+                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#e75710] font-medium">-</span>
+                                 <input
+                                    type="text"
+                                    className="w-full rounded-xl border-2 border-slate-200 pl-8 pr-4 py-3 text-sm focus:outline-none focus:border-[#e75710]/50 focus:ring-4 focus:ring-[#e75710]/10 transition-all"
+                                    placeholder="Enter a business rule..."
+                                    value={newRuleInput}
+                                    onChange={(e) => setNewRuleInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                       if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          handleAddBusinessRule(newRuleInput);
+                                       }
+                                    }}
+                                 />
+                              </div>
+                              <button
+                                 type="button"
+                                 onClick={() => handleAddBusinessRule(newRuleInput)}
+                                 disabled={!newRuleInput.trim()}
+                                 className="px-5 py-3 rounded-xl bg-gradient-to-r from-[#e75710] to-[#fb8239] text-white text-sm font-semibold hover:shadow-lg hover:shadow-[rgba(231,87,16,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
+                              >
+                                 <Plus size={18} />
+                              </button>
+                           </div>
                            {formErrors.businessRules && <p className="text-xs text-red-500">{formErrors.businessRules}</p>}
-                           <p className="text-xs text-slate-400">
-                              Tip: Use "- rule" or "1. rule" format for better readability. {businessRulesCount} rule(s) detected.
-                           </p>
+                        </div>
+
+                        {/* Rules List */}
+                        <div className="mt-4 space-y-2">
+                           <label className="text-xs font-bold uppercase text-slate-500">
+                              Added Rules ({businessRulesCount})
+                           </label>
+                           {businessRulesArray.length > 0 ? (
+                              <div className="space-y-2 p-3 rounded-xl bg-[#fcd8b6]/20 border border-[#e75710]/10">
+                                 {businessRulesArray.map((rule, index) => (
+                                    <div
+                                       key={index}
+                                       className="flex items-start gap-3 p-3 bg-white rounded-lg border border-slate-100 shadow-sm group"
+                                    >
+                                       <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#fcd8b6] text-[#e75710] text-xs font-bold flex items-center justify-center">
+                                          {index + 1}
+                                       </span>
+                                       <p className="flex-1 text-sm text-slate-700 leading-relaxed">{rule}</p>
+                                       <button
+                                          type="button"
+                                          onClick={() => handleRemoveBusinessRule(rule)}
+                                          className="flex-shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                                       >
+                                          <X size={16} />
+                                       </button>
+                                    </div>
+                                 ))}
+                              </div>
+                           ) : (
+                              <div className="flex items-center justify-center p-6 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-sm text-slate-400">
+                                 No rules added yet. Enter a rule above and click Add.
+                              </div>
+                           )}
                         </div>
                      </div>
 
@@ -452,7 +521,7 @@ const CreateProject = () => {
                                     key={actor}
                                     type="button"
                                     onClick={() => handleAddActor(actor)}
-                                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-full border border-slate-200 bg-slate-50 text-slate-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors"
+                                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-full border border-slate-200 bg-slate-50 text-slate-600 hover:bg-[#fcd8b6] hover:border-[#e75710]/30 hover:text-[#e75710] transition-colors"
                                  >
                                     <Plus size={12} />
                                     {actor}
@@ -464,7 +533,7 @@ const CreateProject = () => {
                         {/* Selected Actors */}
                         <div className="space-y-2">
                            <label className="text-xs font-bold uppercase text-slate-500">
-                              Selected Actors <span className="text-red-500">*</span>
+                              Selected Actors <span className="text-[#e75710]">*</span>
                            </label>
                            
                            {currentActorsArray.length > 0 ? (
@@ -500,7 +569,7 @@ const CreateProject = () => {
                               <input
                                  type="text"
                                  id="customActorInput"
-                                 className="flex-1 rounded-xl border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:border-orangeFpt-500"
+                                 className="flex-1 rounded-xl border-2 border-slate-200 px-4 py-2 text-sm focus:outline-none focus:border-[#e75710]/50 focus:ring-4 focus:ring-[#e75710]/10 transition-all"
                                  placeholder="Type actor name and press Enter..."
                                  onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
@@ -523,7 +592,7 @@ const CreateProject = () => {
                                        input.value = '';
                                     }
                                  }}
-                                 className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 text-sm font-medium hover:bg-slate-200 transition-colors"
+                                 className="px-4 py-2 rounded-xl bg-[#fcd8b6] text-[#e75710] text-sm font-medium hover:bg-[#fb8239]/20 transition-colors"
                               >
                                  Add
                               </button>
@@ -543,11 +612,11 @@ const CreateProject = () => {
                         <div className="mb-6">
                            <div className="flex items-end justify-between mb-2">
                               <span className="text-sm font-semibold text-slate-600">Completion</span>
-                              <span className="text-lg font-bold text-orangeFpt-600">{readinessProgress}%</span>
+                              <span className="text-lg font-bold text-[#e75710]">{readinessProgress}%</span>
                            </div>
-                           <div className="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                           <div className="h-2.5 w-full rounded-full bg-[#fcd8b6]/50 overflow-hidden">
                               <div
-                                 className="h-full bg-orangeFpt-500 transition-all duration-500 ease-out rounded-full"
+                                 className="h-full bg-gradient-to-r from-[#e75710] to-[#fb8239] transition-all duration-500 ease-out rounded-full"
                                  style={{ width: `${readinessProgress}%` }}
                               />
                            </div>
@@ -579,7 +648,7 @@ const CreateProject = () => {
                            <button
                               onClick={handleSubmit}
                               disabled={!hasMinimumData || isSubmitting}
-                              className="w-full rounded-xl bg-orangeFpt-500 py-3 text-sm font-bold text-white shadow-lg shadow-orangeFpt-200 transition-all hover:bg-orangeFpt-600 hover:shadow-orangeFpt-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="w-full rounded-xl bg-gradient-to-r from-[#e75710] to-[#fb8239] py-3.5 text-sm font-bold text-white shadow-lg shadow-[rgba(231,87,16,0.3)] transition-all hover:shadow-[rgba(231,87,16,0.4)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                            >
                               {isSubmitting ? "Creating..." : "Create Project"}
                            </button>

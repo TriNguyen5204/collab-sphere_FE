@@ -564,27 +564,6 @@ const ProjectLibrary = () => {
 
                {/* RIGHT: SIDEBAR */}
                <aside className="xl:col-span-4 2xl:col-span-3 space-y-6">
-                  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                     <h3 className="flex items-center gap-2 text-lg font-bold text-slate-800 mb-4">
-                        <CheckCircleIcon className="h-5 w-5 text-orangeFpt-500" />
-                        Quick Checklist
-                     </h3>
-                     <ul className="space-y-4">
-                        <li className="flex gap-3 text-sm text-slate-600">
-                           <div className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-orangeFpt-500" />
-                           <span>Ensure projects have at least <strong>1 objective</strong> before assigning.</span>
-                        </li>
-                        <li className="flex gap-3 text-sm text-slate-600">
-                           <div className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-orangeFpt-500" />
-                           <span>Check that milestone dates align with the semester schedule.</span>
-                        </li>
-                        <li className="flex gap-3 text-sm text-slate-600">
-                           <div className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-orangeFpt-500" />
-                           <span>Review description clarity for student readability.</span>
-                        </li>
-                     </ul>
-                  </div>
-
                   <div className="rounded-3xl border border-orangeFpt-100 bg-gradient-to-br from-orangeFpt-50/50 via-white to-orangeFpt-50/20 p-6 shadow-sm">
                      <h3 className="flex items-center gap-2 text-lg font-bold text-slate-800 mb-2">
                         <SparklesIcon className="h-5 w-5 text-orangeFpt-500" />

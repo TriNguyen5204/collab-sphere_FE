@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
-import { getLecturerEvaluationByTeamId } from '../../../../services/studentApi';
+import { AlertTriangle, User } from 'lucide-react';
+import { getLecturerEvaluationByTeamId, getLecturerMemberScoresByTeamId } from '../../../../services/studentApi';
+import { useSelector } from 'react-redux';
 
 const LecturerTeamEvaluation = ({ teamId }) => {
     const [loading, setLoading] = useState(false);
     const [evaluation, setEvaluation] = useState(null);
+    const [memberScore, setMemberScore] = useState(null);
     const [error, setError] = useState(null);
+    const { userId } = useSelector((s) => s.user);
 
     useEffect(() => {
         let mounted = true;
@@ -14,8 +17,21 @@ const LecturerTeamEvaluation = ({ teamId }) => {
             setLoading(true);
             setError(null);
             try {
-                const response = await getLecturerEvaluationByTeamId(teamId);
-                if (mounted) setEvaluation(response.lecturerEvaluateTeam);
+                const [evalResponse, scoreResponse] = await Promise.all([
+                    getLecturerEvaluationByTeamId(teamId),
+                    getLecturerMemberScoresByTeamId(teamId).catch(() => null)
+                ]);
+                
+                if (mounted) {
+                    setEvaluation(evalResponse.lecturerEvaluateTeam);
+                    
+                    // Extract member score (for student, only their own score)
+                    const scores = scoreResponse?.teamMemEvaluations?.memberScores ?? [];
+                    const currentUserScore = scores.find(
+                        (s) => String(s?.studentId ?? s?.userId ?? s?.memberId ?? s?.classMemberId) === String(userId)
+                    ) ?? scores[0];
+                    setMemberScore(currentUserScore);
+                }
             } catch (err) {
                 console.error('Failed to load lecturer evaluation', err);
                 if (mounted) setError(err);
@@ -28,7 +44,7 @@ const LecturerTeamEvaluation = ({ teamId }) => {
         return () => {
             mounted = false;
         };
-    }, [teamId]);
+    }, [teamId, userId]);
 
     if (!teamId) {
         return (
@@ -84,14 +100,30 @@ const LecturerTeamEvaluation = ({ teamId }) => {
             <div className="space-y-8">
                 {/* Overall + Comment Section */}
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
-                    {/* Overall Score */}
+                    {/* Team Score */}
                     <div className="flex flex-col items-center justify-center text-center bg-orangeFpt-100 rounded-xl p-6 flex-shrink-0 w-full md:w-1/3 shadow-sm">
-                        <p className="text-sm font-medium text-orangeFpt-500 uppercase tracking-wide">Overall Score</p>
+                        <p className="text-sm font-medium text-orangeFpt-500 uppercase tracking-wide">Team Score</p>
                         <div className="text-orangeFpt-500 font-extrabold text-6xl mt-3">
                             {overall !== null && overall !== undefined ? Number(overall).toFixed(1) : '-'}
                         </div>
                         <p className="text-gray-500 text-sm mt-1">out of 10</p>
                     </div>
+
+                    {/* Individual Score */}
+                    {memberScore && (
+                        <div className="flex flex-col items-center justify-center text-center bg-blue-100 rounded-xl p-6 flex-shrink-0 w-full md:w-1/3 shadow-sm">
+                            <p className="text-sm font-medium text-blue-600 uppercase tracking-wide flex items-center gap-1 justify-center">
+                                <User size={16} />
+                                Your Score
+                            </p>
+                            <div className="text-blue-600 font-extrabold text-6xl mt-3">
+                                {memberScore?.score !== null && memberScore?.score !== undefined 
+                                    ? Number(memberScore.score).toFixed(1) 
+                                    : '-'}
+                            </div>
+                            <p className="text-gray-500 text-sm mt-1">out of 10</p>
+                        </div>
+                    )}
 
                     {/* Team Comment */}
                     <div className="flex-1">

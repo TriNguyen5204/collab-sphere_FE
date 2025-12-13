@@ -5,17 +5,17 @@ export const AI_API_BASE_URL = 'https://u8ls7dz738.execute-api.ap-southeast-1.am
 // Form version - increment when form structure changes to clear old localStorage data
 export const FORM_VERSION = 2;
 
-// LocalStorage Keys
+// LocalStorage Keys (obscured for privacy)
 export const STORAGE_KEYS = {
-  FORM_DATA: 'ai_project_form_data',
-  IDEAS: 'ai_project_ideas',
-  CONFIG: 'ai_project_config',
-  PHASE: 'ai_project_phase',
-  SELECTED_IDS: 'ai_project_selected_ids', // For multi-select persistence
+  FORM_DATA: '_aipf_d',
+  IDEAS: '_aipf_i',
+  CONFIG: '_aipf_c',
+  PHASE: '_aipf_p',
+  SELECTED_IDS: '_aipf_s',
   // Job persistence keys (for resume polling after refresh)
-  CURRENT_JOB_ID: 'ai_project_current_job_id',
-  JOB_STATUS: 'ai_project_job_status',
-  JOB_START_TIME: 'ai_project_job_start_time',
+  CURRENT_JOB_ID: '_aipf_jid',
+  JOB_STATUS: '_aipf_js',
+  JOB_START_TIME: '_aipf_jt',
 };
 
 // Topic Domain Options
