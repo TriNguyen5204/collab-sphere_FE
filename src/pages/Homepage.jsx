@@ -478,9 +478,6 @@ const Homepage = () => {
           </div>
 
           <div className="order-1 lg:order-2 space-y-8">
-            <div className="inline-block px-3 py-1 border border-[#0B1221] rounded-full text-[10px] uppercase tracking-widest font-bold">
-              Beta 2.0
-            </div>
             <h2 className="font-serif text-5xl text-[#0B1221]">Intelligent Insights.</h2>
             <div className="space-y-6">
               <div className="flex items-start gap-4 group cursor-pointer">
