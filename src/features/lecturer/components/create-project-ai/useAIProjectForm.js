@@ -52,7 +52,6 @@ export const useAIProjectForm = () => {
         
         // Check version - clear if outdated
         if (parsed.version !== FORM_VERSION) {
-          console.log('Form version changed, clearing old data');
           localStorage.removeItem(STORAGE_KEYS.FORM_DATA);
           setIsInitialized(true);
           return;
@@ -170,7 +169,7 @@ export const useAIProjectForm = () => {
         optional: optionalTechStack
       },
       lecturer_id: lecturerId,
-      subject_id: parseInt(selectedSubjectId, 10),
+      subject_id: selectedSubjectId ? parseInt(selectedSubjectId, 10) : null,
     };
     
     // Add existing ideas context for "Generate More" feature
