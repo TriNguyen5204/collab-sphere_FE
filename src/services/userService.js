@@ -261,6 +261,15 @@ export const getSemester = async () => {
     throw error
   }
 }
+export const createSubject = async data => {
+  try {
+    const response = await apiClient.post('/subject', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating subject:', error);
+    throw error;
+  }
+};
 export const createMultipleSubjects = async data => {
   try {
     const formData = new FormData();
@@ -294,9 +303,9 @@ export const deleteSubjectById = async subjectId => {
     throw error;
   }
 };
-export const updateSubject = async data => {
+export const updateSubject = async (subjectId, data) => {
   try {
-    const response = await apiClient.put(`/subject`, data);
+    const response = await apiClient.put(`/subject/${subjectId}`, data);
     return response.data;
   } catch (error) {
     console.error(`Error updating syllabus for subject}:`, error);

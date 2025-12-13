@@ -1,10 +1,11 @@
-// CollabEditor.jsx - Microsoft Word Style Layout (FIXED VERSION)
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import * as Y from 'yjs';
 import { SignalRYjsProvider } from './hooks/SignalRYjsProvider';
 import useTeam from '../../context/useTeam';
+import useToastConfirmation from '../../hooks/useToastConfirmation';
 
 // Custom Collaboration extensions
 import { CustomCollaborationCaret } from './hooks/collaboration-caret-custom';
@@ -33,7 +34,7 @@ import RoomList from './components/RoomList';
 import { getDocuments } from './services/textEditorApi';
 
 // Icons
-import { FileText, Users, Copy } from 'lucide-react';
+import { FileText, Users, Copy, ArrowLeft } from 'lucide-react';
 
 import './EditorStyles.css';
 // ✅ Custom FontSize Extension
@@ -58,6 +59,8 @@ const FontSize = TextStyle.extend({
 });
 
 const CollabEditor = () => {
+  const navigate = useNavigate();
+  const Confirm = useToastConfirmation();
   const [provider, setProvider] = useState(null);
   const [editor, setEditor] = useState(null);
 
@@ -88,7 +91,7 @@ const CollabEditor = () => {
         history: false,
         bulletList: false,
         orderedList: false,
-        listItem: false, // ✅ Disable from StarterKit to use custom
+        listItem: false,
       }),
       BulletList.configure({
         HTMLAttributes: {
@@ -106,7 +109,7 @@ const CollabEditor = () => {
         },
       }),
       TextStyle,
-      FontSize, // ✅ Use custom FontSize extension
+      FontSize,
       Color,
       Highlight.configure({
         multicolor: true,
@@ -118,10 +121,10 @@ const CollabEditor = () => {
       }),
     ];
 
-    console.log('Connect with login:', { userId, userName, accessToken });
     if (!accessToken || !currentRoomName) {
       newEditor = new Editor({
         extensions: baseExtensions,
+        // editable: false,
         editorProps: {
           attributes: {
             class: 'editor-content-wrapper',
@@ -158,6 +161,7 @@ const CollabEditor = () => {
 
     newEditor = new Editor({
       extensions: extensions,
+      // editable: false,
       editorProps: {
         attributes: {
           class: 'editor-content-wrapper',
@@ -261,6 +265,25 @@ const CollabEditor = () => {
     });
   };
 
+  const handleBackNavigation = async () => {
+    // Nếu đang ở trong một phòng, cần hỏi xác nhận trước khi thoát
+    if (currentRoomName) {
+      const isConfirmed = confirm({
+        message: 'Leave this document?',
+        description: 'Unsaved changes might be lost if you leave now. Are you sure?',
+        confirmLabel: 'Leave',
+        cancelLabel: 'Stay',
+        variant: 'warning', 
+      });
+
+      if (!isConfirmed) {
+        return;
+      }
+    }
+
+    navigate(-1);
+  };
+
   if (!accessToken) {
     return (
       <div className='flex items-center justify-center min-h-screen bg-gray-100'>
@@ -278,8 +301,15 @@ const CollabEditor = () => {
   return (
     <div className='h-screen flex flex-col bg-gray-100'>
       {/* Top Navigation Bar - Word style */}
-      <div className='bg-blue-600 text-white px-4 py-2 flex items-center justify-between shadow-md'>
+      <div className='bg-orangeFpt-500 text-white px-4 py-2 flex items-center justify-between shadow-md'>
         <div className='flex items-center gap-4'>
+          <button
+            onClick={handleBackNavigation}
+            className='flex items-center gap-2 px-3 py-1.5 rounded hover:bg-orangeFpt-300 active:bg-orangeFpt-400 transition-all'
+          >
+            <ArrowLeft className='w-5 h-5' />
+            <span className='text-sm font-medium'>Back</span>
+          </button>
           <FileText className='w-6 h-6' />
           <div>
             <div className='font-semibold'>
@@ -343,10 +373,7 @@ const CollabEditor = () => {
             <div className='max-w-[210mm] mx-auto'>
               {/* Paper/Page view */}
               <div className='bg-white shadow-lg min-h-[297mm] p-[25mm] rounded-sm'>
-                <EditorContent
-                  editor={editor}
-                  className='editor-content'
-                />
+                <EditorContent editor={editor} className='editor-content' />
               </div>
             </div>
           </div>

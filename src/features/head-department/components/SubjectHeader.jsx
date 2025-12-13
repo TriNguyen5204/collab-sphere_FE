@@ -1,12 +1,12 @@
 import React from 'react';
-import { BookOpen, Plus, Users } from 'lucide-react';
+import { BookOpen, Plus, Users, FileEdit } from 'lucide-react';
 
 /**
  * SubjectHeader Component
  * Style: Matching Staff/Admin Hub Design
  * Branding: FPT Orange
  */
-export default function SubjectHeader({ onAddClick, stats }) {
+export default function SubjectHeader({ onAddClick, onCreateClick, stats }) {
   return (
     <div className="relative overflow-hidden rounded-3xl border border-orangeFpt-50 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white shadow-md shadow-orangeFpt-100/60 backdrop-blur">
       <div className="relative z-10 px-6 py-8 lg:px-10">
@@ -21,13 +21,20 @@ export default function SubjectHeader({ onAddClick, stats }) {
             <p className="mt-1 text-sm text-slate-600">
               Manage subjects, syllabus, and learning outcomes
             </p>
-            <div className="pt-2">
-              <button
+            <div className="flex items-center gap-4 mt-4">
+              {/* <button
                 onClick={onAddClick}
                 className='flex items-center gap-2 px-5 py-2.5 bg-orangeFpt-500 text-white rounded-xl hover:bg-orangeFpt-600 transition-all shadow-lg shadow-orangeFpt-500/30 font-medium'
               >
                 <Plus className='w-4 h-4' />
                 Add Subject
+              </button> */}
+              <button
+                onClick={onCreateClick}
+                className='flex items-center gap-2 px-5 py-2.5 bg-orangeFpt-500 text-white rounded-xl hover:bg-orangeFpt-600 transition-all shadow-lg shadow-orangeFpt-500/30 font-medium'
+              >
+                <Plus className='w-4 h-4' />
+                Create a Subject
               </button>
             </div>
           </div>
