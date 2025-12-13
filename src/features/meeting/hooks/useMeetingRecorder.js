@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import RecordRTC from 'recordrtc';
 import { getRecordUrl } from '../services/meetingApi';
+import useToastConfirmation from '../../../hooks/useToastConfirmation';
 
 export const useMeetingRecorder = (
   socket,
@@ -12,12 +13,15 @@ export const useMeetingRecorder = (
   const [isRecording, setIsRecording] = useState(false);
   const [isRecordingDisabled, setIsRecordingDisabled] = useState(false);
   const [recordingUserId, setRecordingUserId] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
   const recorderRef = useRef(null);
   const displayStreamRef = useRef(null);
   const audioContextRef = useRef(null);
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  const confirmWithToast = useToastConfirmation();
 
   // Handle when someone starts recording
   useEffect(() => {
@@ -45,6 +49,46 @@ export const useMeetingRecorder = (
       socket.off('recordStopped', handleRecordStopped);
     };
   }, [socket]);
+
+  const downloadVideoToDevice = useCallback((blob, timestamp) => {
+    try {
+      console.log('💾 Starting download to device...');
+      setIsDownloading(true);
+
+      // Create a download URL from blob
+      const url = URL.createObjectURL(blob);
+
+      // Create a temporary anchor element to trigger download
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `meeting_recording_${timestamp}.webm`;
+
+      // Append to body, click, and remove
+      document.body.appendChild(a);
+      a.click();
+
+      // Cleanup
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setIsDownloading(false);
+      }, 100);
+
+      console.log('✅ Video download started to device');
+      toast.success('📥 Recording downloaded to your device!', {
+        duration: 3000,
+        icon: '💾',
+      });
+
+      return true;
+    } catch (error) {
+      console.error('❌ Error downloading video:', error);
+      toast.error('Failed to download video to device');
+      setIsDownloading(false);
+      return false;
+    }
+  }, []);
 
   // Cleanup function to ensure resources are released correctly
   const cleanupResources = useCallback(() => {
@@ -96,17 +140,27 @@ export const useMeetingRecorder = (
     recorderRef.current.stopRecording(async () => {
       const blob = recorderRef.current.getBlob();
 
-      console.log('✅ Recording blob created:', {
-        size: blob.size,
-        type: blob.type,
-      });
-
       const timestamp = new Date()
         .toISOString()
         .slice(0, 19)
         .replace(/:/g, '-')
         .replace('T', '_');
 
+      const downloadSuccess = downloadVideoToDevice(blob, timestamp);
+      if (!downloadSuccess) {
+        const isContinue = await confirmWithToast({
+          message: 'Download Failed',
+          description: 'Unable to save recording...',
+          confirmLabel: 'Continue Upload',
+          cancelLabel: 'Cancel & Discard',
+          variant: 'danger',
+        });
+        if (!isContinue) {
+          cleanupResources();
+          setIsRecording(false);
+          return;
+        }
+      }
       // Create File object from blob to upload
       const videoFile = new File([blob], `meeting_${timestamp}.webm`, {
         type: 'video/webm',
@@ -117,17 +171,14 @@ export const useMeetingRecorder = (
       setUploadProgress(0);
 
       try {
-        console.log('📤 Uploading video file...');
-        setUploadProgress(30); // Simulate progress
+        setUploadProgress(30);
 
         // 1. Call API to upload and get URL
-        // Assume response.data is URL string or object { url: '...' }
         const response = await getRecordUrl(videoFile);
 
         setUploadProgress(70); // Simulate progress
 
-        // Extract URL. Customize if API returns different structure
-        const videoUrl = response.message ;
+        const videoUrl = response.message;
 
         if (!videoUrl || typeof videoUrl !== 'string') {
           throw new Error('Invalid video URL received from server');
@@ -140,7 +191,7 @@ export const useMeetingRecorder = (
           await handleRecordingComplete(videoUrl);
         }
 
-        setUploadProgress(100); // Complete
+        setUploadProgress(100);
       } catch (error) {
         console.error('❌ Video upload or meeting update failed:', error);
         toast.error(
@@ -163,7 +214,15 @@ export const useMeetingRecorder = (
 
       console.log('✅ Recording stopped and process finished');
     });
-  }, [isRecording, socket, roomId, cleanupResources, handleRecordingComplete]);
+  }, [
+    isRecording,
+    socket,
+    roomId,
+    cleanupResources,
+    handleRecordingComplete,
+    downloadVideoToDevice,
+    confirmWithToast,
+  ]);
 
   // Start recording
   const startRecording = useCallback(async () => {
@@ -244,7 +303,6 @@ export const useMeetingRecorder = (
               micSource.connect(micGainNode);
               micGainNode.connect(dest);
               hasAudio = true;
-              console.log('✅ Microphone audio connected');
             } catch (e) {
               console.warn('Failed to connect mic audio:', e);
             }
@@ -278,7 +336,7 @@ export const useMeetingRecorder = (
           videoBitsPerSecond: 2500000, // 2.5 Mbps
           audioBitsPerSecond: 128000,
           frameRate: 30,
-          // Important: ensure RecordRTC waits for stream to be ready
+          // ensure RecordRTC waits for stream to be ready
           initCallback: function () {
             console.log('RecordRTC initialized');
           },
@@ -309,7 +367,9 @@ export const useMeetingRecorder = (
         cleanupResources();
 
         if (err.name === 'NotAllowedError') {
-          toast.error('You need to allow screen sharing to record the meeting.');
+          toast.error(
+            'You need to allow screen sharing to record the meeting.'
+          );
         } else if (err.name === 'NotFoundError') {
           toast.error('No screen source found for recording.');
         } else {
@@ -342,5 +402,6 @@ export const useMeetingRecorder = (
     stopRecording,
     isUploading,
     uploadProgress,
+    isDownloading,
   };
 };

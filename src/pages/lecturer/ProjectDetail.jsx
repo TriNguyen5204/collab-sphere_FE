@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { toast } from 'sonner';
@@ -9,13 +9,27 @@ import {
    Clock,
    Edit3,
    Trash2,
-   Plus,
-   MoreHorizontal,
    CheckCircle2,
    AlertCircle,
-   ArrowLeft,
-   Target,
-   Flag
+   Users,
+   Zap,
+   ShieldCheck,
+   RotateCw,
+   BellRing,
+   Lock,
+   UserCircle,
+   Stethoscope,
+   HeartHandshake,
+   LineChart,
+   Server,
+   Activity,
+   FileText,
+   ChevronRight,
+   ChevronDown,
+   ListChecks,
+   Plus,
+   X,
+   ScrollText
 } from 'lucide-react';
 
 import {
@@ -25,35 +39,51 @@ import {
 } from '../../services/projectApi';
 import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
 import ModalWrapper from '../../components/layout/ModalWrapper';
-// Reuse DashboardLayout if available, or wrapping div
 import DashboardLayout from '../../components/layout/DashboardLayout';
 
-// --- Styles & Constants ---
-const glassPanelClass = 'bg-white border border-slate-200 shadow-sm';
-
-const PRIORITY_COLORS = {
-   HIGH: 'bg-red-50 text-red-700 border-red-200',
-   High: 'bg-red-50 text-red-700 border-red-200',
-   MEDIUM: 'bg-orangeFpt-50 text-orangeFpt-700 border-orangeFpt-200',
-   Medium: 'bg-orangeFpt-50 text-orangeFpt-700 border-orangeFpt-200',
-   LOW: 'bg-slate-50 text-slate-700 border-slate-200',
-   Low: 'bg-slate-50 text-slate-700 border-slate-200',
-   '': 'bg-slate-50 text-slate-600 border-slate-200'
-};
-
+// --- Status Configuration ---
 const STATUS_CONFIG = {
-   PENDING: { label: 'Pending Approval', color: 'bg-amber-50 text-amber-700 border-amber-200', icon: Clock },
-   APPROVED: { label: 'Approved', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle2 },
-   DENIED: { label: 'Denied', color: 'bg-red-50 text-red-700 border-red-200', icon: AlertCircle },
-   REJECTED: { label: 'Rejected', color: 'bg-red-50 text-red-700 border-red-200', icon: AlertCircle },
-   UNKNOWN: { label: 'Unknown', color: 'bg-slate-50 text-slate-700 border-slate-200', icon: AlertCircle },
+   PENDING: { label: 'Pending', color: 'bg-amber-50 text-amber-700 border-amber-200', dotColor: 'bg-amber-500', icon: Clock },
+   APPROVED: { label: 'Approved', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dotColor: 'bg-emerald-500', icon: CheckCircle2 },
+   DENIED: { label: 'Denied', color: 'bg-red-50 text-red-700 border-red-200', dotColor: 'bg-red-500', icon: AlertCircle },
+   REJECTED: { label: 'Rejected', color: 'bg-red-50 text-red-700 border-red-200', dotColor: 'bg-red-500', icon: AlertCircle },
+   UNKNOWN: { label: 'Unknown', color: 'bg-slate-50 text-slate-700 border-slate-200', dotColor: 'bg-slate-500', icon: AlertCircle },
 };
 
 const STATUS_CODE_MAP = { 0: 'PENDING', 1: 'APPROVED', 2: 'DENIED' };
 
+// --- Business Rule Icons Mapping ---
+const RULE_ICONS = [
+   { icon: Zap, color: 'text-amber-500', bg: 'bg-amber-50', border: 'border-amber-200' },
+   { icon: ShieldCheck, color: 'text-emerald-500', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+   { icon: RotateCw, color: 'text-blue-500', bg: 'bg-blue-50', border: 'border-blue-200' },
+   { icon: BellRing, color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200' },
+   { icon: Lock, color: 'text-purple-500', bg: 'bg-purple-50', border: 'border-purple-200' },
+   { icon: CheckCircle2, color: 'text-teal-500', bg: 'bg-teal-50', border: 'border-teal-200' },
+   { icon: FileText, color: 'text-indigo-500', bg: 'bg-indigo-50', border: 'border-indigo-200' },
+];
+
+// --- Actor Icons Mapping ---
+const ACTOR_CONFIG = {
+   'executive': { icon: UserCircle, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
+   'healthcare': { icon: Stethoscope, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200' },
+   'provider': { icon: Stethoscope, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200' },
+   'wellness': { icon: HeartHandshake, color: 'text-pink-600', bg: 'bg-pink-50', border: 'border-pink-200' },
+   'coach': { icon: HeartHandshake, color: 'text-pink-600', bg: 'bg-pink-50', border: 'border-pink-200' },
+   'analyst': { icon: LineChart, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
+   'data': { icon: LineChart, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
+   'admin': { icon: Server, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' },
+   'system': { icon: Server, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' },
+   'student': { icon: UserCircle, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-200' },
+   'lecturer': { icon: UserCircle, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
+   'user': { icon: UserCircle, color: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-200' },
+   'default': { icon: Users, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' },
+};
+
 // --- Helpers ---
 const resolveProjectStatusKey = (project) => {
    if (!project) return 'PENDING';
+   if (project.statusString) return project.statusString.toUpperCase();
    if (typeof project.status === 'string') return project.status.toUpperCase();
    if (typeof project.status === 'number') return STATUS_CODE_MAP[project.status] ?? 'PENDING';
    return 'PENDING';
@@ -65,116 +95,36 @@ const formatDate = (value) => {
    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-const toDateInputValue = (value) => {
-   if (!value) return '';
-   const date = new Date(value);
-   return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
+const parseBusinessRules = (rulesString) => {
+   if (!rulesString) return [];
+   return rulesString
+      .split('\n')
+      .map(r => r.trim().replace(/^[-•]\s*/, ''))
+      .filter(r => r.length > 0);
 };
 
-const generateTempId = () => `tmp-${Math.random().toString(36).slice(2, 9)}-${Date.now()}`;
-
-const createEmptyMilestone = () => ({
-   id: generateTempId(),
-   title: '',
-   description: '',
-   startDate: '',
-   endDate: '',
-});
-
-const createEmptyObjective = () => ({
-   id: generateTempId(),
-   title: '',
-   description: '',
-   priority: 'Medium',
-   objectiveMilestones: [createEmptyMilestone()],
-});
-
-const normalizeObjectivesForDraft = (objectives) => {
-   if (!Array.isArray(objectives) || objectives.length === 0) return [createEmptyObjective()];
-   return objectives.map((obj) => ({
-      ...obj,
-      id: obj.objectiveId ?? obj.id ?? generateTempId(),
-      objectiveMilestones: (obj.objectiveMilestones?.length ? obj.objectiveMilestones : [createEmptyMilestone()]).map(m => ({
-         ...m,
-         id: m.objectiveMilestoneId ?? m.milestoneId ?? m.id ?? generateTempId(),
-         startDate: toDateInputValue(m.startDate ?? m.beginDate),
-         endDate: toDateInputValue(m.endDate ?? m.dueDate)
-      }))
-   }));
+const parseActors = (actorsString) => {
+   if (!actorsString) return [];
+   return actorsString
+      .split(',')
+      .map(a => a.trim())
+      .filter(a => a.length > 0);
 };
 
-// --- Sub-Components ---
-
-const ObjectiveCard = ({ objective, index, isPending, onEdit }) => {
-   const objId = objective.objectiveId || objective.id;
-   return (
-      <div className="group relative rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-orangeFpt-200 hover:shadow-md">
-         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-2">
-               <div className="flex items-center gap-3">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
-                     {index + 1}
-                  </span>
-                  <h3 className="font-bold text-slate-900">
-                     {objective.title || `Objective ${index + 1}`}
-                  </h3>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${PRIORITY_COLORS[objective.priority] || PRIORITY_COLORS.LOW}`}>
-                     {objective.priority || 'Normal'}
-                  </span>
-               </div>
-               <p className="text-sm text-slate-600 leading-relaxed pl-9">
-                  {objective.description || 'No description provided.'}
-               </p>
-            </div>
-
-            {isPending && (
-               <button
-                  onClick={() => onEdit({ objectiveId: objId })}
-                  className="shrink-0 p-2 text-slate-400 hover:bg-slate-50 hover:text-orangeFpt-600 rounded-lg transition-colors"
-               >
-                  <Edit3 size={18} />
-               </button>
-            )}
-         </div>
-
-         {/* Milestones Timeline */}
-         <div className="mt-6 pl-3 sm:pl-9">
-            <div className="relative border-l-2 border-slate-100 space-y-6 pb-2">
-               {objective.objectiveMilestones?.map((milestone, mIdx) => {
-                  const msId = milestone.objectiveMilestoneId || milestone.milestoneId || milestone.id;
-                  return (
-                     <div key={mIdx} className="relative pl-6">
-                        {/* Timeline Dot */}
-                        <div className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-white border-2 border-orangeFpt-400 ring-2 ring-white"></div>
-
-                        <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 group/milestone relative hover:border-orangeFpt-200 transition-colors">
-                           {isPending && (
-                              <button
-                                 onClick={() => onEdit({ objectiveId: objId, milestoneId: msId })}
-                                 className="absolute top-2 right-2 p-1.5 text-slate-300 hover:text-orangeFpt-600 hover:bg-white rounded-lg opacity-0 group-hover/milestone:opacity-100 transition-all"
-                                 title="Edit Milestone"
-                              >
-                                 <Edit3 size={14} />
-                              </button>
-                           )}
-                           <div className="flex flex-wrap justify-between gap-2 mb-1 pr-6">
-                              <h4 className="text-sm font-semibold text-slate-800">{milestone.title || 'Untitled Milestone'}</h4>
-                              <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
-                                 <Calendar size={12} />
-                                 {formatDate(milestone.startDate)} — {formatDate(milestone.endDate)}
-                              </span>
-                           </div>
-                           <p className="text-xs text-slate-500">{milestone.description}</p>
-                        </div>
-                     </div>
-                  )
-               })}
-            </div>
-         </div>
-      </div>
-   );
+const getActorConfig = (actorName) => {
+   const lowerName = actorName.toLowerCase();
+   for (const [key, config] of Object.entries(ACTOR_CONFIG)) {
+      if (lowerName.includes(key)) return config;
+   }
+   return ACTOR_CONFIG.default;
 };
 
+const extractTeamSize = (description) => {
+   const match = description?.match(/(\d+)\s*members?/i);
+   return match ? parseInt(match[1], 10) : null;
+};
+
+// --- Main Component ---
 const ProjectDetail = () => {
    const { projectId } = useParams();
    const navigate = useNavigate();
@@ -182,52 +132,18 @@ const ProjectDetail = () => {
 
    const [project, setProject] = useState(null);
    const [isLoading, setIsLoading] = useState(true);
-   const [reloadKey, setReloadKey] = useState(0);
+   const [isDescExpanded, setIsDescExpanded] = useState(false);
 
    // Modals
    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
    const [editDraft, setEditDraft] = useState({ projectName: '', description: '' });
+   const [editBusinessRulesArray, setEditBusinessRulesArray] = useState([]);
+   const [editActorsArray, setEditActorsArray] = useState([]);
+   const [newRuleInput, setNewRuleInput] = useState('');
+   const [newActorInput, setNewActorInput] = useState('');
    const [isEditSaving, setIsEditSaving] = useState(false);
-
    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
    const [isDeleteSubmitting, setIsDeleteSubmitting] = useState(false);
-
-   const [structureModalOpen, setStructureModalOpen] = useState(false);
-   const [structureDraft, setStructureDraft] = useState([]);
-   const [structureMeta, setStructureMeta] = useState({ projectName: '', description: '' });
-   const [isStructureSaving, setIsStructureSaving] = useState(false);
-   const [structureError, setStructureError] = useState('');
-   const [fieldErrors, setFieldErrors] = useState({});
-
-   const todayStr = useMemo(() => {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-   }, []);
-
-   // Scroll to target
-   const [focusTarget, setFocusTarget] = useState(null);
-   const objectiveRefs = useRef({});
-
-   useEffect(() => {
-      if (structureModalOpen && focusTarget) {
-         const targetId = focusTarget.milestoneId || focusTarget.objectiveId;
-         if (!targetId) return;
-
-         // Small timeout to ensure modal content is rendered
-         setTimeout(() => {
-            const el = objectiveRefs.current[targetId];
-            if (el) {
-               el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-               // Highlight effect
-               el.classList.add('ring-2', 'ring-orangeFpt-500', 'ring-offset-2');
-               setTimeout(() => el.classList.remove('ring-2', 'ring-orangeFpt-500', 'ring-offset-2'), 2000);
-            }
-         }, 300);
-      }
-   }, [structureModalOpen, focusTarget]);
 
    // --- Fetch Data ---
    const fetchProject = useCallback(async (silent = false) => {
@@ -235,6 +151,7 @@ const ProjectDetail = () => {
       if (!silent) setIsLoading(true);
       try {
          const data = await getProjectDetail(projectId);
+         console.log('API Response - Project Detail:', data);
          setProject(data);
       } catch (err) {
          toast.error('Failed to load project details.');
@@ -243,56 +160,102 @@ const ProjectDetail = () => {
       }
    }, [projectId]);
 
-   useEffect(() => { fetchProject(); }, [fetchProject, reloadKey]);
+   useEffect(() => { fetchProject(); }, [fetchProject]);
 
-   // --- Helpers ---
+   // --- Derived Values ---
    const statusKey = resolveProjectStatusKey(project);
    const statusConfig = STATUS_CONFIG[statusKey] || STATUS_CONFIG.UNKNOWN;
    const StatusIcon = statusConfig.icon;
    const isPending = statusKey === 'PENDING';
 
+   const businessRules = useMemo(() => parseBusinessRules(project?.businessRules), [project?.businessRules]);
+   const actors = useMemo(() => parseActors(project?.actors), [project?.actors]);
+   const teamSize = useMemo(() => extractTeamSize(project?.description), [project?.description]);
+
    const breadcrumbItems = useMemo(() => [
       { label: 'Project Library', href: '/lecturer/projects' },
+      { label: project?.subjectCode || 'Subject' },
       { label: project?.projectName ?? 'Loading...' },
    ], [project]);
 
    // --- Actions ---
    const handleOpenEdit = () => {
-      setEditDraft({ projectName: project.projectName, description: project.description });
+      // Parse existing business rules (remove '- ' prefix from each rule)
+      const existingRules = project.businessRules
+         ? project.businessRules.split('\n').map(r => r.replace(/^-\s*/, '').trim()).filter(Boolean)
+         : [];
+      
+      // Parse existing actors (comma separated)
+      const existingActors = project.actors
+         ? project.actors.split(',').map(a => a.trim()).filter(Boolean)
+         : [];
+      
+      setEditDraft({ 
+         projectName: project.projectName, 
+         description: project.description
+      });
+      setEditBusinessRulesArray(existingRules);
+      setEditActorsArray(existingActors);
+      setNewRuleInput('');
+      setNewActorInput('');
       setIsEditModalOpen(true);
+   };
+
+   // Business Rules Edit Handlers
+   const handleAddEditBusinessRule = (rule) => {
+      const trimmedRule = rule.trim();
+      if (trimmedRule && !editBusinessRulesArray.includes(trimmedRule)) {
+         setEditBusinessRulesArray(prev => [...prev, trimmedRule]);
+         setNewRuleInput('');
+      }
+   };
+
+   const handleRemoveEditBusinessRule = (ruleToRemove) => {
+      setEditBusinessRulesArray(prev => prev.filter(rule => rule !== ruleToRemove));
+   };
+
+   // Actors Edit Handlers
+   const handleAddEditActor = (actor) => {
+      const trimmedActor = actor.trim();
+      if (trimmedActor && !editActorsArray.includes(trimmedActor)) {
+         setEditActorsArray(prev => [...prev, trimmedActor]);
+         setNewActorInput('');
+      }
+   };
+
+   const handleRemoveEditActor = (actorToRemove) => {
+      setEditActorsArray(prev => prev.filter(actor => actor !== actorToRemove));
    };
 
    const handleUpdateBasicInfo = async (e) => {
       e.preventDefault();
+      
+      // Format business rules with '- ' prefix for API
+      const formattedBusinessRules = editBusinessRulesArray.map(rule => `- ${rule}`).join('\n');
+      // Format actors as comma-separated string for API
+      const formattedActors = editActorsArray.join(', ');
+      
+      const payload = {
+         projectId: project.projectId || project.id,
+         projectName: editDraft.projectName.trim(),
+         description: editDraft.description.trim(),
+         subjectId: project.subjectId,
+         businessRules: formattedBusinessRules,
+         actors: formattedActors,
+      };
+      
+      console.log('Update Project Payload:', payload);
+      
       setIsEditSaving(true);
       try {
-         // Preserve existing objectives to prevent deletion
-         const objectivesPayload = project.objectives?.map(obj => ({
-            objectiveId: obj.objectiveId || obj.id,
-            title: obj.title,
-            description: obj.description,
-            priority: obj.priority,
-            objectiveMilestones: obj.objectiveMilestones?.map(m => ({
-               objectiveMilestoneId: m.objectiveMilestoneId || m.milestoneId || m.id,
-               title: m.title,
-               description: m.description,
-               startDate: toDateInputValue(m.startDate || m.beginDate),
-               endDate: toDateInputValue(m.endDate || m.dueDate)
-            })) || []
-         })) || [];
-
-         await updateProjectBeforeApproval({
-            projectId: project.id || project.projectId,
-            ...editDraft,
-            lecturerId: project.lecturerId,
-            subjectId: project.subjectId,
-            objectives: objectivesPayload
-         });
+         await updateProjectBeforeApproval(payload);
          toast.success('Project details updated');
          await fetchProject(true);
          setIsEditModalOpen(false);
       } catch (error) {
-         toast.error('Failed to update project');
+         console.error('Update Project Error:', error);
+         console.error('Error Response:', error?.response?.data);
+         toast.error(error?.response?.data?.message || 'Failed to update project');
       } finally {
          setIsEditSaving(false);
       }
@@ -301,178 +264,17 @@ const ProjectDetail = () => {
    const handleDeleteProject = async () => {
       setIsDeleteSubmitting(true);
       try {
-         await deleteProjectBeforeApproval(project.id || project.projectId);
-         toast.success('Draft project deleted');
+         await deleteProjectBeforeApproval(project.projectId || project.id);
+         toast.success('Project deleted successfully');
          navigate('/lecturer/projects');
-      } catch (error) {
+      } catch (err) {
          toast.error('Failed to delete project');
       } finally {
          setIsDeleteSubmitting(false);
       }
    };
 
-   const handleOpenStructure = (focusObj = null) => {
-      setStructureMeta({ projectName: project.projectName, description: project.description });
-      setStructureDraft(normalizeObjectivesForDraft(project.objectives));
-      setStructureError('');
-      setFocusTarget(focusObj);
-      setStructureModalOpen(true);
-   };
-
-   const handleSaveStructure = async (e) => {
-      e.preventDefault();
-      setIsStructureSaving(true);
-      setStructureError('');
-      setFieldErrors({});
-
-      // Validation
-      const errors = {};
-      let hasError = false;
-
-      if (!structureMeta.projectName.trim()) {
-         errors.projectName = "Project name is required.";
-         hasError = true;
-      }
-      if (!structureMeta.description.trim()) {
-         errors.description = "Description is required.";
-         hasError = true;
-      }
-
-      if (!structureDraft.length) {
-         setStructureError('At least one objective is required.');
-         setIsStructureSaving(false);
-         return;
-      }
-
-      structureDraft.forEach((obj, oIdx) => {
-         if (!obj.description.trim()) {
-            errors[`obj-${oIdx}-desc`] = "Required";
-            hasError = true;
-         }
-
-         obj.objectiveMilestones.forEach((m, mIdx) => {
-            if (!m.title.trim()) {
-               errors[`ms-${oIdx}-${mIdx}-title`] = "Required";
-               hasError = true;
-            }
-            if (!m.startDate) {
-               errors[`ms-${oIdx}-${mIdx}-start`] = "Required";
-               hasError = true;
-            } else if (m.startDate < todayStr) {
-               errors[`ms-${oIdx}-${mIdx}-start`] = "Cannot be in the past";
-               hasError = true;
-            }
-
-            if (!m.endDate) {
-               errors[`ms-${oIdx}-${mIdx}-end`] = "Required";
-               hasError = true;
-            } else if (m.endDate < todayStr) {
-               errors[`ms-${oIdx}-${mIdx}-end`] = "Cannot be in the past";
-               hasError = true;
-            }
-
-            if (m.startDate && m.endDate && m.startDate > m.endDate) {
-               errors[`ms-${oIdx}-${mIdx}-end`] = "Must be after start date";
-               hasError = true;
-            }
-         });
-      });
-
-      if (hasError) {
-         setFieldErrors(errors);
-         setStructureError('Please fix the errors before saving.');
-         setIsStructureSaving(false);
-         return;
-      }
-
-      try {
-         const payload = {
-            projectId: project.id || project.projectId,
-            ...structureMeta,
-            lecturerId: project.lecturerId,
-            subjectId: project.subjectId,
-            objectives: structureDraft.map(obj => ({
-               // Only send IDs if they are NOT temp ones (numeric)
-               objectiveId: String(obj.id).startsWith('tmp') ? 0 : obj.objectiveId || obj.id,
-               title: obj.title,
-               description: obj.description,
-               priority: obj.priority,
-               objectiveMilestones: obj.objectiveMilestones.map(m => ({
-                  objectiveMilestoneId: String(m.id).startsWith('tmp') ? 0 : m.objectiveMilestoneId || m.id,
-                  title: m.title,
-                  description: m.description,
-                  startDate: m.startDate,
-                  endDate: m.endDate
-               }))
-            }))
-         };
-
-         await updateProjectBeforeApproval(payload);
-         toast.success('Project structure updated');
-         await fetchProject(true);
-         setStructureModalOpen(false);
-      } catch (error) {
-         console.error(error);
-         setStructureError('Failed to save structure. Check console for details.');
-      } finally {
-         setIsStructureSaving(false);
-      }
-   };
-
-   // --- Structure Draft Helpers ---
-   const updateDraftObjective = (idx, field, val) => {
-      const newDraft = [...structureDraft];
-      newDraft[idx][field] = val;
-      setStructureDraft(newDraft);
-      
-      // Clear error
-      if (field === 'description' && fieldErrors[`obj-${idx}-desc`]) {
-         setFieldErrors(prev => {
-            const next = { ...prev };
-            delete next[`obj-${idx}-desc`];
-            return next;
-         });
-      }
-   };
-
-   const updateDraftMilestone = (oIdx, mIdx, field, val) => {
-      const newDraft = [...structureDraft];
-      newDraft[oIdx].objectiveMilestones[mIdx][field] = val;
-      setStructureDraft(newDraft);
-
-      // Clear specific error
-      const errorKey = field === 'title' ? `ms-${oIdx}-${mIdx}-title` : 
-                       field === 'startDate' ? `ms-${oIdx}-${mIdx}-start` : 
-                       field === 'endDate' ? `ms-${oIdx}-${mIdx}-end` : null;
-      
-      if (errorKey && fieldErrors[errorKey]) {
-         setFieldErrors(prev => {
-            const next = { ...prev };
-            delete next[errorKey];
-            return next;
-         });
-      }
-   };
-
-   const addDraftMilestone = (oIdx) => {
-      const newDraft = [...structureDraft];
-      newDraft[oIdx].objectiveMilestones.push(createEmptyMilestone());
-      setStructureDraft(newDraft);
-   };
-
-   const removeDraftMilestone = (oIdx, mIdx) => {
-      const newDraft = [...structureDraft];
-      newDraft[oIdx].objectiveMilestones.splice(mIdx, 1);
-      setStructureDraft(newDraft);
-   };
-
-   const addDraftObjective = () => setStructureDraft([...structureDraft, createEmptyObjective()]);
-   const removeDraftObjective = (idx) => {
-      const newDraft = [...structureDraft];
-      newDraft.splice(idx, 1);
-      setStructureDraft(newDraft);
-   };
-
+   // --- Loading State ---
    if (isLoading) return (
       <DashboardLayout>
          <div className="flex h-96 items-center justify-center">
@@ -481,6 +283,7 @@ const ProjectDetail = () => {
       </DashboardLayout>
    );
 
+   // --- Not Found State ---
    if (!project) return (
       <DashboardLayout>
          <div className="flex flex-col items-center justify-center py-20">
@@ -493,160 +296,288 @@ const ProjectDetail = () => {
       </DashboardLayout>
    );
 
+   // Truncate description for preview
+   const descriptionPreview = project.description?.length > 200 
+      ? project.description.slice(0, 200) + '...' 
+      : project.description;
+
    return (
       <DashboardLayout>
-         <div className="min-h-screen space-y-8 bg-slate-50/50">
+         <div className="min-h-screen space-y-6">
 
-            {/* --- HEADER --- */}
+            {/* --- BREADCRUMBS --- */}
             <LecturerBreadcrumbs items={breadcrumbItems} />
 
-            <div className="mt-6 relative overflow-hidden rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50">
-               <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-orangeFpt-100/50 blur-3xl"></div>
+            {/* --- HERO HEADER --- */}
+            <header className="relative z-20 overflow-hidden rounded-3xl border border-white/60 bg-white/80 backdrop-blur-xl p-8 shadow-xl">
+               {/* Aurora Background */}
+               <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+                  <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-teal-200/40 to-cyan-200/30 blur-3xl"></div>
+                  <div className="absolute -left-10 -bottom-10 h-48 w-48 rounded-full bg-gradient-to-tr from-indigo-200/30 to-purple-200/20 blur-3xl"></div>
+               </div>
 
                <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-4 max-w-2xl">
-                     <div className="flex items-center gap-3">
-                        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${statusConfig.color}`}>
-                           <StatusIcon size={14} />
+                  <div className="space-y-4 max-w-3xl">
+                     {/* Status & Subject Badge */}
+                     <div className="flex flex-wrap items-center gap-3">
+                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border ${statusConfig.color}`}>
+                           <span className={`relative flex h-2 w-2`}>
+                              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${statusConfig.dotColor} opacity-75`}></span>
+                              <span className={`relative inline-flex rounded-full h-2 w-2 ${statusConfig.dotColor}`}></span>
+                           </span>
                            {statusConfig.label}
                         </div>
+                        <button 
+                           onClick={() => navigate('/lecturer/projects')}
+                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700 border border-indigo-200 hover:bg-indigo-200 transition-colors"
+                        >
+                           <BookOpen size={12} />
+                           {project.subjectCode}
+                        </button>
                      </div>
 
-                     <div>
-                        <h1 className="text-3xl font-bold text-slate-900">{project.projectName}</h1>
-                        <p className="mt-2 text-lg text-slate-600 leading-relaxed">
-                           {project.description || 'No description provided.'}
-                        </p>
-                     </div>
+                     {/* Project Title */}
+                     <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+                        {project.projectName}
+                     </h1>
 
-                     <div className="flex flex-wrap gap-4 pt-2">
-                        <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                           <BookOpen size={16} className="text-orangeFpt-500" />
-                           <span className="font-semibold">{project.subjectName}</span>
-                           <span className="text-slate-400">({project.subjectCode})</span>
+                     {/* Subject & Lecturer Info */}
+                     <div className="flex flex-wrap items-center gap-4 text-sm">
+                        <div className="flex items-center gap-2 text-slate-600">
+                           <BookOpen size={16} className="text-teal-500" />
+                           <span>{project.subjectName}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                        <div className="flex items-center gap-2 text-slate-600">
                            <User size={16} className="text-blue-500" />
-                           <span className="font-semibold">{project.lecturerName}</span>
+                           <span>{project.lecturerName}</span>
                         </div>
                      </div>
                   </div>
 
-                  {/* Actions for Pending Projects */}
+                  {/* Quick Actions */}
                   {isPending && (
                      <div className="flex flex-col gap-3 sm:flex-row">
                         <button
                            onClick={handleOpenEdit}
-                           className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                           className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:shadow-md transition-all"
                         >
-                           <Edit3 size={16} /> Edit Info
+                           <Edit3 size={16} /> Edit Project
                         </button>
                         <button
                            onClick={() => setDeleteModalOpen(true)}
-                           className="flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-600 shadow-sm hover:bg-red-100 hover:border-red-300 transition-colors"
+                           className="flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-600 shadow-sm hover:bg-red-100 transition-colors"
                         >
                            <Trash2 size={16} /> Delete
                         </button>
                      </div>
                   )}
                </div>
-            </div>
+            </header>
 
-            {/* --- MAIN CONTENT --- */}
-            <div className="mx-auto grid grid-cols-1 gap-8 lg:grid-cols-3">
+            {/* --- BENTO GRID CONTENT --- */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-               {/* Left Column: Objectives */}
-               <div className="space-y-6 lg:col-span-2">
-                  <div className="flex items-center justify-between">
-                     <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                        <Target className="text-orangeFpt-500" />
-                        Objectives & Milestones
-                     </h2>
-                     {isPending && (
+               {/* === ZONE A: Overview Card (Spans 2 cols) === */}
+               <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="flex items-start gap-4 mb-5">
+                     <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-100 to-cyan-100 shadow-sm">
+                        <Activity size={28} className="text-teal-600" />
+                     </div>
+                     <div className="flex-1">
+                        <h2 className="text-lg font-bold text-slate-900 mb-1">Project Overview</h2>
+                        <p className="text-sm text-slate-500">
+                           A predictive health analytics platform integrating IoT data for executives.
+                        </p>
+                     </div>
+                  </div>
+
+                  {/* Description */}
+                  <div className="mb-5">
+                     <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                        <FileText size={14} className="text-slate-400" />
+                        Description
+                     </h3>
+                     <p className="text-sm text-slate-600 leading-relaxed">
+                        {isDescExpanded ? project.description : descriptionPreview}
+                     </p>
+                     {project.description?.length > 200 && (
                         <button
-                           onClick={() => handleOpenStructure()}
-                           className="text-sm font-semibold text-orangeFpt-600 hover:underline"
+                           onClick={() => setIsDescExpanded(!isDescExpanded)}
+                           className="mt-2 text-xs font-semibold text-teal-600 hover:text-teal-700 flex items-center gap-1"
                         >
-                           Manage Structure
+                           {isDescExpanded ? 'Show Less' : 'Read More'}
+                           <ChevronDown size={14} className={`transition-transform ${isDescExpanded ? 'rotate-180' : ''}`} />
                         </button>
                      )}
                   </div>
 
-                  <div className="space-y-4">
-                     {project.objectives?.length > 0 ? (
-                        project.objectives.map((obj, idx) => (
-                           <ObjectiveCard
-                              key={obj.id || idx}
-                              objective={obj}
-                              index={idx}
-                              isPending={isPending}
-                              onEdit={(target) => handleOpenStructure(target)}
-                           />
-                        ))
-                     ) : (
-                        <div className="rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
-                           <p className="text-slate-500">No objectives defined yet.</p>
-                           {isPending && (
-                              <button
-                                 onClick={() => handleOpenStructure()}
-                                 className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-orangeFpt-600"
+                  {/* Key Metrics */}
+                  <div className="flex flex-wrap gap-4 pt-4 border-t border-slate-100">
+                     {teamSize && (
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 border border-slate-100">
+                           <Users size={18} className="text-indigo-500" />
+                           <div>
+                              <p className="text-xs text-slate-500">Team Size</p>
+                              <p className="text-sm font-bold text-slate-900">{teamSize} Members</p>
+                           </div>
+                        </div>
+                     )}
+                     <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 border border-slate-100">
+                        <Calendar size={18} className="text-teal-500" />
+                        <div>
+                           <p className="text-xs text-slate-500">Created</p>
+                           <p className="text-sm font-bold text-slate-900">{formatDate(project.createdAt)}</p>
+                        </div>
+                     </div>
+                     <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 border border-slate-100">
+                        <Clock size={18} className="text-blue-500" />
+                        <div>
+                           <p className="text-xs text-slate-500">Updated</p>
+                           <p className="text-sm font-bold text-slate-900">{formatDate(project.updatedAt)}</p>
+                        </div>
+                     </div>
+                     <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 border border-slate-100">
+                        <ListChecks size={18} className="text-amber-500" />
+                        <div>
+                           <p className="text-xs text-slate-500">Business Rules</p>
+                           <p className="text-sm font-bold text-slate-900">{businessRules.length} Rules</p>
+                        </div>
+                     </div>
+                     <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 border border-slate-100">
+                        <Users size={18} className="text-pink-500" />
+                        <div>
+                           <p className="text-xs text-slate-500">System Actors</p>
+                           <p className="text-sm font-bold text-slate-900">{actors.length} Actors</p>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+               {/* === ZONE C: System Actors (Right Column) === */}
+               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="flex items-center gap-2 mb-5">
+                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-purple-100 to-pink-100">
+                        <Users size={18} className="text-purple-600" />
+                     </div>
+                     <h2 className="text-lg font-bold text-slate-900">System Actors</h2>
+                  </div>
+
+                  <div className="space-y-3">
+                     {actors.length > 0 ? (
+                        actors.map((actor, idx) => {
+                           const config = getActorConfig(actor);
+                           const ActorIcon = config.icon;
+                           return (
+                              <div
+                                 key={idx}
+                                 className={`flex items-center gap-3 p-3 rounded-xl border ${config.border} ${config.bg} transition-all hover:shadow-sm cursor-default`}
                               >
-                                 <Plus size={16} /> Add First Objective
-                              </button>
-                           )}
+                                 <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm`}>
+                                    <ActorIcon size={20} className={config.color} />
+                                 </div>
+                                 <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-slate-800 truncate">{actor}</p>
+                                    <p className="text-xs text-slate-500">System Role</p>
+                                 </div>
+                                 <ChevronRight size={16} className="text-slate-300" />
+                              </div>
+                           );
+                        })
+                     ) : (
+                        <div className="text-center py-8 text-slate-400">
+                           <Users size={32} className="mx-auto mb-2 opacity-50" />
+                           <p className="text-sm">No actors defined</p>
                         </div>
                      )}
                   </div>
                </div>
 
-               {/* Right Column: Timeline & Meta */}
-               <div className="space-y-6">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                     <h3 className="font-bold text-slate-800 mb-4">Timeline</h3>
-                     <div className="space-y-4">
-                        <div className="flex justify-between items-center text-sm">
-                           <span className="text-slate-500">Created</span>
-                           <span className="font-medium text-slate-900">{formatDate(project.createdAt)}</span>
+               {/* === ZONE B: Business Rules (Full Width) - Academic Style === */}
+               <div className="lg:col-span-3 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                  {/* Header */}
+                  <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-slate-100/50 border-b border-slate-200">
+                     <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-slate-200 shadow-sm">
+                              <FileText size={20} className="text-slate-600" />
+                           </div>
+                           <div>
+                              <h2 className="text-lg font-bold text-slate-900">Business Rules & Constraints</h2>
+                              <p className="text-xs text-slate-500">Functional requirements governing system behavior</p>
+                           </div>
                         </div>
-                        <div className="flex justify-between items-center text-sm">
-                           <span className="text-slate-500">Last Updated</span>
-                           <span className="font-medium text-slate-900">{formatDate(project.updatedAt)}</span>
-                        </div>
-                        <div className="h-px bg-slate-100 my-2"></div>
-                        <div className="flex justify-between items-center text-sm">
-                           <span className="text-slate-500">Total Milestones</span>
-                           <span className="font-medium text-slate-900">
-                              {project.objectives?.reduce((acc, o) => acc + (o.objectiveMilestones?.length || 0), 0) || 0}
-                           </span>
+                        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-sm">
+                           <span className="text-xs font-medium text-slate-500">Total Rules:</span>
+                           <span className="text-sm font-bold text-slate-900">{businessRules.length}</span>
                         </div>
                      </div>
                   </div>
 
-                  <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-6 shadow-sm">
-                     <h3 className="font-bold text-slate-800 mb-2">Class Context</h3>
-                     {project.classId ? (
-                        <div>
-                           <p className="text-sm text-slate-600 mb-4">This project is assigned to an active class.</p>
-                           <button
-                              onClick={() => navigate(`/lecturer/classes/${project.classId}`)}
-                              className="w-full rounded-xl bg-white border border-blue-200 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-50 transition-colors"
-                           >
-                              View Class
-                           </button>
+                  {/* Rules Content */}
+                  <div className="p-6">
+                     {businessRules.length > 0 ? (
+                        <div className="space-y-0 divide-y divide-slate-100">
+                           {businessRules.map((rule, idx) => (
+                              <div
+                                 key={idx}
+                                 className="group flex items-start gap-4 py-4 first:pt-0 last:pb-0 hover:bg-slate-50/50 -mx-2 px-2 rounded-lg transition-colors"
+                              >
+                                 {/* Rule Number */}
+                                 <div className="flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-lg bg-slate-100 border border-slate-200 group-hover:bg-indigo-100 group-hover:border-indigo-200 transition-colors">
+                                    <span className="text-sm font-bold text-slate-600 group-hover:text-indigo-700 transition-colors">
+                                       {String(idx + 1).padStart(2, '0')}
+                                    </span>
+                                 </div>
+                                 
+                                 {/* Rule Content */}
+                                 <div className="flex-1 min-w-0 pt-0.5">
+                                    <p className="text-sm text-slate-700 leading-relaxed">
+                                       {rule}
+                                    </p>
+                                 </div>
+
+                                 {/* Category Tag */}
+                                 <div className="hidden lg:flex flex-shrink-0 items-center">
+                                    <span className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 bg-slate-50 rounded border border-slate-100">
+                                       BR-{String(idx + 1).padStart(3, '0')}
+                                    </span>
+                                 </div>
+                              </div>
+                           ))}
                         </div>
                      ) : (
-                        <p className="text-sm text-slate-500 italic">Not currently assigned to a specific class context.</p>
+                        <div className="text-center py-16">
+                           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 mx-auto mb-4">
+                              <FileText size={28} className="text-slate-400" />
+                           </div>
+                           <p className="text-sm font-semibold text-slate-600">No Business Rules Defined</p>
+                           <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                              Business rules define the constraints and requirements that govern system behavior.
+                           </p>
+                        </div>
                      )}
                   </div>
+
+                  {/* Footer Note */}
+                  {businessRules.length > 0 && (
+                     <div className="px-6 py-3 bg-slate-50/80 border-t border-slate-100">
+                        <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                           <AlertCircle size={12} />
+                           All business rules must be implemented and validated during system development.
+                        </p>
+                     </div>
+                  )}
                </div>
+
             </div>
          </div>
 
          {/* --- MODALS --- */}
 
-         {/* 1. Quick Edit Modal */}
+         {/* Edit Modal */}
          <ModalWrapper isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Project Details">
-            <form onSubmit={handleUpdateBasicInfo} className="space-y-5">
+            <form onSubmit={handleUpdateBasicInfo} className="space-y-5 max-h-[70vh] overflow-y-auto pr-2">
+               {/* Project Name */}
                <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Project Name</label>
                   <input
@@ -657,17 +588,145 @@ const ProjectDetail = () => {
                      onChange={(e) => setEditDraft({ ...editDraft, projectName: e.target.value })}
                   />
                </div>
+
+               {/* Description */}
                <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Description</label>
                   <textarea
-                     rows={4}
+                     rows={3}
                      required
                      className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-2 focus:ring-orangeFpt-500/10"
                      value={editDraft.description}
                      onChange={(e) => setEditDraft({ ...editDraft, description: e.target.value })}
                   />
                </div>
-               <div className="flex justify-end gap-3 pt-2">
+
+               {/* Business Rules - Array Input */}
+               <div>
+                  <div className="flex items-center gap-2 mb-2">
+                     <ScrollText size={16} className="text-orangeFpt-500" />
+                     <label className="text-sm font-semibold text-slate-700">Business Rules</label>
+                     <span className="text-xs text-slate-400">({editBusinessRulesArray.length} rules)</span>
+                  </div>
+                  
+                  {/* Add Rule Input */}
+                  <div className="flex gap-2 mb-3">
+                     <div className="flex-1 relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-orangeFpt-500 font-medium text-sm">-</span>
+                        <input
+                           type="text"
+                           className="w-full rounded-xl border border-slate-200 pl-7 pr-4 py-2.5 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-2 focus:ring-orangeFpt-500/10"
+                           placeholder="Enter a business rule..."
+                           value={newRuleInput}
+                           onChange={(e) => setNewRuleInput(e.target.value)}
+                           onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                 e.preventDefault();
+                                 handleAddEditBusinessRule(newRuleInput);
+                              }
+                           }}
+                        />
+                     </div>
+                     <button
+                        type="button"
+                        onClick={() => handleAddEditBusinessRule(newRuleInput)}
+                        disabled={!newRuleInput.trim()}
+                        className="px-4 py-2.5 rounded-xl bg-orangeFpt-500 text-white hover:bg-orangeFpt-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                     >
+                        <Plus size={18} />
+                     </button>
+                  </div>
+
+                  {/* Rules List */}
+                  {editBusinessRulesArray.length > 0 ? (
+                     <div className="space-y-2 max-h-40 overflow-y-auto p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        {editBusinessRulesArray.map((rule, index) => (
+                           <div
+                              key={index}
+                              className="flex items-start gap-2 p-2.5 bg-white rounded-lg border border-slate-100 group"
+                           >
+                              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-orangeFpt-100 text-orangeFpt-600 text-xs font-bold flex items-center justify-center mt-0.5">
+                                 {index + 1}
+                              </span>
+                              <p className="flex-1 text-sm text-slate-700 leading-relaxed">{rule}</p>
+                              <button
+                                 type="button"
+                                 onClick={() => handleRemoveEditBusinessRule(rule)}
+                                 className="flex-shrink-0 p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                              >
+                                 <X size={14} />
+                              </button>
+                           </div>
+                        ))}
+                     </div>
+                  ) : (
+                     <div className="text-center p-4 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-sm text-slate-400">
+                        No rules added. Enter a rule above and press Enter or click Add.
+                     </div>
+                  )}
+               </div>
+
+               {/* Actors - Array Input */}
+               <div>
+                  <div className="flex items-center gap-2 mb-2">
+                     <Users size={16} className="text-blue-500" />
+                     <label className="text-sm font-semibold text-slate-700">System Actors</label>
+                     <span className="text-xs text-slate-400">({editActorsArray.length} actors)</span>
+                  </div>
+                  
+                  {/* Add Actor Input */}
+                  <div className="flex gap-2 mb-3">
+                     <input
+                        type="text"
+                        className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-orangeFpt-500 focus:outline-none focus:ring-2 focus:ring-orangeFpt-500/10"
+                        placeholder="Enter actor name (e.g., Admin, User, System)..."
+                        value={newActorInput}
+                        onChange={(e) => setNewActorInput(e.target.value)}
+                        onKeyDown={(e) => {
+                           if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddEditActor(newActorInput);
+                           }
+                        }}
+                     />
+                     <button
+                        type="button"
+                        onClick={() => handleAddEditActor(newActorInput)}
+                        disabled={!newActorInput.trim()}
+                        className="px-4 py-2.5 rounded-xl bg-blue-500 text-white hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                     >
+                        <Plus size={18} />
+                     </button>
+                  </div>
+
+                  {/* Actors List */}
+                  {editActorsArray.length > 0 ? (
+                     <div className="flex flex-wrap gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200 min-h-[48px]">
+                        {editActorsArray.map((actor, index) => (
+                           <span
+                              key={index}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full bg-blue-100 text-blue-700"
+                           >
+                              {actor}
+                              <button
+                                 type="button"
+                                 onClick={() => handleRemoveEditActor(actor)}
+                                 className="hover:text-red-500 transition-colors"
+                              >
+                                 <X size={14} />
+                              </button>
+                           </span>
+                        ))}
+                     </div>
+                  ) : (
+                     <div className="text-center p-4 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-sm text-slate-400">
+                        No actors added. Enter an actor name above and press Enter or click Add.
+                     </div>
+                  )}
+               </div>
+
+               {/* Actions */}
+               <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
                   <button
                      type="button"
                      onClick={() => setIsEditModalOpen(false)}
@@ -677,7 +736,7 @@ const ProjectDetail = () => {
                   </button>
                   <button
                      type="submit"
-                     disabled={isEditSaving}
+                     disabled={isEditSaving || editBusinessRulesArray.length === 0 || editActorsArray.length === 0}
                      className="px-4 py-2 rounded-xl bg-orangeFpt-500 text-sm font-semibold text-white hover:bg-orangeFpt-600 disabled:opacity-50"
                   >
                      {isEditSaving ? 'Saving...' : 'Save Changes'}
@@ -686,219 +745,7 @@ const ProjectDetail = () => {
             </form>
          </ModalWrapper>
 
-         {/* 2. Structure Modal (Full Editor) */}
-         <ModalWrapper isOpen={structureModalOpen} onClose={() => setStructureModalOpen(false)} title="Edit Objectives & Milestones">
-            <form onSubmit={handleSaveStructure} className="flex flex-col gap-6 overflow-y-auto pr-2">
-               {structureError && (
-                  <div className="p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-center gap-2">
-                     <AlertCircle size={16} /> {structureError}
-                  </div>
-               )}
-
-               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                     <label className="block text-sm font-bold uppercase text-slate-500 mb-2">Project Name</label>
-                     <input
-                        type="text"
-                        className={`w-full rounded-xl border px-4 py-3 text-base font-medium focus:ring-2 focus:ring-blue-500/20 outline-none transition-all ${
-                           fieldErrors.projectName ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-blue-500'
-                        }`}
-                        value={structureMeta.projectName}
-                        onChange={(e) => {
-                           setStructureMeta({ ...structureMeta, projectName: e.target.value });
-                           if (fieldErrors.projectName) setFieldErrors(prev => { const n = {...prev}; delete n.projectName; return n; });
-                        }}
-                     />
-                     {fieldErrors.projectName && <p className="text-xs text-red-500 mt-1">{fieldErrors.projectName}</p>}
-                  </div>
-                  <div className="sm:col-span-2">
-                     <label className="block text-sm font-bold uppercase text-slate-500 mb-2">Description</label>
-                     <textarea
-                        rows={3}
-                        className={`w-full rounded-xl border px-4 py-3 text-base focus:ring-2 focus:ring-blue-500/20 outline-none transition-all ${
-                           fieldErrors.description ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-blue-500'
-                        }`}
-                        value={structureMeta.description}
-                        onChange={(e) => {
-                           setStructureMeta({ ...structureMeta, description: e.target.value });
-                           if (fieldErrors.description) setFieldErrors(prev => { const n = {...prev}; delete n.description; return n; });
-                        }}
-                     />
-                     {fieldErrors.description && <p className="text-xs text-red-500 mt-1">{fieldErrors.description}</p>}
-                  </div>
-               </div>
-
-               <div className="space-y-8">
-                  {structureDraft.map((objective, oIdx) => (
-                     <div
-                        key={objective.id}
-                        ref={el => objectiveRefs.current[objective.id] = el}
-                        className="rounded-2xl border border-slate-200 bg-slate-50/50 p-6 space-y-6 shadow-sm transition-all duration-300"
-                     >
-                        {/* Objective Header */}
-                        <div className="flex justify-between items-center border-b border-slate-200 pb-4">
-                           <div className="flex items-center gap-3">
-                              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white shadow-md shadow-blue-200">
-                                 {oIdx + 1}
-                              </span>
-                              <h4 className="text-lg font-bold text-slate-800">Objective</h4>
-                           </div>
-                           <button
-                              type="button"
-                              onClick={() => removeDraftObjective(oIdx)}
-                              disabled={structureDraft.length === 1}
-                              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30"
-                           >
-                              <Trash2 size={20} />
-                           </button>
-                        </div>
-
-                        {/* Objective Fields */}
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-                           <div className="sm:col-span-3">
-                              <label className="block text-xs font-bold uppercase text-slate-400 mb-1.5">Description</label>
-                              <textarea
-                                 rows={3}
-                                 placeholder="Describe the objective..."
-                                 className={`w-full rounded-xl border px-4 py-3 text-base bg-white shadow-sm focus:ring-2 focus:ring-blue-500/20 outline-none ${
-                                    fieldErrors[`obj-${oIdx}-desc`] ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-blue-500'
-                                 }`}
-                                 value={objective.description}
-                                 onChange={(e) => updateDraftObjective(oIdx, 'description', e.target.value)}
-                              />
-                              {fieldErrors[`obj-${oIdx}-desc`] && <p className="text-xs text-red-500 mt-1">{fieldErrors[`obj-${oIdx}-desc`]}</p>}
-                           </div>
-                           <div>
-                              <label className="block text-xs font-bold uppercase text-slate-400 mb-1.5">Priority</label>
-                              <select
-                                 className="w-full rounded-xl border border-slate-200 px-4 py-3 text-base bg-white shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
-                                 value={objective.priority}
-                                 onChange={(e) => updateDraftObjective(oIdx, 'priority', e.target.value)}
-                              >
-                                 <option value="High">High</option>
-                                 <option value="Medium">Medium</option>
-                                 <option value="Low">Low</option>
-                              </select>
-                           </div>
-
-                        </div>
-
-                        {/* Milestones */}
-                        <div className="pl-6 border-l-2 border-slate-200 space-y-4">
-                           <div className="flex items-center justify-between">
-                              <h5 className="text-sm font-bold uppercase text-slate-500 tracking-wide">Milestones</h5>
-                           </div>
-                           {objective.objectiveMilestones.map((milestone, mIdx) => (
-                              <div
-                                 key={milestone.id}
-                                 ref={el => {
-                                    if (milestone.id) objectiveRefs.current[milestone.id] = el;
-                                 }}
-                                 className="bg-white rounded-xl border border-slate-200 p-4 space-y-4 relative group shadow-sm hover:shadow-md transition-shadow"
-                              >
-                                 <button
-                                    type="button"
-                                    onClick={() => removeDraftMilestone(oIdx, mIdx)}
-                                    className="absolute top-3 right-3 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
-                                 >
-                                    <Trash2 size={16} />
-                                 </button>
-
-                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                       <label className="block text-xs font-semibold text-slate-400 mb-1">Milestone Title</label>
-                                       <input
-                                          type="text"
-                                          placeholder="Milestone Title"
-                                          className={`w-full rounded-lg border px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500/10 outline-none ${
-                                             fieldErrors[`ms-${oIdx}-${mIdx}-title`] ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-blue-500'
-                                          }`}
-                                          value={milestone.title}
-                                          onChange={(e) => updateDraftMilestone(oIdx, mIdx, 'title', e.target.value)}
-                                       />
-                                       {fieldErrors[`ms-${oIdx}-${mIdx}-title`] && <p className="text-xs text-red-500 mt-1">{fieldErrors[`ms-${oIdx}-${mIdx}-title`]}</p>}
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                       <div>
-                                          <label className="block text-xs font-semibold text-slate-400 mb-1">Start Date</label>
-                                          <input
-                                             type="date"
-                                             min={todayStr}
-                                             className={`w-full rounded-lg border px-3 py-2.5 text-sm text-slate-600 focus:ring-2 focus:ring-blue-500/10 outline-none ${
-                                                fieldErrors[`ms-${oIdx}-${mIdx}-start`] ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-blue-500'
-                                             }`}
-                                             value={milestone.startDate}
-                                             onChange={(e) => updateDraftMilestone(oIdx, mIdx, 'startDate', e.target.value)}
-                                          />
-                                          {fieldErrors[`ms-${oIdx}-${mIdx}-start`] && <p className="text-[10px] text-red-500 mt-1">{fieldErrors[`ms-${oIdx}-${mIdx}-start`]}</p>}
-                                       </div>
-                                       <div>
-                                          <label className="block text-xs font-semibold text-slate-400 mb-1">End Date</label>
-                                          <input
-                                             type="date"
-                                             min={todayStr}
-                                             className={`w-full rounded-lg border px-3 py-2.5 text-sm text-slate-600 focus:ring-2 focus:ring-blue-500/10 outline-none ${
-                                                fieldErrors[`ms-${oIdx}-${mIdx}-end`] ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-blue-500'
-                                             }`}
-                                             value={milestone.endDate}
-                                             onChange={(e) => updateDraftMilestone(oIdx, mIdx, 'endDate', e.target.value)}
-                                          />
-                                          {fieldErrors[`ms-${oIdx}-${mIdx}-end`] && <p className="text-[10px] text-red-500 mt-1">{fieldErrors[`ms-${oIdx}-${mIdx}-end`]}</p>}
-                                       </div>
-                                    </div>
-                                 </div>
-                                 <div className="mt-2">
-                                    <label className="block text-xs font-semibold text-slate-400 mb-1">Deliverables</label>
-                                    <textarea
-                                       rows={2}
-                                       placeholder="Milestone deliverables..."
-                                       className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-600 resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 outline-none"
-                                       value={milestone.description}
-                                       onChange={(e) => updateDraftMilestone(oIdx, mIdx, 'description', e.target.value)}
-                                    />
-                                 </div>
-                              </div>
-                           ))}
-                           <button
-                              type="button"
-                              onClick={() => addDraftMilestone(oIdx)}
-                              className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors"
-                           >
-                              <Plus size={16} /> Add Milestone
-                           </button>
-                        </div>
-                     </div>
-                  ))}
-
-                  <button
-                     type="button"
-                     onClick={addDraftObjective}
-                     className="w-full py-4 rounded-xl border-2 border-dashed border-slate-300 text-slate-500 font-bold hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
-                  >
-                     <Plus size={20} /> Add New Objective
-                  </button>
-               </div>
-
-               <div className="sticky bottom-0 bg-white pt-4 border-t border-slate-100 flex justify-end gap-3 pb-2">
-                  <button
-                     type="button"
-                     onClick={() => setStructureModalOpen(false)}
-                     className="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors"
-                  >
-                     Cancel
-                  </button>
-                  <button
-                     type="submit"
-                     disabled={isStructureSaving}
-                     className="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all transform active:scale-95 disabled:opacity-50 disabled:transform-none"
-                  >
-                     {isStructureSaving ? 'Saving...' : 'Save Changes'}
-                  </button>
-               </div>
-            </form>
-         </ModalWrapper>
-
-         {/* 3. Delete Confirmation */}
+         {/* Delete Confirmation Modal */}
          <ModalWrapper isOpen={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Delete Project">
             <div className="space-y-4">
                <p className="text-slate-600">

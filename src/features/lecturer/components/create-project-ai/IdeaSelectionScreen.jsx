@@ -329,6 +329,27 @@ const IdeaCard = ({
 const EditIdeaModal = ({ idea, onSave, onClose }) => {
   const [editedIdea, setEditedIdea] = useState({ ...idea });
   const [activeTab, setActiveTab] = useState('basic');
+  
+  // Array-based state for business rules - handle multiple formats (-, •, or no prefix)
+  const [businessRulesArray, setBusinessRulesArray] = useState(() => {
+    if (!idea.businessRules) return [];
+    const rules = idea.businessRules
+      .split('\n')
+      .map(r => r.replace(/^[-•*]\s*/, '').trim())  // Remove -, •, * prefixes
+      .filter(Boolean);
+    console.log('Parsed business rules from:', idea.businessRules, 'to:', rules);
+    return rules;
+  });
+  const [newRuleInput, setNewRuleInput] = useState('');
+  
+  // Array-based state for actors
+  const [actorsArray, setActorsArray] = useState(() => {
+    if (!idea.actors) return [];
+    const actors = idea.actors.split(',').map(a => a.trim()).filter(Boolean);
+    console.log('Parsed actors from:', idea.actors, 'to:', actors);
+    return actors;
+  });
+  const [newActorInput, setNewActorInput] = useState('');
 
   const tabs = [
     { id: 'basic', label: 'Basic Info', icon: FileText },
@@ -336,10 +357,55 @@ const EditIdeaModal = ({ idea, onSave, onClose }) => {
     { id: 'actors', label: 'Actors & Roles', icon: Users },
   ];
 
-  // Parse rules count
-  const rulesCount = (editedIdea.businessRules || '')
-    .split('\n')
-    .filter(r => r.trim()).length;
+  // Business Rules Handlers
+  const handleAddRule = (rule) => {
+    const trimmedRule = rule.trim();
+    if (trimmedRule && !businessRulesArray.includes(trimmedRule)) {
+      setBusinessRulesArray(prev => [...prev, trimmedRule]);
+      setNewRuleInput('');
+    }
+  };
+
+  const handleRemoveRule = (ruleToRemove) => {
+    setBusinessRulesArray(prev => prev.filter(rule => rule !== ruleToRemove));
+  };
+
+  // Actors Handlers
+  const handleAddActor = (actor) => {
+    const trimmedActor = actor.trim();
+    if (trimmedActor && !actorsArray.includes(trimmedActor)) {
+      setActorsArray(prev => [...prev, trimmedActor]);
+      setNewActorInput('');
+    }
+  };
+
+  const handleRemoveActor = (actorToRemove) => {
+    setActorsArray(prev => prev.filter(actor => actor !== actorToRemove));
+  };
+
+  // Save handler - format arrays back to strings
+  const handleSave = () => {
+    const formattedBusinessRules = businessRulesArray.map(rule => `- ${rule}`).join('\n');
+    const formattedActors = actorsArray.join(', ');
+    
+    const savedIdea = {
+      ...editedIdea,
+      businessRules: formattedBusinessRules,
+      actors: formattedActors,
+    };
+    
+    console.log('Saving idea with:', {
+      businessRulesArray,
+      actorsArray,
+      formattedBusinessRules,
+      formattedActors,
+      savedIdea
+    });
+    
+    onSave(savedIdea);
+  };
+
+  const rulesCount = businessRulesArray.length;
 
   return createPortal(
     <motion.div
@@ -461,7 +527,7 @@ const EditIdeaModal = ({ idea, onSave, onClose }) => {
               </motion.div>
             )}
 
-            {/* Business Rules Tab */}
+            {/* Business Rules Tab - Array Based Input */}
             {activeTab === 'rules' && (
               <motion.div
                 key="rules"
@@ -471,64 +537,75 @@ const EditIdeaModal = ({ idea, onSave, onClose }) => {
                 transition={{ duration: 0.2 }}
                 className="space-y-4"
               >
-                {/* Help Banner - using balanced colors */}
-                <div className="flex items-start gap-3 p-4 bg-[#fcd8b6]/30 border border-[#fb8239]/40 rounded-xl">
-                  <AlertCircle size={18} className="text-[#a51200] mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-[#450b00]">Business Rules Format</p>
-                    <p className="text-xs text-[#a51200] mt-0.5">
-                      Start each rule with a dash (-) or bullet (•). Each rule should be on a new line.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Rules Editor */}
+                {/* Add Rule Input */}
                 <div>
                   <label className="flex items-center justify-between mb-2">
                     <span className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-wider">
                       <BookOpen size={12} />
-                      Business Rules
+                      Add Business Rule
                     </span>
                     <span className="text-xs text-slate-400">{rulesCount} rules defined</span>
                   </label>
-                  <textarea
-                    value={editedIdea.businessRules || ''}
-                    onChange={(e) => setEditedIdea({ ...editedIdea, businessRules: e.target.value })}
-                    rows={10}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-mono leading-relaxed focus:ring-4 focus:ring-[#fcd8b6] focus:border-[#fb8239] focus:bg-white transition-all resize-none outline-none"
-                    placeholder="- Users must authenticate before accessing the dashboard&#10;- Orders cannot be canceled after shipment&#10;- Admin can override user permissions&#10;- Payment must be verified within 24 hours"
-                  />
-                </div>
-
-                {/* Quick Add Suggestions */}
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 mb-2">Quick Add Common Rules:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      '- Authentication required',
-                      '- Role-based access control',
-                      '- Data validation on input',
-                      '- Audit logging enabled',
-                    ].map((rule, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setEditedIdea({
-                          ...editedIdea,
-                          businessRules: editedIdea.businessRules
-                            ? `${editedIdea.businessRules}\n${rule}`
-                            : rule
-                        })}
-                        className="px-3 py-1.5 bg-slate-100 hover:bg-[#fcd8b6]/50 text-slate-600 hover:text-[#a51200] rounded-lg text-xs font-medium transition-colors"
-                      >
-                        + {rule.replace('- ', '')}
-                      </button>
-                    ))}
+                  <div className="flex gap-2">
+                    <div className="flex-1 relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#e75710] font-medium">-</span>
+                      <input
+                        type="text"
+                        value={newRuleInput}
+                        onChange={(e) => setNewRuleInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddRule(newRuleInput);
+                          }
+                        }}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-4 py-3 text-sm text-slate-700 focus:ring-4 focus:ring-[#fcd8b6] focus:border-[#fb8239] focus:bg-white transition-all outline-none"
+                        placeholder="Enter a business rule..."
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleAddRule(newRuleInput)}
+                      disabled={!newRuleInput.trim()}
+                      className="px-4 py-3 rounded-xl bg-gradient-to-r from-[#e75710] to-[#fb8239] text-white hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Plus size={18} />
+                    </button>
                   </div>
                 </div>
+
+                {/* Rules List */}
+                {businessRulesArray.length > 0 ? (
+                  <div className="space-y-2 max-h-[250px] overflow-y-auto p-3 rounded-xl bg-[#fcd8b6]/20 border border-[#e75710]/20">
+                    {businessRulesArray.map((rule, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start gap-3 p-3 bg-white rounded-lg border border-slate-100 shadow-sm group"
+                      >
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#fcd8b6] text-[#e75710] text-xs font-bold flex items-center justify-center">
+                          {index + 1}
+                        </span>
+                        <p className="flex-1 text-sm text-slate-700 leading-relaxed">{rule}</p>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveRule(rule)}
+                          className="flex-shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center p-8 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-sm text-slate-400">
+                    No rules added yet. Enter a rule above and press Enter or click Add.
+                  </div>
+                )}
+                
               </motion.div>
             )}
 
-            {/* Actors Tab */}
+            {/* Actors Tab - Array Based Input */}
             {activeTab === 'actors' && (
               <motion.div
                 key="actors"
@@ -538,63 +615,66 @@ const EditIdeaModal = ({ idea, onSave, onClose }) => {
                 transition={{ duration: 0.2 }}
                 className="space-y-5"
               >
+                {/* Add Actor Input */}
                 <div>
-                  <label className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
-                    <Users size={12} />
-                    System Actors
+                  <label className="flex items-center justify-between mb-2">
+                    <span className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                      <Users size={12} />
+                      Add System Actor
+                    </span>
+                    <span className="text-xs text-slate-400">{actorsArray.length} actors defined</span>
                   </label>
-                  <input
-                    type="text"
-                    value={editedIdea.actors || ''}
-                    onChange={(e) => setEditedIdea({ ...editedIdea, actors: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm text-slate-700 focus:ring-4 focus:ring-[#fcd8b6] focus:border-[#fb8239] focus:bg-white transition-all outline-none"
-                    placeholder="Admin, User, Manager, Guest (comma separated)"
-                  />
-                  <p className="text-xs text-slate-400 mt-1.5">
-                    Separate multiple actors with commas
-                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newActorInput}
+                      onChange={(e) => setNewActorInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddActor(newActorInput);
+                        }
+                      }}
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 focus:ring-4 focus:ring-[#fcd8b6] focus:border-[#fb8239] focus:bg-white transition-all outline-none"
+                      placeholder="Enter actor name (e.g., Admin, User, System)..."
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleAddActor(newActorInput)}
+                      disabled={!newActorInput.trim()}
+                      className="px-4 py-3 rounded-xl bg-blue-500 text-white hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Plus size={18} />
+                    </button>
+                  </div>
                 </div>
 
-                {/* Actor Preview */}
-                {editedIdea.actors && (
-                  <div>
-                    <p className="text-xs font-semibold text-slate-500 mb-2">Preview:</p>
-                    <div className="flex flex-wrap gap-2 p-4 bg-slate-50 rounded-xl">
-                      {editedIdea.actors.split(',').map((actor, idx) => (
-                        <span
-                          key={idx}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 shadow-sm"
-                        >
-                          <UserCircle size={14} className="text-[#e75710]" />
-                          {actor.trim()}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Common Actors */}
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 mb-2">Suggested Actors:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {['Admin', 'User', 'Manager', 'Guest', 'System', 'Moderator', 'Customer', 'Vendor'].map((actor) => (
-                      <button
-                        key={actor}
-                        onClick={() => {
-                          const current = editedIdea.actors || '';
-                          const actors = current.split(',').map(a => a.trim()).filter(a => a);
-                          if (!actors.includes(actor)) {
-                            actors.push(actor);
-                            setEditedIdea({ ...editedIdea, actors: actors.join(', ') });
-                          }
-                        }}
-                        className="px-3 py-1.5 bg-slate-100 hover:bg-[#fcd8b6]/50 text-slate-600 hover:text-[#a51200] rounded-lg text-xs font-medium transition-colors"
+                {/* Actors List */}
+                {actorsArray.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 p-4 bg-slate-50 rounded-xl border border-slate-200 min-h-[60px]">
+                    {actorsArray.map((actor, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 shadow-sm group"
                       >
-                        + {actor}
-                      </button>
+                        <UserCircle size={14} className="text-[#e75710]" />
+                        {actor}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveActor(actor)}
+                          className="hover:text-red-500 transition-colors"
+                        >
+                          <X size={14} />
+                        </button>
+                      </span>
                     ))}
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-center justify-center p-6 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-sm text-slate-400">
+                    No actors added. Enter an actor name above or select from suggestions below.
+                  </div>
+                )}
+                
               </motion.div>
             )}
           </AnimatePresence>
@@ -614,8 +694,9 @@ const EditIdeaModal = ({ idea, onSave, onClose }) => {
               Cancel
             </button>
             <button
-              onClick={() => onSave(editedIdea)}
-              className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#a51200] to-[#e75710] hover:from-[#450b00] hover:to-[#a51200] rounded-xl transition-all shadow-lg shadow-[#fcd8b6] hover:shadow-xl"
+              onClick={handleSave}
+              disabled={businessRulesArray.length === 0 || actorsArray.length === 0}
+              className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#a51200] to-[#e75710] hover:from-[#450b00] hover:to-[#a51200] rounded-xl transition-all shadow-lg shadow-[#fcd8b6] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save size={16} />
               Save Changes
@@ -796,6 +877,7 @@ const IdeaSelectionScreen = ({
   };
 
   const handleSaveEdit = (editedIdea) => {
+    console.log('handleSaveEdit called with:', editedIdea);
     onSaveIdea(editedIdea);
     setEditModalOpen(false);
     setEditingIdeaId(null);

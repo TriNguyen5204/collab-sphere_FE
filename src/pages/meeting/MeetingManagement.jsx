@@ -9,17 +9,13 @@ import {
   Search,
   Clock,
   User,
-  X,
-  Check,
-  AlertCircle,
   RefreshCw,
   Video,
-  FileText,
-  Users,
 } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
+import RecordUrlCell from '../../features/meeting/components/RecordUrlCell';
 import { useAvatar } from '../../hooks/useAvatar';
 
 // Avatar Component using useAvatar hook (consistent with ClassDetailPage)
@@ -152,22 +148,10 @@ const MeetingManagement = () => {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
-      hour: '2-digit', 
-      minute: '2-digit', 
-      hour12: true, 
-      timeZone: 'UTC', 
-    });
-  };
-
-  // Format time
-  const formatTime = dateString => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: true, // Hiện AM/PM
-      timeZone: 'UTC', // 👈 QUAN TRỌNG: Giữ nguyên giờ gốc
+      hour12: true,
+      timeZone: 'UTC',
     });
   };
 
@@ -357,10 +341,7 @@ const MeetingManagement = () => {
                       Date
                     </th>
                     <th className='px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider'>
-                      Time
-                    </th>
-                    <th className='px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider'>
-                      Description
+                      Recording
                     </th>
                   </tr>
                 </thead>
@@ -420,28 +401,8 @@ const MeetingManagement = () => {
                         </div>
                       </td>
 
-                      {/* Time */}
                       <td className='px-6 py-4'>
-                        <div className='flex items-center gap-2'>
-                          <Clock className='h-4 w-4 text-slate-400' />
-                          <span className='text-sm text-slate-700'>
-                            {formatTime(meeting.scheduleTime)}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Description */}
-                      <td className='px-6 py-4'>
-                        <p
-                          className='text-sm text-slate-600 line-clamp-2 max-w-[250px]'
-                          title={meeting.description}
-                        >
-                          {meeting.description || (
-                            <span className='text-slate-400 italic'>
-                              No description
-                            </span>
-                          )}
-                        </p>
+                        <RecordUrlCell recordUrl={meeting.recordUrl} />
                       </td>
                     </tr>
                   ))}
