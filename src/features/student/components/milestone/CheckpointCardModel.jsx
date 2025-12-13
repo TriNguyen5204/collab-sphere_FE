@@ -33,9 +33,8 @@ const getStatusBadgeStyles = (status) => {
         case 'COMPLETED':
             return 'bg-green-100 text-green-700 border border-green-200';
         case 'PROCESSING':
-        case 'IN_PROGRESS':
             return 'bg-blue-100 text-blue-700 border border-blue-200';
-        case 'overdue':
+        case 'OVERDUE':
             return 'bg-red-50 text-red-600 border border-red-200';
         case 'NOT_DONE':
         default:
@@ -613,8 +612,10 @@ const CheckpointCardModal = ({
     const dueDate = resolvedDetail?.dueDate ?? resolvedDetail?.deadline ?? resolvedDetail?.endDate ?? fallbackCheckpoint?.dueDate ?? null;
     
     // Check if checkpoint is overdue (must be after dueDate is declared)
-    const isOverdue = dueDate && new Date(dueDate) < new Date() && statusBadgeKey !== 'completed';
-    const finalStatusBadgeKey = isOverdue ? 'overdue' : statusBadgeKey;
+    // Only show overdue if NOT completed
+    const isCompleted = statusBadgeKey?.toUpperCase() === 'COMPLETED';
+    const isOverdue = !isCompleted && dueDate && new Date(dueDate) < new Date();
+    const finalStatusBadgeKey = isOverdue ? 'OVERDUE' : statusBadgeKey;
     const finalStatusDisplayText = isOverdue ? 'OVERDUE' : statusDisplayText;
     const submissionsCount = normalizedSubmissions.length;
     const assignmentsCount = assignments.length;

@@ -286,7 +286,7 @@ const TeamWorkspace = () => {
                             <div className="flex-1 min-w-0">
                               <h3 className="font-semibold text-base truncate">{member.studentName}</h3>
                               <div className="flex items-center gap-2 mt-2">
-                                <span className={`text-sm px-3 py-1 rounded-full border font-medium ${member.teamRole === 1 ? 'bg-yellow-50 text-yellow-800 border-yellow-200' : 'bg-gray-100 text-gray-700 border-gray-300'}`}>{convertTeamRole(member.teamRole)}</span>
+                                <span className={`text-sm px-3 py-1 rounded-full border font-medium ${member.teamRole === 1 ? 'bg-yellow-50 text-yellow-800 border-yellow-200' : 'bg-gray-50 text-gray-700 border-gray-300'}`}>{convertTeamRole(member.teamRole)}</span>
                               </div>
                             </div>
                           </div>
