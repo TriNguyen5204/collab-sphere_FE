@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import useToastConfirmation from '../../../../hooks/useToastConfirmation';
+import { useAvatar } from '../../../../hooks/useAvatar';
 import {
   X,
   Clock,
@@ -13,6 +15,10 @@ import {
   Pencil,
   PencilLine,
   AlertCircle,
+  Layout,
+  Calendar,
+  ListChecks,
+  Flag
 } from 'lucide-react';
 import useClickOutside from '../../../../hooks/useClickOutside';
 import ProjectMemberPopover from '../ProjectMemberPopover';
@@ -34,6 +40,32 @@ import {
   deleteSubTask,
   markSubTaskDone,
 } from '../../../../hooks/kanban/signalRHelper';
+
+const MemberAvatar = ({ member, size = "w-10 h-10", className = "" }) => {
+  const { initials, colorClass, shouldShowImage, setImageError } = useAvatar(
+    member.studentName,
+    member.avatarImg || member.avatar
+  );
+
+  return (
+    <div
+      className={`${size} ${className} flex items-center justify-center rounded-full overflow-hidden border ${
+        shouldShowImage ? 'border-gray-200' : colorClass
+      } bg-white`}
+    >
+      {shouldShowImage ? (
+        <img
+          src={member.avatarImg || member.avatar}
+          alt={member.studentName}
+          className="w-full h-full object-cover"
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <span className="font-bold text-xs">{initials}</span>
+      )}
+    </div>
+  );
+};
 
 const CardModal = ({
   card,
@@ -434,9 +466,24 @@ const CardModal = ({
   const dueDateStatus = getDueDateStatus();
 
   const riskLevels = [
-    { name: 'Low', value: 'low', bg: 'bg-green-500' },
-    { name: 'Medium', value: 'medium', bg: 'bg-yellow-500' },
-    { name: 'High', value: 'high', bg: 'bg-red-500' },
+    { 
+      name: 'Low', 
+      value: 'low', 
+      baseClass: 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100',
+      activeClass: 'ring-2 ring-green-500 ring-offset-1 font-bold'
+    },
+    { 
+      name: 'Medium', 
+      value: 'medium', 
+      baseClass: 'bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100',
+      activeClass: 'ring-2 ring-yellow-500 ring-offset-1 font-bold'
+    },
+    { 
+      name: 'High', 
+      value: 'high', 
+      baseClass: 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100',
+      activeClass: 'ring-2 ring-red-500 ring-offset-1 font-bold'
+    },
   ];
   
   const getAvatarUrl = member => {
@@ -452,119 +499,137 @@ const CardModal = ({
     return avatarUrl;
   };
 
-  return (
-    <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn'>
+  return createPortal(
+    <div className='fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-fadeIn'>
       <div
         ref={panelRef}
-        className='bg-white rounded-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden shadow-2xl animate-slideUp'
+        className='bg-white rounded-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden shadow-2xl animate-slideUp flex flex-col border border-gray-100'
       >
-        {/* Header */}
-        <div className='bg-gradient-to-r from-blue-500 to-purple-600 p-6'>
-          <div className='flex items-center justify-between mb-2'>
-            <h2 className='text-white font-bold text-2xl md:text-3xl'>
-              {listTitle}
-            </h2>
-            {!isConnected && (
-              <span className='text-yellow-300 text-sm bg-yellow-900/30 px-2 py-1 rounded'>
-                ⚠️ Offline
-              </span>
-            )}
-            <div className='flex items-center gap-2'>
-              <button
-                onClick={handleDelete}
-                className='text-white/90 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg transition-all flex items-center gap-2'
-                type='button'
-                title='Delete Card'
-              >
-                <Trash2 size={18} />
-                Delete
-              </button>
-              <button
-                onClick={onClose}
-                className='text-white/80 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-all'
-                type='button'
-                title='Close'
-              >
-                <X size={24} />
-              </button>
+        {/* Header - Brand Gradient */}
+        <div className='bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 p-6 flex-shrink-0'>
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center gap-3'>
+                <div className='p-2 bg-white/20 rounded-lg backdrop-blur-sm'>
+                   <Layout className="text-white" size={24} />
+                </div>
+                <div>
+                    <h2 className='text-white font-bold text-2xl tracking-tight'>
+                    Card Details
+                    </h2>
+                    {listTitle && (
+                    <p className='text-orange-100 text-sm font-medium'>
+                        in list: <span className="text-white font-semibold">{listTitle}</span>
+                    </p>
+                    )}
+                </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+                {!isConnected && (
+                <span className='bg-yellow-400 text-yellow-900 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 shadow-sm'>
+                    <div className="w-2 h-2 rounded-full bg-yellow-800 animate-pulse" />
+                    Offline
+                </span>
+                )}
+                
+                <button
+                  onClick={handleDelete}
+                  className='text-white/80 hover:text-white hover:bg-white/20 p-2 rounded-full transition-all duration-200'
+                  type='button'
+                  title='Delete Card'
+                >
+                  <Trash2 size={20} />
+                </button>
+
+                <button
+                  onClick={onClose}
+                  className='text-white/80 hover:text-white hover:bg-white/20 p-2 rounded-full transition-all duration-200'
+                  type='button'
+                  title='Close'
+                >
+                  <X size={24} />
+                </button>
             </div>
           </div>
         </div>
 
-        <div className='p-6 overflow-y-auto max-h-[calc(95vh-180px)] space-y-6'>
+        <div className='p-6 overflow-y-auto flex-1 space-y-8 custom-scrollbar bg-white'>
           {/* Checkbox + Title */}
-          <div className='flex items-start gap-3'>
-            <button
-              onClick={toggleComplete}
-              disabled={!isConnected}
-              className='mt-1 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed'
-              type='button'
-            >
-              {editedCard.isCompleted ? (
-                <CheckCircle2 size={32} className='text-green-600' />
-              ) : (
-                <Circle
-                  size={32}
-                  className='text-gray-400 hover:text-gray-600'
-                />
-              )}
-            </button>
-            <div className='flex-1'>
-              <input
-                type='text'
-                value={editableFields.title}
-                onChange={e =>
-                  setEditableFields(prev => ({
-                    ...prev,
-                    title: e.target.value,
-                  }))
-                }
-                disabled={!isConnected}
-                className={`text-2xl font-bold text-gray-800 border-2 border-gray-200 focus:border-blue-500 focus:outline-none rounded-lg px-3 py-2 w-full disabled:opacity-50 disabled:cursor-not-allowed ${
-                  editedCard.isCompleted ? 'line-through opacity-70' : ''
-                }`}
-                placeholder='Card title...'
-              />
+          <div className='space-y-2'>
+            <label className="text-gray-500 text-xs font-bold uppercase tracking-wider ml-1">Card Title</label>
+            <div className='flex items-start gap-4 group'>
+                <button
+                  onClick={toggleComplete}
+                  disabled={!isConnected}
+                  className='mt-3 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed'
+                  type='button'
+                >
+                  {editedCard.isCompleted ? (
+                    <CheckCircle2 size={24} className='text-green-500' />
+                  ) : (
+                    <Circle
+                      size={24}
+                      className='text-gray-300 group-focus-within:text-orangeFpt-500 transition-colors duration-300'
+                    />
+                  )}
+                </button>
+                <div className='flex-1'>
+                  <input
+                    type='text'
+                    value={editableFields.title}
+                    onChange={e =>
+                      setEditableFields(prev => ({
+                        ...prev,
+                        title: e.target.value,
+                      }))
+                    }
+                    disabled={!isConnected}
+                    className={`w-full text-2xl font-bold text-gray-800 border-b-2 border-gray-100 focus:border-orangeFpt-500 focus:outline-none px-2 py-2 placeholder-gray-300 transition-all duration-200 bg-transparent disabled:opacity-50 disabled:cursor-not-allowed ${
+                      editedCard.isCompleted ? 'line-through opacity-70' : ''
+                    }`}
+                    placeholder='Card title...'
+                  />
+                </div>
             </div>
           </div>
 
-          {/* Members and Risk */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-            {/* Members */}
-            <div>
-              <h3 className='text-gray-800 font-semibold mb-3 flex items-center gap-2'>
-                <User size={20} className='text-gray-600' />
+          {/* Grid: Members & Risk & Date */}
+          <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
+            
+            {/* Members Section */}
+            <div className="lg:col-span-1">
+              <h3 className='text-gray-700 font-semibold mb-3 flex items-center gap-2 text-sm'>
+                <User size={18} className='text-gray-400' />
                 Members
               </h3>
-              <div className='flex items-center gap-2 flex-wrap'>
+              <div className='flex items-center gap-2 flex-wrap min-h-[48px] p-2 rounded-xl bg-gray-50 border border-gray-100 hover:border-gray-200 transition-colors'>
                 {editedCard.assignedMembers?.map(assigned => {
                   const member = getMemberById(assigned.studentId) || assigned;
                   return (
                     <button
                       key={member.studentId}
                       onClick={e => handleMemberClick(member, e)}
-                      className='relative group'
+                      className='relative group transition-transform hover:scale-105'
                       type='button'
                     >
-                      <img
-                        src={getAvatarUrl(member)}
-                        alt={member.studentName}
-                        className='w-10 h-10 rounded-full ring-2 ring-gray-200 hover:ring-blue-400 transition-all object-cover'
-                      />
+                      <MemberAvatar member={member} size="w-10 h-10" className="ring-2 ring-white shadow-sm" />
                     </button>
                   );
                 })}
+
+                {/* Add Member Button */}
                 <div className='relative'>
                   <button
                     ref={plusButtonRef}
                     onClick={() => setShowMemberMenu(!showMemberMenu)}
                     disabled={!isConnected}
-                    className='w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed'
+                    className='w-10 h-10 rounded-full border border-dashed border-gray-300 hover:border-orangeFpt-500 hover:bg-orangeFpt-50 flex items-center justify-center transition-all disabled:opacity-50 text-gray-400 hover:text-orangeFpt-500 bg-white'
                     type='button'
                   >
-                    <Plus size={20} className='text-gray-600' />
+                    <Plus size={18} />
                   </button>
 
+                  {/* Dropdown - Clean White */}
                   {showMemberMenu && (
                     <>
                       <div
@@ -573,14 +638,13 @@ const CardModal = ({
                       />
                       <div
                         ref={memberMenuRef}
-                        className='fixed z-[70] w-80 bg-white rounded-xl shadow-2xl p-3 border border-gray-200'
+                        className='fixed z-[70] w-72 bg-white rounded-xl shadow-xl p-2 border border-gray-100 ring-1 ring-black/5'
                         style={getMemberMenuPosition()}
                       >
-                        <h4 className='text-gray-800 font-semibold mb-3 px-2 flex items-center gap-2'>
-                          <User size={16} />
+                        <h4 className='text-gray-500 font-bold text-xs uppercase tracking-wider mb-2 px-3 py-1'>
                           Select Members
                         </h4>
-                        <div className='space-y-1 max-h-[300px] overflow-y-auto'>
+                        <div className='space-y-1 max-h-[250px] overflow-y-auto custom-scrollbar'>
                           {members?.map(member => {
                             const isAssigned = editedCard.assignedMembers?.some(
                               m => m.studentId === member.studentId
@@ -590,27 +654,23 @@ const CardModal = ({
                                 key={member.studentId}
                                 onClick={() => toggleMember(member)}
                                 disabled={!isConnected}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
                                   isAssigned
-                                    ? 'bg-blue-50 hover:bg-blue-100 ring-2 ring-blue-200'
-                                    : 'hover:bg-gray-50'
+                                    ? 'bg-orangeFpt-50 text-orangeFpt-700'
+                                    : 'hover:bg-gray-50 text-gray-700'
                                 } disabled:opacity-50`}
                                 type='button'
                               >
-                                <img
-                                  src={member.avatarImg}
-                                  alt={member.studentName}
-                                  className='w-9 h-9 rounded-full ring-2 ring-white shadow object-cover'
-                                />
+                                <MemberAvatar member={member} size="w-8 h-8" className={isAssigned ? 'ring-2 ring-orangeFpt-200' : ''} />
                                 <div className='flex-1 text-left'>
-                                  <span className='text-gray-800 font-medium text-sm'>
+                                  <span className='font-medium text-sm'>
                                     {member.studentName}
                                   </span>
                                 </div>
                                 {isAssigned && (
                                   <CheckCircle2
                                     size={18}
-                                    className='text-blue-600'
+                                    className='text-orangeFpt-500'
                                   />
                                 )}
                               </button>
@@ -624,9 +684,12 @@ const CardModal = ({
               </div>
             </div>
 
-            {/* Risk Labels */}
-            <div>
-              <h3 className='text-gray-800 font-semibold mb-3'>Risk Level</h3>
+            {/* Risk Level */}
+            <div className="lg:col-span-1">
+              <h3 className='text-gray-700 font-semibold mb-3 flex items-center gap-2 text-sm'>
+                <Flag size={18} className='text-gray-400' />
+                Risk Level
+              </h3>
               <div className='flex flex-wrap gap-2'>
                 {riskLevels.map(risk => (
                   <button
@@ -638,10 +701,10 @@ const CardModal = ({
                       }))
                     }
                     disabled={!isConnected}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${risk.bg} ${
+                    className={`px-4 py-2 rounded-lg text-sm transition-all border ${risk.baseClass} ${
                       editableFields.riskLevel === risk.value
-                        ? 'text-white ring-2 ring-offset-2 ring-gray-400'
-                        : 'opacity-50 hover:opacity-100 text-white'
+                        ? risk.activeClass
+                        : 'opacity-70 hover:opacity-100'
                     } disabled:opacity-30 disabled:cursor-not-allowed`}
                     type='button'
                   >
@@ -650,17 +713,18 @@ const CardModal = ({
                 ))}
               </div>
             </div>
-          </div>
 
-          {/* Due Date */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-            <div>
-              <h3 className='text-gray-800 font-semibold mb-3 flex items-center gap-2'>
-                <Clock size={20} className='text-gray-600' />
+            {/* Due Date */}
+            <div className="lg:col-span-1">
+              <h3 className='text-gray-700 font-semibold mb-3 flex items-center gap-2 text-sm'>
+                <Clock size={18} className='text-gray-400' />
                 Due Date
               </h3>
               <div className='space-y-2'>
-                <div className='w-full bg-gray-50 text-gray-700 px-3 py-2 rounded-lg border border-gray-200 flex items-center gap-2'>
+                <div className='relative w-full group'>
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Calendar size={16} className="text-gray-400 group-focus-within:text-orangeFpt-500 transition-colors" />
+                  </div>
                   <input
                     ref={dateInputRef}
                     type='date'
@@ -672,42 +736,38 @@ const CardModal = ({
                       }))
                     }
                     disabled={!isConnected}
-                    className='flex-1 bg-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed'
+                    className='w-full pl-10 pr-3 py-2 bg-white text-gray-700 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orangeFpt-500/20 focus:border-orangeFpt-500 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
                   />
                 </div>
-                <div className='text-sm text-gray-600'>
-                  {editableFields.dueAt ? (
-                    <div className='flex items-center gap-2'>
-                      <span>
-                        {new Date(editableFields.dueAt).toLocaleDateString(
-                          'en-US',
-                          {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                          }
-                        )}
-                      </span>
-                      {dueDateStatus && (
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${dueDateStatus.color}`}>
-                          <dueDateStatus.icon size={14} />
-                          {dueDateStatus.label}
-                        </span>
+                {editableFields.dueAt && (
+                  <div className='flex items-center gap-2 text-xs text-gray-500 pl-1'>
+                    <span>
+                      {new Date(editableFields.dueAt).toLocaleDateString(
+                        'en-US',
+                        {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        }
                       )}
-                    </div>
-                  ) : (
-                    <span>No due date set</span>
-                  )}
-                </div>
+                    </span>
+                    {dueDateStatus && (
+                      <span className={`px-2 py-0.5 rounded-full font-semibold flex items-center gap-1 ${dueDateStatus.color}`}>
+                        <dueDateStatus.icon size={12} />
+                        {dueDateStatus.label}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           {/* Description */}
           <div>
-            <h3 className='text-gray-800 font-semibold mb-3 flex items-center gap-2'>
-              <AlignLeft size={20} className='text-gray-600' />
+            <h3 className='text-gray-700 font-semibold mb-3 flex items-center gap-2 text-sm'>
+              <AlignLeft size={18} className='text-gray-400' />
               Description
             </h3>
             <textarea
@@ -720,179 +780,185 @@ const CardModal = ({
               }
               disabled={!isConnected}
               placeholder='Add a more detailed description...'
-              className='w-full px-4 py-3 bg-gray-50 text-gray-800 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all disabled:opacity-50 disabled:cursor-not-allowed'
+              className='w-full px-4 py-3 bg-gray-50 text-gray-800 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orangeFpt-500/20 focus:border-orangeFpt-500 resize-none transition-all placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed'
               rows={6}
             />
           </div>
 
           {/* Tasks */}
-          <div className='mt-4 space-y-6'>
-            <div className='flex items-center justify-between'>
-              <h3 className='text-gray-800 font-semibold flex items-center gap-2'>
-                <Plus size={20} className='text-gray-600' />
+          <div className='pt-6 border-t border-gray-100'>
+            <div className='flex items-center justify-between mb-6'>
+              <h3 className='text-gray-800 font-bold flex items-center gap-2 text-lg'>
+                <ListChecks size={22} className='text-orangeFpt-500' />
                 Tasks
               </h3>
               <button
                 onClick={() => setIsOpenTask(true)}
                 disabled={!isConnected}
-                className='flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+                className='flex items-center gap-2 text-orangeFpt-600 bg-orangeFpt-50 hover:bg-orangeFpt-100 px-4 py-2 rounded-lg disabled:opacity-50 transition-colors text-sm font-semibold'
                 type='button'
               >
-                <Plus size={18} />
+                <Plus size={16} />
                 Add Task
               </button>
             </div>
 
             {/* Tasks list */}
-            {editedCard.tasks?.map(task => (
-              <div
-                key={task.taskId}
-                className='bg-gray-800 text-white p-4 rounded-xl shadow'
-              >
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center gap-2'>
-                    <span
-                      className={`font-semibold text-lg ${
-                        task.isDone ? 'line-through opacity-60' : ''
-                      }`}
-                    >
-                      {task.taskTitle}
-                    </span>
+            <div className='space-y-6'>
+              {editedCard.tasks?.map(task => (
+                <div
+                  key={task.taskId}
+                  className='bg-white border border-gray-200 shadow-sm p-5 rounded-xl hover:shadow-md transition-shadow duration-200'
+                >
+                  <div className='flex items-center justify-between mb-4'>
+                    <div className='flex items-center gap-3'>
+                      <span className="text-gray-300 font-mono text-sm font-bold">#</span>
+                      <span
+                        className={`text-lg font-semibold text-gray-800 ${
+                          task.isDone ? 'line-through opacity-60' : ''
+                        }`}
+                      >
+                        {task.taskTitle}
+                      </span>
+                    </div>
+
+                    <div className='flex items-center gap-2'>
+                      {/* ✅ Rename Task - Modal */}
+                      <button
+                        onClick={() => setEditTaskModal({ 
+                          isOpen: true, 
+                          taskId: task.taskId, 
+                          title: task.taskTitle 
+                        })}
+                        disabled={!isConnected}
+                        className='text-gray-400 hover:text-orangeFpt-500 hover:bg-orangeFpt-50 p-2 rounded-lg transition-all'
+                        title='Rename Task'
+                      >
+                        <Pencil size={18} />
+                      </button>
+
+                      {/* ✅ Delete Task - Modal */}
+                      <button
+                        onClick={() => setDeleteTaskModal({ isOpen: true, taskId: task.taskId })}
+                        disabled={!isConnected}
+                        className='text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all'
+                        title='Delete Task'
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
                   </div>
 
-                  <div className='flex items-center gap-2'>
-                    {/* ✅ Rename Task - Modal */}
-                    <button
-                      onClick={() => setEditTaskModal({ 
-                        isOpen: true, 
-                        taskId: task.taskId, 
-                        title: task.taskTitle 
-                      })}
-                      disabled={!isConnected}
-                      className='text-gray-300 hover:text-blue-400 px-2 py-1 rounded disabled:opacity-50 transition-colors'
-                      title='Rename Task'
-                    >
-                      <Pencil size={18} />
-                    </button>
-
-                    {/* ✅ Delete Task - Modal */}
-                    <button
-                      onClick={() => setDeleteTaskModal({ isOpen: true, taskId: task.taskId })}
-                      disabled={!isConnected}
-                      className='text-gray-300 hover:text-red-400 px-2 py-1 rounded disabled:opacity-50 transition-colors'
-                      title='Delete Task'
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Progress bar */}
-                <div className='mt-2 mb-3'>
-                  <div className='text-xs text-gray-400'>
-                    {Math.round(
-                      (task.subTaskDtos.filter(s => s.isDone).length /
-                        task.subTaskDtos.length) *
-                        100
-                    ) || 0}
-                    %
-                  </div>
-                  <div className='w-full h-1 bg-gray-700 rounded'>
-                    <div
-                      className='h-1 bg-blue-500 rounded transition-all'
-                      style={{
-                        width: `${
+                  {/* Progress bar */}
+                  <div className='mt-2 mb-4'>
+                    <div className='flex justify-between text-xs font-medium text-gray-500 mb-1'>
+                      <span>Progress</span>
+                      <span>
+                        {Math.round(
                           (task.subTaskDtos.filter(s => s.isDone).length /
                             task.subTaskDtos.length) *
-                            100 || 0
-                        }%`,
-                      }}
-                    />
+                            100
+                        ) || 0}
+                        %
+                      </span>
+                    </div>
+                    <div className='w-full h-2 bg-gray-100 rounded-full overflow-hidden'>
+                      <div
+                        className='h-full bg-orangeFpt-500 rounded-full transition-all duration-500 ease-out'
+                        style={{
+                          width: `${
+                            (task.subTaskDtos.filter(s => s.isDone).length /
+                              task.subTaskDtos.length) *
+                              100 || 0
+                          }%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Subtasks */}
+                  <div className='space-y-2 pl-2'>
+                    {task.subTaskDtos?.map(sub => (
+                      <div
+                        key={sub.subTaskId}
+                        className='flex items-center justify-between group/item'
+                      >
+                        <label className='flex items-center gap-3 flex-1 cursor-pointer bg-gray-50 rounded-lg px-3 py-2 border border-transparent hover:bg-white hover:border-orangeFpt-200 hover:shadow-sm transition-all'>
+                          <input
+                            type='checkbox'
+                            checked={sub.isDone}
+                            onChange={() =>
+                              handleToggleSubtaskDone(
+                                task.taskId,
+                                sub.subTaskId,
+                                sub.isDone
+                              )
+                            }
+                            disabled={!isConnected}
+                            className='w-4 h-4 cursor-pointer rounded border-gray-300 text-orangeFpt-500 focus:ring-orangeFpt-500'
+                          />
+                          <span
+                            className={`text-sm font-medium text-gray-700 ${
+                              sub.isDone ? 'line-through opacity-50' : ''
+                            }`}
+                          >
+                            {sub.subTaskTitle}
+                          </span>
+                        </label>
+
+                        <div className='flex items-center gap-1 pl-2 opacity-0 group-hover/item:opacity-100 transition-opacity'>
+                          {/* ✅ Rename Subtask - Modal */}
+                          <button
+                            onClick={() => setEditSubtaskModal({ 
+                              isOpen: true, 
+                              taskId: task.taskId, 
+                              subTaskId: sub.subTaskId, 
+                              title: sub.subTaskTitle 
+                            })}
+                            disabled={!isConnected}
+                            className='text-gray-400 hover:text-orangeFpt-500 p-1.5 rounded transition-colors'
+                            title='Rename Subtask'
+                          >
+                            <PencilLine size={16} />
+                          </button>
+
+                          {/* ✅ Delete Subtask - Modal */}
+                          <button
+                            onClick={() => setDeleteSubtaskModal({ 
+                              isOpen: true, 
+                              taskId: task.taskId, 
+                              subTaskId: sub.subTaskId 
+                            })}
+                            disabled={!isConnected}
+                            className='text-gray-400 hover:text-red-500 p-1.5 rounded transition-colors'
+                            title='Delete Subtask'
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* ✅ Add Subtask - Modal */}
+                    <button
+                      className='mt-3 ml-1 text-xs text-orangeFpt-500 hover:text-orangeFpt-700 transition-colors flex items-center gap-1 font-bold uppercase tracking-wide px-2 py-1 hover:bg-orangeFpt-50 rounded'
+                      onClick={() => setAddSubtaskModal({ isOpen: true, taskId: task.taskId })}
+                      disabled={!isConnected}
+                    >
+                      <Plus size={12} /> Add subtask
+                    </button>
                   </div>
                 </div>
-
-                {/* Subtasks */}
-                <div className='space-y-2'>
-                  {task.subTaskDtos?.map(sub => (
-                    <div
-                      key={sub.subTaskId}
-                      className='flex items-center justify-between pl-2'
-                    >
-                      <label className='flex items-center gap-3 flex-1 cursor-pointer'>
-                        <input
-                          type='checkbox'
-                          checked={sub.isDone}
-                          onChange={() =>
-                            handleToggleSubtaskDone(
-                              task.taskId,
-                              sub.subTaskId,
-                              sub.isDone
-                            )
-                          }
-                          disabled={!isConnected}
-                          className='w-4 h-4 cursor-pointer disabled:cursor-not-allowed'
-                        />
-                        <span
-                          className={
-                            sub.isDone ? 'line-through opacity-60' : ''
-                          }
-                        >
-                          {sub.subTaskTitle}
-                        </span>
-                      </label>
-
-                      <div className='flex items-center gap-2 pr-2'>
-                        {/* ✅ Rename Subtask - Modal */}
-                        <button
-                          onClick={() => setEditSubtaskModal({ 
-                            isOpen: true, 
-                            taskId: task.taskId, 
-                            subTaskId: sub.subTaskId, 
-                            title: sub.subTaskTitle 
-                          })}
-                          disabled={!isConnected}
-                          className='text-gray-300 hover:text-blue-400 px-1 rounded disabled:opacity-50 transition-colors'
-                          title='Rename Subtask'
-                        >
-                          <PencilLine size={16} />
-                        </button>
-
-                        {/* ✅ Delete Subtask - Modal */}
-                        <button
-                          onClick={() => setDeleteSubtaskModal({ 
-                            isOpen: true, 
-                            taskId: task.taskId, 
-                            subTaskId: sub.subTaskId 
-                          })}
-                          disabled={!isConnected}
-                          className='text-gray-300 hover:text-red-400 px-1 rounded disabled:opacity-50 transition-colors'
-                          title='Delete Subtask'
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* ✅ Add Subtask - Modal */}
-                  <button
-                    className='mt-2 bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
-                    onClick={() => setAddSubtaskModal({ isOpen: true, taskId: task.taskId })}
-                    disabled={!isConnected}
-                  >
-                    Add an item
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className='p-6 border-t border-gray-200 bg-gray-50 flex justify-end gap-3'>
+        <div className='p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3'>
           <button
             onClick={onClose}
-            className='px-6 py-2.5 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg font-medium transition-all'
+            className='px-6 py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded-xl font-medium transition-all'
             type='button'
           >
             Cancel
@@ -900,7 +966,7 @@ const CardModal = ({
           <button
             onClick={handleSave}
             disabled={isSaving || !isConnected}
-            className='px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed'
+            className='px-8 py-2.5 bg-orangeFpt-500 hover:bg-orangeFpt-600 text-white rounded-xl font-bold shadow-lg shadow-orangeFpt-500/30 hover:shadow-orangeFpt-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none'
             type='button'
           >
             {isSaving ? 'Saving...' : 'Save Changes'}
@@ -983,7 +1049,8 @@ const CardModal = ({
           onSave={handleCreateTask}
         />
       )}
-    </div>
+    </div>,
+    document.body
   );
 };
 

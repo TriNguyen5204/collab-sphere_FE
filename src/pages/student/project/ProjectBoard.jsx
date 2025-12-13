@@ -124,9 +124,17 @@ const ProjectBoard = () => {
 
   return (
     <div
-      className='min-h-screen min-w-full'
-      style={{ backgroundColor: '#D5DADF' }}
+      className='min-h-screen min-w-full relative overflow-hidden'
+      style={{ backgroundColor: "#D5DADF" }}
     >
+      {/* Background with blobs */}
+      <div className="absolute inset-0 bg-gray-50 -z-20"></div>
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-orangeFpt-50/50 blur-3xl"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-100/30 blur-3xl"></div>
+        <div className="absolute top-[20%] right-[20%] w-[30%] h-[30%] rounded-full bg-orangeFpt-100/30 blur-3xl"></div>
+      </div>
+
       {workspace && (
         <ProjectBoardHeader
           selectedRole={selectedRole}
@@ -138,7 +146,7 @@ const ProjectBoard = () => {
         />
       )}
 
-      <div className='p-6 overflow-auto min-h-screen'>
+      <div className='p-6 overflow-auto h-[calc(100vh-64px)]'>
         {workspace && (
           <SignalRErrorBoundary>
             <SignalRProvider

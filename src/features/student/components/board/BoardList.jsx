@@ -42,6 +42,7 @@ const BoardList = ({
   const [editedTitle, setEditedTitle] = useState(list.title);
 
   const menuRef = useRef(null);
+  const cancelRef = useRef(false);
 
   useClickOutside(menuRef, () => setShowMenu(false));
 
@@ -68,6 +69,11 @@ const BoardList = ({
   };
   
   const handleSaveTitle = async () => {
+    if (cancelRef.current) {
+      cancelRef.current = false;
+      return;
+    }
+
     if (!editedTitle.trim() || editedTitle === list.title) {
       setIsEditingTitle(false);
       setEditedTitle(list.title);
@@ -126,28 +132,33 @@ const BoardList = ({
     <div
       ref={setSortableRef}
       style={style}
-      className={`w-80 shrink-0 rounded-xl bg-gray-100 p-3 ${isDragging ? 'opacity-80' : ''}`}
+      className={`w-80 shrink-0 rounded-xl bg-white/80 backdrop-blur-sm border border-white/50 shadow-soft p-3 relative overflow-hidden transition-colors duration-200 ${isDragging ? 'opacity-80' : ''} ${isOver ? 'bg-orangeFpt-50/50' : ''}`}
       {...attributes}
       {...listeners}
     >
+      {/* Brand Accent Line */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-400"></div>
+
       {/* List Header - Drag handle */}
-      <div className='flex items-center gap-2 rounded-t-xl bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3'>
+      <div className='flex items-center gap-2 rounded-t-xl px-4 py-3 mt-1'>
         <button
-          className='cursor-grab active:cursor-grabbing rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-white hover:text-gray-600'
+          className='cursor-grab active:cursor-grabbing rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-white/50 hover:text-gray-600'
           type='button'
         >
           <GripVertical size={20} />
         </button>
-        {isEditingTitle ? (
-          <div className='w-full flex flex-col gap-2 bg-white p-2 rounded-lg shadow-md'>
-            {/* Input edit title */}
+
+        <div className="flex-1 min-w-0">
+          {isEditingTitle ? (
             <input
               value={editedTitle}
               onChange={e => setEditedTitle(e.target.value)}
+              onBlur={handleSaveTitle}
               onKeyDown={e => {
                 if (e.key === 'Enter') {
-                  handleSaveTitle();
+                  e.target.blur();
                 } else if (e.key === 'Escape') {
+                  cancelRef.current = true;
                   setEditedTitle(list.title);
                   setIsEditingTitle(false);
                 }
@@ -156,71 +167,36 @@ const BoardList = ({
               disabled={!isConnected}
               className='
                 w-full
-                px-3 py-2
-                text-sm
+                px-2 py-1
+                text-lg font-semibold
                 rounded-md
-                border border-gray-300
-                bg-gray-50
-                focus:bg-white
-                focus:border-blue-500
-                focus:ring-2 focus:ring-blue-300
+                border border-orangeFpt-300
+                bg-white
+                focus:ring-2 focus:ring-orangeFpt-200
                 outline-none
+                text-gray-800
               '
               placeholder='Enter list title...'
             />
+          ) : (
+            <h3
+              className='
+                font-semibold text-lg truncate
+                cursor-pointer
+                px-2 py-1
+                hover:bg-white/50 rounded-md
+                transition-colors
+                text-gray-800
+              '
+              onClick={() => setIsEditingTitle(true)}
+              title={list.title}
+            >
+              {list.title}
+            </h3>
+          )}
+        </div>
 
-            {/* Buttons */}
-            <div className='flex items-center gap-2'>
-              <button
-                onClick={handleSaveTitle}
-                className='
-                  px-4 py-1.5
-                  bg-blue-600 text-white
-                  rounded-md
-                  text-sm
-                  hover:bg-blue-700
-                  transition
-                '
-              >
-                Save
-              </button>
-
-              <button
-                onClick={() => {
-                  setEditedTitle(list.title);
-                  setIsEditingTitle(false);
-                }}
-                className='
-                  px-4 py-1.5
-                  bg-gray-200 text-gray-700
-                  rounded-md
-                  text-sm
-                  hover:bg-gray-300
-                  transition
-                '
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          // Normal title view
-          <h3
-            className='
-              font-semibold text-lg truncate
-              cursor-pointer
-              px-2 py-1
-              hover:bg-gray-200 rounded-md
-              transition
-            '
-            onClick={() => setIsEditingTitle(true)}
-            title={list.title}
-          >
-            {list.title}
-          </h3>
-        )}
-
-        <div className='relative'>
+        <div className='relative flex-shrink-0'>
           <button
             onClick={() => setShowMenu(!showMenu)}
             className='rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-white hover:text-gray-600'
@@ -296,7 +272,7 @@ const BoardList = ({
           <button
             onClick={() => setIsAddingCard(true)}
             disabled={!isConnected}
-            className='mt-2 w-full rounded-lg px-3 py-2 text-left text-gray-600 hover:bg-gray-200/70 text-sm disabled:opacity-50'
+            className='mt-2 w-full rounded-lg px-3 py-2 text-left text-gray-500 hover:text-orangeFpt-700 hover:bg-orangeFpt-50 transition-colors text-sm disabled:opacity-50'
             type='button'
           >
             + Add new card

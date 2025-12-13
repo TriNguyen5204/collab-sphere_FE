@@ -42,11 +42,16 @@ class EventEmitter {
 
 export class TeamBoardService {
     constructor(accessToken) {
-        this.accessToken = accessToken;
+        this.accessToken = String(accessToken || '').trim();
         this.eventEmitter = new EventEmitter();
         this.connection = null;
         
-        const baseUrl = import.meta.env.VITE_API_BASE_URL;
+        if (!this.accessToken) {
+            console.warn("[TeamBoardService] No access token provided.");
+            return;
+        }
+        
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
         // Remove trailing slash if present
         const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
         // If it ends with /api, remove it
@@ -74,6 +79,10 @@ export class TeamBoardService {
     }
 
     async joinServer() {
+        if (!this.connection) {
+            console.warn("[TeamBoardService] Connection not initialized (missing token?).");
+            return;
+        }
         if (this.connection.state === signalr.HubConnectionState.Connected) {
             return;
         }

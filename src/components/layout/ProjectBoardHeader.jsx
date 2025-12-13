@@ -45,11 +45,9 @@ const ProjectBoardHeader = ({
               <span>{initials}</span>
             </div>
           )}
-          {/* Online indicator */}
-          <div className='absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-sm'></div>
         </div>
 
-        <h1 className='text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent'>
+        <h1 className='text-2xl font-bold bg-black bg-clip-text text-transparent'>
           {team?.projectInfo?.projectName || 'Workspace'}
         </h1>
 
