@@ -1718,14 +1718,13 @@ const CreateProjectAI = () => {
       {/* Syllabus Slide Panel - Always mounted for smooth transitions */}
       <SyllabusSlidePanel />
       
-      {/* Aurora Background Wrapper */}
+      {/* Full page background wrapper - extends to edges with negative margins */}
+      <div className="fixed top-0 left-0 right-0 bottom-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#fcd8b6]/60 via-white/50 to-[#FFF9F8]/40 -z-10 -mx-4 -my-6 md:-mx-6 lg:-mx-8" 
+           style={{ marginLeft: '-2rem', marginRight: '-2rem', marginTop: '-1.5rem', marginBottom: '-1.5rem' }} />
+      
+      {/* Content Wrapper */}
       <div className="relative min-h-screen">
-        {/* Soft Gradient Background - Only for Phase 1 */}
-        {phase === 1 && (
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#fcd8b6]/60 via-white/50 to-[#FFF9F8]/40 pointer-events-none" />
-        )}
-        
-        <div className="relative z-10 space-y-8">
+        <div className="space-y-8">
 
           {/* --- HERO HEADER --- */}
           {phase === 1 && (
