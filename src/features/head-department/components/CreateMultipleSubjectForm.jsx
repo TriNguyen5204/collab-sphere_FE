@@ -16,7 +16,7 @@ import { createMultipleSubjects } from '../../../services/userService';
 import { toast } from 'sonner';
 import {
   validateExcelStructure,
-  generateTemplate,
+  // generateTemplate,
   SUBJECT_TEMPLATE,
 } from '../../../context/excelValidator';
 import { handleImportResponse } from '../../../context/responseMessageParser';
@@ -31,28 +31,28 @@ const CreateMultipleSubjectForm = ({ onClose }) => {
   const fileInputRef = useRef(null);
 
   // Download template using utility
-  const downloadTemplate = () => {
-    const template = generateTemplate(
-      SUBJECT_TEMPLATE.requiredColumns,
-      SUBJECT_TEMPLATE.sampleData
-    );
+  // const downloadTemplate = () => {
+  //   const template = generateTemplate(
+  //     SUBJECT_TEMPLATE.requiredColumns,
+  //     SUBJECT_TEMPLATE.sampleData
+  //   );
 
-    const ws = XLSX.utils.json_to_sheet(template);
+  //   const ws = XLSX.utils.json_to_sheet(template);
 
-    // Enable wrap text for long text columns
-    Object.keys(ws).forEach(cell => {
-      if (cell.startsWith('G') || cell.startsWith('H')) {
-        // SubjectOutcomes and SubjectGradeComponents columns
-        ws[cell].s = {
-          alignment: { wrapText: true, vertical: 'top' },
-        };
-      }
-    });
+  //   // Enable wrap text for long text columns
+  //   Object.keys(ws).forEach(cell => {
+  //     if (cell.startsWith('G') || cell.startsWith('H')) {
+  //       // SubjectOutcomes and SubjectGradeComponents columns
+  //       ws[cell].s = {
+  //         alignment: { wrapText: true, vertical: 'top' },
+  //       };
+  //     }
+  //   });
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Subject Template');
-    XLSX.writeFile(wb, 'subject_template.xlsx');
-  };
+  //   const wb = XLSX.utils.book_new();
+  //   XLSX.utils.book_append_sheet(wb, ws, 'Subject Template');
+  //   XLSX.writeFile(wb, 'subject_template.xlsx');
+  // };
 
   // Validate file structure using utility
   const validateFileStructure = (parsedData) => {
@@ -374,7 +374,7 @@ const CreateMultipleSubjectForm = ({ onClose }) => {
                   Download the Excel template and fill in subject information according to the format
                 </p>
                 <button
-                  onClick={downloadTemplate}
+                  // onClick={downloadTemplate}
                   className='inline-flex items-center gap-2 mt-2 px-5 py-3 bg-orangeFpt-600 hover:bg-orangeFpt-700 text-white rounded-xl transition-all font-semibold text-sm shadow-lg shadow-orangeFpt-200 hover:shadow-xl active:scale-95'
                 >
                   <Download className='w-4 h-4' />

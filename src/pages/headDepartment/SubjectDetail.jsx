@@ -9,17 +9,11 @@ import {
   CreditCard,
   XCircle,
   AlertCircle,
-  Edit,
   ArrowLeft,
   FileText,
   Target,
-  GraduationCap,
-  BookOpenCheck,
-  ChevronDown,
-  ChevronUp,
   Clock,
 } from 'lucide-react';
-import ModalWrapper from '../../components/layout/ModalWrapper';
 import UpdateSubjectForm from '../../features/head-department/components/UpdateSubjectForm';
 import HeadDashboardLayout from '../../components/layout/HeadDashboardLayout';
 

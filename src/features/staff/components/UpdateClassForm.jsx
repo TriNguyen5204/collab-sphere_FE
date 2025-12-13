@@ -4,19 +4,21 @@ import {
   updateClass,
   getAllSubject,
   getAllLecturer,
+  getSemester
 } from '../../../services/userService';
-import { User } from 'lucide-react';
 
 const UpdateClassForm = ({ classData, onClose, onUpdated }) => {
   const [formData, setFormData] = useState({
     className: '',
     subjectId: 0,
+    semesterId: 0,
     lecturerId: 0,
     isActive: true,
   });
 
   const [subjects, setSubjects] = useState([]);
   const [lecturers, setLecturers] = useState([]);
+  const [semesters, setSemesters] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -33,6 +35,8 @@ const UpdateClassForm = ({ classData, onClose, onUpdated }) => {
       try {
         const subjectRes = await getAllSubject();
         const lecturerRes = await getAllLecturer();
+        const semesterRes = await getSemester();
+        setSemesters(semesterRes || []);
         setSubjects(subjectRes || []);
         setLecturers(lecturerRes.list || []);
       } catch (err) {
@@ -123,6 +127,25 @@ const UpdateClassForm = ({ classData, onClose, onUpdated }) => {
             {lecturers.map(l => (
               <option key={l.uId} value={l.uId}>
                 {l.fullname}
+              </option>
+            ))}
+          </select>
+        </div>
+        {/* Semester */}
+        <div className="group">
+          <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            Semester
+          </label>
+          <select
+            name="semesterId"
+            value={formData.semesterId}
+            onChange={handleChange}
+            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-4 focus:ring-orangeFpt-100 focus:border-orangeFpt-500 outline-none transition-all duration-300 hover:border-orangeFpt-300 bg-white"
+          >
+            <option value={0}>-- Select Semester --</option>
+            {semesters.map(sem => (
+              <option key={sem.semesterId} value={sem.semesterId}>
+                {sem.semesterName}
               </option>
             ))}
           </select>

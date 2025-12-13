@@ -18,7 +18,6 @@ import { toast } from 'sonner';
 import {
   validateExcelStructure,
   validateDataWithRules,
-  generateTemplate,
   STUDENT_TEMPLATE,
 } from '../../../context/excelValidator';
 import { handleImportResponse } from '../../../context/responseMessageParser';
@@ -35,14 +34,15 @@ const CreateMultipleStudentForm = ({ onClose }) => {
 
   // Download template
   const downloadTemplate = () => {
-    const template = generateTemplate(
-      STUDENT_TEMPLATE.requiredColumns,
-      STUDENT_TEMPLATE.sampleData
-    );
-    const ws = XLSX.utils.json_to_sheet(template);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Student Template');
-    XLSX.writeFile(wb, 'student_accounts_template.xlsx');
+    // Download file template có sẵn
+    const link = document.createElement('a');
+    link.href = '/templates/student_accounts_template.xlsx';
+    link.download = 'student_accounts_template.xlsx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success('Template downloaded successfully!');
   };
 
   // Validate file structure - use utility
@@ -347,7 +347,11 @@ const CreateMultipleStudentForm = ({ onClose }) => {
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${students.length > 0 && errors.length === 0 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}
             >
-              {students.length > 0 && errors.length === 0 ? <Check size={16} /> : '2'}
+              {students.length > 0 && errors.length === 0 ? (
+                <Check size={16} />
+              ) : (
+                '2'
+              )}
             </div>
             <span className='font-medium'>Upload & Review</span>
           </div>
@@ -376,8 +380,12 @@ const CreateMultipleStudentForm = ({ onClose }) => {
               <Download className='w-5 h-5 text-orangeFpt-600' />
             </div>
             <div>
-              <h3 className='font-semibold text-gray-800'>Step 1: Download Template</h3>
-              <p className='text-sm text-gray-500'>Get the Excel template file</p>
+              <h3 className='font-semibold text-gray-800'>
+                Step 1: Download Template
+              </h3>
+              <p className='text-sm text-gray-500'>
+                Get the Excel template file
+              </p>
             </div>
           </div>
           <button
@@ -396,8 +404,12 @@ const CreateMultipleStudentForm = ({ onClose }) => {
               <Upload className='w-5 h-5 text-gray-600' />
             </div>
             <div>
-              <h3 className='font-semibold text-gray-800'>Step 2: Upload File</h3>
-              <p className='text-sm text-gray-500'>Excel files only (.xlsx, .xls), max 10MB</p>
+              <h3 className='font-semibold text-gray-800'>
+                Step 2: Upload File
+              </h3>
+              <p className='text-sm text-gray-500'>
+                Excel files only (.xlsx, .xls), max 10MB
+              </p>
             </div>
           </div>
           <div className='relative'>
@@ -417,8 +429,12 @@ const CreateMultipleStudentForm = ({ onClose }) => {
                   : 'border-gray-300 hover:border-orangeFpt-400 hover:bg-orangeFpt-50'
               }`}
             >
-              <FileSpreadsheet className={`w-5 h-5 ${fileName ? 'text-green-500' : 'text-gray-400'}`} />
-              <span className={`font-medium ${fileName ? 'text-green-600' : 'text-gray-500'}`}>
+              <FileSpreadsheet
+                className={`w-5 h-5 ${fileName ? 'text-green-500' : 'text-gray-400'}`}
+              />
+              <span
+                className={`font-medium ${fileName ? 'text-green-600' : 'text-gray-500'}`}
+              >
                 {fileName || 'Click to upload Excel file'}
               </span>
             </label>
@@ -443,14 +459,18 @@ const CreateMultipleStudentForm = ({ onClose }) => {
               </h4>
               {structureErrors.map((err, idx) => (
                 <div key={idx} className='mb-2 last:mb-0'>
-                  <p className='text-red-700 text-sm font-medium'>{err.message}</p>
+                  <p className='text-red-700 text-sm font-medium'>
+                    {err.message}
+                  </p>
                   <p className='text-red-600 text-xs mt-1 bg-red-100 p-2 rounded-lg'>
                     {err.details}
                   </p>
                 </div>
               ))}
               <div className='mt-3 pt-3 border-t border-red-200'>
-                <p className='text-xs text-red-700 font-medium mb-1'>How to fix:</p>
+                <p className='text-xs text-red-700 font-medium mb-1'>
+                  How to fix:
+                </p>
                 <ol className='list-decimal list-inside text-xs text-red-600 space-y-0.5'>
                   <li>Download the standard template above</li>
                   <li>Copy your data into the template file</li>
@@ -486,7 +506,8 @@ const CreateMultipleStudentForm = ({ onClose }) => {
                     className='text-sm bg-white p-2 rounded-lg border border-amber-200'
                   >
                     <p className='text-amber-800'>
-                      <span className='font-medium'>Row {err.row}:</span> {err.name}
+                      <span className='font-medium'>Row {err.row}:</span>{' '}
+                      {err.name}
                     </p>
                     <p className='text-amber-600 text-xs mt-0.5'>
                       • {err.errors.join(', ')}
@@ -515,7 +536,8 @@ const CreateMultipleStudentForm = ({ onClose }) => {
               <div className='flex items-center justify-between'>
                 <h3 className='font-semibold text-gray-800 flex items-center gap-2'>
                   <Users size={18} className='text-green-600' />
-                  <span className='text-green-600'>✓</span> Valid File - {students.length} Students
+                  <span className='text-green-600'>✓</span> Valid File -{' '}
+                  {students.length} Students
                 </h3>
                 <button
                   onClick={resetForm}
@@ -531,34 +553,59 @@ const CreateMultipleStudentForm = ({ onClose }) => {
               <table className='w-full text-sm'>
                 <thead className='bg-gray-50 sticky top-0'>
                   <tr>
-                    <th className='px-3 py-2 text-left font-semibold text-gray-600 w-12'>#</th>
-                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>Full Name</th>
-                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>Email</th>
-                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>Student Code</th>
-                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>Major</th>
-                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>School</th>
+                    <th className='px-3 py-2 text-left font-semibold text-gray-600 w-12'>
+                      #
+                    </th>
+                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>
+                      Full Name
+                    </th>
+                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>
+                      Email
+                    </th>
+                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>
+                      Student Code
+                    </th>
+                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>
+                      Major
+                    </th>
+                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>
+                      School
+                    </th>
                   </tr>
                 </thead>
                 <tbody className='divide-y divide-gray-100'>
                   {students.map((student, idx) => (
-                    <tr key={idx} className='hover:bg-gray-50 transition-colors'>
-                      <td className='px-3 py-2 text-gray-400 font-medium'>{idx + 1}</td>
+                    <tr
+                      key={idx}
+                      className='hover:bg-gray-50 transition-colors'
+                    >
+                      <td className='px-3 py-2 text-gray-400 font-medium'>
+                        {idx + 1}
+                      </td>
                       <td className='px-3 py-2'>
                         <div className='flex items-center gap-2'>
                           <div className='w-7 h-7 bg-orangeFpt-100 rounded-full flex items-center justify-center'>
                             <User size={14} className='text-orangeFpt-600' />
                           </div>
-                          <span className='font-medium text-gray-800'>{student.Fullname}</span>
+                          <span className='font-medium text-gray-800'>
+                            {student.Fullname}
+                          </span>
                         </div>
                       </td>
-                      <td className='px-3 py-2 text-gray-600'>{student.Email}</td>
+                      <td className='px-3 py-2 text-gray-600'>
+                        {student.Email}
+                      </td>
                       <td className='px-3 py-2'>
                         <span className='px-2 py-0.5 bg-orangeFpt-100 text-orangeFpt-700 rounded-md text-xs font-medium'>
                           {student.StudentCode}
                         </span>
                       </td>
-                      <td className='px-3 py-2 text-gray-600'>{student.Major}</td>
-                      <td className='px-3 py-2 text-gray-600'>{student.School}</td>
+                      <td className='px-3 py-2 text-gray-600'>
+                        {student.Major}
+                      </td>
+                      <td className='px-3 py-2 text-gray-600'>
+                        {student.School}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -573,7 +620,9 @@ const CreateMultipleStudentForm = ({ onClose }) => {
           <div className='text-sm text-gray-500'>
             {students.length > 0 && errors.length === 0 && !isSubmitting && (
               <span>
-                Ready to create <strong className='text-gray-700'>{students.length}</strong> student accounts
+                Ready to create{' '}
+                <strong className='text-gray-700'>{students.length}</strong>{' '}
+                student accounts
               </span>
             )}
           </div>
@@ -589,9 +638,17 @@ const CreateMultipleStudentForm = ({ onClose }) => {
 
             <button
               onClick={handleSubmit}
-              disabled={loading || students.length === 0 || errors.length > 0 || isSubmitting}
+              disabled={
+                loading ||
+                students.length === 0 ||
+                errors.length > 0 ||
+                isSubmitting
+              }
               className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold transition-all ${
-                loading || students.length === 0 || errors.length > 0 || isSubmitting
+                loading ||
+                students.length === 0 ||
+                errors.length > 0 ||
+                isSubmitting
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 text-white hover:from-orangeFpt-600 hover:to-orangeFpt-700 shadow-lg hover:shadow-xl'
               }`}

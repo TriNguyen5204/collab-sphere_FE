@@ -17,16 +17,12 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
-  MoreHorizontal,
   Plus,
-  ArrowRight,
-  BookOpen,
   MapPin,
   Phone,
   Search,
   PenSquare,
   ArrowLeft,
-  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ModalWrapper from '../../components/layout/ModalWrapper';
@@ -230,6 +226,11 @@ export default function ClassDetail() {
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-slate-400" />
                   <span>Created: {formatDate(classDetail.createdDate)}</span>
+                </div>
+                <div className="h-4 w-px bg-slate-300"></div>
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="h-4 w-4 text-slate-400" />
+                  <span>Semester: {classDetail.semesterName}</span>
                 </div>
               </div>
             </div>
