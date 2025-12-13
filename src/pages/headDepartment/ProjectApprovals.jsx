@@ -180,14 +180,6 @@ export default function ProjectApprovals() {
               ) : (
                 <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'>
                   {projects.map(project => {
-                    const objectivesCount = project.objectives?.length || 0;
-                    const milestonesCount =
-                      project.objectives?.reduce(
-                        (acc, obj) =>
-                          acc + (obj.objectiveMilestones?.length || 0),
-                        0
-                      ) || 0;
-
                     return (
                       <div
                         key={project.projectId}
@@ -219,17 +211,6 @@ export default function ProjectApprovals() {
                           </p>
                         </div>
 
-                        {/* Stats Badges */}
-                        <div className='flex flex-wrap gap-2 mb-5'>
-                          <div className='inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-600 border border-slate-100'>
-                            <Target className='h-3.5 w-3.5 text-indigo-500' />
-                            {objectivesCount} Objectives
-                          </div>
-                          <div className='inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-600 border border-slate-100'>
-                            <Flag className='h-3.5 w-3.5 text-emerald-500' />
-                            {milestonesCount} Milestones
-                          </div>
-                        </div>
 
                         {/* Meta Info */}
                         <div className='mt-auto space-y-3 border-t border-slate-100 pt-4'>

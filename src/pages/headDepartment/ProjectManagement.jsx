@@ -368,17 +368,6 @@ export default function ProjectManagement() {
                             {project.description || 'No description provided for this project.'}
                           </p>
 
-                          <div className='mb-5 grid grid-cols-2 gap-px bg-slate-100 rounded-xl overflow-hidden border border-slate-100'>
-                            <div className='text-center bg-slate-50 py-2'>
-                              <p className='text-[10px] font-bold uppercase text-slate-400 tracking-wide'>Objectives</p>
-                              <p className='text-sm font-bold text-slate-800'>{project.objectives?.length || 0}</p>
-                            </div>
-                            <div className='text-center bg-slate-50 py-2'>
-                              <p className='text-[10px] font-bold uppercase text-slate-400 tracking-wide'>Milestones</p>
-                              <p className='text-sm font-bold text-slate-800'>{project.milestoneCount || 0}</p>
-                            </div>
-                          </div>
-
                           <div className='mt-auto flex items-center justify-between border-t border-slate-100 pt-4'>
                             <span className='text-xs font-semibold text-slate-400 group-hover:text-orangeFpt-600 transition-colors'>View Details</span>
                             <div className='flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-all duration-200 group-hover:bg-orangeFpt-100 group-hover:text-orangeFpt-600'>
@@ -418,17 +407,6 @@ export default function ProjectManagement() {
                             <p className='text-xs text-slate-500 truncate max-w-lg mt-1'>
                               {project.description || 'No description available'}
                             </p>
-                          </div>
-
-                          <div className='flex items-center gap-8 px-6 sm:border-l sm:border-r border-slate-100'>
-                            <div className='text-center'>
-                              <span className='block text-lg font-bold text-slate-800'>{project.objectives?.length || 0}</span>
-                              <span className='text-[10px] font-bold uppercase text-slate-400'>Objectives</span>
-                            </div>
-                            <div className='text-center'>
-                              <span className='block text-lg font-bold text-slate-800'>{project.milestoneCount || 0}</span>
-                              <span className='text-[10px] font-bold uppercase text-slate-400'>Milestones</span>
-                            </div>
                           </div>
 
                           <div className='flex sm:w-auto w-full gap-2'>

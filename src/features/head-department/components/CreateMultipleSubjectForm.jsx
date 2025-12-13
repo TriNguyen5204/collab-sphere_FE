@@ -374,7 +374,7 @@ const CreateMultipleSubjectForm = ({ onClose }) => {
                   Download the Excel template and fill in subject information according to the format
                 </p>
                 <button
-                  onClick={downloadTemplate}
+                  // onClick={downloadTemplate}
                   className='inline-flex items-center gap-2 mt-2 px-5 py-3 bg-orangeFpt-600 hover:bg-orangeFpt-700 text-white rounded-xl transition-all font-semibold text-sm shadow-lg shadow-orangeFpt-200 hover:shadow-xl active:scale-95'
                 >
                   <Download className='w-4 h-4' />
