@@ -53,20 +53,6 @@ export const validateExcelStructure = (parsedData, requiredColumns) => {
   };
 };
 
-/**
- * Generate sample template for download
- * @param {Array} columns - List of columns
- * @param {Object} sampleData - Sample data
- * @returns {Array} Template data
- */
-export const generateTemplate = (columns, sampleData) => {
-  const template = {};
-  columns.forEach(col => {
-    template[col] = sampleData[col] || '';
-  });
-  return [template];
-};
-
 // ==========================================
 // TEMPLATES FOR FILE TYPES
 // ==========================================
@@ -84,17 +70,6 @@ export const STUDENT_TEMPLATE = {
     'StudentCode',
     'Major',
   ],
-  sampleData: {
-    Email: 'johndoe@university.edu.vn',
-    Password: '12345',
-    Fullname: 'John Doe',
-    Address: '123 ABC Street, District 1, HCMC',
-    PhoneNumber: '84123456789',
-    YOB: 1980,
-    School: 'FPT University',
-    StudentCode: 'SE214727',
-    Major: 'Computer Science',
-  },
   validationRules: {
     Email: {
       required: true,
@@ -117,8 +92,8 @@ export const STUDENT_TEMPLATE = {
     },
     PhoneNumber: {
       required: true,
-      pattern: /^[0-9]{10,11}$/,
-      errorMessage: 'PhoneNumber must be 10-11 digits',
+      pattern: /^(\+?84)[0-9]{9}$/,
+      errorMessage: 'PhoneNumber must start with 84 or +84 and have 9-11 digits after (e.g., 84912345678)',
     },
     YOB: {
       required: true,
@@ -155,17 +130,6 @@ export const LECTURER_TEMPLATE = {
     'LecturerCode',
     'Major',
   ],
-  sampleData: {
-    Email: 'johndoe@university.edu.vn',
-    Password: '12345',
-    FullName: 'John Doe',
-    Address: '123 ABC Street, District 1, HCMC',
-    PhoneNumber: '84123456789',
-    YOB: 1980,
-    School: 'FPT University',
-    LecturerCode: 'SE184727',
-    Major: 'Computer Science',
-  },
   validationRules: {
     Email: {
       required: true,
@@ -188,8 +152,8 @@ export const LECTURER_TEMPLATE = {
     },
     PhoneNumber: {
       required: true,
-      pattern: /^[0-9]{10,11}$/,
-      errorMessage: 'PhoneNumber must be 10-11 digits',
+      pattern: /^(\+?84)[0-9]{9}$/,
+      errorMessage: 'PhoneNumber must start with 84 or +84 and have 9-10 digits after (e.g., 84912345678)',
     },
     YOB: {
       required: true,
@@ -225,16 +189,6 @@ export const SUBJECT_TEMPLATE = {
     'SubjectOutcomes',
     'SubjectGradeComponents',
   ],
-  sampleData: {
-    SubjectCode: 'CS101',
-    SubjectName: 'Introduction to Computer Science',
-    IsActive: true,
-    SyllabusName: 'CS Syllabus 2024',
-    Description: 'Basic concepts of computer science',
-    NoCredit: 3,
-    SubjectOutcomes: 'Make a Product\nLearn how to\nPresent final',
-    SubjectGradeComponents: 'Product:25\nLearning:25\nPresentation:50',
-  },
 };
 
 /**

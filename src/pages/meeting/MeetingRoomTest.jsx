@@ -37,7 +37,6 @@ function MeetingRoom() {
   
   // Get meeting info from navigation state (optional metadata)
   const title = location.state?.title || '';
-  const description = location.state?.description || '';
   const meetingId = location.state?.meetingId || null;
   const isHost = location.state?.isHost || false;
 
@@ -129,7 +128,6 @@ function MeetingRoom() {
       await updateMeeting({
         meetingId: meetingId,
         Title: title,
-        Description: description,
         RecordUrl: videoUrl,
       });
       toast.success('Video has been saved and updated to the meeting!');
