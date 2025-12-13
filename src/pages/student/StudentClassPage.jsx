@@ -55,6 +55,7 @@ const StudentClassPage = () => {
   const handleViewProjects = () => {
     if (!selectedClass) return;
     const slug = slugify(selectedClass.className);
+    console.log('Selected details for navigation:', selectedDetails);
     navigate(`/student/${slug}/projects`, { state: { details: selectedDetails } });
   };
 

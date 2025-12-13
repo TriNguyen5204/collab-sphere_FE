@@ -381,6 +381,16 @@ export const getLecturerEvaluationByTeamId = async (teamId) => {
   }
 };
 
+export const getLecturerMemberScoresByTeamId = async (teamId) => {
+  try {
+    const response = await apiClient.get(`/team-mem-evaluate/team/${teamId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching lecturer member scores for team ID ${teamId}:`, error);
+    throw error;
+  }
+};
+
 // Milestone API (Student-flow)
 export const getAllMilestonesByTeamId = async (teamId) => getMilestonesByTeam(teamId);
 

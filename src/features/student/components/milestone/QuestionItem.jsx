@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { ChevronDown, Loader2, MessageCircle, PenLine } from 'lucide-react';
 import QuestionAnswers from './QuestionAnswers';
+import { useAvatar } from '../../../../hooks/useAvatar';
 
 const autoResizeTextarea = (element) => {
   if (!element) return;
@@ -108,11 +109,19 @@ const QuestionItem = ({
       ? `Show ${totalAnswers} ${totalAnswers === 1 ? 'Answer' : 'Answers'}`
       : 'Show Answers';
 
-  const responderName = currentUser?.fullname || 'You';
+  const responderName = currentUser?.fullName || 'You';
   const responderAvatar = currentUser?.avatar || null;
-  const responderInitials = buildInitials(responderName);
+  const { initials: responderInitials, colorClass: responderColorClass, shouldShowImage, setImageError } = useAvatar(responderName, responderAvatar);
 
-  const showAnswerForm = canSubmitAnswer && isFormOpen;
+  // Check if current user has already answered this question
+  const userHasAnswered = useMemo(() => {
+    if (!currentUserId || !Array.isArray(answers)) return false;
+    return answers.some((answer) => 
+      answer.authorId && String(answer.authorId) === String(currentUserId)
+    );
+  }, [currentUserId, answers]);
+
+  const showAnswerForm = canSubmitAnswer && isFormOpen && !userHasAnswered;
 
   const renderInput = () => {
     if (!canSubmitAnswer) {
@@ -201,7 +210,9 @@ const QuestionItem = ({
               <button
                 type="button"
                 onClick={toggleFormSection}
-                className="inline-flex items-center gap-2 rounded-lg bg-orangeFpt-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orangeFpt-600"
+                disabled={userHasAnswered}
+                className="inline-flex items-center gap-2 rounded-lg bg-orangeFpt-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orangeFpt-600 disabled:cursor-not-allowed disabled:bg-slate-300"
+                title={userHasAnswered ? 'You have already answered this question' : ''}
               >
                 <PenLine className="h-4 w-4" />
                 {isFormOpen ? 'Close Form' : 'Write Answer'}
@@ -214,14 +225,15 @@ const QuestionItem = ({
           <div className="fade-in border border-blue-100 bg-blue-50 px-6 py-5">
             <div className="flex gap-4">
               <div className="flex-shrink-0">
-                {responderAvatar ? (
+                {shouldShowImage ? (
                   <img
                     src={responderAvatar}
                     alt={responderName}
+                    onError={() => setImageError(true)}
                     className="h-10 w-10 rounded-full border border-blue-200 object-cover"
                   />
                 ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full border border-blue-200 bg-white text-xs font-semibold uppercase text-blue-600">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full border border-blue-200 text-xs font-semibold ${responderColorClass}`}>
                     {responderInitials}
                   </div>
                 )}
@@ -266,6 +278,7 @@ const QuestionItem = ({
               currentUserId={currentUserId}
               readOnly={readOnly}
               isQuestionLocked={isQuestionLocked}
+              userHasAnswered={userHasAnswered}
               answerActionMap={answerActionMap}
               onRateAnswer={onRateAnswer}
               onEditAnswer={onEditAnswer}

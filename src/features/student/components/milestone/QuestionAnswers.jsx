@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, Clock, Loader2, MessageCircle, MoreVertical, Pe
 import { toast } from 'sonner';
 import useToastConfirmation from '../../../../hooks/useToastConfirmation.jsx';
 import QuestionAnswerRatings from './QuestionAnswerRatings';
+import { useAvatar } from '../../../../hooks/useAvatar';
 
 const MAX_SCORE = 5;
 
@@ -69,19 +70,21 @@ const renderStarsDisplay = (stars, filledClass = 'fill-amber-400 text-amber-400'
 );
 
 const Avatar = ({ src, name, className = 'h-10 w-10', textClassName = 'text-sm' }) => {
-  if (src) {
+  const { initials, colorClass, shouldShowImage, setImageError } = useAvatar(name, src);
+
+  if (shouldShowImage) {
     return (
       <img
         src={src}
         alt={name ? `${name}'s avatar` : 'Member avatar'}
+        onError={() => setImageError(true)}
         className={`${className} rounded-full object-cover`}
       />
     );
   }
 
-  const initials = getInitials(name);
   return (
-    <div className={`flex items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-700 ${className}`}>
+    <div className={`flex items-center justify-center rounded-full font-semibold ${className} ${colorClass}`}>
       <span className={textClassName}>{initials}</span>
     </div>
   );
@@ -100,6 +103,7 @@ const QuestionAnswers = ({
   currentUserId = null,
   readOnly = false,
   isQuestionLocked = false,
+  userHasAnswered = false,
   answerActionMap = {},
   onRateAnswer,
   onEditAnswer,
@@ -393,7 +397,12 @@ const QuestionAnswers = ({
         const isEditingPending = answerAction === 'editing';
         const isDeletingPending = answerAction === 'deleting';
 
-        const canRate = !readOnly && !isOwnAnswer && !isQuestionLocked;
+        // Check if current user has already rated this answer
+        const userHasRated = Array.isArray(answer.evaluations) && answer.evaluations.some(
+          (evaluation) => evaluation.evaluatorId && String(evaluation.evaluatorId) === String(currentUserId)
+        );
+
+        const canRate = !readOnly && !isOwnAnswer && !isQuestionLocked && !userHasRated;
         const canModifyOwn = !readOnly && isOwnAnswer && !isQuestionLocked;
         const answerLabel = answer.answerLabel ?? answer.author ?? `Answer ${answerIndex + 1}`;
         const studentAnswerText = answer.content ?? answer.answerStudent ?? 'No answer yet.';
@@ -411,17 +420,12 @@ const QuestionAnswers = ({
           >
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="flex items-center gap-3">
-                {answer.avatar ? (
-                  <img
-                    src={answer.avatar}
-                    alt={`${answerLabel || 'Student'} avatar`}
-                    className="h-12 w-12 flex-shrink-0 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                    <User size={20} />
-                  </div>
-                )}
+                <Avatar
+                  src={answer.avatar}
+                  name={answerLabel}
+                  className="h-12 w-12"
+                  textClassName="text-sm"
+                />
                 <div className="space-y-1">
                   <p className="text-base font-semibold text-slate-900">{answerLabel}</p>
                   {answer.authorCode && (

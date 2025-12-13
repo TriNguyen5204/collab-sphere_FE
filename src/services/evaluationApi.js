@@ -107,3 +107,32 @@ export const submitMilestoneEvaluation = async (teamMilestoneId, payload = {}) =
   return response.data;
 };
 
+export const getMemberEvaluations = async (teamId) => {
+  validateIdentifier(teamId, 'teamId');
+  try {
+    const response = await apiClient.get(`/team-mem-evaluate/team/${teamId}`);
+    const payload = response.data;
+    if (payload?.teamMemEvaluations) {
+      return payload.teamMemEvaluations;
+    }
+    return null;
+  } catch (error) {
+    if (error?.response?.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+};
+
+export const submitMemberEvaluations = async (teamId, memberScores = []) => {
+  validateIdentifier(teamId, 'teamId');
+  if (!Array.isArray(memberScores)) {
+    throw new Error('memberScores must be an array.');
+  }
+
+  const response = await apiClient.post(`/team-mem-evaluate/team/${teamId}`, {
+    memberScores
+  });
+  return response.data;
+};
+

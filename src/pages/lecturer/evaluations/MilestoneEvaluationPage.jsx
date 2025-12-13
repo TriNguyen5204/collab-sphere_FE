@@ -23,6 +23,7 @@ import { getMilestonesByTeam, getMilestoneDetail } from '../../../services/miles
 import { getMilestoneEvaluationsByTeam, submitMilestoneEvaluation } from '../../../services/evaluationApi';
 import { getMilestoneQuestionsAnswersByQuestionId, patchGenerateNewReturnFileLinkByMilestoneIdAndMileReturnId } from '../../../services/studentApi';
 import { useSecureFileHandler } from '../../../hooks/useSecureFileHandler';
+import { useAvatar } from '../../../hooks/useAvatar';
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
@@ -328,8 +329,8 @@ const MilestoneEvaluationPage = () => {
         <div className="mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
           
           {/* LEFT: MILESTONE LIST */}
-          <div className="lg:col-span-4 space-y-6">
-             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm max-h-screen flex flex-col">
+          <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-20 lg:self-start">
+             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:max-h-[calc(100vh-6rem)] flex flex-col">
                 <div className="pb-4 border-b border-slate-100 mb-4">
                    <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                       <ClockIcon className="h-5 w-5 text-orangeFpt-500" />
@@ -561,6 +562,30 @@ const MilestoneEvaluationPage = () => {
 
 // --- Helper Components ---
 
+const AssigneeAvatar = ({ assignee }) => {
+   const { initials, colorClass, shouldShowImage, setImageError } = useAvatar(assignee.fullname, assignee.avatarImg);
+   
+   return (
+      <div 
+         className="relative group"
+         title={`${assignee.fullname} (${assignee.teamRoleString})`}
+      >
+         {shouldShowImage ? (
+            <img 
+               src={assignee.avatarImg} 
+               alt={assignee.fullname}
+               onError={() => setImageError(true)}
+               className="h-6 w-6 rounded-full ring-2 ring-white object-cover" 
+            />
+         ) : (
+            <div className={`h-6 w-6 rounded-full ring-2 ring-white flex items-center justify-center text-[9px] font-bold ${colorClass}`}>
+               {initials}
+            </div>
+         )}
+      </div>
+   );
+};
+
 const CheckpointItem = ({ cp }) => {
    const [isOpen, setIsOpen] = useState(false);
 
@@ -610,23 +635,7 @@ const CheckpointItem = ({ cp }) => {
                      <span className="text-[10px] text-slate-400 font-bold uppercase">Assignees:</span>
                      <div className="flex -space-x-2">
                         {(cp.checkpointAssignments || []).map((assignee) => (
-                           <div 
-                              key={assignee.checkpointAssignmentId} 
-                              className="relative group"
-                              title={`${assignee.fullname} (${assignee.teamRoleString})`}
-                           >
-                              {assignee.avatarImg ? (
-                                 <img 
-                                    src={assignee.avatarImg} 
-                                    alt={assignee.fullname}
-                                    className="h-6 w-6 rounded-full ring-2 ring-white object-cover" 
-                                 />
-                              ) : (
-                                 <div className="h-6 w-6 rounded-full ring-2 ring-white bg-indigo-100 flex items-center justify-center text-[9px] font-bold text-indigo-700">
-                                    {assignee.fullname?.charAt(0)}
-                                 </div>
-                              )}
-                           </div>
+                           <AssigneeAvatar key={assignee.checkpointAssignmentId} assignee={assignee} />
                         ))}
                         {(cp.checkpointAssignments || []).length === 0 && (
                            <span className="text-[10px] text-slate-400 italic">Unassigned</span>
@@ -664,21 +673,141 @@ const QuestionItem = ({ q, answers }) => {
             <div className="p-4 pt-0 border-t border-slate-100">
                <div className="space-y-3 pl-3 border-l-2 border-indigo-100 mt-3">
                   {answers.length > 0 ? answers.map((ans, aIdx) => (
-                     <div key={aIdx} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                        <div className="flex items-center gap-2 mb-1.5">
-                           <div className="h-5 w-5 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600">
-                              {ans.studentName?.charAt(0)}
-                           </div>
-                           <span className="text-xs font-bold text-slate-700">{ans.studentName}</span>
-                        </div>
-                        <p className="text-sm text-slate-600 leading-relaxed">{ans.answer}</p>
-                     </div>
+                     <AnswerItem key={aIdx} ans={ans} />
                   )) : (
                      <p className="text-xs text-slate-400 italic">No answers yet.</p>
                   )}
                </div>
             </div>
          )}
+      </div>
+   );
+};
+
+const AnswerItem = ({ ans }) => {
+   const { initials, colorClass, shouldShowImage, setImageError } = useAvatar(ans.studentName, ans.avatar);
+   const evaluations = ans.answerEvaluations || [];
+   const hasEvaluations = evaluations.length > 0;
+   console.log('AnswerItem ans:', ans);
+   console.log('AnswerItem evaluations:', evaluations);
+   // Calculate average score
+   const averageScore = hasEvaluations
+      ? (evaluations.reduce((sum, e) => sum + (e.score || 0), 0) / evaluations.length).toFixed(1)
+      : null;
+
+   // Render stars based on average score
+   const renderStars = (score) => {
+      const stars = [];
+      const roundedScore = Math.round(score);
+      for (let i = 1; i <= 5; i++) {
+         stars.push(
+            <StarIcon
+               key={i}
+               className={`h-3 w-3 ${i <= roundedScore ? 'text-amber-500 fill-amber-500' : 'text-slate-300'}`}
+            />
+         );
+      }
+      return stars;
+   };
+
+   return (
+      <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+         <div className="flex items-center justify-between gap-2 mb-1.5">
+            <div className="flex items-center gap-2">
+               {shouldShowImage ? (
+                  <img
+                     src={ans.avatar}
+                     alt={ans.studentName}
+                     onError={() => setImageError(true)}
+                     className="h-5 w-5 rounded-full object-cover"
+                  />
+               ) : (
+                  <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold ${colorClass}`}>
+                     {initials}
+                  </div>
+               )}
+               <span className="text-xs font-bold text-slate-700">{ans.studentName}</span>
+            </div>
+            {averageScore && (
+               <div className="flex items-center gap-0.5 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full">
+                  {renderStars(parseFloat(averageScore))}
+               </div>
+            )}
+         </div>
+         <p className="text-sm text-slate-600 leading-relaxed mb-2">{ans.answer}</p>
+
+         {hasEvaluations && (
+            <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
+               <h6 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  Ratings ({evaluations.length})
+               </h6>
+               {evaluations.map((evaluation) => (
+                  <EvaluationItem key={evaluation.answerEvaluationId} evaluation={evaluation} />
+               ))}
+            </div>
+         )}
+      </div>
+   );
+};
+
+const EvaluationItem = ({ evaluation }) => {
+   const { initials, colorClass, shouldShowImage, setImageError } = useAvatar(
+      evaluation.evaluatorName,
+      evaluation.evaluatorAvatar
+   );
+
+   const formatDate = (dateString) => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toLocaleString(undefined, {
+         month: 'short',
+         day: 'numeric',
+         hour: '2-digit',
+         minute: '2-digit'
+      });
+   };
+
+   return (
+      <div className="flex items-start gap-2 p-2 rounded-lg bg-slate-50 border border-slate-100">
+         {shouldShowImage ? (
+            <img
+               src={evaluation.evaluatorAvatar}
+               alt={evaluation.evaluatorName}
+               onError={() => setImageError(true)}
+               className="h-6 w-6 rounded-full object-cover shrink-0"
+            />
+         ) : (
+            <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${colorClass}`}>
+               {initials}
+            </div>
+         )}
+         <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2 mb-1">
+               <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold text-slate-700 truncate">{evaluation.evaluatorName}</p>
+                  {evaluation.evaluatorCode && (
+                     <p className="text-[9px] text-slate-400 uppercase tracking-wide">{evaluation.evaluatorCode}</p>
+                  )}
+               </div>
+               <div className="flex items-center gap-0.5 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full shrink-0">
+                  {Array.from({ length: 5 }, (_, i) => (
+                     <StarIcon
+                        key={i}
+                        className={`h-2.5 w-2.5 ${i < evaluation.score ? 'text-amber-500 fill-amber-500' : 'text-slate-300'}`}
+                     />
+                  ))}
+               </div>
+            </div>
+            {evaluation.comment && (
+               <p className="text-[11px] text-slate-600 leading-relaxed mb-1">{evaluation.comment}</p>
+            )}
+            {evaluation.createTime && (
+               <p className="text-[9px] text-slate-400 flex items-center gap-1">
+                  <ClockIcon className="h-2.5 w-2.5" />
+                  {formatDate(evaluation.createTime)}
+               </p>
+            )}
+         </div>
       </div>
    );
 };
