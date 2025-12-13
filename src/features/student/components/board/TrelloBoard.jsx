@@ -1138,7 +1138,7 @@ const TrelloBoard = forwardRef(function TrelloBoard(
                   <div className='flex gap-2'>
                     <button
                       onClick={addList}
-                      className='px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700'
+                      className='px-3 py-1.5 rounded bg-orangeFpt-500 text-white hover:bg-orangeFpt-600'
                     >
                       Add list
                     </button>
@@ -1156,7 +1156,7 @@ const TrelloBoard = forwardRef(function TrelloBoard(
               ) : (
                 <button
                   onClick={() => setIsAddingList(true)}
-                  className='w-[280px] h-[44px] inline-flex items-center justify-center gap-2 rounded-xl border bg-white/60 hover:bg-white transition-colors'
+                  className='w-[280px] h-[44px] inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 bg-white/40 hover:bg-orangeFpt-50 hover:border-orangeFpt-300 hover:text-orangeFpt-700 transition-all duration-200'
                 >
                   <Plus size={18} /> Add another list
                 </button>

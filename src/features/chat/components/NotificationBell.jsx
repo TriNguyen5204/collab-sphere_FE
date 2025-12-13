@@ -1,22 +1,25 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { Bell, Info, ExternalLink, X, MessageCircle } from 'lucide-react';
+import { getDetailOfTeamByTeamId, getListOfTeamsByStudentId } from '../../../services/studentApi';
+import useTeam from '../../../context/useTeam';
 
 // Helper to format the time
 const formatTime = (isoString) => {
     const date = new Date(isoString);
     const now = new Date();
     const diffInMinutes = Math.floor((now - date) / 60000);
-    
+
     if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) return `${diffInHours}h ago`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return `${diffInDays}d ago`;
-    
+
     return date.toLocaleDateString();
 };
 
@@ -24,6 +27,9 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
     const navigate = useNavigate();
+    const userRole = useSelector((state) => state.user?.roleName || '');
+    const userId = useSelector((state) => state.user?.userId || '');
+    const { setTeam } = useTeam();
 
     // Click outside to close
     useEffect(() => {
@@ -32,7 +38,7 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                 setIsOpen(false);
             }
         }
-        
+
         document.addEventListener("mousedown", handleClickOutside);
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
@@ -49,17 +55,50 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
         }
     };
 
-    // Handle notification click - simple version
-    const handleNotificationClick = (notification) => {
+    // Handle notification click - call API for student milestone notifications
+    const handleNotificationClick = async (notification) => {
         console.log('Clicked notification:', notification);
-        
+
         setIsOpen(false);
-        
+
         if (onOpen) {
             onOpen();
         }
+
+        const notifyLink = notification.link || '/chat';
+
+        const isStudent = userRole?.toLowerCase() === 'student';
+        const isMilestoneLink = notifyLink.includes('/student/project/milestones&checkpoints');
         
-        navigate('/chat');
+        console.log('Is student:', isStudent, 'Is Milestone Link:', isMilestoneLink);
+        
+        if (isStudent && isMilestoneLink) {
+            try {
+                const teamNameMatch = notification.title?.match(/Team '([^']+)'/);
+                const teamName = teamNameMatch ? teamNameMatch[1] : '';
+                
+                console.log('Extracted team name:', teamName);
+                
+                if (teamName) {
+                    const response = await getListOfTeamsByStudentId(userId, { teamName: teamName });
+                    console.log('Fetched teams for student:', response);
+                    const teamId = response?.paginatedTeams?.list?.[0]?.teamId || null;
+                    
+                    console.log('Matched team:', teamId);
+                    
+                    if (teamId) {
+                        await getDetailOfTeamByTeamId(teamId);
+                        setTeam(teamId);
+                        
+                        console.log('Team details fetched for teamId:', teamId);
+                    }
+                }
+            } catch (e) {
+                console.error("Error fetching team details:", e);
+            }
+        }
+
+        navigate(notifyLink);
     };
 
     // Show newest notifications first
@@ -73,12 +112,11 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                 className="relative p-2.5 rounded-full hover:bg-gray-100 active:bg-gray-200 transition-all duration-200 focus:outline-none  group"
                 aria-label="Notifications"
             >
-                <Bell 
-                    className={`w-6 h-6 text-gray-600 group-hover:text-orangeFpt-600 transition-colors ${
-                        unreadCount > 0 ? 'animate-[wiggle_1s_ease-in-out_infinite]' : ''
-                    }`}
+                <Bell
+                    className={`w-6 h-6 text-gray-600 group-hover:text-orangeFpt-600 transition-colors ${unreadCount > 0 ? 'animate-[wiggle_1s_ease-in-out_infinite]' : ''
+                        }`}
                 />
-                
+
                 {/* Unread Count Badge */}
                 {unreadCount > 0 && (
                     <span className="absolute top-0.5 right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-gradient-to-r from-red-500 to-red-600 rounded-full border-2 border-white shadow-md animate-pulse">
@@ -113,8 +151,8 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                             overflow: hidden;
                         }
                     `}</style>
-                    
-                    <div 
+
+                    <div
                         className="absolute right-0 mt-3 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50"
                         style={{ animation: 'slideDown 0.2s ease-out' }}
                     >
@@ -143,9 +181,9 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                         </div>
 
                         {/* Notifications List */}
-                        <div 
+                        <div
                             className="max-h-[480px] overflow-y-auto"
-                            style={{ 
+                            style={{
                                 scrollbarWidth: 'thin',
                                 scrollbarColor: '#cbd5e1 transparent'
                             }}
@@ -167,8 +205,8 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                                             key={notif.notificationId}
                                             onClick={() => handleNotificationClick(notif)}
                                             className="px-5 py-4 hover:bg-gradient-to-r hover:from-orangeFpt-50 hover:to-orange-50 transition-all duration-200 cursor-pointer group relative"
-                                            style={{ 
-                                                animation: `slideDown 0.3s ease-out ${index * 0.05}s backwards` 
+                                            style={{
+                                                animation: `slideDown 0.3s ease-out ${index * 0.05}s backwards`
                                             }}
                                         >
                                             <div className="flex items-start space-x-3">
@@ -185,12 +223,12 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                                                     <p className="text-sm text-gray-600 line-clamp-2 mb-2 leading-relaxed">
                                                         {notif.content}
                                                     </p>
-                                                    
+
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-xs text-gray-500 font-medium">
                                                             {formatTime(notif.createdAt)}
                                                         </span>
-                                                        
+
                                                         {/* Show "Open Chat" indicator */}
                                                         <span className="text-xs font-semibold text-orangeFpt-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
                                                             <MessageCircle className="w-3 h-3" />
@@ -222,7 +260,7 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                         {/* Footer */}
                         {notifications.length > 0 && (
                             <div className="px-5 py-3 bg-gray-50 border-t border-gray-200">
-                                <button 
+                                <button
                                     onClick={() => {
                                         setIsOpen(false);
                                         navigate('/chat');

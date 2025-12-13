@@ -27,19 +27,21 @@ const AddSubtaskModal = ({ isOpen, onClose, onSave }) => {
   };
 
   return (
-    <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4'>
-      <div className='bg-white rounded-xl w-full max-w-md shadow-2xl animate-slideUp'>
+    <div className='fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fadeIn'>
+      <div className='bg-white rounded-2xl w-full max-w-md shadow-2xl animate-slideUp border border-gray-100 overflow-hidden'>
         {/* Header */}
-        <div className='flex items-center justify-between p-4 border-b border-gray-200'>
-          <div className='flex items-center gap-2'>
-            <Plus size={20} className='text-blue-600' />
-            <h3 className='text-lg font-semibold text-gray-800'>
+        <div className='bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 p-4 flex items-center justify-between'>
+          <div className='flex items-center gap-2 text-white'>
+            <div className='p-1.5 bg-white/20 rounded-lg backdrop-blur-sm'>
+              <Plus size={20} />
+            </div>
+            <h3 className='text-lg font-bold tracking-tight'>
               Add Subtask
             </h3>
           </div>
           <button
             onClick={onClose}
-            className='text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1.5 rounded-lg transition-colors'
+            className='text-white/80 hover:text-white hover:bg-white/20 p-1.5 rounded-full transition-all'
             type='button'
           >
             <X size={20} />
@@ -47,8 +49,8 @@ const AddSubtaskModal = ({ isOpen, onClose, onSave }) => {
         </div>
 
         {/* Body */}
-        <div className='p-4'>
-          <label className='block text-sm font-medium text-gray-700 mb-2'>
+        <div className='p-6'>
+          <label className='block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1'>
             Subtask Title
           </label>
           <input
@@ -58,15 +60,15 @@ const AddSubtaskModal = ({ isOpen, onClose, onSave }) => {
             onKeyDown={handleKeyDown}
             autoFocus
             placeholder='Enter subtask title...'
-            className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none'
+            className='w-full px-4 py-3 bg-gray-50 text-gray-800 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orangeFpt-500/20 focus:border-orangeFpt-500 transition-all placeholder-gray-400'
           />
         </div>
 
         {/* Footer */}
-        <div className='flex justify-end gap-3 p-4 border-t border-gray-200 bg-gray-50'>
+        <div className='flex justify-end gap-3 p-4 border-t border-gray-100 bg-gray-50'>
           <button
             onClick={onClose}
-            className='px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg font-medium transition-colors'
+            className='px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded-xl font-medium transition-all'
             type='button'
           >
             Cancel
@@ -74,7 +76,7 @@ const AddSubtaskModal = ({ isOpen, onClose, onSave }) => {
           <button
             onClick={handleSave}
             disabled={!title.trim()}
-            className='px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2'
+            className='px-6 py-2 bg-orangeFpt-500 hover:bg-orangeFpt-600 text-white rounded-xl font-bold shadow-lg shadow-orangeFpt-500/30 hover:shadow-orangeFpt-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2'
             type='button'
           >
             <Plus size={18} />

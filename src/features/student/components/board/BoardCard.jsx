@@ -5,6 +5,7 @@ import { useDndContext } from '@dnd-kit/core';
 import { Clock, AlignLeft, CheckCircle2, Circle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { markCardComplete } from '../../../../hooks/kanban/signalRHelper';
+import MemberAvatar from './MemberAvatar';
 
 const BoardCard = ({ card, listId, onClick, workspaceId, connection, isConnected }) => {
   const {
@@ -125,8 +126,7 @@ const BoardCard = ({ card, listId, onClick, workspaceId, connection, isConnected
     if (!card.riskLevel) return 'bg-gray-200';
     switch (card.riskLevel) {
       case 'high': return 'bg-red-500';
-      case 'normal': return 'bg-yellow-500';
-      case 'medium': return 'bg-orange-500';
+      case 'medium': return 'bg-yellow-500';
       case 'low': return 'bg-green-500';
       default: return 'bg-gray-200';
     }
@@ -139,14 +139,14 @@ const BoardCard = ({ card, listId, onClick, workspaceId, connection, isConnected
       {...attributes}
       {...listeners}
       onClick={onClick}
-      className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 overflow-hidden ${
+      className={`bg-white/90 backdrop-blur-sm rounded-lg shadow-sm hover:shadow-soft-lg hover:border-orangeFpt-200 hover:ring-1 hover:ring-orangeFpt-300 transition-all cursor-pointer border border-gray-200 overflow-hidden ${
         isDragging ? 'shadow-xl rotate-3 scale-105' : ''
       } ${isOverThisCard ? 'ring-2 ring-blue-400 scale-105' : ''} ${
         card.isCompleted ? 'opacity-60' : ''
       }`}
     >
       {/* 1st line: Risk label color */}
-      <div className={`h-2 ${getRiskColor()}`}></div>
+      <div className={`h-3 ${getRiskColor()}`}></div>
 
       <div className="p-3">
         {/* 2nd line: Checkbox and Title */}
@@ -155,14 +155,14 @@ const BoardCard = ({ card, listId, onClick, workspaceId, connection, isConnected
             onClick={handleCheckboxClick}
             onPointerDownCapture={(e) => e.stopPropagation()}
             disabled={!isConnected}
-            className="mt-0.5 flex-shrink-0 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="mt-0.5 flex-shrink-0 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed group"
             type="button"
             title={isConnected ? (card.isCompleted ? 'Mark as incomplete' : 'Mark as complete') : 'Offline'}
           >
             {card.isCompleted ? (
               <CheckCircle2 size={20} className="text-green-600" />
             ) : (
-              <Circle size={20} className="text-gray-400 hover:text-gray-600" />
+              <Circle size={20} className="text-gray-300 group-hover:text-orangeFpt-500" />
             )}
           </button>
           
@@ -203,16 +203,15 @@ const BoardCard = ({ card, listId, onClick, workspaceId, connection, isConnected
         {card.assignedMembers && card.assignedMembers.length > 0 && (
           <div className="flex -space-x-2 justify-end">
             {card.assignedMembers.slice(0, 3).map((member) => (
-              <img
+              <MemberAvatar
                 key={member.studentId}
-                src={member.avatarImg}
-                alt={member.studentName}
-                title={member.studentName}
-                className="w-7 h-7 rounded-full ring-2 ring-white object-cover"
+                member={member}
+                size="w-7 h-7"
+                className="ring-2 ring-white"
               />
             ))}
             {card.assignedMembers.length > 3 && (
-              <div className="w-7 h-7 rounded-full ring-2 ring-white bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
+              <div className="w-7 h-7 rounded-full ring-2 ring-white bg-gray-100 border border-gray-200 flex items-center justify-center text-xs font-bold text-gray-500">
                 +{card.assignedMembers.length - 3}
               </div>
             )}

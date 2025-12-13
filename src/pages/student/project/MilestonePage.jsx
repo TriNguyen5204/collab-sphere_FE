@@ -22,6 +22,7 @@ import {
   postUploadMilestoneFilebyMilestoneId,
   deleteMilestoneFileByMilestoneIdAndMileReturnId,
   deleteTeamMilestoneById,
+  getDetailOfTeamByTeamId,
 } from '../../../services/studentApi';
 import { normalizeMilestoneStatus } from '../../../utils/milestoneHelpers';
 import { toast } from 'sonner';
@@ -505,9 +506,10 @@ const MilestonePage = () => {
       if (teamBoard) {
         const linkForTeamMember = `/student/project/milestones&checkpoints`;
         const classId = team?.classId || team?.classInfo?.classId;
+        
         const linkForLecturer = classId
-          ? `/lecturer/classes/${classId}/team/${teamId}/milestone/${milestoneId}`
-          : `/lecturer/grading/team/${teamId}/milestones/${milestoneId}`;
+          ? `/lecturer/classes/${classId}/team/${teamId}/milestones/evaluate`
+            : null;
 
         await teamBoard.broadcastMilestoneCheckDone(teamId, milestoneId, linkForTeamMember, linkForLecturer);
       }
