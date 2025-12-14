@@ -22,19 +22,19 @@ function MeetingRoom() {
   const { roomId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   // Get teamId from navigation state (hidden from URL for security)
   const [teamId] = useState(location.state?.teamId || null);
-  
+
   // Get authenticated user data from Redux store (secure source)
   const userId = useSelector(state => state.user.userId);
   const fullName = useSelector(state => state.user.fullName);
   const roleName = useSelector(state => state.user.roleName);
   const accessToken = useSelector(state => state.user.accessToken);
-  
+
   // Use authenticated user name
   const myName = fullName || 'User';
-  
+
   // Get meeting info from navigation state (optional metadata)
   const title = location.state?.title || '';
   const meetingId = location.state?.meetingId || null;
@@ -54,7 +54,7 @@ function MeetingRoom() {
 
   // Initialize socket
   const { socket, me, isConnected } = useSocket();
-  
+
   // Simple authorization check: login = access
   useEffect(() => {
     const validateAccess = () => {
@@ -94,10 +94,13 @@ function MeetingRoom() {
     // The room-closed event from server will handle the case when host leaves
     console.log('✅ [MeetingRoom] Socket connected - allowing room access');
     setRoomExists(true);
-    
+
     // Optional: Try to check room existence (won't block if server doesn't support it)
-    socket.emit('check-room-exists', { roomId }, (response) => {
-      console.log('🔍 [MeetingRoom] Room check response (informational):', response);
+    socket.emit('check-room-exists', { roomId }, response => {
+      console.log(
+        '🔍 [MeetingRoom] Room check response (informational):',
+        response
+      );
       // Only deny access if server explicitly says room doesn't exist
       if (response && response.exists === false) {
         console.log('❌ [MeetingRoom] Server confirmed room does not exist');
@@ -106,23 +109,58 @@ function MeetingRoom() {
       } else if (response && response.exists && !response.hasHost) {
         console.log('⚠️ [MeetingRoom] Room has no host');
         setRoomExists(false);
-        setAuthError('This meeting room has no host. The meeting may have ended.');
+        setAuthError(
+          'This meeting room has no host. The meeting may have ended.'
+        );
       }
     });
   }, [socket, isConnected, roomId, isAuthorized, isHost]);
 
   // Handle room closed by host callback
-  const handleRoomClosed = useCallback((reason) => {
-    console.log('🚪 [MeetingRoom] Room closed:', reason);
-    setRoomClosedByHost(true);
-    toast.error(reason || 'The meeting has ended');
-  }, []);
+  const handleRoomClosed = useCallback(
+    reason => {
+      console.log('🚪 [MeetingRoom] Room closed:', reason);
+      setRoomClosedByHost(true);
+
+      // Show toast notification
+      toast.error(reason || 'The meeting has ended', {
+        duration: 3000,
+        position: 'top-center',
+        style: {
+          background: '#ef4444',
+          color: 'white',
+          fontWeight: '600',
+        },
+      });
+
+      // Navigate based on user role after a short delay
+      setTimeout(() => {
+        console.log('🔄 [MeetingRoom] Auto-navigating after host left...');
+
+        if (roleName === 'LECTURER') {
+          // Lecturer always goes to meeting management
+          navigate('/lecturer/meetings', { replace: true });
+        } else if (roleName === 'STUDENT') {
+          // Student goes back to team meeting page if teamId exists, otherwise projects
+          if (teamId) {
+            navigate(`/meeting/${teamId}`, { replace: true });
+          } else {
+            navigate('/student/projects', { replace: true });
+          }
+        } else {
+          // Fallback for unknown roles
+          navigate('/', { replace: true });
+        }
+      }, 2000); // Wait 2 seconds before navigating
+    },
+    [roleName, teamId, navigate]
+  );
 
   // Media stream hook
   const { stream, localStreamRef, toggleAudio, toggleVideo } = useMediaStream();
 
   // Callback for recording completion
-  const handleRecordingComplete = async (videoUrl) => {
+  const handleRecordingComplete = async videoUrl => {
     console.log('🎬 Recording complete. Video URL:', videoUrl);
     try {
       await updateMeeting({
@@ -132,7 +170,9 @@ function MeetingRoom() {
       });
       toast.success('Video has been saved and updated to the meeting!');
     } catch (error) {
-      toast.error('Video has been uploaded but could not update the meeting. Please check again.');
+      toast.error(
+        'Video has been uploaded but could not update the meeting. Please check again.'
+      );
     }
   };
 
@@ -187,9 +227,9 @@ function MeetingRoom() {
   };
 
   const handleLeave = () => {
-    if(roleName === 'STUDENT') {
+    if (roleName === 'STUDENT') {
       navigate(`/meeting/${teamId}`, { replace: true });
-    } else if(roleName === 'LECTURER') {
+    } else if (roleName === 'LECTURER') {
       navigate(`/lecturer/meetings`, { replace: true });
     }
   };
@@ -217,7 +257,9 @@ function MeetingRoom() {
       <div className='h-screen bg-[#202124] flex flex-col items-center justify-center'>
         <Loader2 className='w-12 h-12 text-blue-500 animate-spin mb-4' />
         <p className='text-white text-lg font-medium'>Verifying access...</p>
-        <p className='text-[#9aa0a6] text-sm mt-2'>Please wait while we check your permissions</p>
+        <p className='text-[#9aa0a6] text-sm mt-2'>
+          Please wait while we check your permissions
+        </p>
       </div>
     );
   }
@@ -227,8 +269,12 @@ function MeetingRoom() {
     return (
       <div className='h-screen bg-[#202124] flex flex-col items-center justify-center'>
         <Loader2 className='w-12 h-12 text-blue-500 animate-spin mb-4' />
-        <p className='text-white text-lg font-medium'>Connecting to server...</p>
-        <p className='text-[#9aa0a6] text-sm mt-2'>Establishing secure connection</p>
+        <p className='text-white text-lg font-medium'>
+          Connecting to server...
+        </p>
+        <p className='text-[#9aa0a6] text-sm mt-2'>
+          Establishing secure connection
+        </p>
       </div>
     );
   }
@@ -238,8 +284,12 @@ function MeetingRoom() {
     return (
       <div className='h-screen bg-[#202124] flex flex-col items-center justify-center'>
         <Loader2 className='w-12 h-12 text-blue-500 animate-spin mb-4' />
-        <p className='text-white text-lg font-medium'>Connecting to meeting...</p>
-        <p className='text-[#9aa0a6] text-sm mt-2'>Verifying room availability</p>
+        <p className='text-white text-lg font-medium'>
+          Connecting to meeting...
+        </p>
+        <p className='text-[#9aa0a6] text-sm mt-2'>
+          Verifying room availability
+        </p>
       </div>
     );
   }
@@ -321,16 +371,35 @@ function MeetingRoom() {
           <div className='bg-[#3c4043] rounded-xl p-8 max-w-md w-full mx-4 border border-[#5f6368]'>
             <div className='text-center'>
               <div className='mb-4'>
-                <svg className='w-16 h-16 mx-auto text-blue-500 animate-spin' fill='none' viewBox='0 0 24 24'>
-                  <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4'></circle>
-                  <path className='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'></path>
+                <svg
+                  className='w-16 h-16 mx-auto text-blue-500 animate-spin'
+                  fill='none'
+                  viewBox='0 0 24 24'
+                >
+                  <circle
+                    className='opacity-25'
+                    cx='12'
+                    cy='12'
+                    r='10'
+                    stroke='currentColor'
+                    strokeWidth='4'
+                  ></circle>
+                  <path
+                    className='opacity-75'
+                    fill='currentColor'
+                    d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+                  ></path>
                 </svg>
               </div>
-              <h3 className='text-xl font-semibold text-white mb-2'>Uploading video...</h3>
-              <p className='text-[#9aa0a6] mb-4'>Please do not close this page</p>
-              
+              <h3 className='text-xl font-semibold text-white mb-2'>
+                Uploading video...
+              </h3>
+              <p className='text-[#9aa0a6] mb-4'>
+                Please do not close this page
+              </p>
+
               <div className='w-full bg-[#5f6368] rounded-full h-2 mb-2'>
-                <div 
+                <div
                   className='bg-blue-500 h-2 rounded-full transition-all duration-300'
                   style={{ width: `${uploadProgress}%` }}
                 ></div>
@@ -354,7 +423,7 @@ function MeetingRoom() {
               })}
             </span>
           </div>
-          
+
           {/* Meeting Code */}
           <div className='flex items-center gap-2 px-3 py-2 bg-[#3c4043] rounded-full cursor-pointer hover:bg-[#5f6368] transition-colors'>
             <span className='text-sm text-[#e8eaed] font-mono'>{roomId}</span>
@@ -409,8 +478,9 @@ function MeetingRoom() {
       {/* ✅ FIXED: Main Content Area - Removed relative positioning that was blocking chat */}
       <div className='flex-1 flex overflow-hidden'>
         {/* Video Area - Adjusted width when chat is open */}
-        <div className={`flex overflow-hidden transition-all duration-300 ${showChat ? 'flex-1' : 'w-full'}`}>
-          
+        <div
+          className={`flex overflow-hidden transition-all duration-300 ${showChat ? 'flex-1' : 'w-full'}`}
+        >
           {/* Layout when SOMEONE is sharing screen */}
           {hasScreenShare ? (
             <div className='flex w-full h-full gap-3 p-4'>
@@ -428,7 +498,9 @@ function MeetingRoom() {
                     />
                     <div className='absolute top-6 left-6 px-4 py-2 bg-red-500 rounded-full flex items-center gap-2 shadow-lg'>
                       <div className='w-2 h-2 bg-white rounded-full animate-pulse'></div>
-                      <span className='text-sm text-white font-semibold'>You are presenting</span>
+                      <span className='text-sm text-white font-semibold'>
+                        You are presenting
+                      </span>
                     </div>
                   </div>
                 ) : sharingPeer ? (
@@ -455,7 +527,7 @@ function MeetingRoom() {
                       playsInline
                       autoPlay
                       muted
-                      ref={(el) => {
+                      ref={el => {
                         if (el && stream) {
                           el.srcObject = stream; // Always show camera when not sharing
                         }
@@ -464,14 +536,16 @@ function MeetingRoom() {
                     />
                     <div className='absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none'></div>
                     <div className='absolute bottom-3 left-3 px-3 py-1.5 bg-black/80 backdrop-blur-sm rounded-lg'>
-                      <span className='text-sm text-white font-medium'>You ({myName})</span>
+                      <span className='text-sm text-white font-medium'>
+                        You ({myName})
+                      </span>
                     </div>
                   </div>
                 )}
 
                 {/* Others' videos (not sharing) */}
                 {groupPeers
-                  .filter((p) => !peersSharingScreen.has(p.id))
+                  .filter(p => !peersSharingScreen.has(p.id))
                   .map(({ id, peer, name }) => (
                     <div key={id} className='flex-shrink-0'>
                       <ParticipantVideo
@@ -518,7 +592,7 @@ function MeetingRoom() {
                       playsInline
                       autoPlay
                       muted
-                      ref={(el) => {
+                      ref={el => {
                         if (el && stream) {
                           el.srcObject = stream; // Always show camera in grid view
                         }
@@ -550,7 +624,11 @@ function MeetingRoom() {
                   <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
                     <div className='text-center'>
                       <div className='w-20 h-20 bg-[#3c4043] rounded-full flex items-center justify-center mx-auto mb-4 shadow-xl'>
-                        <svg className='w-10 h-10 text-[#9aa0a6]' fill='currentColor' viewBox='0 0 20 20'>
+                        <svg
+                          className='w-10 h-10 text-[#9aa0a6]'
+                          fill='currentColor'
+                          viewBox='0 0 20 20'
+                        >
                           <path d='M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z' />
                         </svg>
                       </div>

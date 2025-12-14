@@ -369,7 +369,7 @@ const CollabEditor = () => {
         {/* Main Editor Area */}
         <div className='flex-1 flex flex-col overflow-hidden'>
           {/* Toolbar */}
-          <Toolbar editor={editor} />
+          <Toolbar editor={editor} currentRoomName={currentRoomName} />
 
           {/* Editor Content - Word-like paper view */}
           <div className='flex-1 overflow-y-auto bg-gray-200 p-8'>
