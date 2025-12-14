@@ -597,6 +597,7 @@ const TeamProjectDetail = () => {
         teamDetail?.projectInfo?.projectName ??
         'Team Project',
       teamName: teamDetail?.teamName ?? 'Team',
+      teamImage: teamDetail?.teamImage,
       description: projectRaw?.description ?? 'No description.',
       progress: Math.round(progress),
       status: formatStatusLabel(
@@ -777,7 +778,11 @@ const TeamProjectDetail = () => {
                   {projectData.title}
                 </h1>
                 <div className='flex items-center gap-2 mt-2 text-lg font-medium text-slate-600'>
-                  <Users size={20} className='text-orangeFpt-500' />
+                  <Avatar 
+                    src={projectData.teamImage} 
+                    name={projectData.teamName} 
+                    className="h-6 w-6 rounded-full" 
+                  />
                   {projectData.teamName}
                 </div>
               </div>
@@ -1069,7 +1074,7 @@ const TeamProjectDetail = () => {
                   {/* RIGHT: TEAM ROSTER & ACTORS */}
                   <aside className="space-y-6">
                      {/* Team Roster */}
-                     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sticky top-6">
+                     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm top-6">
                         <div className="flex items-center gap-3 mb-6">
                            <div className="p-2 rounded-lg bg-emerald-100 text-emerald-600"><Users size={20} /></div>
                            <h3 className="font-bold text-slate-800">Team Roster</h3>
