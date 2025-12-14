@@ -79,7 +79,7 @@ class OptimizedRAFBatcher {
     private minSendInterval: number = 16;
 
     private drawingTimer: number | null = null;
-    private drawingCompleteDelay: number = 150; // Wait 150ms after last change to consider drawing complete
+    private drawingCompleteDelay: number = 50;
     private isDrawing: boolean = false;
 
     constructor(socket: WebSocket, drawerId: string, pageId: number) {
@@ -229,7 +229,7 @@ class OptimizedRAFBatcher {
 }
 
 /**
- * 🚀 OPTIMIZED: Presence (cursor) throttling
+ *  OPTIMIZED: Presence (cursor) throttling
  */
 class PresenceThrottler {
     private lastPosition: { x: number, y: number, camera: any } | null = null;
@@ -311,6 +311,7 @@ export function useWhiteboardSync(
     const isMounted = useRef(true)
     const reconnectTimeoutRef = useRef<number | null>(null)
     const cleanupFunctionsRef = useRef<Array<() => void>>([])
+    const pingIntervalRef = useRef<number | null>(null);
 
     useEffect(() => {
         isMounted.current = true
@@ -422,6 +423,16 @@ export function useWhiteboardSync(
                 pageId: pageId,
                 whiteboardId: whiteboardId,
             });
+            pingIntervalRef.current = window.setInterval(() => {
+                if (socket.readyState === WebSocket.OPEN) {
+                    try {
+                        socket.send(JSON.stringify({ type: 'ping' }));
+                        // console.log('💓 Ping sent'); // Bật lên nếu muốn debug
+                    } catch (e) {
+                        console.error('Failed to send ping');
+                    }
+                }
+            }, 30000);
 
             // ========== MESSAGE LISTENER ==========
             socket.onmessage = async (event) => {
@@ -740,6 +751,10 @@ export function useWhiteboardSync(
             socket.onclose = () => {
                 console.warn(`🔻 Disconnected from page: ${pageId}`);
 
+                if (pingIntervalRef.current) {
+                    clearInterval(pingIntervalRef.current);
+                    pingIntervalRef.current = null;
+                }
                 // Destroy batcher and throttler
                 if (batcherRef.current) {
                     batcherRef.current.destroy();
@@ -799,6 +814,10 @@ export function useWhiteboardSync(
 
             if (socketRef.current === socket) {
                 socketRef.current = null;
+            }
+            if (pingIntervalRef.current) {
+                clearInterval(pingIntervalRef.current);
+                pingIntervalRef.current = null;
             }
 
             isConnecting.current = false

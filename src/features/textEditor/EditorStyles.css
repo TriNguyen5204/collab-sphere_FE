@@ -284,3 +284,41 @@
     font-size: 16pt;
   }
 }
+
+@media print {
+    /* 1. Ẩn tất cả mọi thứ trên trang web */
+    body * {
+        visibility: hidden;
+    }
+
+    /* 2. Chỉ hiện vùng nội dung Editor */
+    /* Lưu ý: Thay #editor-content-export bằng ID bạn đã đặt bao quanh EditorContent */
+    #editor-content-export, 
+    #editor-content-export * {
+        visibility: visible;
+    }
+
+    /* 3. Định vị trang giấy về góc trên trái */
+    #editor-content-export {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0; /* Xóa padding thừa nếu cần */
+        box-shadow: none; /* Xóa bóng đổ */
+        background: white;
+    }
+
+    /* 4. Tùy chỉnh trang in (A4) */
+    @page {
+        size: A4;
+        margin: 20mm; /* Căn lề khi in */
+    }
+
+    /* 5. Đảm bảo in màu nền/ảnh nền (nếu có highlight) */
+    body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}

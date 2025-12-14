@@ -531,6 +531,7 @@ const SubjectDetail = () => {
                   setSubject(updated);
                   setActiveTab('overview');
                 }}
+                onCancel={() => setActiveTab('overview')}
               />
           )}
         </div>
