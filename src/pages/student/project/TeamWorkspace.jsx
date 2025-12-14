@@ -274,19 +274,36 @@ const TeamWorkspace = () => {
                     ) : (
                       <div className="space-y-3 max-h-[500px] overflow-y-auto">
                         {(team?.memberInfo?.members ?? []).map((member) => (
-                          <div key={member.studentId} className="flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 transition">
-                            <div className="relative">
-                              <MemberAvatar
-                                name={member.studentName}
-                                src={member.avatar}
-                                alt={member.studentName}
-                                className="w-12 h-12 rounded-full bg-white object-cover border-2"
-                              />
+                          <div key={member.studentId} className="flex items-center justify-between gap-3 p-4 border rounded-lg hover:bg-gray-50 transition">
+                            <div className="flex items-center gap-4">
+                              <div className="relative">
+                                <MemberAvatar
+                                  name={member.studentName}
+                                  src={member.avatar}
+                                  alt={member.studentName}
+                                  className="w-12 h-12 rounded-full bg-white object-cover border-2"
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-base truncate">{member.studentName}</h3>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <span className={`text-sm px-3 py-1 rounded-full border font-medium ${member.teamRole === 1 ? 'bg-yellow-50 text-yellow-800 border-yellow-200' : 'bg-gray-50 text-gray-700 border-gray-300'}`}>{convertTeamRole(member.teamRole)}</span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-base truncate">{member.studentName}</h3>
-                              <div className="flex items-center gap-2 mt-2">
-                                <span className={`text-sm px-3 py-1 rounded-full border font-medium ${member.teamRole === 1 ? 'bg-yellow-50 text-yellow-800 border-yellow-200' : 'bg-gray-50 text-gray-700 border-gray-300'}`}>{convertTeamRole(member.teamRole)}</span>
+                            {/* Contribution Stats */}
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 rounded-lg border border-indigo-100">
+                                <span className="text-sm text-indigo-600 font-semibold">Questions</span>
+                                <span className="text-lg font-bold text-indigo-700">
+                                  {member.milestoneAnsContributionPercentage ? Math.round(member.milestoneAnsContributionPercentage * 100) : 0}%
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 rounded-lg border border-emerald-100">
+                                <span className="text-sm text-emerald-600 font-semibold">Checkpoints</span>
+                                <span className="text-lg font-bold text-emerald-700">
+                                  {member.checkpointContributionPercentage ? Math.round(member.checkpointContributionPercentage * 100) : 0}%
+                                </span>
                               </div>
                             </div>
                           </div>

@@ -828,8 +828,10 @@ const TeamEvaluationPage = () => {
                                                          <div className="min-w-0">
                                                             <div className="flex items-center gap-2">
                                                                <span className="font-semibold text-slate-800 text-sm lg:text-base truncate">{member.memberName}</span>
-                                                               {isLeader && (
+                                                               {isLeader ? (
                                                                   <span className="text-[9px] font-bold bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded border border-yellow-200 uppercase">Leader</span>
+                                                               ) : (
+                                                                  <span className="text-[9px] font-bold bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded border border-slate-300 uppercase">Member</span>
                                                                )}
                                                             </div>
                                                          </div>
@@ -846,7 +848,7 @@ const TeamEvaluationPage = () => {
                                                                ...memberScores,
                                                                [member.classMemberId]: e.target.value
                                                             })}
-                                                            className="w-20 rounded-lg border border-slate-300 bg-slate-50 px-2 py-2 text-center text-lg font-bold text-slate-900 focus:ring-2 focus:ring-orangeFpt-500/20 focus:border-orangeFpt-500 transition-all"
+                                                            className="w-20 rounded-lg border border-slate-300 bg-slate-50 px-1 py-2 text-center text-lg font-bold text-slate-900 focus:ring-2 focus:ring-orangeFpt-500/20 focus:border-orangeFpt-500 transition-all"
                                                          />
                                                          <span className="text-sm text-slate-400 font-medium">/10</span>
                                                       </div>
