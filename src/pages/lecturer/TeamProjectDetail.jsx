@@ -609,6 +609,8 @@ const TeamProjectDetail = () => {
     };
   }, [teamDetail, projectRaw]);
 
+  const isRosterLocked = projectData.progress > 0;
+
   // Merge Project Objectives with Actual Team Milestones
   const viewData = useMemo(() => {
     // Identify Syllabus Milestones (Those with syllabusMilestoneId)
@@ -1145,7 +1147,7 @@ const TeamProjectDetail = () => {
                 </div>
                 <div className="space-y-4">
                   {teamMembersRaw.map((member, idx) => (
-                    <div key={idx} className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:shadow-sm transition-all cursor-pointer">
+                    <div key={idx} className="flex flex-col gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:shadow-sm transition-all cursor-pointer">
                       <div className="flex items-center gap-3">
                         <Avatar
                           src={member.avatar}
@@ -1160,6 +1162,25 @@ const TeamProjectDetail = () => {
                             </span>
                           )}
                           {member.teamRole === 0 && <span className="inline-flex items-center gap-1 text-sm text-slate-500">Member</span>}
+                        </div>
+                      </div>
+
+                      {/* Contribution Stats */}
+                      <div className="flex items-center gap-2 pt-2 border-t border-slate-200/60 w-full">
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">Contributions:</span>
+                        <div className="flex items-center gap-2 flex-1 flex-wrap">
+                          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-50 rounded-lg border border-indigo-100">
+                            <span className="text-[10px] text-indigo-600 font-semibold">Question</span>
+                            <span className="text-xs font-bold text-indigo-700">
+                              {member.milestoneAnsContributionPercentage ? Math.round(member.milestoneAnsContributionPercentage * 100) : 0}%
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 rounded-lg border border-emerald-100">
+                            <span className="text-[10px] text-emerald-600 font-semibold">Checkpoint</span>
+                            <span className="text-xs font-bold text-emerald-700">
+                              {member.checkpointContributionPercentage ? Math.round(member.checkpointContributionPercentage * 100) : 0}%
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1225,6 +1246,15 @@ const TeamProjectDetail = () => {
               </p>
             </div>
 
+            {isRosterLocked && (
+              <div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <AlertCircle size={20} className="shrink-0" />
+                <p>
+                  <span className="font-bold">Roster Locked:</span> Team progress has started ({projectData.progress}%). You can only change the leader, but cannot add or remove members.
+                </p>
+              </div>
+            )}
+
             <div className="flex items-center gap-2 rounded-2xl bg-slate-100 p-1 text-sm font-semibold text-slate-500">
               {['current', 'available'].map((tab) => (
                 <button
@@ -1281,7 +1311,11 @@ const TeamProjectDetail = () => {
                         <button
                           type="button"
                           onClick={() => handleRemoveStudentFromRoster(member.studentId)}
-                          className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                          disabled={isRosterLocked}
+                          className={`rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold transition ${isRosterLocked
+                              ? 'opacity-50 cursor-not-allowed text-slate-400 bg-slate-100'
+                              : 'text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600'
+                            }`}
                         >
                           Remove
                         </button>
@@ -1330,7 +1364,11 @@ const TeamProjectDetail = () => {
                         <button
                           type="button"
                           onClick={() => handleAddStudentToRoster(student)}
-                          className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                          disabled={isRosterLocked}
+                          className={`rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold transition ${isRosterLocked
+                              ? 'opacity-50 cursor-not-allowed text-emerald-700 bg-emerald-50'
+                              : 'text-emerald-700 hover:bg-emerald-50'
+                            }`}
                         >
                           Add
                         </button>

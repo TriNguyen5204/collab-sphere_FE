@@ -1,19 +1,29 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import {
   BookOpen,
   FolderKanban,
   ClipboardCheck,
   LogOut,
+  MessageSquareWarning,
 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import AppSidebar from './AppSidebar';
 import logo from '../../assets/logov2.svg';
 import { logout } from '../../store/slices/userSlice';
+import ReportSystemModal from '../../features/student/components/ReportSystemModal';
 
-const HeadSidebar = ({ sections, isAuthenticated, onLogin, onLogout, navigate }) => {
+const HeadSidebar = ({ sections, isAuthenticated, onLogin, onLogout, navigate, onOpenReport }) => {
   const footer = isAuthenticated ? (
-    <div className='px-2 py-2'>
+    <div className='px-2 py-2 space-y-1'>
+      <button
+        type='button'
+        onClick={onOpenReport}
+        className='flex w-full items-center gap-3 rounded-md px-3 py-2 text-slate-600 transition hover:bg-orangeFpt-50 hover:text-orangeFpt-600'
+      >
+        <MessageSquareWarning className='h-5 w-5' />
+        <span className='font-medium'>Report System</span>
+      </button>
       <button
         type='button'
         onClick={onLogout}
@@ -97,6 +107,7 @@ const normalizePath = (path = '/') => {
 const HeadDashboardLayout = ({ children }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const { accessToken, userId } = useSelector(
     state => state.user
@@ -178,11 +189,17 @@ const HeadDashboardLayout = ({ children }) => {
           onLogin={handleLogin}
           onLogout={handleLogout}
           navigate={navigate}
+          onOpenReport={() => setShowReportModal(true)}
         />
       </aside>
       <main className='flex-1 min-w-0 px-4 py-6 md:px-6 lg:px-8 ml-56 custom-scrollbar'>
         {children}
       </main>
+      <ReportSystemModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        userId={userId}
+      />
     </div>
   );
 };

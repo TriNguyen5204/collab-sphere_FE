@@ -11,14 +11,14 @@ import {
   UserIcon,
   VideoCameraIcon,
 } from '@heroicons/react/24/outline';
-import { ChevronDown, LayoutDashboard, LogOut, User } from 'lucide-react';
+import { ChevronDown, LayoutDashboard, LogOut, User, MessageSquareWarning } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import logo from '../../assets/logov2.svg';
 import { logout } from '../../store/slices/userSlice';
 import { useAvatar } from '../../hooks/useAvatar';
 import { getRoleLandingRoute } from '../../constants/roleRoutes';
 
-const usePrimaryHeaderConfig = () => {
+const usePrimaryHeaderConfig = ({ onOpenReport } = {}) => {
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -133,6 +133,17 @@ const usePrimaryHeaderConfig = () => {
                 >
                   <User size={16} />
                   Profile
+                </button>
+
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    onOpenReport?.();
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                >
+                  <MessageSquareWarning size={16} />
+                  Report System
                 </button>
                 
                 <div className="h-px bg-gray-50 my-2" />

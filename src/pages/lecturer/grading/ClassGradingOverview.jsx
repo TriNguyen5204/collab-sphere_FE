@@ -261,7 +261,11 @@ const ClassGradingOverview = () => {
                       <tr key={team.teamId} className="group hover:bg-orangeFpt-50/30 transition-colors">
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-3">
-                            <TeamAvatar teamName={team.teamName} teamImage={team.teamImage} />
+                            <TeamAvatar
+                              src={team.teamImage}
+                              name={team.teamName}
+                              className="h-10 w-10 rounded-full object-cover ring-2 ring-white shadow-sm"
+                            />
                             <div>
                               <div className="font-bold text-slate-900 group-hover:text-orangeFpt-700 transition-colors">{team.teamName}</div>
                               <div className="text-xs text-slate-500">{team.semesterName}</div>
