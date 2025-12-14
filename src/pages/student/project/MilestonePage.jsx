@@ -504,7 +504,7 @@ const MilestonePage = () => {
       await patchMarkDoneMilestoneByMilestoneId(milestoneId, true);
 
       if (teamBoard) {
-        const linkForTeamMember = `/student/project/milestones&checkpoints`;
+        const linkForTeamMember = `/student/project/milestones&checkpoints/${teamId}`;
         const classId = team?.classId || team?.classInfo?.classId;
         
         const linkForLecturer = classId

@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { Bell, Info, ExternalLink, X, MessageCircle } from 'lucide-react';
 import { getDetailOfTeamByTeamId, getListOfTeamsByStudentId } from '../../../services/studentApi';
 import useTeam from '../../../context/useTeam';
+import { patchNotificationIsRead } from '../../../services/notifiactionApi';
 
 // Helper to format the time
 const formatTime = (isoString) => {
@@ -65,44 +66,48 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
             onOpen();
         }
 
-        const notifyLink = notification.link || '/chat';
+        let notifyLink = notification.link || '/chat';
 
         const isStudent = userRole?.toLowerCase() === 'student';
-        const isMilestoneLink = notifyLink.includes('/student/project/milestones&checkpoints');
+        const isProjectLink = notifyLink.includes('/student/project/');
         
-        console.log('Is student:', isStudent, 'Is Milestone Link:', isMilestoneLink);
+        console.log('Is student:', isStudent, 'Is Project Link:', isProjectLink);
         
-        if (isStudent && isMilestoneLink) {
+        if (isStudent && isProjectLink) {
             try {
-                const teamNameMatch = notification.title?.match(/Team '([^']+)'/);
-                const teamName = teamNameMatch ? teamNameMatch[1] : '';
-                
-                console.log('Extracted team name:', teamName);
-                
-                if (teamName) {
-                    const response = await getListOfTeamsByStudentId(userId, { teamName: teamName });
-                    console.log('Fetched teams for student:', response);
-                    const teamId = response?.paginatedTeams?.list?.[0]?.teamId || null;
+                // Extract teamId from the end of the link (e.g., .../milestones&checkpoints/36)
+                const parts = notifyLink.split('/');
+                const lastSegment = parts[parts.length - 1];
+                const teamId = parseInt(lastSegment, 10);
+
+                if (!isNaN(teamId)) {
+                    console.log('Extracted teamId from link:', teamId);
                     
-                    console.log('Matched team:', teamId);
+                    // Fetch details and set context
+                    await getDetailOfTeamByTeamId(teamId);
+                    setTeam(teamId);
                     
-                    if (teamId) {
-                        await getDetailOfTeamByTeamId(teamId);
-                        setTeam(teamId);
-                        
-                        console.log('Team details fetched for teamId:', teamId);
-                    }
+                    // Update notifyLink to the base path (remove the ID)
+                    notifyLink = notifyLink.substring(0, notifyLink.lastIndexOf('/'));
+                    console.log('Navigating to:', notifyLink);
                 }
             } catch (e) {
-                console.error("Error fetching team details:", e);
+                console.error("Error processing team details:", e);
             }
         }
-
+        console.log('Marking notification as read:', notification.notificationId);
+        patchNotificationIsRead(notification.notificationId)
+        console.log('Final navigation link:', notifyLink);
         navigate(notifyLink);
     };
 
-    // Show newest notifications first
-    const reversedNotifications = [...notifications].reverse();
+    // Sort: Unread first, then by date (newest first)
+    const sortedNotifications = [...notifications].sort((a, b) => {
+        if (a.isRead === b.isRead) {
+            return new Date(b.createdAt) - new Date(a.createdAt);
+        }
+        return a.isRead ? 1 : -1;
+    });
 
     return (
         <div className="relative" ref={dropdownRef}>
@@ -188,7 +193,7 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                                 scrollbarColor: '#cbd5e1 transparent'
                             }}
                         >
-                            {reversedNotifications.length === 0 ? (
+                            {sortedNotifications.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-16 px-6 text-gray-400">
                                     <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                                         <Bell className="w-10 h-10 text-gray-300" />
@@ -200,11 +205,11 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                                 </div>
                             ) : (
                                 <div className="divide-y divide-gray-100">
-                                    {reversedNotifications.map((notif, index) => (
+                                    {sortedNotifications.map((notif, index) => (
                                         <div
                                             key={notif.notificationId}
                                             onClick={() => handleNotificationClick(notif)}
-                                            className="px-5 py-4 hover:bg-gradient-to-r hover:from-orangeFpt-50 hover:to-orange-50 transition-all duration-200 cursor-pointer group relative"
+                                            className={`px-5 py-4 hover:bg-gradient-to-r hover:from-orangeFpt-50 hover:to-orange-50 transition-all duration-200 cursor-pointer group relative ${notif.isRead ? 'opacity-60 bg-slate-50/50' : 'bg-white'}`}
                                             style={{
                                                 animation: `slideDown 0.3s ease-out ${index * 0.05}s backwards`
                                             }}
@@ -229,11 +234,6 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                                                             {formatTime(notif.createdAt)}
                                                         </span>
 
-                                                        {/* Show "Open Chat" indicator */}
-                                                        <span className="text-xs font-semibold text-orangeFpt-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                                                            <MessageCircle className="w-3 h-3" />
-                                                            Open Chat
-                                                        </span>
                                                     </div>
                                                 </div>
 

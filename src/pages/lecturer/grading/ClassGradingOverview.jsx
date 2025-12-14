@@ -9,22 +9,22 @@ import { getTeamDetail } from '../../../services/teamApi';
 import { getTeamEvaluationSummary } from '../../../services/evaluationApi';
 import { useAvatar } from '../../../hooks/useAvatar';
 
-const TeamAvatar = ({ src, name, className }) => {
-  const { initials, colorClass, setImageError, shouldShowImage } = useAvatar(name, src);
-  
+const TeamAvatar = ({ teamName, teamImage }) => {
+  const { initials, colorClass, shouldShowImage, setImageError } = useAvatar(teamName, teamImage);
+
   if (shouldShowImage) {
     return (
       <img
-        src={src}
-        alt={name}
-        className={className}
+        src={teamImage}
+        alt={teamName}
         onError={() => setImageError(true)}
+        className="h-10 w-10 rounded-full object-cover ring-2 ring-white shadow-sm"
       />
     );
   }
-  
+
   return (
-    <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-orangeFpt-100 text-orangeFpt-600 font-bold ring-2 ring-white shadow-sm ${className}`}>
+    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${colorClass} text-white font-bold ring-2 ring-white shadow-sm`}>
       {initials}
     </div>
   );

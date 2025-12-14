@@ -17,6 +17,7 @@ import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBrea
 import { getClassDetail } from '../../services/userService';
 import { createTeam } from '../../services/teamApi';
 import { getClassProjects } from '../../services/projectApi';
+import { getSemester } from '../../services/userService';
 import { useAvatar } from '../../hooks/useAvatar'; // Import the hook
 
 // --- Sub-Component for Individual Student Item ---
@@ -68,6 +69,7 @@ const StudentListItem = ({ student, isSelected, onToggle }) => {
   );
 };
 
+
 const CreateTeamPage = () => {
   const { classId } = useParams();
   const navigate = useNavigate();
@@ -108,8 +110,12 @@ const CreateTeamPage = () => {
             return [];
           })
         ]);
-
+        console.log('Class detail loaded:', detail);
+        console.log('Projects loaded:', projectsData);
         setClassInfo(detail);
+        const semesterList = await getSemester();
+        const currentSemester = semesterList.find(sem => sem.semesterName === detail.semesterName);
+        console.log('Current semester:', currentSemester);
         
         if (Array.isArray(projectsData)) {
           setProjects(projectsData);
@@ -130,9 +136,8 @@ const CreateTeamPage = () => {
              setFormData(prev => ({ ...prev, endDate: d.toISOString().split('T')[0] }));
            }
         } else {
-           const nextMonth = new Date();
-           nextMonth.setMonth(nextMonth.getMonth() + 4); 
-           setFormData(prev => ({ ...prev, endDate: nextMonth.toISOString().split('T')[0] }));
+           const semesterEndDate = currentSemester?.endDate;
+           setFormData(prev => ({ ...prev, endDate: semesterEndDate ? new Date(semesterEndDate).toISOString().split('T')[0] : '' }));
         }
 
       } catch (error) {
@@ -260,7 +265,7 @@ const CreateTeamPage = () => {
         createdDate: formatDateForApi(new Date()),
         endDate: formatDateForApi(formData.endDate)
       };
-
+      console.log('Submitting create team with payload:', payload);
       const response = await createTeam(payload);
       if (response && response.isSuccess === false) {
         const errorMsg = response.message || 'Failed to create team';
