@@ -209,7 +209,7 @@ const CreateClassForm = ({ onClose }) => {
       try {
         const response = await createClass(formData);
         if (response) {
-          toast.success('✅ Class created successfully!');
+          toast.success('Class created successfully!');
           setTimeout(() => {
             if (onClose) onClose();
           }, 1500);

@@ -29,11 +29,7 @@ const CreateSubjectForm = ({ onClose }) => {
   const [isSyllabusActive, setIsSyllabusActive] = useState(true);
 
   // Grade Components
-  const [gradeComponents, setGradeComponents] = useState([
-    { componentName: 'Assignment', referencePercentage: 10 },
-    { componentName: 'Midterm Exam', referencePercentage: 30 },
-    { componentName: 'Final Exam', referencePercentage: 60 },
-  ]);
+  const [gradeComponents, setGradeComponents] = useState([]);
 
   // Subject Outcomes with Milestones
   const [subjectOutcomes, setSubjectOutcomes] = useState([
