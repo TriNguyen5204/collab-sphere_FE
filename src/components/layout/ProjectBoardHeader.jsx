@@ -18,6 +18,7 @@ const ProjectBoardHeader = ({
 
   useEffect(() => {
     console.log('Team data in ProjectBoardHeader:', team);
+    console.log('Notification:', notifications);
     console.log('Notifications in ProjectBoardHeader:', notifications);
   }, [team, notifications]);
   const handleExitProject = async () => {

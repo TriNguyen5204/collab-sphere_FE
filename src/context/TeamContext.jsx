@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import { getDetailOfTeamByTeamId } from '../services/studentApi';
 import { TeamBoardService, EventHandlers } from '../services/teamBoardService';
+import { getNotifications } from '../services/notifiactionApi';
 
 const STORAGE_KEY = 'teamDetail';
 
@@ -187,6 +188,15 @@ export function TeamProvider({ children, initialTeam = null }) {
 			setNotifications(history || []);
 		});
 
+		// Fetch notifications via API to ensure consistency
+		getNotifications()
+			.then((data) => {
+				if (Array.isArray(data)) {
+					setNotifications(data);
+				}
+			})
+			.catch((err) => console.error('Failed to fetch notifications via API:', err));
+
 		service.joinServer();
 		setTeamBoard(service);
 
@@ -336,6 +346,14 @@ export function TeamProvider({ children, initialTeam = null }) {
 		return queryClient.invalidateQueries({ queryKey: teamQueryKey(normalizedTeamId) });
 	}, [isAuthenticated, normalizedTeamId, queryClient]);
 
+	const markNotificationAsRead = useCallback((notificationId) => {
+		setNotifications((prev) =>
+			prev.map((n) =>
+				n.notificationId === notificationId ? { ...n, isRead: true } : n
+			)
+		);
+	}, []);
+
 	const value = useMemo(
 		() => ({
 			teamId: normalizedTeamId,
@@ -348,6 +366,7 @@ export function TeamProvider({ children, initialTeam = null }) {
 			updateTeam,
 			clearTeam,
 			refetchTeam,
+			markNotificationAsRead,
 		}),
 		[
 			normalizedTeamId,
@@ -361,6 +380,7 @@ export function TeamProvider({ children, initialTeam = null }) {
 			updateTeam,
 			clearTeam,
 			refetchTeam,
+			markNotificationAsRead,
 		]
 	);
 

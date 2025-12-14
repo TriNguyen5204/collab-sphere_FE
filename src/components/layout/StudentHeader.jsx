@@ -45,6 +45,7 @@ const StudentHeader = () => {
     const load = async () => {
       if (!studentId) return;
       try {
+        console.log('Notification:', notifications);
         const [classResp, teamResp] = await Promise.all([
           getClassesByStudentId(studentId),
           getListOfTeamsByStudentId(studentId),
@@ -218,7 +219,7 @@ const StudentHeader = () => {
 
             <NotificationBell 
               notifications={notifications || []}
-              unreadCount={notifications?.length || 0}
+              unreadCount={notifications?.filter(n => !n.isRead).length || 0}
             />
 
             {/* Profile menu */}

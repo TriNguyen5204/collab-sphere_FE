@@ -30,7 +30,7 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
     const navigate = useNavigate();
     const userRole = useSelector((state) => state.user?.roleName || '');
     const userId = useSelector((state) => state.user?.userId || '');
-    const { setTeam } = useTeam();
+    const { setTeam, markNotificationAsRead } = useTeam();
 
     // Click outside to close
     useEffect(() => {
@@ -96,7 +96,10 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
             }
         }
         console.log('Marking notification as read:', notification.notificationId);
-        patchNotificationIsRead(notification.notificationId)
+        patchNotificationIsRead(notification.notificationId);
+        if (markNotificationAsRead) {
+            markNotificationAsRead(notification.notificationId);
+        }
         console.log('Final navigation link:', notifyLink);
         navigate(notifyLink);
     };
@@ -123,6 +126,7 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                 />
 
                 {/* Unread Count Badge */}
+                {console.log('Unread Count:', unreadCount)}
                 {unreadCount > 0 && (
                     <span className="absolute top-0.5 right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-gradient-to-r from-red-500 to-red-600 rounded-full border-2 border-white shadow-md animate-pulse">
                         {unreadCount > 99 ? '99+' : unreadCount}
