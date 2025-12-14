@@ -7,6 +7,28 @@ import LecturerBreadcrumbs from '../../../features/lecturer/components/LecturerB
 import { getClassTeams, getClassById } from '../../../services/classApi';
 import { getTeamDetail } from '../../../services/teamApi';
 import { getTeamEvaluationSummary } from '../../../services/evaluationApi';
+import { useAvatar } from '../../../hooks/useAvatar';
+
+const TeamAvatar = ({ teamName, teamImage }) => {
+  const { initials, colorClass, shouldShowImage, setImageError } = useAvatar(teamName, teamImage);
+
+  if (shouldShowImage) {
+    return (
+      <img
+        src={teamImage}
+        alt={teamName}
+        onError={() => setImageError(true)}
+        className="h-10 w-10 rounded-full object-cover ring-2 ring-white shadow-sm"
+      />
+    );
+  }
+
+  return (
+    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${colorClass} text-white font-bold ring-2 ring-white shadow-sm`}>
+      {initials}
+    </div>
+  );
+};
 
 const extractTeamCollection = (payload) => {
   if (Array.isArray(payload?.teams)) return payload.teams;
@@ -239,17 +261,7 @@ const ClassGradingOverview = () => {
                       <tr key={team.teamId} className="group hover:bg-orangeFpt-50/30 transition-colors">
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-3">
-                            {team.teamImage ? (
-                              <img
-                                src={team.teamImage}
-                                alt=""
-                                className="h-10 w-10 rounded-full object-cover ring-2 ring-white shadow-sm"
-                              />
-                            ) : (
-                              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orangeFpt-100 text-orangeFpt-600 font-bold ring-2 ring-white shadow-sm">
-                                {team.teamName.charAt(0)}
-                              </div>
-                            )}
+                            <TeamAvatar teamName={team.teamName} teamImage={team.teamImage} />
                             <div>
                               <div className="font-bold text-slate-900 group-hover:text-orangeFpt-700 transition-colors">{team.teamName}</div>
                               <div className="text-xs text-slate-500">{team.semesterName}</div>

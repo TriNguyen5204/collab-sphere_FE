@@ -134,7 +134,7 @@ const LecturerHeader = ({
 
             <NotificationBell 
               notifications={notifications || []}
-              unreadCount={notifications?.length || 0}
+              unreadCount={notifications?.filter(n => !n.isRead).length || 0}
             />
 
             {/* Profile menu */}

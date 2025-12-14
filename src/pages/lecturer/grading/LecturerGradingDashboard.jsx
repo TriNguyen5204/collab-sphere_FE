@@ -23,7 +23,7 @@ import {
   submitTeamEvaluation, 
   submitMilestoneEvaluation 
 } from '../../../services/evaluationApi';
-import { normalizeMilestoneStatus } from '../../../utils/milestoneHelpers';
+import useTeam from '../../../context/useTeam';
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
@@ -56,6 +56,7 @@ const buildDownloadUrl = (file) => {
 const LecturerGradingDashboard = () => {
   const { classId, teamId } = useParams();
   const navigate = useNavigate();
+  const { teamBoard } = useTeam();
 
   // --- State ---
   const [teamInfo, setTeamInfo] = useState(null);
@@ -200,6 +201,10 @@ const LecturerGradingDashboard = () => {
         comments: milestoneForm.comments
       });
       toast.success('Milestone evaluation saved');
+      if (teamBoard) {
+        const linkForTeamMember = `/student/project/milestones&checkpoints/${teamId}`;
+        await teamBoard.broadcastMilestoneEvaluated(teamId, selectedMilestoneId, linkForTeamMember);
+      }
       
       // Refresh detail
       const detail = await getMilestoneDetail(selectedMilestoneId);
