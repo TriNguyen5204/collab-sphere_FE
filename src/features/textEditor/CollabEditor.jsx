@@ -82,6 +82,13 @@ const CollabEditor = () => {
   const [currentRoomName, setCurrentRoomName] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
 
+  useEffect(() => {
+    if (editor) {
+      const isEditable = !!currentRoomName;
+      editor.setEditable(isEditable);
+    }
+  }, [editor, currentRoomName]);
+
   // --- Initialize Yjs provider ---
   useEffect(() => {
     const newDoc = new Y.Doc();

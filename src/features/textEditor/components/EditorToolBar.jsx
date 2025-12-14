@@ -18,7 +18,7 @@ import {
   Type,
   FileDown,
   FileText,
-  Upload
+  Upload,
 } from 'lucide-react';
 import { exportToDocx } from '../hooks/docxExport';
 import { exportToPdfMake } from '../hooks/pdfMakeExport';
@@ -29,6 +29,7 @@ const EditorToolBar = ({ editor, currentRoomName }) => {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
   const fileInputRef = useRef(null);
+  const isDisabled = !currentRoomName || !editor;
 
   useEffect(() => {
     if (!editor) return;
@@ -109,25 +110,25 @@ const EditorToolBar = ({ editor, currentRoomName }) => {
     }
   };
 
-  const handleFileUpload = async (e) => {
+  const handleFileUpload = async e => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
       const htmlContent = await importFromDocx(file);
-      
+
       if (htmlContent) {
         // Cách 1: Ghi đè toàn bộ nội dung cũ
         editor.commands.setContent(htmlContent);
-        
+
         // Cách 2: Chèn tiếp vào vị trí con trỏ (nếu muốn giữ nội dung cũ thì dùng dòng dưới)
         // editor.commands.insertContent(htmlContent);
       }
     } catch (error) {
-      alert("Lỗi khi import file: " + error.message);
+      alert('Lỗi khi import file: ' + error.message);
     } finally {
       // Reset input để có thể chọn lại cùng 1 file nếu muốn
-      e.target.value = ''; 
+      e.target.value = '';
     }
   };
 
@@ -299,7 +300,12 @@ const EditorToolBar = ({ editor, currentRoomName }) => {
   );
 
   return (
-    <div className='bg-white border-b border-gray-300 sticky top-0 z-40'>
+    <div
+      className={`
+        toolbar-container sticky top-0 z-20 bg-[#f3f2f1] border-b border-[#e1dfdd] p-1 flex items-center gap-2 overflow-x-auto
+        ${isDisabled ? 'opacity-50 pointer-events-none grayscale cursor-not-allowed select-none' : ''}
+      `}
+    >
       {/* Top Row - File operations would go here in full Word clone */}
       <div className='border-b border-gray-200 px-4 py-1 text-xs text-gray-600 flex items-center gap-4'>
         <span className='font-semibold'>Collaborative Editor</span>
@@ -507,23 +513,23 @@ const EditorToolBar = ({ editor, currentRoomName }) => {
             <ToolbarButton onClick={handleExportPDF} title='Export to PDF'>
               <FileDown className='w-5 h-5 text-red-600' />
             </ToolbarButton>
-            <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="hover:bg-gray-200 p-2 rounded flex items-center gap-1"
-            title="Import Docx"
-          >
-            <Upload className="w-4 h-4" />
-            <span className="text-sm">Import</span>
-          </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className='hover:bg-gray-200 p-2 rounded flex items-center gap-1'
+              title='Import Docx'
+            >
+              <Upload className='w-4 h-4' />
+              <span className='text-sm'>Import</span>
+            </button>
 
-          {/* Input file ẩn (chỉ chấp nhận .docx) */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            accept=".docx"
-            className="hidden"
-          />
+            {/* Input file ẩn (chỉ chấp nhận .docx) */}
+            <input
+              type='file'
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept='.docx'
+              className='hidden'
+            />
           </div>
         </div>
       </div>
