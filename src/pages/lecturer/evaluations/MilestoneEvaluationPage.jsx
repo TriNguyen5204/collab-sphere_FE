@@ -24,6 +24,7 @@ import { getMilestoneEvaluationsByTeam, submitMilestoneEvaluation } from '../../
 import { getMilestoneQuestionsAnswersByQuestionId, patchGenerateNewReturnFileLinkByMilestoneIdAndMileReturnId } from '../../../services/studentApi';
 import { useSecureFileHandler } from '../../../hooks/useSecureFileHandler';
 import { useAvatar } from '../../../hooks/useAvatar';
+import useTeam from '../../../context/useTeam';
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
@@ -72,6 +73,7 @@ const MilestoneEvaluationPage = () => {
   const { classId, teamId } = useParams();
   const navigate = useNavigate();
   const { openSecureFile } = useSecureFileHandler();
+  const { teamBoard } = useTeam();
   
   // State
   const [teamInfo, setTeamInfo] = useState(null);
@@ -283,6 +285,10 @@ const MilestoneEvaluationPage = () => {
       await submitMilestoneEvaluation(selectedMilestoneId, payload);
       toast.success('Evaluation saved successfully');
       await fetchMilestones();
+      if (teamBoard) {
+         const linkForTeamMember = `/student/project/milestones&checkpoints/${teamId}`;
+         await teamBoard.broadcastMilestoneEvaluated(teamId, selectedMilestoneId, linkForTeamMember);
+      }
     } catch (error) {
       toast.error(error?.message || 'Failed to save evaluation');
     } finally {

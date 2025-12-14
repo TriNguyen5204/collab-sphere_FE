@@ -18,6 +18,7 @@ import { getTeamDetail } from '../../../services/teamApi';
 import { getMilestonesByTeam, getMilestoneDetail } from '../../../services/milestoneApi';
 import { submitMilestoneEvaluation } from '../../../services/evaluationApi';
 import { normalizeMilestoneStatus } from '../../../utils/milestoneHelpers';
+import useTeam from '../../../context/useTeam';
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
@@ -58,6 +59,7 @@ const getStatusColor = (status) => {
 const MilestoneDetailPage = () => {
   const { classId, teamId, milestoneId } = useParams();
   const navigate = useNavigate();
+  const { teamBoard } = useTeam();
   
   // State
   const [teamInfo, setTeamInfo] = useState(null);
@@ -169,6 +171,11 @@ const MilestoneDetailPage = () => {
       });
       toast.success('Evaluation saved successfully');
       
+      if (teamBoard) {
+        const linkForTeamMember = `/student/project/milestones&checkpoints/${teamId}`;
+        await teamBoard.broadcastMilestoneEvaluated(teamId, milestoneId, linkForTeamMember);
+      }
+
       // Refresh detail to show read-only view
       const updated = await getMilestoneDetail(milestoneId);
       setMilestoneDetail(updated);

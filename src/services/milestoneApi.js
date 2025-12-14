@@ -81,7 +81,7 @@ export const createMilestone = async (payload) => {
 
   try {
     const response = await apiClient.post('/milestone', payload);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Error creating milestone:', error);
     throw new Error(normalizeError(error));
