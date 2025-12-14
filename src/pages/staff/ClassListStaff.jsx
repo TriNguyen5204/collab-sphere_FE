@@ -28,8 +28,8 @@ import StaffDashboardLayout from '../../components/layout/StaffDashboardLayout';
 const StatusBadge = ({ isActive }) => (
   <span
     className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-      isActive 
-        ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20' 
+      isActive
+        ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20'
         : 'bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/10'
     }`}
   >
@@ -128,36 +128,38 @@ export default function ClassListStaff() {
     <StaffDashboardLayout>
       <div className='bg-gradient-to-br from-gray-50 to-gray-100 p-6'>
         <div className='mx-auto space-y-6'>
-          
           {/* Header Section */}
-          <div className="relative overflow-hidden rounded-3xl border border-orangeFpt-50 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white shadow-md shadow-orangeFpt-100/60 backdrop-blur">
-            <div className="relative z-10 px-6 py-8 lg:px-10">
-              <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-                <div className="max-w-2xl space-y-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500 flex items-center gap-2">
+          <div className='relative overflow-hidden rounded-3xl border border-orangeFpt-50 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white shadow-md shadow-orangeFpt-100/60 backdrop-blur'>
+            <div className='relative z-10 px-6 py-8 lg:px-10'>
+              <div className='flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between'>
+                <div className='max-w-2xl space-y-4'>
+                  <p className='text-xs font-semibold uppercase tracking-[0.35em] text-slate-500 flex items-center gap-2'>
                     Staff Hub
                   </p>
-                  <h1 className="mt-2 text-3xl font-semibold text-slate-900">
-                    Class <span className="text-orangeFpt-500 font-bold">Management</span>
+                  <h1 className='mt-2 text-3xl font-semibold text-slate-900'>
+                    Class{' '}
+                    <span className='text-orangeFpt-500 font-bold'>
+                      Management
+                    </span>
                   </h1>
-                  <p className="mt-1 text-sm text-slate-600">
+                  <p className='mt-1 text-sm text-slate-600'>
                     Manage and organize your classes efficiently.
                   </p>
                 </div>
-                
+
                 {/* Stats Card */}
-                <div className="w-full max-w-sm">
+                <div className='w-full max-w-sm'>
                   <div
                     className='rounded-2xl border px-5 py-4 shadow-sm backdrop-blur transition-all duration-200
                       border-orangeFpt-500 bg-orangeFpt-50 ring-1 ring-orangeFpt-500'
                   >
-                    <div className="flex justify-between items-start">
+                    <div className='flex justify-between items-start'>
                       <p className='text-[11px] uppercase tracking-wide font-semibold text-orangeFpt-700'>
                         Total Classes
                       </p>
                       <BookOpen className='w-5 h-5 text-orangeFpt-600' />
                     </div>
-                    <p className="text-3xl font-bold text-orangeFpt-600 mt-2">
+                    <p className='text-3xl font-bold text-orangeFpt-600 mt-2'>
                       {totalClasses}
                     </p>
                   </div>
@@ -176,7 +178,7 @@ export default function ClassListStaff() {
                     {totalClasses} total
                   </span>
                 </h2>
-                
+
                 {/* Search & Action Buttons */}
                 <div className='flex flex-wrap items-center gap-3'>
                   {/* Search Bar */}
@@ -184,8 +186,12 @@ export default function ClassListStaff() {
                     <input
                       type='text'
                       value={filters.Descriptor}
-                      onChange={(e) => {
-                        setFilters({ ...filters, Descriptor: e.target.value, PageNum: 1 });
+                      onChange={e => {
+                        setFilters({
+                          ...filters,
+                          Descriptor: e.target.value,
+                          PageNum: 1,
+                        });
                       }}
                       placeholder='Search classes...'
                       className='w-64 bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 focus:ring-2 focus:ring-orangeFpt-500/20 focus:border-orangeFpt-500 focus:outline-none focus:bg-white transition-all text-sm'
@@ -206,8 +212,10 @@ export default function ClassListStaff() {
                     {showFilterDropdown && (
                       <div className='fixed mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-[100] overflow-hidden max-h-[calc(100vh-200px)] overflow-y-auto'>
                         <div className='p-4 space-y-4'>
-                          <h3 className='font-semibold text-slate-800 text-sm'>Filter Classes</h3>
-                          
+                          <h3 className='font-semibold text-slate-800 text-sm'>
+                            Filter Classes
+                          </h3>
+
                           {/* Semester */}
                           <div>
                             <label className='block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2'>
@@ -219,19 +227,24 @@ export default function ClassListStaff() {
                               onChange={e =>
                                 setFilters({
                                   ...filters,
-                                  SemesterId: e.target.value ? parseInt(e.target.value) : null,
+                                  SemesterId: e.target.value
+                                    ? parseInt(e.target.value)
+                                    : null,
                                 })
                               }
                             >
                               <option value=''>All Semesters</option>
                               {semesterOptions.map(sem => (
-                                <option key={sem.semesterId} value={sem.semesterId}>
+                                <option
+                                  key={sem.semesterId}
+                                  value={sem.semesterId}
+                                >
                                   {sem.semesterName} ({sem.semesterCode})
                                 </option>
                               ))}
                             </select>
                           </div>
-                          
+
                           {/* Subject */}
                           <div>
                             <label className='block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2'>
@@ -243,7 +256,9 @@ export default function ClassListStaff() {
                               onChange={e =>
                                 setFilters({
                                   ...filters,
-                                  SubjectIds: e.target.value ? parseInt(e.target.value) : null,
+                                  SubjectIds: e.target.value
+                                    ? parseInt(e.target.value)
+                                    : null,
                                 })
                               }
                             >
@@ -267,7 +282,9 @@ export default function ClassListStaff() {
                               onChange={e =>
                                 setFilters({
                                   ...filters,
-                                  LecturerIds: e.target.value ? parseInt(e.target.value) : null,
+                                  LecturerIds: e.target.value
+                                    ? parseInt(e.target.value)
+                                    : null,
                                 })
                               }
                             >
@@ -290,12 +307,17 @@ export default function ClassListStaff() {
                                 className='flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orangeFpt-500/20 focus:border-orangeFpt-500 focus:outline-none transition-all text-sm'
                                 value={filters.OrderBy}
                                 onChange={e =>
-                                  setFilters({ ...filters, OrderBy: e.target.value })
+                                  setFilters({
+                                    ...filters,
+                                    OrderBy: e.target.value,
+                                  })
                                 }
                               >
                                 <option value='ClassName'>Class Name</option>
                                 <option value='SubjectName'>Subject</option>
-                                <option value='CreatedDate'>Created Date</option>
+                                <option value='CreatedDate'>
+                                  Created Date
+                                </option>
                               </select>
                               <button
                                 type='button'
@@ -445,9 +467,9 @@ export default function ClassListStaff() {
                     </tr>
                   </thead>
                   <tbody className='divide-y divide-slate-100'>
-                    {classes.map((cls) => (
-                      <tr 
-                        key={cls.classId} 
+                    {classes.map(cls => (
+                      <tr
+                        key={cls.classId}
                         onClick={() => handleClassClick(cls.classId)}
                         className='hover:bg-slate-50 transition-colors cursor-pointer'
                       >
@@ -474,7 +496,9 @@ export default function ClassListStaff() {
                         <td className='px-6 py-4'>
                           <div className='flex items-center gap-2 text-slate-600'>
                             <Calendar className='w-4 h-4 flex-shrink-0 text-slate-400' />
-                            <span className='text-sm'>{formatDate(cls.createdDate)}</span>
+                            <span className='text-sm'>
+                              {formatDate(cls.createdDate)}
+                            </span>
                           </div>
                         </td>
                         <td className='px-6 py-4'>
@@ -546,7 +570,12 @@ export default function ClassListStaff() {
           onClose={() => setIsMultiOpen(false)}
           title='Create Multiple Classes'
         >
-          <CreateMultipleClassForm onClose={() => setIsMultiOpen(false)} />
+          <CreateMultipleClassForm
+            onClose={() => {
+              setIsMultiOpen(false);
+              fetchData();
+            }}
+          />
         </ModalWrapper>
       </div>
     </StaffDashboardLayout>

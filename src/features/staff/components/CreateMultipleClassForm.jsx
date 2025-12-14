@@ -7,8 +7,7 @@ import {
   CheckCircle,
   AlertCircle,
   FileSpreadsheet,
-  Send,
-  X,
+  Loader2,
 } from 'lucide-react';
 import { createMultipleClasses } from '../../../services/userService';
 
@@ -16,30 +15,28 @@ const CreateMultipleClassForm = ({ onClose }) => {
   const [classes, setClasses] = useState([]);
   const [errors, setErrors] = useState([]);
   const [uploadStatus, setUploadStatus] = useState('idle');
+  const [isLoading, setIsLoading] = useState(false);
   const [fileName, setFileName] = useState('');
   const [apiErrors, setApiErrors] = useState([]);
 
   const downloadTemplate = () => {
-    const template = [
-      {
-        ClassName: 'SE1234',
-        SubjectCode: 'CS101',
-        SemesterCode: 'FA25',
-        LecturerCode: 'GV001',
-        StudentCodes: 'SE18471,SE18472',
-        IsActive: true,
-      },
-    ];
+    // Download file template có sẵn
+    const link = document.createElement('a');
+    link.href = '/templates/class_template.xlsx';
+    link.download = 'class_template.xlsx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
-    const ws = XLSX.utils.json_to_sheet(template);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Class Template');
-    XLSX.writeFile(wb, 'class_template.xlsx');
+    toast.success('Template downloaded successfully!');
   };
 
   const handleFileUpload = event => {
     const file = event.target.files[0];
     if (!file) return;
+
+    setErrors([]);
+    setApiErrors([]);
 
     setFileName(file.name);
     setUploadStatus('processing');
@@ -112,6 +109,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
       return;
     }
 
+    setIsLoading(true);
     try {
       const fileInput = document.getElementById('file-upload');
       const file = fileInput.files[0];
@@ -126,12 +124,15 @@ const CreateMultipleClassForm = ({ onClose }) => {
 
       resetForm();
     } catch (error) {
+      resetForm();
       const apiErrorList = error?.response?.data?.errorList || [];
       setApiErrors(apiErrorList);
 
       if (!apiErrorList.length) {
         toast.error(error.message || 'An error occurred during import');
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -140,6 +141,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
     setErrors([]);
     setUploadStatus('idle');
     setFileName('');
+    setApiErrors([]);
   };
 
   return (
@@ -157,7 +159,8 @@ const CreateMultipleClassForm = ({ onClose }) => {
                   Step 1: Download Template
                 </h3>
                 <p className='text-sm text-slate-600 mb-4 leading-relaxed'>
-                  Download the Excel template and fill in the class information according to the format
+                  Download the Excel template and fill in the class information
+                  according to the format
                 </p>
                 <button
                   onClick={downloadTemplate}
@@ -205,7 +208,9 @@ const CreateMultipleClassForm = ({ onClose }) => {
                   <span className='text-slate-700 font-semibold block mb-1'>
                     {fileName || 'Click to select file or drag and drop here'}
                   </span>
-                  <span className='text-xs text-slate-500'>Supports .xlsx, .xls files</span>
+                  <span className='text-xs text-slate-500'>
+                    Supports .xlsx, .xls files
+                  </span>
                 </div>
               </label>
             </div>
@@ -252,7 +257,9 @@ const CreateMultipleClassForm = ({ onClose }) => {
                         key={idx}
                         className='border-b border-slate-100 hover:bg-orangeFpt-50/30 transition-colors'
                       >
-                        <td className='px-4 py-3 text-slate-600 font-medium'>{idx + 1}</td>
+                        <td className='px-4 py-3 text-slate-600 font-medium'>
+                          {idx + 1}
+                        </td>
                         <td className='px-4 py-3 font-bold text-slate-800'>
                           {cls.ClassName}
                         </td>
@@ -266,10 +273,11 @@ const CreateMultipleClassForm = ({ onClose }) => {
                         </td>
                         <td className='px-4 py-3'>
                           <span
-                            className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${cls.IsActive === true || cls.IsActive === 'true'
+                            className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${
+                              cls.IsActive === true || cls.IsActive === 'true'
                                 ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
                                 : 'bg-slate-100 text-slate-600 border border-slate-200'
-                              }`}
+                            }`}
                           >
                             {cls.IsActive === true || cls.IsActive === 'true'
                               ? 'Active'
@@ -298,13 +306,23 @@ const CreateMultipleClassForm = ({ onClose }) => {
                 </h4>
                 <div className='space-y-2 max-h-48 overflow-y-auto'>
                   {errors.map((err, idx) => (
-                    <div key={idx} className='p-3 bg-white rounded-lg border border-red-100'>
+                    <div
+                      key={idx}
+                      className='p-3 bg-white rounded-lg border border-red-100'
+                    >
                       {err.general ? (
-                        <p className='text-red-700 font-medium'>{err.general}</p>
+                        <p className='text-red-700 font-medium'>
+                          {err.general}
+                        </p>
                       ) : (
                         <p className='text-sm'>
-                          <span className='font-bold text-red-800'>Row {err.row}</span>
-                          <span className='text-slate-600'> ({err.name}): </span>
+                          <span className='font-bold text-red-800'>
+                            Row {err.row}
+                          </span>
+                          <span className='text-slate-600'>
+                            {' '}
+                            ({err.name}):{' '}
+                          </span>
                           <span className='text-red-600 font-medium'>
                             {err.errors.join(', ')}
                           </span>
@@ -324,8 +342,12 @@ const CreateMultipleClassForm = ({ onClose }) => {
             <div className='inline-flex p-4 bg-slate-100 rounded-full mb-3'>
               <FileSpreadsheet className='w-8 h-8 text-slate-400' />
             </div>
-            <p className='text-slate-600 font-semibold'>No valid data found in file</p>
-            <p className='text-sm text-slate-500 mt-1'>Please check the file format and try again</p>
+            <p className='text-slate-600 font-semibold'>
+              No valid data found in file
+            </p>
+            <p className='text-sm text-slate-500 mt-1'>
+              Please check the file format and try again
+            </p>
           </div>
         )}
 
@@ -345,18 +367,29 @@ const CreateMultipleClassForm = ({ onClose }) => {
             </div>
             <div className='flex items-center gap-4'>
               <button
-              onClick={onClose}
-              className='px-6 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl transition-all font-semibold text-sm shadow-sm hover:shadow-md active:scale-95 flex items-center gap-2'
-
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              className='inline-flex items-center px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-xl transition-all font-bold shadow-lg shadow-emerald-200 hover:shadow-xl active:scale-95'
-            >
-              Create Classes
-            </button>
+                onClick={onClose}
+                disabled={isLoading}
+                className={`px-6 py-2.5 ${
+                  isLoading
+                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                    : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                } rounded-xl transition-all font-semibold text-sm shadow-sm hover:shadow-md active:scale-95 flex items-center gap-2`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className='inline-flex items-center px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-xl transition-all font-bold shadow-lg shadow-emerald-200 hover:shadow-xl active:scale-95'
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className='w-4 h-4 animate-spin' />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Classes'
+                )}
+              </button>
             </div>
           </div>
         )}
@@ -372,7 +405,10 @@ const CreateMultipleClassForm = ({ onClose }) => {
           </div>
           <ul className='space-y-2'>
             {apiErrors.map((err, index) => (
-              <li key={index} className='flex items-start gap-2 p-3 bg-white rounded-lg border border-red-100'>
+              <li
+                key={index}
+                className='flex items-start gap-2 p-3 bg-white rounded-lg border border-red-100'
+              >
                 <span className='text-red-500 mt-0.5'>•</span>
                 <span className='text-red-700 text-sm font-medium flex-1'>
                   {err.message}

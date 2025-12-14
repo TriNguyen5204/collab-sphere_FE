@@ -1,5 +1,5 @@
 // EditorToolBar.jsx - Microsoft Word Style (FIXED VERSION)
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Bold,
   Italic,
@@ -16,12 +16,20 @@ import {
   Redo2,
   ChevronDown,
   Type,
-} from "lucide-react"
+  FileDown,
+  FileText,
+  Upload,
+} from 'lucide-react';
+import { exportToDocx } from '../hooks/docxExport';
+import { exportToPdfMake } from '../hooks/pdfMakeExport';
+import { importFromDocx } from '../hooks/docxImport';
 
-const EditorToolBar = ({ editor }) => {
+const EditorToolBar = ({ editor, currentRoomName }) => {
   const [, setUpdateTrigger] = useState(0);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
+  const fileInputRef = useRef(null);
+  const isDisabled = !currentRoomName || !editor;
 
   useEffect(() => {
     if (!editor) return;
@@ -46,10 +54,10 @@ const EditorToolBar = ({ editor }) => {
   const textStyleAttrs = editor.getAttributes('textStyle');
   const highlightAttrs = editor.getAttributes('highlight');
   const headingAttrs = editor.getAttributes('heading');
-  
+
   // ✅ FIX: Properly get fontSize with fallback
   const currentFontSize = textStyleAttrs.fontSize || '16px';
-  
+
   const editorState = {
     color: textStyleAttrs.color || '#000000',
     isHighlighted: editor.isActive('highlight'),
@@ -73,11 +81,11 @@ const EditorToolBar = ({ editor }) => {
 
   const headingValue = () => {
     if (editorState.isHeading) return `h${editorState.headingLevel}`;
-    return "normal";
+    return 'normal';
   };
 
-  const applyHeading = (value) => {
-    if (value === "normal") {
+  const applyHeading = value => {
+    if (value === 'normal') {
       editor.chain().focus().setParagraph().run();
     } else {
       const level = parseInt(value.replace('h', ''));
@@ -85,31 +93,104 @@ const EditorToolBar = ({ editor }) => {
     }
   };
 
-  const applyFont = (value) => {
+  const applyFont = value => {
     editor.chain().focus().setFontFamily(value).run();
   };
 
   // ✅ FIX: Correct way to set fontSize
-  const applyFontSize = (value) => {
+  const applyFontSize = value => {
     editor.chain().focus().setMark('textStyle', { fontSize: value }).run();
+  };
+
+  const handleExportWord = () => {
+    try {
+      exportToDocx(editor, currentRoomName);
+    } catch (error) {
+      console.error('Lỗi export:', error);
+    }
+  };
+
+  const handleFileUpload = async e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const htmlContent = await importFromDocx(file);
+
+      if (htmlContent) {
+        // Cách 1: Ghi đè toàn bộ nội dung cũ
+        editor.commands.setContent(htmlContent);
+
+        // Cách 2: Chèn tiếp vào vị trí con trỏ (nếu muốn giữ nội dung cũ thì dùng dòng dưới)
+        // editor.commands.insertContent(htmlContent);
+      }
+    } catch (error) {
+      alert('Lỗi khi import file: ' + error.message);
+    } finally {
+      // Reset input để có thể chọn lại cùng 1 file nếu muốn
+      e.target.value = '';
+    }
+  };
+
+  // --- Hàm Export PDF ---
+  const handleExportPDF = () => {
+    try {
+      exportToPdfMake(editor, currentRoomName);
+    } catch (error) {
+      console.error('Lỗi export:', error);
+    }
   };
 
   // Quick color presets
   const colorPresets = [
-    '#000000', '#434343', '#666666', '#999999', '#B7B7B7', '#CCCCCC', '#D9D9D9', '#EFEFEF',
-    '#F3F3F3', '#FFFFFF', '#980000', '#FF0000', '#FF9900', '#FFFF00', '#00FF00', '#00FFFF',
-    '#4A86E8', '#0000FF', '#9900FF', '#FF00FF',
+    '#000000',
+    '#434343',
+    '#666666',
+    '#999999',
+    '#B7B7B7',
+    '#CCCCCC',
+    '#D9D9D9',
+    '#EFEFEF',
+    '#F3F3F3',
+    '#FFFFFF',
+    '#980000',
+    '#FF0000',
+    '#FF9900',
+    '#FFFF00',
+    '#00FF00',
+    '#00FFFF',
+    '#4A86E8',
+    '#0000FF',
+    '#9900FF',
+    '#FF00FF',
   ];
 
   const highlightPresets = [
-    'transparent', '#FFFF00', '#00FF00', '#00FFFF', '#FF00FF', '#0000FF', '#FF0000', 
-    '#FFFF99', '#99FF99', '#99FFFF', '#FF99FF', '#9999FF', '#FF9999',
+    'transparent',
+    '#FFFF00',
+    '#00FF00',
+    '#00FFFF',
+    '#FF00FF',
+    '#0000FF',
+    '#FF0000',
+    '#FFFF99',
+    '#99FF99',
+    '#99FFFF',
+    '#FF99FF',
+    '#9999FF',
+    '#FF9999',
   ];
 
-  const ToolbarButton = ({ active, onClick, children, title, className = "" }) => (
+  const ToolbarButton = ({
+    active,
+    onClick,
+    children,
+    title,
+    className = '',
+  }) => (
     <button
-      type="button"
-      onMouseDown={(e) => {
+      type='button'
+      onMouseDown={e => {
         e.preventDefault();
         onClick(e);
       }}
@@ -125,15 +206,13 @@ const EditorToolBar = ({ editor }) => {
     </button>
   );
 
-  const ToolbarDivider = () => (
-    <div className="w-px h-6 bg-gray-300 mx-1" />
-  );
+  const ToolbarDivider = () => <div className='w-px h-6 bg-gray-300 mx-1' />;
 
-  const Dropdown = ({ value, onChange, options, className = "" }) => (
-    <div className="relative">
+  const Dropdown = ({ value, onChange, options, className = '' }) => (
+    <div className='relative'>
       <select
         value={value}
-        onChange={(e) => {
+        onChange={e => {
           e.preventDefault();
           onChange(e.target.value);
         }}
@@ -146,18 +225,27 @@ const EditorToolBar = ({ editor }) => {
         `}
       >
         {options.map(opt => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
         ))}
       </select>
-      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-500" />
+      <ChevronDown className='absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-500' />
     </div>
   );
 
-  const ColorPickerDropdown = ({ colors, value, onChange, onToggle, show, type = "color" }) => (
-    <div className="relative">
+  const ColorPickerDropdown = ({
+    colors,
+    value,
+    onChange,
+    onToggle,
+    show,
+    type = 'color',
+  }) => (
+    <div className='relative'>
       <button
-        type="button"
-        onMouseDown={(e) => {
+        type='button'
+        onMouseDown={e => {
           e.preventDefault();
           onToggle();
         }}
@@ -166,38 +254,41 @@ const EditorToolBar = ({ editor }) => {
           hover:bg-gray-200 active:bg-gray-300
           ${show ? 'bg-gray-200' : ''}
         `}
-        title={type === "color" ? "Text Color" : "Highlight Color"}
+        title={type === 'color' ? 'Text Color' : 'Highlight Color'}
       >
-        {type === "color" ? <Type className="w-5 h-5" /> : <Highlighter className="w-5 h-5" />}
-        <div 
-          className="w-4 h-1 rounded"
-          style={{ backgroundColor: value }}
-        />
-        <ChevronDown className="w-3 h-3" />
+        {type === 'color' ? (
+          <Type className='w-5 h-5' />
+        ) : (
+          <Highlighter className='w-5 h-5' />
+        )}
+        <div className='w-4 h-1 rounded' style={{ backgroundColor: value }} />
+        <ChevronDown className='w-3 h-3' />
       </button>
-      
+
       {show && (
-        <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 p-3 z-50 w-48">
-          <div className="mb-2">
+        <div className='absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 p-3 z-50 w-48'>
+          <div className='mb-2'>
             <input
-              type="color"
+              type='color'
               value={value}
-              onChange={(e) => onChange(e.target.value)}
-              className="w-full h-8 rounded cursor-pointer"
+              onChange={e => onChange(e.target.value)}
+              className='w-full h-8 rounded cursor-pointer'
             />
           </div>
-          <div className="text-xs font-semibold text-gray-600 mb-2">Quick Colors</div>
-          <div className="grid grid-cols-10 gap-1">
+          <div className='text-xs font-semibold text-gray-600 mb-2'>
+            Quick Colors
+          </div>
+          <div className='grid grid-cols-10 gap-1'>
             {colors.map(color => (
               <button
                 key={color}
-                type="button"
-                onMouseDown={(e) => {
+                type='button'
+                onMouseDown={e => {
                   e.preventDefault();
                   onChange(color);
                   onToggle();
                 }}
-                className="w-5 h-5 rounded border border-gray-300 hover:scale-110 transition-transform"
+                className='w-5 h-5 rounded border border-gray-300 hover:scale-110 transition-transform'
                 style={{ backgroundColor: color }}
                 title={color}
               />
@@ -209,31 +300,40 @@ const EditorToolBar = ({ editor }) => {
   );
 
   return (
-    <div className="bg-white border-b border-gray-300 sticky top-0 z-40">
+    <div
+      className={`
+        toolbar-container sticky top-0 z-20 bg-[#f3f2f1] border-b border-[#e1dfdd] p-1 flex items-center gap-2 overflow-x-auto
+        ${isDisabled ? 'opacity-50 pointer-events-none grayscale cursor-not-allowed select-none' : ''}
+      `}
+    >
       {/* Top Row - File operations would go here in full Word clone */}
-      <div className="border-b border-gray-200 px-4 py-1 text-xs text-gray-600 flex items-center gap-4">
-        <span className="font-semibold">Collaborative Editor</span>
-        <span className="text-gray-400">|</span>
+      <div className='border-b border-gray-200 px-4 py-1 text-xs text-gray-600 flex items-center gap-4'>
+        <span className='font-semibold'>Collaborative Editor</span>
+        <span className='text-gray-400'>|</span>
         <span>Home</span>
       </div>
 
       {/* Main Toolbar */}
-      <div className="px-4 py-2">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className='px-4 py-2'>
+        <div className='flex items-center gap-2 flex-wrap'>
           {/* Undo/Redo Group */}
-          <div className="flex items-center gap-1">
-            <ToolbarButton onClick={() => editor.chain().focus().undo().run()} title="Undo (Ctrl+Z)">
-              <Undo2 className="w-5 h-5" />
+          <div className='flex items-center gap-1'>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().undo().run()}
+              title='Undo (Ctrl+Z)'
+            >
+              <Undo2 className='w-5 h-5' />
             </ToolbarButton>
-            <ToolbarButton onClick={() => editor.chain().focus().redo().run()} title="Redo (Ctrl+Y)">
-              <Redo2 className="w-5 h-5" />
+            <ToolbarButton
+              onClick={() => editor.chain().focus().redo().run()}
+              title='Redo (Ctrl+Y)'
+            >
+              <Redo2 className='w-5 h-5' />
             </ToolbarButton>
           </div>
-
           <ToolbarDivider />
-
           {/* Font & Size Group */}
-          <div className="flex items-center gap-2">
+          <div className='flex items-center gap-2'>
             <Dropdown
               value={editorState.fontFamily}
               onChange={applyFont}
@@ -245,7 +345,7 @@ const EditorToolBar = ({ editor }) => {
                 { value: 'Verdana', label: 'Verdana' },
                 { value: 'Comic Sans MS', label: 'Comic Sans MS' },
               ]}
-              className="w-40"
+              className='w-40'
             />
             <Dropdown
               value={editorState.fontSize}
@@ -266,63 +366,59 @@ const EditorToolBar = ({ editor }) => {
                 { value: '48px', label: '48' },
                 { value: '72px', label: '72' },
               ]}
-              className="w-20"
+              className='w-20'
             />
           </div>
-
           <ToolbarDivider />
-
           {/* Text Style Group */}
-          <div className="flex items-center gap-1">
-            <ToolbarButton 
+          <div className='flex items-center gap-1'>
+            <ToolbarButton
               active={editorState.isBold}
-              onClick={() => editor.chain().focus().toggleBold().run()} 
-              title="Bold (Ctrl+B)"
+              onClick={() => editor.chain().focus().toggleBold().run()}
+              title='Bold (Ctrl+B)'
             >
-              <Bold className="w-5 h-5" />
+              <Bold className='w-5 h-5' />
             </ToolbarButton>
-            <ToolbarButton 
+            <ToolbarButton
               active={editorState.isItalic}
-              onClick={() => editor.chain().focus().toggleItalic().run()} 
-              title="Italic (Ctrl+I)"
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+              title='Italic (Ctrl+I)'
             >
-              <Italic className="w-5 h-5" />
+              <Italic className='w-5 h-5' />
             </ToolbarButton>
-            <ToolbarButton 
+            <ToolbarButton
               active={editorState.isUnderline}
-              onClick={() => editor.chain().focus().toggleUnderline().run()} 
-              title="Underline (Ctrl+U)"
+              onClick={() => editor.chain().focus().toggleUnderline().run()}
+              title='Underline (Ctrl+U)'
             >
-              <Underline className="w-5 h-5" />
+              <Underline className='w-5 h-5' />
             </ToolbarButton>
-            <ToolbarButton 
+            <ToolbarButton
               active={editorState.isStrike}
-              onClick={() => editor.chain().focus().toggleStrike().run()} 
-              title="Strikethrough"
+              onClick={() => editor.chain().focus().toggleStrike().run()}
+              title='Strikethrough'
             >
-              <Strikethrough className="w-5 h-5" />
+              <Strikethrough className='w-5 h-5' />
             </ToolbarButton>
           </div>
-
           <ToolbarDivider />
-
           {/* Color & Highlight Group */}
-          <div className="flex items-center gap-1">
+          <div className='flex items-center gap-1'>
             <ColorPickerDropdown
               colors={colorPresets}
               value={editorState.color}
-              onChange={(color) => editor.chain().focus().setColor(color).run()}
+              onChange={color => editor.chain().focus().setColor(color).run()}
               onToggle={() => {
                 setShowColorPicker(!showColorPicker);
                 setShowHighlightPicker(false);
               }}
               show={showColorPicker}
-              type="color"
+              type='color'
             />
             <ColorPickerDropdown
               colors={highlightPresets}
               value={editorState.highlightColor}
-              onChange={(color) => {
+              onChange={color => {
                 if (color === 'transparent') {
                   editor.chain().focus().unsetHighlight().run();
                 } else {
@@ -334,12 +430,10 @@ const EditorToolBar = ({ editor }) => {
                 setShowColorPicker(false);
               }}
               show={showHighlightPicker}
-              type="highlight"
+              type='highlight'
             />
           </div>
-
           <ToolbarDivider />
-
           {/* Paragraph Style */}
           <Dropdown
             value={headingValue()}
@@ -353,69 +447,97 @@ const EditorToolBar = ({ editor }) => {
               { value: 'h5', label: 'Heading 5' },
               { value: 'h6', label: 'Heading 6' },
             ]}
-            className="w-32"
+            className='w-32'
           />
-
           <ToolbarDivider />
-
           {/* Lists Group */}
-          <div className="flex items-center gap-1">
-            <ToolbarButton 
+          <div className='flex items-center gap-1'>
+            <ToolbarButton
               active={editorState.isBulletList}
-              onClick={() => editor.chain().focus().toggleBulletList().run()} 
-              title="Bullet List"
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+              title='Bullet List'
             >
-              <List className="w-5 h-5" />
+              <List className='w-5 h-5' />
             </ToolbarButton>
-            <ToolbarButton 
+            <ToolbarButton
               active={editorState.isOrderedList}
-              onClick={() => editor.chain().focus().toggleOrderedList().run()} 
-              title="Numbered List"
+              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+              title='Numbered List'
             >
-              <ListOrdered className="w-5 h-5" />
+              <ListOrdered className='w-5 h-5' />
             </ToolbarButton>
           </div>
-
           <ToolbarDivider />
-
           {/* Alignment Group */}
-          <div className="flex items-center gap-1">
-            <ToolbarButton 
+          <div className='flex items-center gap-1'>
+            <ToolbarButton
               active={editorState.isAlignLeft}
-              onClick={() => editor.chain().focus().setTextAlign('left').run()} 
-              title="Align Left"
+              onClick={() => editor.chain().focus().setTextAlign('left').run()}
+              title='Align Left'
             >
-              <AlignLeft className="w-5 h-5" />
+              <AlignLeft className='w-5 h-5' />
             </ToolbarButton>
-            <ToolbarButton 
+            <ToolbarButton
               active={editorState.isAlignCenter}
-              onClick={() => editor.chain().focus().setTextAlign('center').run()} 
-              title="Align Center"
+              onClick={() =>
+                editor.chain().focus().setTextAlign('center').run()
+              }
+              title='Align Center'
             >
-              <AlignCenter className="w-5 h-5" />
+              <AlignCenter className='w-5 h-5' />
             </ToolbarButton>
-            <ToolbarButton 
+            <ToolbarButton
               active={editorState.isAlignRight}
-              onClick={() => editor.chain().focus().setTextAlign('right').run()} 
-              title="Align Right"
+              onClick={() => editor.chain().focus().setTextAlign('right').run()}
+              title='Align Right'
             >
-              <AlignRight className="w-5 h-5" />
+              <AlignRight className='w-5 h-5' />
             </ToolbarButton>
-            <ToolbarButton 
+            <ToolbarButton
               active={editorState.isAlignJustify}
-              onClick={() => editor.chain().focus().setTextAlign('justify').run()} 
-              title="Justify"
+              onClick={() =>
+                editor.chain().focus().setTextAlign('justify').run()
+              }
+              title='Justify'
             >
-              <AlignJustify className="w-5 h-5" />
+              <AlignJustify className='w-5 h-5' />
             </ToolbarButton>
+          </div>
+          <div className='w-px h-6 bg-gray-300 mx-1' /> {/* Divider */}
+          {/* Export Buttons */}
+          <div className='flex items-center gap-1'>
+            <ToolbarButton onClick={handleExportWord} title='Export to Word'>
+              <FileText className='w-5 h-5 text-blue-600' />
+            </ToolbarButton>
+
+            <ToolbarButton onClick={handleExportPDF} title='Export to PDF'>
+              <FileDown className='w-5 h-5 text-red-600' />
+            </ToolbarButton>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className='hover:bg-gray-200 p-2 rounded flex items-center gap-1'
+              title='Import Docx'
+            >
+              <Upload className='w-4 h-4' />
+              <span className='text-sm'>Import</span>
+            </button>
+
+            {/* Input file ẩn (chỉ chấp nhận .docx) */}
+            <input
+              type='file'
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept='.docx'
+              className='hidden'
+            />
           </div>
         </div>
       </div>
 
       {/* Click outside to close dropdowns */}
       {(showColorPicker || showHighlightPicker) && (
-        <div 
-          className="fixed inset-0 z-30"
+        <div
+          className='fixed inset-0 z-30'
           onClick={() => {
             setShowColorPicker(false);
             setShowHighlightPicker(false);
