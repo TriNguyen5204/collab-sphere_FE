@@ -7,7 +7,7 @@ const HomeLayout = ({ children }) => {
   const navigate = useNavigate();
 
   const handleBack = () => {
-    navigate(-1);
+    navigate(`/student/project/team-workspace`);
   };
   return (
     <main className='relative'>

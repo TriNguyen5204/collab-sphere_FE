@@ -12,6 +12,7 @@ import { updateMeeting } from '../../features/meeting/services/meetingApi';
 import { toast } from 'sonner';
 import { useSelector } from 'react-redux';
 import { ShieldAlert, Loader2 } from 'lucide-react';
+import { getTeamDetail } from '../../services/teamApi';
 
 /**
  * MeetingRoom - Simplified version
@@ -57,34 +58,158 @@ function MeetingRoom() {
 
   // Simple authorization check: login = access
   useEffect(() => {
-    const validateAccess = () => {
+    const validateAccess = async () => {
       setIsCheckingAuth(true);
       setAuthError(null);
 
-      // User must be authenticated (have valid token and userId)
+      // ========================================
+      // STEP 1: Authentication check
+      // ========================================
       if (!accessToken || !userId) {
-        setAuthError('You must be logged in to join a meeting.');
         setIsCheckingAuth(false);
         return;
       }
 
-      // User is logged in → allow access
-      console.log('✅ [MeetingRoom] User authenticated - granting access');
-      setIsAuthorized(true);
-      setIsCheckingAuth(false);
+      // ========================================
+      // STEP 2: Wait for socket
+      // ========================================
+      if (!socket || !isConnected) {
+        return;
+      }
+
+      // ========================================
+      // ✅ STEP 3: HOST CHECK FIRST!
+      // ========================================
+      if (isHost) {
+        setIsAuthorized(true);
+        setRoomExists(true);
+        setIsCheckingAuth(false);
+
+        // Host will create metadata when they joinRoom
+        // No need to check metadata for host!
+        return;
+      }
+
+      // ========================================
+      // STEP 4: GUEST - Get room metadata
+      // ========================================
+
+      try {
+        const getRoomMetadata = () => {
+          return new Promise((resolve, reject) => {
+            socket.emit('get-room-metadata', { roomId }, response => {
+              console.log('📥 [AUTH] Metadata response:', response);
+
+              if (response && response.success) {
+                resolve(response);
+              } else {
+                reject(
+                  new Error(response?.error || 'Room metadata not available')
+                );
+              }
+            });
+
+            // Timeout after 5 seconds
+            setTimeout(() => {
+              reject(new Error('Timeout: Server did not respond'));
+            }, 5000);
+          });
+        };
+
+        const metadata = await getRoomMetadata();
+        const roomTeamId = metadata.teamId;
+
+        console.log('✅ [AUTH] Room metadata received:', {
+          roomId,
+          roomTeamId,
+          hostSocketId: metadata.hostSocketId,
+        });
+
+        // ========================================
+        // STEP 5: Check team membership
+        // ========================================
+
+        const teamDetail = await getTeamDetail(roomTeamId);
+
+        if (!teamDetail) {
+          setAuthError('Unable to verify team information.');
+          setIsCheckingAuth(false);
+          return;
+        }
+
+        const members = teamDetail.memberInfo?.members || [];
+
+        // Check if user is team member
+        let isTeamMember = false;
+        for (const member of members) {
+          const memberId = member.studentId || member.userId || member.id;
+          if (Number(memberId) === Number(userId)) {
+            isTeamMember = true;
+            console.log('✅ [AUTH] User IS a team member:', {
+              memberId,
+              memberName: member.studentName || member.name,
+            });
+            break;
+          }
+        }
+
+        // Check if user is lecturer
+        const lecturerId =
+          teamDetail.lecturerInfo?.lecturerId || teamDetail.lecturerId;
+        const isLecturer =
+          Number(lecturerId) === Number(userId) || roleName === 'LECTURER';
+
+        // ========================================
+        // STEP 6: Grant or deny access
+        // ========================================
+        if (isTeamMember || isLecturer) {
+          setIsAuthorized(true);
+          setRoomExists(true);
+          setIsCheckingAuth(false);
+        } else {
+          setIsAuthorized(false);
+          setAuthError(
+            'This meeting is restricted to team members only. You are not a member of the team that owns this room.'
+          );
+          setIsCheckingAuth(false);
+        }
+      } catch (error) {
+
+        setAuthError(
+          error.message ||
+            'Unable to verify room access. The meeting may not exist or has ended.'
+        );
+        setIsCheckingAuth(false);
+      }
     };
 
-    validateAccess();
-  }, [accessToken, userId]);
+    // Trigger validation when socket connects
+    if (socket && isConnected) {
+      validateAccess();
+    }
+  }, [
+    socket,
+    isConnected,
+    accessToken,
+    userId,
+    fullName,
+    roleName,
+    isHost,
+    roomId,
+    teamId,
+  ]);
 
   // Check if room exists when socket is ready and connected
   useEffect(() => {
     // Wait for socket to be connected before proceeding
     if (!socket || !isConnected || !roomId || !isAuthorized) return;
 
+    // If already authorized (guest approved), skip this check
+    if (isAuthorized && !isHost) {
+      return;
+    }
     // If user is the host, they're creating the room - no need to check
     if (isHost) {
-      console.log('🏠 [MeetingRoom] User is host - skipping room check');
       setRoomExists(true);
       return;
     }
@@ -92,7 +217,6 @@ function MeetingRoom() {
     // For non-host users: Socket is connected, allow joining
     // Note: Room existence check is disabled because deployed server may not support it
     // The room-closed event from server will handle the case when host leaves
-    console.log('✅ [MeetingRoom] Socket connected - allowing room access');
     setRoomExists(true);
 
     // Optional: Try to check room existence (won't block if server doesn't support it)
@@ -205,7 +329,8 @@ function MeetingRoom() {
     peersRef,
     me,
     isHost,
-    handleRoomClosed // Pass callback for when room is closed by host
+    handleRoomClosed, // Pass callback for when room is closed by host
+    teamId
   );
 
   // Update my video source
