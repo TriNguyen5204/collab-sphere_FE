@@ -73,7 +73,7 @@ const extractUrlLike = (payload) => {
 };
 
 const MilestoneEvaluationPage = () => {
-  const { classId, teamId } = useParams();
+  const { classId, teamId, milestoneId } = useParams();
   const navigate = useNavigate();
   const { openSecureFile } = useSecureFileHandler();
   const { teamBoard } = useTeam();
@@ -82,7 +82,7 @@ const MilestoneEvaluationPage = () => {
   const [teamInfo, setTeamInfo] = useState(null);
   const [milestones, setMilestones] = useState([]);
   const [evaluations, setEvaluations] = useState([]);
-  const [selectedMilestoneId, setSelectedMilestoneId] = useState(null);
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState(milestoneId || null);
   
   // Detailed Data State
   const [milestoneDetail, setMilestoneDetail] = useState(null);
@@ -102,6 +102,12 @@ const MilestoneEvaluationPage = () => {
   });
 
   // --- Effects ---
+
+  useEffect(() => {
+    if (milestoneId) {
+      setSelectedMilestoneId(milestoneId);
+    }
+  }, [milestoneId]);
 
   useEffect(() => {
     if (!teamId) return;
@@ -145,9 +151,13 @@ const MilestoneEvaluationPage = () => {
       setMilestones(filteredMilestones); 
       setEvaluations(Array.isArray(evaluationList) ? evaluationList : []);
 
-      if (!selectedMilestoneId && filteredMilestones.length > 0) {
+      if (!milestoneId && filteredMilestones.length > 0) {
         const firstId = filteredMilestones[0].teamMilestoneId ?? filteredMilestones[0].milestoneId ?? filteredMilestones[0].id;
-        setSelectedMilestoneId(String(firstId));
+        if (classId) {
+          navigate(`/lecturer/grading/class/${classId}/team/${teamId}/milestones/evaluate/${firstId}`, { replace: true });
+        } else {
+          navigate(`/lecturer/grading/team/${teamId}/milestones/evaluate/${firstId}`, { replace: true });
+        }
       }
     } catch (error) {
       console.error(error);
@@ -271,7 +281,12 @@ const MilestoneEvaluationPage = () => {
             }
         }
     }
-    setSelectedMilestoneId(newId);
+    
+    if (classId) {
+      navigate(`/lecturer/grading/class/${classId}/team/${teamId}/milestones/evaluate/${newId}`);
+    } else {
+      navigate(`/lecturer/grading/team/${teamId}/milestones/evaluate/${newId}`);
+    }
   };
 
   const handleFormChange = (field, value) => {
@@ -380,7 +395,7 @@ const MilestoneEvaluationPage = () => {
 
             // Broadcast notification if available
             if (teamBoard) {
-                 const linkForTeamMember = `/student/project/milestones&checkpoints/${teamId}`;
+                 const linkForTeamMember = `/student/project/milestones&checkpoints/${mId}/${teamId}`;
                  await teamBoard.broadcastMilestoneEvaluated(teamId, mId, linkForTeamMember);
             }
             
@@ -423,7 +438,7 @@ const MilestoneEvaluationPage = () => {
              {/* Header */}
              <div className="p-5 border-b border-slate-200 bg-slate-50/50">
                 <div className="flex items-center gap-2 text-slate-400 mb-1">
-                   <button onClick={() => navigate(-1)} className="hover:text-slate-600 transition-colors">
+                   <button onClick={() => navigate(`/lecturer/grading/class/${classId}/team/${teamId}`)} className="hover:text-slate-600 transition-colors">
                       <ArrowLeftIcon className="h-4 w-4" />
                    </button>
                    <span className="text-xs font-bold uppercase tracking-wider">Milestones</span>

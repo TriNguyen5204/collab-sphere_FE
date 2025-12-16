@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import ProjectBoardHeader from '../../../components/layout/ProjectBoardHeader';
 import MilestoneTimeline from '../../../features/student/components/milestone/MilestoneTimeline';
 import MilestoneHeader from '../../../features/student/components/milestone/MilestoneHeader';
@@ -30,6 +31,8 @@ import useTeam from '../../../context/useTeam';
 import useToastConfirmation from '../../../hooks/useToastConfirmation.jsx';
 
 const MilestonePage = () => {
+  const { milestoneId } = useParams();
+  const navigate = useNavigate();
   const [milestones, setMilestones] = useState([]);
   const [selectedMilestone, setSelectedMilestone] = useState(null);
   const [isLoadingList, setIsLoadingList] = useState(false);
@@ -371,25 +374,7 @@ const MilestonePage = () => {
       const normalizedList = Array.isArray(list) ? list : [];
       setMilestones(normalizedList);
       
-      if (normalizedList.length > 0) {
-        let milestoneToSelect = normalizedList[0];
-        
-        if (keepSelection && selectedMilestone) {
-            const currentId = getMilestoneId(selectedMilestone);
-            const found = normalizedList.find(m => getMilestoneId(m) === currentId);
-            if (found) {
-                milestoneToSelect = found;
-            }
-        }
-
-        const mId = getMilestoneId(milestoneToSelect);
-        setSelectedMilestone(milestoneToSelect);
-        if (mId) {
-          await fetchMilestoneDetail(mId, milestoneToSelect);
-        }
-      } else {
-        setSelectedMilestone(null);
-      }
+      // Selection logic is now handled by useEffect dependent on URL param
     } catch (error) {
       console.error("Error fetching milestones:", error);
     } finally {
@@ -442,9 +427,31 @@ const MilestonePage = () => {
     }
   }, [teamId]);
 
+  useEffect(() => {
+    if (milestones.length > 0) {
+      if (milestoneId) {
+        const found = milestones.find(m => getMilestoneId(m) == milestoneId);
+        if (found) {
+          if (!selectedMilestone || getMilestoneId(selectedMilestone) != milestoneId) {
+            fetchMilestoneDetail(milestoneId, found);
+          }
+        } else {
+          const firstId = getMilestoneId(milestones[0]);
+          navigate(`/student/project/milestones&checkpoints/${firstId}`, { replace: true });
+        }
+      } else {
+        const firstId = getMilestoneId(milestones[0]);
+        navigate(`/student/project/milestones&checkpoints/${firstId}`, { replace: true });
+      }
+    }
+  }, [milestones, milestoneId, navigate]);
+
   const handleMilestoneUpdated = async () => {
     if (teamId) {
       await fetchMilestones(teamId, true);
+      if (milestoneId) {
+        await fetchMilestoneDetail(milestoneId);
+      }
     }
   };
 
@@ -504,11 +511,11 @@ const MilestonePage = () => {
       await patchMarkDoneMilestoneByMilestoneId(milestoneId, true);
 
       if (teamBoard) {
-        const linkForTeamMember = `/student/project/milestones&checkpoints/${teamId}`;
+        const linkForTeamMember = `/student/project/milestones&checkpoints/${milestoneId}/${teamId}`;
         const classId = team?.classId || team?.classInfo?.classId;
         
         const linkForLecturer = classId
-          ? `/lecturer/classes/${classId}/team/${teamId}/milestones/evaluate`
+          ? `/lecturer/grading/class/${classId}/team/${teamId}/milestones/evaluate/${milestoneId}`
             : null;
 
         await teamBoard.broadcastMilestoneCheckDone(teamId, milestoneId, linkForTeamMember, linkForLecturer);
@@ -568,6 +575,8 @@ const MilestonePage = () => {
   }, [selectedCheckpoints]);
 
   const isSelectedMilestoneCompleted = normalizeMilestoneStatus(selectedMilestone?.status ?? selectedMilestone?.statusString) === 'Completed';
+  const isSelectedMilestoneEvaluated = !!selectedMilestone?.evaluation;
+  const milestoneReadOnly = isSelectedMilestoneCompleted || isSelectedMilestoneEvaluated;
 
   // --- HELPER: Handle Changes and Clear Errors ---
   const handleCheckpointChange = (updatedCheckpoint, fieldChanged) => {
@@ -623,6 +632,7 @@ const MilestonePage = () => {
 
     } catch (error) {
       console.error('Failed to create checkpoint:', error);
+      toast.error(error?.response?.data?.[0].message || 'Failed to create checkpoint');
       const data = error?.response?.data;
       const newErrors = {};
 
@@ -840,6 +850,14 @@ const MilestonePage = () => {
       return;
     }
 
+    const confirmed = await confirmWithToast({
+      message: `Mark checkpoint "${cp.title ?? 'this checkpoint'}" as completed? This will lock further edits for this checkpoint.`,
+      confirmLabel: 'Mark complete',
+      cancelLabel: 'Cancel',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
+
     try {
       await patchMarkDoneCheckpointByCheckpointId(checkpointId, true);
       toast.success('Checkpoint marked as complete');
@@ -900,11 +918,9 @@ const MilestonePage = () => {
 
   const handleSelectMilestone = (m) => {
     resetCheckpointUI();
-    setSelectedMilestone(m);
-    setActiveTab(getDefaultTab(m?.checkpoints || []));
-    const milestoneId = getMilestoneId(m);
-    if (!m?._hasDetails && milestoneId) {
-      fetchMilestoneDetail(milestoneId);
+    const mId = getMilestoneId(m);
+    if (mId) {
+      navigate(`/student/project/milestones&checkpoints/${mId}`);
     }
   };
 
@@ -938,7 +954,7 @@ const MilestonePage = () => {
             ) : (
               <MilestoneHeader
                 milestone={selectedMilestone}
-                readOnly={isSelectedMilestoneCompleted}
+                readOnly={milestoneReadOnly}
                 onComplete={handleCompleteMilestone}
                 onUploadMilestoneFiles={handleUploadMilestoneReturns}
                 onDeleteMilestoneReturn={handleDeleteMilestoneReturn}
@@ -962,12 +978,12 @@ const MilestonePage = () => {
               </div>
               <button
                 onClick={() => {
-                  if (!isSelectedMilestoneCompleted) {
+                  if (!milestoneReadOnly) {
                     setShowCreateModal(true);
                   }
                 }}
-                disabled={isSelectedMilestoneCompleted}
-                title={isSelectedMilestoneCompleted ? 'This milestone is completed. Create checkpoint is disabled.' : undefined}
+                disabled={milestoneReadOnly}
+                title={milestoneReadOnly ? 'This milestone is completed or has been evaluated. Create checkpoint is disabled.' : undefined}
                 className="flex items-center gap-2 px-3 py-2 bg-orangeFpt-500 text-white rounded-lg hover:bg-orangeFpt-600 transition disabled:bg-gray-300 disabled:text-gray-500 disabled:hover:bg-gray-300 disabled:cursor-not-allowed"
               >
                 <Plus size={18} />
@@ -1013,7 +1029,7 @@ const MilestonePage = () => {
                 ) : (
                   (checkpointGroups[activeTab] || []).map((checkpoint) => {
                     const isCheckpointCompleted = getCheckpointUiStatus(checkpoint) === 'completed';
-                    const checkpointReadOnly = isCheckpointCompleted || isSelectedMilestoneCompleted;
+                    const checkpointReadOnly = isCheckpointCompleted || milestoneReadOnly;
                     return (
                       <CheckpointCard
                         key={checkpoint.id}

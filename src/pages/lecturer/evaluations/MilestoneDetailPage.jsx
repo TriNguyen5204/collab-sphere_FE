@@ -172,7 +172,7 @@ const MilestoneDetailPage = () => {
       toast.success('Evaluation saved successfully');
       
       if (teamBoard) {
-        const linkForTeamMember = `/student/project/milestones&checkpoints/${teamId}`;
+        const linkForTeamMember = `/student/project/milestones&checkpoints/${milestoneId}/${teamId}`;
         await teamBoard.broadcastMilestoneEvaluated(teamId, milestoneId, linkForTeamMember);
       }
 

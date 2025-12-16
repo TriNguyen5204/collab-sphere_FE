@@ -202,7 +202,7 @@ const LecturerGradingDashboard = () => {
       });
       toast.success('Milestone evaluation saved');
       if (teamBoard) {
-        const linkForTeamMember = `/student/project/milestones&checkpoints/${teamId}`;
+        const linkForTeamMember = `/student/project/milestones&checkpoints/${selectedMilestoneId}/${teamId}`;
         await teamBoard.broadcastMilestoneEvaluated(teamId, selectedMilestoneId, linkForTeamMember);
       }
       

@@ -693,7 +693,7 @@ const TeamProjectDetail = () => {
         const teamMilestoneId = response?.data?.teamMilestoneId;
         setMilestoneModal(null);
         if (teamBoard) {
-          const linkForTeamMember = `/student/project/milestones&checkpoints/${teamId}`;
+          const linkForTeamMember = `/student/project/milestones&checkpoints/${teamMilestoneId}/${teamId}`;
           console.log('Broadcasting new milestone to team members:',teamId, teamMilestoneId, linkForTeamMember);
           await teamBoard.broadcastMilestoneCreate(teamId, teamMilestoneId, linkForTeamMember);
         }
@@ -704,7 +704,7 @@ const TeamProjectDetail = () => {
         toast.success('Milestone details updated');
         setMilestoneModal(null);
         if (teamBoard) {
-          const linkForTeamMember = `/student/project/milestones&checkpoints/${teamId}`;
+          const linkForTeamMember = `/student/project/milestones&checkpoints/${id}/${teamId}`;
           await teamBoard.broadcastMilestoneUpdate(teamId, id, linkForTeamMember);
         }
       }
@@ -740,7 +740,7 @@ const TeamProjectDetail = () => {
       setConfirmState(null);
       fetchMilestonesList(true);
       if (teamBoard) {
-        const linkForTeamMember = `/student/project/milestones&checkpoints/${teamId}`;
+        const linkForTeamMember = `/student/project/milestones&checkpoints/${idToDelete}/${teamId}`;
         await teamBoard.broadcastMilestoneDelete(teamId, idToDelete, linkForTeamMember);
       }
     } catch (error) {

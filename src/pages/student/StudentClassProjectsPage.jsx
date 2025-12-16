@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { useParams, Link, useLocation } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, FileText, Users, BookOpen } from 'lucide-react';
 
 const StudentClassProjectsPage = () => {
   const { classSlug } = useParams();
   const { state } = useLocation();
+  const navigate = useNavigate();
   const [details] = useState(state?.details || null);
   const [expandedProjects, setExpandedProjects] = useState(new Set());
 
@@ -33,14 +34,20 @@ const StudentClassProjectsPage = () => {
       {/* Header Section */}
       <div className="bg-white border-b">
         <div className=" mx-auto px-8 py-6">
-          <Link 
+          {/* <Link 
             to="/student/classes" 
             className="inline-flex items-center gap-2 text-orangeFpt-500 hover:text-orangeFpt-600 font-medium mb-4 transition"
           >
             <ArrowLeft size={18} />
             Back to classes
-          </Link>
-          
+          </Link> */}
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 text-orangeFpt-500 hover:text-orangeFpt-600 font-medium mb-4 transition"
+          >
+            <ArrowLeft size={18} />
+            Back to classes
+          </button>
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">

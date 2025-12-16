@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BookOpen, Users, Calendar, FileText, Sparkles, RefreshCcw } from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getClassesByStudentId, getClassDetailsById, getAssignedTeamByClassId, getDetailOfTeamByTeamId } from '../../services/studentApi';
 import { EnrolledClassesSkeleton, ClassDetailsSkeleton } from '../../features/student/components/skeletons/StudentSkeletons';
@@ -10,7 +10,15 @@ import ProjectCard from '../../features/student/components/ProjectCard';
 import { useQueryClient } from '@tanstack/react-query';
 import useTeam from '../../context/useTeam';
 
+const slugify = (str = '') =>
+  String(str)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+
 const StudentClassPage = () => {
+  const { classSlug } = useParams();
   const [classes, setClasses] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState(null);
 
@@ -34,12 +42,6 @@ const StudentClassPage = () => {
   );
   const selectedDetails = detailsById[selectedClassId] || null;
 
-  const slugify = (str = '') =>
-    String(str)
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)+/g, '');
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -140,12 +142,30 @@ const StudentClassPage = () => {
 
   useEffect(() => {
     (async () => {
-      const list = await fetchClasses();
-      if (list.length) {
-        fetchDetails(list[0].classId);
-      }
+      await fetchClasses();
     })();
   }, []);
+
+  useEffect(() => {
+    if (classes.length > 0) {
+      if (classSlug) {
+        const found = classes.find(c => slugify(c.className) === classSlug);
+        if (found) {
+          if (selectedClassId !== found.classId) {
+            setSelectedClassId(found.classId);
+          }
+        } else {
+          const first = classes[0];
+          const slug = slugify(first.className);
+          navigate(`/student/classes/${slug}`, { replace: true });
+        }
+      } else {
+        const first = classes[0];
+        const slug = slugify(first.className);
+        navigate(`/student/classes/${slug}`, { replace: true });
+      }
+    }
+  }, [classes, classSlug, navigate]);
 
   useEffect(() => {
     if (selectedClassId) {
@@ -157,9 +177,15 @@ const StudentClassPage = () => {
   useEffect(() => {
     const target = location.state?.selectClassId;
     if (target && classes.some(c => c.classId === target)) {
-      setSelectedClassId(target);
+      const targetClass = classes.find(c => c.classId === target);
+      if (targetClass) {
+        const slug = slugify(targetClass.className);
+        if (classSlug !== slug) {
+          navigate(`/student/classes/${slug}`, { replace: true });
+        }
+      }
     }
-  }, [location.state, classes]);
+  }, [location.state, classes, navigate, classSlug]);
 
   const classStats = useMemo(() => {
     const total = classes.length;
@@ -254,7 +280,10 @@ const StudentClassPage = () => {
                         ? 'border-orangeFpt-200 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white shadow-inner'
                         : 'border-slate-200 hover:border-orangeFpt-00 bg-white'
                         }`}
-                      onClick={() => setSelectedClassId(c.classId)}
+                      onClick={() => {
+                        const slug = slugify(c.className);
+                        navigate(`/student/classes/${slug}`);
+                      }}
                     >
                       <div className="flex items-start justify-between">
                         <div>

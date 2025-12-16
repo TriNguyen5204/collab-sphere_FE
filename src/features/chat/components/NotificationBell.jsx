@@ -75,7 +75,9 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
         
         if (isStudent && isProjectLink) {
             try {
-                // Extract teamId from the end of the link (e.g., .../milestones&checkpoints/36)
+                // The notification link for milestones is formatted as: .../milestones&checkpoints/:milestoneId/:teamId
+                // We need to extract the teamId (last segment) to set the context, 
+                // and then navigate to the path without the teamId.
                 const parts = notifyLink.split('/');
                 const lastSegment = parts[parts.length - 1];
                 const teamId = parseInt(lastSegment, 10);
@@ -87,7 +89,7 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                     await getDetailOfTeamByTeamId(teamId);
                     setTeam(teamId);
                     
-                    // Update notifyLink to the base path (remove the ID)
+                    // Remove the teamId from the end of the link
                     notifyLink = notifyLink.substring(0, notifyLink.lastIndexOf('/'));
                     console.log('Navigating to:', notifyLink);
                 }

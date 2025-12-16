@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams, useLocation } from 'react-router-dom';
+import { Link, useParams, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getSyllabusOfSubjectBySubjectId } from '../../services/studentApi';
 import { ClassDetailsSkeleton } from '../../features/student/components/skeletons/StudentSkeletons';
-import { BookOpen, Target, Award, Calendar, Clock } from 'lucide-react';
+import { BookOpen, Target, Award, Calendar, Clock, ArrowLeft } from 'lucide-react';
 
 const StudentClassSyllabusPage = () => {
   const { classSlug } = useParams();
   const { state } = useLocation();
+  const navigate = useNavigate();
   const details = state?.details || null;
 
   const [loading, setLoading] = useState(false);
@@ -37,9 +38,13 @@ const StudentClassSyllabusPage = () => {
     return (
       <div className="p-6">
         <div className="mb-4">
-          <Link to="/student/classes" className="text-blue-600 hover:underline">
-            ← Back to classes
-          </Link>
+          <button
+            onClick={() => navigate(-1)}
+            className="text-orangeFpt-500 hover:underline inline-flex items-center gap-2 font-medium transition-colors"
+          >
+            <ArrowLeft size={18} />
+            Back to classes
+          </button>
         </div>
         <h1 className="text-2xl font-bold mb-2">{classSlug || 'Class'}</h1>
         <p className="text-gray-600">No data available. Please open this page from the Class view.</p>
@@ -50,18 +55,19 @@ const StudentClassSyllabusPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50 p-6">
       {/* Back Navigation */}
-      <div className="mb-6 max-w-6xl mx-auto">
-        <Link 
-          to="/student/classes" 
-          className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 font-medium transition-colors"
+      <div className="mb-6 max-w-7xl mx-auto">
+        <button
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-2 text-orangeFpt-500 hover:text-orangeFpt-600 font-medium transition"
         >
-          ← Back to classes
-        </Link>
+          <ArrowLeft size={18} />
+          Back to classes
+        </button>
       </div>
 
-      <div className="max-w-6xl mx-auto">
+      <div className=" mx-auto">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#fb8239] to-[#fcd8b6] rounded-3xl p-8 mb-8 shadow-xl border-2 border-orange-200">
+        <div className="bg-gradient-to-r from-[#fb8239] to-[#fcd8b6] rounded-3xl p-8 mb-8 shadow-xl border-2 border-orange-200 max-w-7xl mx-auto">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
@@ -81,7 +87,7 @@ const StudentClassSyllabusPage = () => {
         {loading && !syllabus ? (
           <ClassDetailsSkeleton />
         ) : syllabus ? (
-          <div className="space-y-6">
+          <div className="space-y-6 max-w-6xl mx-auto">
             {/* Syllabus Overview */}
             <div className="bg-white/90 backdrop-blur-sm border border-orange-100 rounded-3xl p-8 shadow-lg">
               <div className="flex items-center gap-3 mb-4">
@@ -257,7 +263,7 @@ const StudentClassSyllabusPage = () => {
             )}
           </div>
         ) : (
-          <div className="bg-white/90 backdrop-blur-sm border border-orange-100 rounded-3xl p-8 shadow-lg text-center">
+          <div className="bg-white/90 backdrop-blur-sm border border-orange-100 rounded-3xl p-8 shadow-lg text-center max-w-6xl mx-auto">
             <p className="text-gray-600">No syllabus found for this subject.</p>
           </div>
         )}

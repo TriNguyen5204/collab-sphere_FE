@@ -24,7 +24,7 @@ export const EnrolledClassesSkeleton = ({ count = 3 }) => (
 );
 
 export const ClassDetailsSkeleton = () => (
-  <div className="bg-white rounded-lg shadow-md p-6">
+  <div className="bg-white rounded-lg shadow-md p-6 max-w-6xl mx-auto">
     <div className="flex justify-between items-start mb-4">
       <div className="flex-1">
         <Skeleton className="h-6 w-48 mb-2" />

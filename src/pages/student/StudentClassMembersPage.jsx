@@ -1,9 +1,12 @@
+import { ArrowLeft } from 'lucide-react';
 import React, { useState } from 'react';
-import { useParams, Link, useLocation } from 'react-router-dom';
+import { useAvatar } from '../../hooks/useAvatar';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 
 const StudentClassMembersPage = () => {
   const { classSlug } = useParams();
   const { state } = useLocation();
+  const navigate = useNavigate();
   const [details] = useState(state?.details || null);
 
   const getInitials = (name = '') => {
@@ -27,21 +30,18 @@ const StudentClassMembersPage = () => {
   };
 
   const Avatar = ({ name, src }) => {
-    const initials = getInitials(name);
-    const [failed, setFailed] = useState(false);
-    const showImage = src && !failed;
-
+    const { initials, colorClass, shouldShowImage, setImageError } = useAvatar(name, src);
     return (
       <div className="relative" style={{ width: 96, aspectRatio: '3 / 4' }}>
-        {showImage ? (
+        {shouldShowImage ? (
           <img
             src={src}
             alt={name}
             className="absolute inset-0 w-full h-full object-cover rounded-md"
-            onError={() => setFailed(true)}
+            onError={() => setImageError(true)}
           />
         ) : (
-          <div className="absolute inset-0 rounded-md bg-gray-200 text-gray-700 flex items-center justify-center text-sm font-semibold">
+          <div className={`absolute inset-0 rounded-md flex items-center justify-center text-sm font-semibold ${colorClass} text-white`}>
             {initials}
           </div>
         )}
@@ -50,22 +50,28 @@ const StudentClassMembersPage = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 mx-auto max-w-7xl">
       <div className="mb-4">
-        <Link to="/student/classes" className="text-orangeFpt-500 hover:underline">
-          ← Back to classes
-        </Link>
+        <button
+          onClick={() => navigate(-1)}
+          className="text-orangeFpt-500 hover:underline inline-flex items-center gap-2 font-medium transition-colors"
+        >
+          <ArrowLeft size={18} />
+          Back to classes
+        </button>
       </div>
-      <h1 className="text-2xl font-bold mb-2">{details?.className || classSlug}</h1>
-      <p className="text-gray-600 mb-4">Members ({details?.classMembers?.length ?? 0})</p>
+      <div className="bg-gradient-to-r from-[#fb8239] to-[#fcd8b6] rounded-3xl p-8 mb-8 shadow-xl border-2 border-orange-200 max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold text-white leading-tight">{details?.className || classSlug}</h1>
+        <p className="text-white text-sm font-medium">Members ({details?.classMembers?.length ?? 0})</p>
+      </div>
 
       {details ? (
         details?.classMembers?.length ? (
-          <div className="overflow-x-auto bg-white border rounded">
+          <div className="max-w-6xl mx-auto bg-white border rounded-xl shadow-sm overflow-x-auto">
             <table className="min-w-full table-auto">
               <thead className="bg-gray-50">
                 <tr className="text-left text-sm text-gray-600">
-                  <th className="px-4 py-2 font-semibold w-16">Index</th>
+                  <th className="px-4 py-2 font-semibold w-16 text-center">Index</th>
                   <th className="px-4 py-2 font-semibold w-36">Image</th>
                   <th className="px-4 py-2 font-semibold">Code</th>
                   <th className="px-4 py-2 font-semibold">Surname</th>
@@ -81,7 +87,7 @@ const StudentClassMembersPage = () => {
                   const { surname, middle, given } = splitName(name);
                   return (
                     <tr key={m.classMemberId || idx} className="text-sm">
-                      <td className="px-4 py-2 text-gray-700">{idx + 1}</td>
+                      <td className="px-4 py-2 text-gray-700 text-center">{idx + 1}</td>
                       <td className="px-4 py-2">
                         <Avatar name={name} src={avatarSrc} />
                       </td>
