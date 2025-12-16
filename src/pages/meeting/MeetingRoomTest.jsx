@@ -12,6 +12,7 @@ import { updateMeeting } from '../../features/meeting/services/meetingApi';
 import { toast } from 'sonner';
 import { useSelector } from 'react-redux';
 import { ShieldAlert, Loader2 } from 'lucide-react';
+import { getTeamDetail } from '../../services/teamApi';
 
 /**
  * MeetingRoom - Simplified version
@@ -46,6 +47,7 @@ function MeetingRoom() {
   const [authError, setAuthError] = useState(null);
   const [roomExists, setRoomExists] = useState(null); // null = checking, true/false = result
   const [roomClosedByHost, setRoomClosedByHost] = useState(false);
+  const [isMyVideoEnabled, setIsMyVideoEnabled] = useState(true);
 
   const myVideo = useRef();
   const peersRef = useRef({});
@@ -57,34 +59,157 @@ function MeetingRoom() {
 
   // Simple authorization check: login = access
   useEffect(() => {
-    const validateAccess = () => {
+    const validateAccess = async () => {
       setIsCheckingAuth(true);
       setAuthError(null);
 
-      // User must be authenticated (have valid token and userId)
+      // ========================================
+      // STEP 1: Authentication check
+      // ========================================
       if (!accessToken || !userId) {
-        setAuthError('You must be logged in to join a meeting.');
         setIsCheckingAuth(false);
         return;
       }
 
-      // User is logged in → allow access
-      console.log('✅ [MeetingRoom] User authenticated - granting access');
-      setIsAuthorized(true);
-      setIsCheckingAuth(false);
+      // ========================================
+      // STEP 2: Wait for socket
+      // ========================================
+      if (!socket || !isConnected) {
+        return;
+      }
+
+      // ========================================
+      // ✅ STEP 3: HOST CHECK FIRST!
+      // ========================================
+      if (isHost) {
+        setIsAuthorized(true);
+        setRoomExists(true);
+        setIsCheckingAuth(false);
+
+        // Host will create metadata when they joinRoom
+        // No need to check metadata for host!
+        return;
+      }
+
+      // ========================================
+      // STEP 4: GUEST - Get room metadata
+      // ========================================
+
+      try {
+        const getRoomMetadata = () => {
+          return new Promise((resolve, reject) => {
+            socket.emit('get-room-metadata', { roomId }, response => {
+              console.log('📥 [AUTH] Metadata response:', response);
+
+              if (response && response.success) {
+                resolve(response);
+              } else {
+                reject(
+                  new Error(response?.error || 'Room metadata not available')
+                );
+              }
+            });
+
+            // Timeout after 5 seconds
+            setTimeout(() => {
+              reject(new Error('Timeout: Server did not respond'));
+            }, 5000);
+          });
+        };
+
+        const metadata = await getRoomMetadata();
+        const roomTeamId = metadata.teamId;
+
+        console.log('✅ [AUTH] Room metadata received:', {
+          roomId,
+          roomTeamId,
+          hostSocketId: metadata.hostSocketId,
+        });
+
+        // ========================================
+        // STEP 5: Check team membership
+        // ========================================
+
+        const teamDetail = await getTeamDetail(roomTeamId);
+
+        if (!teamDetail) {
+          setAuthError('Unable to verify team information.');
+          setIsCheckingAuth(false);
+          return;
+        }
+
+        const members = teamDetail.memberInfo?.members || [];
+
+        // Check if user is team member
+        let isTeamMember = false;
+        for (const member of members) {
+          const memberId = member.studentId || member.userId || member.id;
+          if (Number(memberId) === Number(userId)) {
+            isTeamMember = true;
+            console.log('✅ [AUTH] User IS a team member:', {
+              memberId,
+              memberName: member.studentName || member.name,
+            });
+            break;
+          }
+        }
+
+        // Check if user is lecturer
+        const lecturerId =
+          teamDetail.lecturerInfo?.lecturerId || teamDetail.lecturerId;
+        const isLecturer =
+          Number(lecturerId) === Number(userId) || roleName === 'LECTURER';
+
+        // ========================================
+        // STEP 6: Grant or deny access
+        // ========================================
+        if (isTeamMember || isLecturer) {
+          setIsAuthorized(true);
+          setRoomExists(true);
+          setIsCheckingAuth(false);
+        } else {
+          setIsAuthorized(false);
+          setAuthError(
+            'This meeting is restricted to team members only. You are not a member of the team that owns this room.'
+          );
+          setIsCheckingAuth(false);
+        }
+      } catch (error) {
+        setAuthError(
+          error.message ||
+            'Unable to verify room access. The meeting may not exist or has ended.'
+        );
+        setIsCheckingAuth(false);
+      }
     };
 
-    validateAccess();
-  }, [accessToken, userId]);
+    // Trigger validation when socket connects
+    if (socket && isConnected) {
+      validateAccess();
+    }
+  }, [
+    socket,
+    isConnected,
+    accessToken,
+    userId,
+    fullName,
+    roleName,
+    isHost,
+    roomId,
+    teamId,
+  ]);
 
   // Check if room exists when socket is ready and connected
   useEffect(() => {
     // Wait for socket to be connected before proceeding
     if (!socket || !isConnected || !roomId || !isAuthorized) return;
 
+    // If already authorized (guest approved), skip this check
+    if (isAuthorized && !isHost) {
+      return;
+    }
     // If user is the host, they're creating the room - no need to check
     if (isHost) {
-      console.log('🏠 [MeetingRoom] User is host - skipping room check');
       setRoomExists(true);
       return;
     }
@@ -92,7 +217,6 @@ function MeetingRoom() {
     // For non-host users: Socket is connected, allow joining
     // Note: Room existence check is disabled because deployed server may not support it
     // The room-closed event from server will handle the case when host leaves
-    console.log('✅ [MeetingRoom] Socket connected - allowing room access');
     setRoomExists(true);
 
     // Optional: Try to check room existence (won't block if server doesn't support it)
@@ -170,6 +294,7 @@ function MeetingRoom() {
       });
       toast.success('Video has been saved and updated to the meeting!');
     } catch (error) {
+      console.log(error);
       toast.error(
         'Video has been uploaded but could not update the meeting. Please check again.'
       );
@@ -205,7 +330,8 @@ function MeetingRoom() {
     peersRef,
     me,
     isHost,
-    handleRoomClosed // Pass callback for when room is closed by host
+    handleRoomClosed, // Pass callback for when room is closed by host
+    teamId
   );
 
   // Update my video source
@@ -220,6 +346,20 @@ function MeetingRoom() {
       }
     }
   }, [stream, isSharing, currentScreenStream]);
+
+  useEffect(() => {
+    if (!stream) return;
+    const checkVideoStatus = () => {
+      const videoTracks = stream.getVideoTracks();
+      if (videoTracks.length > 0) {
+        setIsMyVideoEnabled(videoTracks[0].enabled);
+        console.log('📹 Camera:', videoTracks[0].enabled ? 'ON' : 'OFF');
+      }
+    };
+    checkVideoStatus();
+    const interval = setInterval(checkVideoStatus, 500);
+    return () => clearInterval(interval);
+  }, [stream]);
 
   const copyToClipboard = text => {
     navigator.clipboard.writeText(text);
@@ -350,7 +490,7 @@ function MeetingRoom() {
           </div>
           <h2 className='text-xl font-bold text-white mb-3'>Access Denied</h2>
           <p className='text-[#9aa0a6] mb-6'>
-            {authError || 'You do not have permission to join this meeting.'}
+            You do not have permission to join this meeting
           </p>
           <button
             onClick={handleGoBack}
@@ -534,6 +674,18 @@ function MeetingRoom() {
                       }}
                       className='w-full h-full object-cover'
                     />
+                    {!isMyVideoEnabled && (
+                        <div className='absolute inset-0 flex items-center justify-center bg-[#3c4043] z-10'>
+                          <div className='text-center'>
+                            <div className='w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-2xl font-bold shadow-xl'>
+                              {myName.charAt(0).toUpperCase()}
+                            </div>
+                            <p className='text-white text-xs font-medium mt-2'>
+                              {myName}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     <div className='absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none'></div>
                     <div className='absolute bottom-3 left-3 px-3 py-1.5 bg-black/80 backdrop-blur-sm rounded-lg'>
                       <span className='text-sm text-white font-medium'>
@@ -595,10 +747,31 @@ function MeetingRoom() {
                       ref={el => {
                         if (el && stream) {
                           el.srcObject = stream; // Always show camera in grid view
+                          myVideo.current = el;
                         }
                       }}
                       className='w-full h-full object-cover'
                     />
+                    {stream &&
+                      stream.getVideoTracks()[0] &&
+                      !stream.getVideoTracks()[0].enabled && (
+                        <div className='absolute inset-0 flex items-center justify-center bg-[#3c4043] z-10'>
+                          <div className='text-center'>
+                            <div
+                              className='w-24 h-24 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 
+                        flex items-center justify-center text-white text-4xl font-bold mb-3 shadow-2xl'
+                            >
+                              {myName.charAt(0).toUpperCase()}
+                            </div>
+                            <p className='text-white font-medium text-lg'>
+                              {myName}
+                            </p>
+                            <p className='text-[#9aa0a6] text-sm mt-1'>
+                              Camera is off
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     <div className='absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none'></div>
                     <div className='absolute bottom-4 left-4 px-3 py-2 bg-black/80 backdrop-blur-sm rounded-xl'>
                       <span className='text-sm text-white font-semibold'>

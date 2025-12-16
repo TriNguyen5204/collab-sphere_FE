@@ -282,6 +282,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
       // Use response parser to handle message
       if (response.isSuccess === true) {
         toast.success('Lecturers imported successfully!');
+        onClose();
       } else {
         const isSuccess = handleImportResponse(response, toast, 'lecturers');
 
@@ -289,7 +290,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
           setIsSubmitting(true);
           setTimeout(() => {
             if (onClose) onClose();
-          }, 2000); // Give time to read messages
+          }, 1000); // Give time to read messages
         } else {
           // If import failed (0 imported), show API errors if available
           if (response.errorList && response.errorList.length > 0) {

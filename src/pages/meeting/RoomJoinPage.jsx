@@ -148,6 +148,7 @@ function JoinPage() {
         });
       }
     } catch (error) {
+      console.log(error)
       toast.error('Error creating meeting, please try again.');
     } finally {
       setLoading(false);
