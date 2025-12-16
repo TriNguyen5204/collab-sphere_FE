@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { motion, AnimatePresence } from "framer-motion";
 import {
    UploadCloud,
    FileText,
@@ -11,12 +12,19 @@ import {
    AlertCircle,
    Users,
    ScrollText,
-   HelpCircle
+   HelpCircle,
+   BookOpen,
+   PanelRightClose,
+   Loader2,
+   CreditCard,
+   Target,
+   GraduationCap,
+   BarChart3
 } from "lucide-react";
 
 import { createProject } from "../../services/projectApi";
 import { toast } from 'sonner';
-import { getAllSubject } from "../../services/userService";
+import { getAllSubject, getSyllabusBySubjectId } from "../../services/userService";
 import LecturerBreadcrumbs from "../../features/lecturer/components/LecturerBreadcrumbs";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 
@@ -52,6 +60,11 @@ const CreateProject = () => {
    const [subjects, setSubjects] = useState([]);
    const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
    const [subjectError, setSubjectError] = useState("");
+
+   // Syllabus Panel States
+   const [isSyllabusPanelOpen, setIsSyllabusPanelOpen] = useState(false);
+   const [syllabusData, setSyllabusData] = useState(null);
+   const [loadingSyllabus, setLoadingSyllabus] = useState(false);
 
    const [uploadedFile, setUploadedFile] = useState(null);
    const [isDragOver, setIsDragOver] = useState(false);
@@ -99,6 +112,27 @@ const CreateProject = () => {
       fetchSubjects();
       return () => { isMounted = false; };
    }, []);
+
+   // Fetch syllabus when subject changes
+   useEffect(() => {
+      const fetchSyllabus = async () => {
+         if (!formState.subjectId) {
+            setSyllabusData(null);
+            return;
+         }
+         try {
+            setLoadingSyllabus(true);
+            const result = await getSyllabusBySubjectId(formState.subjectId);
+            setSyllabusData(result);
+         } catch (error) {
+            console.error('Failed to fetch syllabus:', error);
+            setSyllabusData(null);
+         } finally {
+            setLoadingSyllabus(false);
+         }
+      };
+      fetchSyllabus();
+   }, [formState.subjectId]);
 
    // Count business rules from array
    const businessRulesCount = businessRulesArray.length;
@@ -350,6 +384,48 @@ const CreateProject = () => {
                               </select>
                            )}
                            {formErrors.subjectId && <p className="text-xs text-red-500">{formErrors.subjectId}</p>}
+
+                           {/* View Syllabus Button */}
+                           {formState.subjectId && (
+                              <motion.div
+                                 initial={{ opacity: 0, y: -10 }}
+                                 animate={{ opacity: 1, y: 0 }}
+                                 className="mt-3"
+                              >
+                                 <button
+                                    type="button"
+                                    onClick={() => setIsSyllabusPanelOpen(true)}
+                                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#e75710] to-[#fb8239] text-white text-sm font-semibold shadow-md shadow-[rgba(231,87,16,0.25)] hover:shadow-lg hover:shadow-[rgba(231,87,16,0.35)] hover:-translate-y-0.5 transition-all duration-200"
+                                 >
+                                    <BookOpen size={16} />
+                                    View Syllabus
+                                 </button>
+                              </motion.div>
+                           )}
+
+                           {/* Quick syllabus hint */}
+                           {formState.subjectId && syllabusData?.subjectSyllabus && (
+                              <motion.div
+                                 initial={{ opacity: 0, y: -10 }}
+                                 animate={{ opacity: 1, y: 0 }}
+                                 className="mt-3 flex items-center gap-2 text-xs text-slate-600 bg-[#fcd8b6]/50 rounded-xl px-4 py-3"
+                              >
+                                 <CheckCircle2 size={14} className="text-emerald-500" />
+                                 <span>
+                                    Syllabus available: <span className="font-medium text-slate-800">{syllabusData.subjectSyllabus.syllabusName}</span>
+                                    {syllabusData.subjectSyllabus.noCredit && (
+                                       <span className="ml-1">({syllabusData.subjectSyllabus.noCredit} credits)</span>
+                                    )}
+                                 </span>
+                                 <button
+                                    type="button"
+                                    onClick={() => setIsSyllabusPanelOpen(true)}
+                                    className="ml-auto text-[#e75710] hover:text-[#c44d0e] font-semibold hover:underline"
+                                 >
+                                    View details →
+                                 </button>
+                              </motion.div>
+                           )}
                         </div>
 
                         {/* Description */}
@@ -693,6 +769,153 @@ const CreateProject = () => {
 
             </div>
          </div>
+
+         {/* Syllabus Slide Panel */}
+         <AnimatePresence>
+            {isSyllabusPanelOpen && (
+               <>
+                  {/* Backdrop */}
+                  <motion.div
+                     initial={{ opacity: 0 }}
+                     animate={{ opacity: 1 }}
+                     exit={{ opacity: 0 }}
+                     onClick={() => setIsSyllabusPanelOpen(false)}
+                     className="fixed inset-0 bg-black/10 backdrop-blur-[2px] z-40"
+                  />
+
+                  {/* Slide Panel */}
+                  <motion.div
+                     initial={{ x: '100%' }}
+                     animate={{ x: 0 }}
+                     exit={{ x: '100%' }}
+                     transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                     className="fixed top-0 right-0 h-full w-full max-w-lg bg-white shadow-2xl z-50 flex flex-col"
+                  >
+                     {/* Panel Header */}
+                     <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-gradient-to-r from-[#fcd8b6]/30 to-white">
+                        <div className="flex items-center gap-3">
+                           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e75710]/10 text-[#e75710]">
+                              <BookOpen size={20} />
+                           </div>
+                           <div>
+                              <h2 className="text-lg font-bold text-slate-800">Subject Syllabus</h2>
+                              {selectedSubject && (
+                                 <p className="text-xs text-slate-500">{selectedSubject.subjectCode}</p>
+                              )}
+                           </div>
+                        </div>
+                        <button
+                           onClick={() => setIsSyllabusPanelOpen(false)}
+                           className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                        >
+                           <PanelRightClose size={20} className="text-slate-500" />
+                        </button>
+                     </div>
+
+                     {/* Panel Content */}
+                     <div className="flex-1 overflow-y-auto p-6">
+                        {loadingSyllabus ? (
+                           <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+                              <Loader2 className="animate-spin mb-3" size={32} />
+                              <p className="text-sm">Loading syllabus...</p>
+                           </div>
+                        ) : !formState.subjectId ? (
+                           <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+                              <BookOpen size={48} className="mb-3 opacity-50" />
+                              <p className="text-sm font-medium">No Subject Selected</p>
+                              <p className="text-xs mt-1">Select a subject to view its syllabus</p>
+                           </div>
+                        ) : !syllabusData?.subjectSyllabus ? (
+                           <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+                              <AlertCircle size={48} className="mb-3 opacity-50" />
+                              <p className="text-sm font-medium">No Syllabus Available</p>
+                              <p className="text-xs mt-1 text-center px-4">This subject doesn't have a syllabus configured yet</p>
+                           </div>
+                        ) : (
+                           <div className="space-y-6">
+                              {/* Subject Info Card */}
+                              <div className="rounded-2xl bg-gradient-to-br from-[#fcd8b6]/40 to-orange-50 p-5 border border-[#e75710]/10">
+                                 <h3 className="font-bold text-slate-800 mb-1">{syllabusData.subjectSyllabus.syllabusName}</h3>
+                                 <p className="text-sm text-slate-600">{selectedSubject?.subjectName}</p>
+                                 {syllabusData.subjectSyllabus.description && (
+                                    <p className="text-xs text-slate-500 mt-3 leading-relaxed">
+                                       {syllabusData.subjectSyllabus.description}
+                                    </p>
+                                 )}
+                              </div>
+
+                              {/* Quick Stats */}
+                              <div className="grid grid-cols-2 gap-3">
+                                 <div className="rounded-xl bg-blue-50 p-4 border border-blue-100">
+                                    <div className="flex items-center gap-2 text-blue-600 mb-1">
+                                       <CreditCard size={16} />
+                                       <span className="text-xs font-semibold uppercase">Credits</span>
+                                    </div>
+                                    <p className="text-2xl font-bold text-blue-700">{syllabusData.subjectSyllabus.noCredit || '—'}</p>
+                                 </div>
+                                 <div className="rounded-xl bg-emerald-50 p-4 border border-emerald-100">
+                                    <div className="flex items-center gap-2 text-emerald-600 mb-1">
+                                       <Target size={16} />
+                                       <span className="text-xs font-semibold uppercase">Outcomes</span>
+                                    </div>
+                                    <p className="text-2xl font-bold text-emerald-700">{syllabusData.subjectOutcomes?.length || 0}</p>
+                                 </div>
+                              </div>
+
+                              {/* Learning Outcomes */}
+                              {syllabusData.subjectOutcomes?.length > 0 && (
+                                 <div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                       <GraduationCap size={16} className="text-[#e75710]" />
+                                       <h4 className="text-sm font-bold text-slate-700">Learning Outcomes</h4>
+                                    </div>
+                                    <div className="space-y-2">
+                                       {syllabusData.subjectOutcomes.map((outcome, idx) => (
+                                          <div key={outcome.subjectOutcomeId || idx} className="flex gap-3 text-sm p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#e75710]/10 text-[#e75710] text-xs font-bold">
+                                                {idx + 1}
+                                             </span>
+                                             <span className="text-slate-600 leading-relaxed">{outcome.outcomeDetail}</span>
+                                          </div>
+                                       ))}
+                                    </div>
+                                 </div>
+                              )}
+
+                              {/* Grade Components */}
+                              {syllabusData.gradeComponents?.length > 0 && (
+                                 <div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                       <BarChart3 size={16} className="text-[#e75710]" />
+                                       <h4 className="text-sm font-bold text-slate-700">Grade Components</h4>
+                                    </div>
+                                    <div className="space-y-2">
+                                       {syllabusData.gradeComponents.map((comp, idx) => (
+                                          <div key={comp.subjectGradeComponentId || idx} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                             <span className="text-sm text-slate-700 font-medium">{comp.componentName}</span>
+                                             <span className="text-sm font-bold text-[#e75710]">{comp.referencePercentage}%</span>
+                                          </div>
+                                       ))}
+                                    </div>
+                                 </div>
+                              )}
+                           </div>
+                        )}
+                     </div>
+
+                     {/* Panel Footer */}
+                     <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+                        <button
+                           onClick={() => setIsSyllabusPanelOpen(false)}
+                           className="w-full py-3 rounded-xl bg-slate-200 text-slate-700 font-semibold text-sm hover:bg-slate-300 transition-colors"
+                        >
+                           Close
+                        </button>
+                     </div>
+                  </motion.div>
+               </>
+            )}
+         </AnimatePresence>
       </DashboardLayout>
    );
 };
