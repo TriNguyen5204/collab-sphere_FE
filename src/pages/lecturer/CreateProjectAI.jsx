@@ -30,7 +30,8 @@ import {
   BarChart3,
   CreditCard,
   GraduationCap,
-  PanelRightClose
+  PanelRightClose,
+  RotateCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createProject } from '../../services/projectApi';
@@ -66,6 +67,7 @@ const CreateProjectAI = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   
   const [isRefineModalOpen, setIsRefineModalOpen] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [refineFeedback, setRefineFeedback] = useState('');
   const [isRefining, setIsRefining] = useState(false);
   
@@ -1356,6 +1358,20 @@ const CreateProjectAI = () => {
             !selectedSubjectId ? 'grayscale' : ''
           }`}>
             
+            {/* Reset Button */}
+            <div className="absolute top-6 right-6 z-20">
+                <button
+                    onClick={() => setIsResetModalOpen(true)}
+                    className="p-2.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all duration-200 group relative"
+                    title="Clear form data"
+                >
+                    <RotateCcw size={18} />
+                    <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                        Reset Form
+                    </span>
+                </button>
+            </div>
+
             <div className="text-center mb-8">
               <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-[#fcd8b6] via-white to-[#fcd8b6] flex items-center justify-center mb-5 shadow-lg border border-[#e75710]/10">
                 <BrainCircuit size={36} className="text-[#e75710]" strokeWidth={1.5} />
@@ -1795,6 +1811,48 @@ const CreateProjectAI = () => {
           </AnimatePresence>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isResetModalOpen && (
+          <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white/80 backdrop-blur-xl border border-white/60 rounded-3xl p-8 w-full max-w-md shadow-[0_20px_60px_-10px_rgba(0,0,0,0.1)]"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center mb-4">
+                  <AlertCircle className="text-rose-500" size={24} />
+                </div>
+                <h3 className="text-xl font-semibold text-slate-900 mb-2">Reset Form Data?</h3>
+                <p className="text-sm text-slate-500 mb-8 leading-relaxed">
+                  This will clear all your current inputs and configurations. This action cannot be undone.
+                </p>
+                
+                <div className="flex gap-3 w-full">
+                  <button
+                    onClick={() => setIsResetModalOpen(false)}
+                    className="flex-1 px-6 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      clearFormData();
+                      setIsResetModalOpen(false);
+                      toast.success('Form data cleared');
+                    }}
+                    className="flex-1 px-6 py-3 rounded-xl text-sm font-medium bg-rose-500 text-white hover:bg-rose-600 shadow-lg shadow-rose-200 transition-all"
+                  >
+                    Yes, Reset
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </DashboardLayout>
   );
 };

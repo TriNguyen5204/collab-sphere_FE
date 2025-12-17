@@ -22,13 +22,6 @@ export default function SubjectHeader({ onAddClick, onCreateClick, stats }) {
               Manage subjects, syllabus, and learning outcomes
             </p>
             <div className="flex items-center gap-4 mt-4">
-              {/* <button
-                onClick={onAddClick}
-                className='flex items-center gap-2 px-5 py-2.5 bg-orangeFpt-500 text-white rounded-xl hover:bg-orangeFpt-600 transition-all shadow-lg shadow-orangeFpt-500/30 font-medium'
-              >
-                <Plus className='w-4 h-4' />
-                Add Subject
-              </button> */}
               <button
                 onClick={onCreateClick}
                 className='flex items-center gap-2 px-5 py-2.5 bg-orangeFpt-500 text-white rounded-xl hover:bg-orangeFpt-600 transition-all shadow-lg shadow-orangeFpt-500/30 font-medium'

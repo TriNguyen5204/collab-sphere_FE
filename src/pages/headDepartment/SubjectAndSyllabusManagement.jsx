@@ -17,7 +17,7 @@ import {
 } from '../../features/head-department/components';
 import HeadDashboardLayout from '../../components/layout/HeadDashboardLayout';
 
-const ITEMS_PER_PAGE = 6;
+const ITEMS_PER_PAGE = 10;
 
 /**
  * SubjectManagement Component
