@@ -11,7 +11,8 @@ export const usePeerConnections = (
   peersRef,
   mySocketId,
   isHost = false,
-  onRoomClosed = null // Callback when host leaves and room is closed
+  onRoomClosed = null, // Callback when host leaves and room is closed
+  teamId = null
 ) => {
   const [groupPeers, setGroupPeers] = useState([]);
   const [peersSharingScreen, setPeersSharingScreen] = useState(new Set());
@@ -159,7 +160,7 @@ export const usePeerConnections = (
   useEffect(() => {
     if (!stream || !roomId || !socket || !mySocketId) return;
 
-    socket.emit('joinRoom', { roomId, name: myName, isHost });
+    socket.emit('joinRoom', { roomId, name: myName, isHost, teamId });
 
     socket.off('allUsers');
     socket.off('userJoined');

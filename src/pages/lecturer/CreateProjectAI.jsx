@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,13 +10,10 @@ import {
   ArrowRight,
   Plus,
   Minus,
-  Trash2,
-  Calendar,
   ChevronDown,
   Sparkles,
   BrainCircuit,
   Cpu,
-  ArrowLeft,
   Briefcase,
   Users,
   Activity,
@@ -25,17 +22,14 @@ import {
   Globe,
   Link,
   Clock,
-  HelpCircle,
   X,
   Code2,
   Settings2,
   BookOpen,
-  Award,
   Target,
   BarChart3,
   CreditCard,
   GraduationCap,
-  ChevronRight,
   PanelRightClose
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -45,19 +39,16 @@ import axios from 'axios';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
 
-// Import from new component module
 import {
   AI_API_BASE_URL,
   STORAGE_KEYS,
   TOPIC_DOMAIN_OPTIONS,
   PROJECT_TYPE_OPTIONS,
-  COMPLEXITY_OPTIONS,
   useAIProjectForm,
   InfoTooltip,
   ComplexitySlider,
   TeamSizeSelector,
   TechStackSelector,
-  PrioritySelector,
   AnalyzingScreen,
   IdeaSelectionScreen,
 } from '../../features/lecturer/components/create-project-ai';
@@ -73,7 +64,6 @@ const CreateProjectAI = () => {
   
   // Anti-spam: Lock button while generating
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isLogExpanded, setIsLogExpanded] = useState(false);
   
   const [isRefineModalOpen, setIsRefineModalOpen] = useState(false);
   const [refineFeedback, setRefineFeedback] = useState('');
