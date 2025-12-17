@@ -126,8 +126,8 @@ export default function SubjectManagement() {
 
   return (
     <HeadDashboardLayout>
-      <div className='bg-gradient-to-br from-gray-50 to-gray-100 p-6'>
-        <div className='mx-auto space-y-6'>
+      <div className='bg-gradient-to-br from-gray-50 to-gray-100'>
+        <div className='space-y-6'>
           
           {/* Header Section - Matching Staff/Admin style */}
           <SubjectHeader 
@@ -137,7 +137,7 @@ export default function SubjectManagement() {
           />
 
           {/* User Table - Matching Staff/Admin style */}
-          <div className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden'>
+          <div className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mx-auto max-w-[95%]'>
             {/* Table Header with Filters */}
             <div className=' border-b border-slate-200 p-2'>
               <SubjectFilters

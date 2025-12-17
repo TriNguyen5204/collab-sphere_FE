@@ -67,6 +67,7 @@ import ProjectManagement from '../pages/headDepartment/ProjectManagement';
 import ProjectApprovals from '../pages/headDepartment/ProjectApprovals';
 import PendingProjectDetail from '../pages/headDepartment/PendingProjectDetail';
 import HeadProjectDetail from '../pages/headDepartment/ProjectDetail';
+import SemesterManagement from '../pages/headDepartment/SemesterManagement';
 
 // admin pages
 import AdminDashboard from '../pages/admin/AdminDashboard';
@@ -188,6 +189,7 @@ const headDepartmentRoutes = [
   { path: '/head-department/project-management', element: protectRoute(['HEAD_DEPARTMENT'], <ProjectManagement />) },
   { path: '/head-department/project-approvals/:id', element: protectRoute(['HEAD_DEPARTMENT'], <PendingProjectDetail/>)},
   { path: '/head-department/project/:id', element: protectRoute(['HEAD_DEPARTMENT'], <HeadProjectDetail />) },
+  { path: '/head-department/semester-management', element: protectRoute(['HEAD_DEPARTMENT'], <SemesterManagement />) },
 ];
 
 const adminRoutes = [

@@ -262,6 +262,37 @@ export const getSemester = async () => {
     throw error
   }
 }
+
+export const createSemester = async (data) => {
+  try {
+    const response = await apiClient.post('/semester', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating semester:', error);
+    throw error;
+  }
+};
+
+export const updateSemester = async (id, data) => {
+  try {
+    const response = await apiClient.put(`/semester/${id}`, data);
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating semester ${id}:`, error);
+    throw error;
+  }
+};
+
+export const deleteSemester = async (id) => {
+  try {
+    const response = await apiClient.delete(`/semester/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error deleting semester ${id}:`, error);
+    throw error;
+  }
+};
+
 export const createSubject = async data => {
   try {
     const response = await apiClient.post('/subject', data);

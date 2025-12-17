@@ -131,6 +131,12 @@ const HeadDashboardLayout = ({ children }) => {
         !path.startsWith('/head-department/project-approvals'),
     },
     {
+      label: 'Semester',
+      href: '/head-department/semester-management',
+      icon: ClipboardCheck,
+      match: path => path.startsWith('/head-department/semester-management'),
+    },
+    {
       label: 'Pending Approvals',
       href: '/head-department/project-approvals',
       icon: ClipboardCheck,

@@ -169,8 +169,8 @@ export default function ProjectManagement() {
 
   return (
     <HeadDashboardLayout>
-      <div className=' bg-gradient-to-br from-slate-50 to-slate-100 p-6'>
-        <div className='mx-auto space-y-6'>
+      <div className=' bg-gradient-to-br from-slate-50 to-slate-100'>
+        <div className=' space-y-6'>
           
           {/* Header Section - Matching Staff/Admin style */}
           <div className="relative overflow-hidden rounded-3xl border border-orangeFpt-50 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white shadow-md shadow-orangeFpt-100/60 backdrop-blur">
@@ -235,7 +235,7 @@ export default function ProjectManagement() {
           </div>
 
           {/* Filter & Table Section */}
-          <div className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden'>
+          <div className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mx-auto max-w-[95%]'>
             {/* Filter Header */}
             <div className='p-5 border-b border-slate-100'>
               <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4'>
