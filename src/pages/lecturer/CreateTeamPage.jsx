@@ -140,6 +140,10 @@ const CreateTeamPage = () => {
            setFormData(prev => ({ ...prev, endDate: semesterEndDate ? new Date(semesterEndDate).toISOString().split('T')[0] : '' }));
         }
 
+        const semesterStartDate = currentSemester?.startDate;
+        if (semesterStartDate) {
+            setFormData(prev => ({...prev, startDate: new Date(semesterStartDate).toISOString().split('T')[0] }));
+        }
       } catch (error) {
         console.error('Failed to load class context', error);
         toast.error('Failed to load class details');
@@ -262,7 +266,7 @@ const CreateTeamPage = () => {
             studentId: Number(m.studentId),
             classId: Number(classId)
           })),
-        createdDate: formatDateForApi(new Date()),
+        createdDate: formatDateForApi(formData.startDate),
         endDate: formatDateForApi(formData.endDate)
       };
       console.log('Submitting create team with payload:', payload);
@@ -367,7 +371,7 @@ const CreateTeamPage = () => {
                    </span>
                 </div>
                 <div>
-                   <h1 className="text-3xl font-bold text-slate-900">Create New Team</h1>
+                   <h1 className="text-3xl font-bold text-slate-900"></h1>
                    <p className="mt-2 text-lg text-slate-600">
                       Form a new student group for <strong>{classInfo?.className}</strong>.
                    </p>
