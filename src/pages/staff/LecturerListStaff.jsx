@@ -71,7 +71,7 @@ export default function LecturerListStaff() {
   const [pageNum, setPageNum] = useState(1);
   const [pageCount, setPageCount] = useState(0);
   const [itemCount, setItemCount] = useState(0);
-  const pageSize = 5;
+  const pageSize = 6;
 
   // Fetch all accounts without search filter
   useEffect(() => {
@@ -148,7 +148,7 @@ export default function LecturerListStaff() {
   return (
     <>
       <StaffDashboardLayout>
-        <div className='bg-gradient-to-br from-gray-50 to-gray-100 p-6'>
+        <div className='bg-gradient-to-br from-gray-50 to-gray-100'>
           <div className='mx-auto space-y-6'>
             
             {/* Header Section */}

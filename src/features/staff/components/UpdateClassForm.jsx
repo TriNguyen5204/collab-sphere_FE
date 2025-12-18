@@ -22,11 +22,13 @@ const UpdateClassForm = ({ classData, onClose, onUpdated }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    console.log(classData);
     if (classData) {
       setFormData({
         className: classData.className || '',
         subjectId: classData.subjectId || 0,
         lecturerId: classData.lecturerId || 0,
+        semesterId: classData.semesterId || 0,
         isActive: classData.isActive ?? true,
       });
     }
@@ -59,6 +61,7 @@ const UpdateClassForm = ({ classData, onClose, onUpdated }) => {
     e.preventDefault();
     setLoading(true);
     try {
+      console.log(formData);
       const response = await updateClass(classData.classId, formData);
       if (response) {
         toast.success('Class updated successfully!');
@@ -67,7 +70,7 @@ const UpdateClassForm = ({ classData, onClose, onUpdated }) => {
       }
     } catch (err) {
       console.error(err);
-      toast.error('Failed to update class');
+      toast.error(err?.response?.data || 'Failed to update class');
     } finally {
       setLoading(false);
     }

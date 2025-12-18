@@ -40,6 +40,7 @@ export const updateClass = async (id, data) => {
     return response.data;
   } catch (error) {
     console.log('Update failed', error);
+    throw error;
   }
 };
 export const createMultipleClasses = async data => {

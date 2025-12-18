@@ -27,11 +27,10 @@ import StaffDashboardLayout from '../../components/layout/StaffDashboardLayout';
 // StatusBadge Component
 const StatusBadge = ({ isActive }) => (
   <span
-    className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-      isActive
+    className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${isActive
         ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20'
         : 'bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/10'
-    }`}
+      }`}
   >
     {isActive ? 'Active' : 'Inactive'}
   </span>
@@ -51,7 +50,7 @@ export default function ClassListStaff() {
     LecturerIds: null,
     OrderBy: 'ClassName',
     PageNum: 1,
-    PageSize: 10,
+    PageSize: 7,
   });
 
   const [totalPages, setTotalPages] = useState(1);
@@ -126,7 +125,7 @@ export default function ClassListStaff() {
 
   return (
     <StaffDashboardLayout>
-      <div className='bg-gradient-to-br from-gray-50 to-gray-100 p-6'>
+      <div className='bg-gradient-to-br from-gray-50 to-gray-100'>
         <div className='mx-auto space-y-6'>
           {/* Header Section */}
           <div className='relative overflow-hidden rounded-3xl border border-orangeFpt-50 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white shadow-md shadow-orangeFpt-100/60 backdrop-blur'>
@@ -327,18 +326,16 @@ export default function ClassListStaff() {
                                     Descending: !prev.Descending,
                                   }))
                                 }
-                                className={`p-2 rounded-lg border transition-all ${
-                                  filters.Descending
+                                className={`p-2 rounded-lg border transition-all ${filters.Descending
                                     ? 'bg-orangeFpt-500 text-white border-orangeFpt-500'
                                     : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                                }`}
+                                  }`}
                                 title='Toggle ascending/descending'
                               >
                                 <ArrowUpWideNarrow
                                   size={16}
-                                  className={`transform transition-transform ${
-                                    filters.Descending ? 'rotate-180' : ''
-                                  }`}
+                                  className={`transform transition-transform ${filters.Descending ? 'rotate-180' : ''
+                                    }`}
                                 />
                               </button>
                             </div>
@@ -355,22 +352,13 @@ export default function ClassListStaff() {
                                   LecturerIds: null,
                                   OrderBy: 'ClassName',
                                   PageNum: 1,
-                                  PageSize: 10,
+                                  PageSize: 7,
                                 });
                                 setShowFilterDropdown(false);
                               }}
                               className='flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-all font-medium text-sm'
                             >
                               Clear
-                            </button>
-                            <button
-                              onClick={() => {
-                                setFilters(prev => ({ ...prev, PageNum: 1 }));
-                                setShowFilterDropdown(false);
-                              }}
-                              className='flex-1 px-4 py-2 bg-orangeFpt-500 text-white rounded-lg hover:bg-orangeFpt-600 transition-all font-medium text-sm'
-                            >
-                              Apply
                             </button>
                           </div>
                         </div>
@@ -464,6 +452,9 @@ export default function ClassListStaff() {
                       <th className='px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider'>
                         Status
                       </th>
+                      <th className='px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider'>
+                        Action
+                      </th>
                     </tr>
                   </thead>
                   <tbody className='divide-y divide-slate-100'>
@@ -520,6 +511,14 @@ export default function ClassListStaff() {
                         <td className='px-6 py-4'>
                           <StatusBadge isActive={cls.isActive} />
                         </td>
+                        <td className='px-6 py-4 text-center'>
+                          <button
+                            onClick={() => handleClassClick(cls.classId)}
+                            className='text-orangeFpt-500 hover:underline font-medium text-sm'
+                          >
+                            View Details
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -563,7 +562,11 @@ export default function ClassListStaff() {
           onClose={() => setIsOpen(false)}
           title='Create New Class'
         >
-          <CreateClassForm onClose={() => setIsOpen(false)} />
+          <CreateClassForm onClose={() => {
+            setIsOpen(false);
+            fetchData();
+          }}
+          />
         </ModalWrapper>
         <ModalWrapper
           isOpen={isMultiOpen}

@@ -28,36 +28,29 @@ import { toast } from 'sonner';
 import ModalWrapper from '../../components/layout/ModalWrapper';
 import StaffDashboardLayout from '../../components/layout/StaffDashboardLayout';
 import UpdateClassForm from '../../features/staff/components/UpdateClassForm';
+import { useAvatar } from '../../hooks/useAvatar';
 
 // --- Avatar Component Helper (Styled like ClassDetailPage) ---
 const Avatar = ({ src, name, className = "" }) => {
-  const [imgError, setImgError] = useState(false);
+  const { initials, colorClass, setImageError, shouldShowImage } = useAvatar(name, src);
 
-  // Generate initials
-  const getInitials = (n) => {
-    const segments = String(n || '').trim().split(/\s+/).filter(Boolean);
-    if (!segments.length) return 'NA';
-    if (segments.length === 1) return segments[0].slice(0, 2).toUpperCase();
-    return (segments[0].charAt(0) + segments[segments.length - 1].charAt(0)).toUpperCase();
-  };
-
-  if (src && !imgError) {
+  if (shouldShowImage) {
     return (
       <img
         src={src}
         alt={name}
         className={`${className} object-cover bg-white`}
-        onError={() => setImgError(true)}
+        onError={() => setImageError(true)}
       />
     );
   }
 
   return (
     <div
-      className={`${className} bg-orangeFpt-100 text-orangeFpt-600 flex items-center justify-center font-bold uppercase select-none shadow-sm border border-white`}
+      className={`${className} ${colorClass} flex items-center justify-center font-bold uppercase select-none shadow-sm border border-white`}
       style={{ fontSize: '0.85em' }}
     >
-      {getInitials(name)}
+      {initials}
     </div>
   );
 };
@@ -82,6 +75,17 @@ export default function ClassDetail() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [studentSearch, setStudentSearch] = useState('');
   const [lecturerSearch, setLecturerSearch] = useState('');
+  const [isEditAble, setIsEditAble] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  // Calculate pagination
+  const indexOfLastMember = currentPage * itemsPerPage;
+  const indexOfFirstMember = indexOfLastMember - itemsPerPage;
+  const currentMembers = classDetail?.classMembers.slice(indexOfFirstMember, indexOfLastMember) || [];
+  const totalPages = Math.ceil((classDetail?.classMembers.length || 0) / itemsPerPage);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -93,6 +97,12 @@ export default function ClassDetail() {
           getAllStudent(true),
         ]);
         setClassDetail(cls);
+        if(cls.teamCount === 0) {
+          setIsEditAble(true);
+        } else {
+          setIsEditAble(false);
+        }
+        console.log(cls);
         setLecturerList(lecturers?.list ?? []);
         setStudentList(students?.list ?? []);
       } catch (err) {
@@ -114,7 +124,7 @@ export default function ClassDetail() {
     try {
       const res = await addStudentIntoClass(classId, selectedStudents);
       if (res) {
-        toast.success('✅ Students added successfully!');
+        toast.success('Students added successfully!');
         const updatedClass = await getClassDetail(classId);
         setClassDetail(updatedClass);
         setSelectedStudents([]);
@@ -178,7 +188,7 @@ export default function ClassDetail() {
 
   return (
     <StaffDashboardLayout>
-      <div className='min-h-screen space-y-8 bg-gradient-to-br from-gray-50 to-gray-100 p-6 pb-10'>
+      <div className='min-h-screen space-y-8 bg-gradient-to-br from-gray-50 to-gray-100 '>
 
         {/* --- HERO SECTION --- */}
         <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
@@ -238,7 +248,8 @@ export default function ClassDetail() {
             <div className="flex flex-wrap items-center gap-3">
               <button
                 onClick={() => setShowUpdateModal(true)}
-                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900"
+                disabled={!isEditAble}
+                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <PenSquare className="h-4 w-4" />
                 Edit Class
@@ -246,7 +257,8 @@ export default function ClassDetail() {
 
               <button
                 onClick={() => setShowLecturerModal(true)}
-                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900"
+                disabled={!isEditAble}
+                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <GraduationCap className="h-4 w-4" />
                 {classDetail.lecturerName ? 'Change Lecturer' : 'Assign Lecturer'}
@@ -254,7 +266,8 @@ export default function ClassDetail() {
 
               <button
                 onClick={() => setShowStudentModal(true)}
-                className="flex items-center gap-2 rounded-xl bg-orangeFpt-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-orangeFpt-200 transition-all hover:bg-orangeFpt-600 active:scale-95"
+                disabled={!isEditAble}
+                className="flex items-center gap-2 rounded-xl bg-orangeFpt-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-orangeFpt-200 transition-all hover:bg-orangeFpt-600 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="h-4 w-4" />
                 Add Student
@@ -371,12 +384,12 @@ export default function ClassDetail() {
               )}
             </div>
 
-            {/* 2. CLASS ROSTER (Members) */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            {/* 2. CLASS MEMBERS */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
               <div className="mb-6 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                   <Users className="h-5 w-5 text-slate-500" />
-                  Class Roster
+                  Class Members
                 </h2>
                 <span className="text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
                   {classDetail.classMembers.length} Enrolled
@@ -384,62 +397,126 @@ export default function ClassDetail() {
               </div>
 
               {classDetail.classMembers.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm text-slate-600">
-                    <thead className="bg-slate-50/50 text-xs uppercase text-slate-400">
-                      <tr>
-                        <th className="px-4 py-3 font-semibold rounded-l-xl">Student</th>
-                        <th className="px-4 py-3 font-semibold">Code</th>
-                        <th className="px-4 py-3 font-semibold">Contact</th>
-                        <th className="px-4 py-3 font-semibold rounded-r-xl">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {classDetail.classMembers.map((member) => (
-                        <tr key={member.classMemberId} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <Avatar
-                                src={member.avatarImg}
-                                name={member.fullname}
-                                className="h-9 w-9 rounded-full border border-slate-200 shadow-sm"
-                              />
-                              <div>
-                                <p className="font-semibold text-slate-900">{member.fullname}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 font-mono text-slate-500">{member.studentCode}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex flex-col gap-1 text-xs">
-                              {member.phoneNumber && (
-                                <span className="flex items-center gap-1.5 text-slate-500">
-                                  <Phone className="w-3 h-3" /> {member.phoneNumber}
-                                </span>
-                              )}
-                              {member.address && (
-                                <span className="flex items-center gap-1.5 text-slate-400">
-                                  <MapPin className="w-3 h-3" /> <span className="truncate max-w-[150px]">{member.address}</span>
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            {member.status === 1 ? (
-                              <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-                                Active
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
-                                Pending
-                              </span>
-                            )}
-                          </td>
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-slate-600">
+                      <thead className="bg-slate-50/50 text-xs uppercase text-slate-400">
+                        <tr>
+                          <th className="px-4 py-3 font-semibold w-[30%]">Student</th>
+                          <th className="px-4 py-3 font-semibold w-[20%]">Code</th>
+                          <th className="px-4 py-3 font-semibold w-[30%]">Contact</th>
+                          <th className="px-4 py-3 font-semibold w-[20%]">Status</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {currentMembers.map((member) => (
+                          <tr key={member.classMemberId} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <Avatar
+                                  src={member.avatarImg}
+                                  name={member.fullname}
+                                  className="h-9 w-9 rounded-full border border-slate-200 shadow-sm"
+                                />
+                                <div>
+                                  <p className="font-semibold text-slate-900">{member.fullname}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 font-mono text-slate-500">{member.studentCode}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex flex-col gap-1 text-xs">
+                                {member.phoneNumber && (
+                                  <span className="flex items-center gap-1.5 text-slate-500">
+                                    <Phone className="w-3 h-3" /> {member.phoneNumber}
+                                  </span>
+                                )}
+                                {member.address && (
+                                  <span className="flex items-center gap-1.5 text-slate-400">
+                                    <MapPin className="w-3 h-3" /> <span className="truncate max-w-[200px]">{member.address}</span>
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              {member.isGrouped === true ? (
+                                <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                                  Grouped
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                                  Ungrouped
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 sm:px-6 mt-4">
+                      <div className="flex flex-1 justify-between sm:hidden">
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                          className="relative inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        >
+                          Previous
+                        </button>
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                          className="relative ml-3 inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        >
+                          Next
+                        </button>
+                      </div>
+                      <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-sm text-slate-700">
+                            Showing <span className="font-medium">{indexOfFirstMember + 1}</span> to <span className="font-medium">{Math.min(indexOfLastMember, classDetail.classMembers.length)}</span> of <span className="font-medium">{classDetail.classMembers.length}</span> results
+                          </p>
+                        </div>
+                        <div>
+                          <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                            <button
+                              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                              disabled={currentPage === 1}
+                              className="relative inline-flex items-center rounded-l-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+                            >
+                              <span className="sr-only">Previous</span>
+                              <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+                            </button>
+                            {[...Array(totalPages)].map((_, i) => (
+                              <button
+                                key={i + 1}
+                                onClick={() => setCurrentPage(i + 1)}
+                                className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                                  currentPage === i + 1
+                                    ? 'z-10 bg-orangeFpt-500 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orangeFpt-600'
+                                    : 'text-slate-900 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0'
+                                }`}
+                              >
+                                {i + 1}
+                              </button>
+                            ))}
+                            <button
+                              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                              disabled={currentPage === totalPages}
+                              className="relative inline-flex items-center rounded-r-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+                            >
+                              <span className="sr-only">Next</span>
+                              <ArrowLeft className="h-5 w-5 rotate-180" aria-hidden="true" />
+                            </button>
+                          </nav>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="text-center py-10 text-slate-500">No students enrolled yet.</div>
               )}
