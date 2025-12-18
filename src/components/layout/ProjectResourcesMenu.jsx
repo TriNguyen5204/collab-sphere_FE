@@ -164,6 +164,9 @@ const ProjectResourcesMenu = () => {
   const classId = team?.classInfo?.classId;
   const confirmWithToast = useToastConfirmation();
 
+  // Extract lecturerId (check both id and accountId)
+  const lecturerId = team?.lecturerInfo?.lecturerId;
+
   // Refs
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
@@ -204,6 +207,7 @@ const ProjectResourcesMenu = () => {
 
   // Sync pending folder input
   useEffect(() => {
+    console.log(lecturerId, 'lecturerId in ProjectResourcesMenu');
     if (activeTab === 'team') {
         const folderName = currentFolder === "/" ? "" : stripFolderInput(currentFolder);
         setPendingFolder(folderName);
@@ -627,42 +631,61 @@ const ProjectResourcesMenu = () => {
               </div>
             ) : filesInFolder.length ? (
               <ul className="space-y-3">
-                {filesInFolder.map((resource) => (
-                  <li
-                    key={resource.fileId}
-                    draggable={!isReadOnly}
-                    onDragStart={!isReadOnly ? () => handleDragStart(resource) : undefined}
-                    onDragEnd={!isReadOnly ? handleDragEnd : undefined}
-                    className={`flex gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-opacity ${
-                      !isReadOnly ? "hover:bg-orangeFpt-50" : "hover:bg-gray-50"
-                    } ${draggedFileId === resource.fileId ? "opacity-70" : "opacity-100"} ${movingFileId === resource.fileId ? "ring-2 ring-orange-300" : ""}`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleOpenResource(resource)}
-                      className="flex flex-1 items-start gap-3 text-left"
+                {filesInFolder.map((resource) => {
+                  // Check if file belongs to lecturer
+                  const isLecturerFile = resource.userId === lecturerId;
+                  return (
+                    <li
+                      key={resource.fileId}
+                      draggable={!isReadOnly}
+                      onDragStart={!isReadOnly ? () => handleDragStart(resource) : undefined}
+                      onDragEnd={!isReadOnly ? handleDragEnd : undefined}
+                      className={`flex gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-opacity ${
+                        !isReadOnly ? "hover:bg-orangeFpt-50" : "hover:bg-gray-50"
+                      } ${draggedFileId === resource.fileId ? "opacity-70" : "opacity-100"} ${movingFileId === resource.fileId ? "ring-2 ring-orange-300" : ""}`}
                     >
-                      <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${
-                        isReadOnly ? "bg-blue-100 text-blue-500" : "bg-orangeFpt-100 text-orangeFpt-500"
-                      }`}>
-                        {openingFileId === resource.fileId ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}
-                      </div>
-                      <div className="min-w-0 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <p className={`truncate text-sm font-semibold max-w-[13rem] ${isReadOnly ? "text-blue-700" : "text-orangeFpt-500"}`}>{resource.fileName}</p>
-                          <span className="text-xs font-medium text-gray-400">{formatFileSize(resource.fileSize)}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenResource(resource)}
+                        className="flex flex-1 items-start gap-3 text-left"
+                      >
+                        <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${
+                          isReadOnly ? "bg-blue-100 text-blue-500" : "bg-orangeFpt-100 text-orangeFpt-500"
+                        }`}>
+                          {openingFileId === resource.fileId ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}
                         </div>
-                        <p className="text-xs text-gray-500">{isReadOnly ? "Lecturer" : (resource.userName ?? "Unknown")} • {resource.createdAtLabel}</p>
-                      </div>
-                    </button>
-                    {!isReadOnly ? (
-                        <button type="button" onClick={() => handleDeleteResource(resource)} disabled={deletingFileId === resource.fileId} className="rounded-full p-2 text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors">
-                          {deletingFileId === resource.fileId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <p className={`truncate text-sm font-semibold max-w-[13rem] ${isReadOnly ? "text-blue-700" : "text-orangeFpt-500"}`}>{resource.fileName}</p>
+                            <span className="text-xs font-medium text-gray-400">{formatFileSize(resource.fileSize)}</span>
+                          </div>
+                          <p className="text-xs text-gray-500">{isReadOnly ? "Lecturer" : (resource.userName ?? "Unknown")} • {resource.createdAtLabel}</p>
+                        </div>
+                      </button>
+                      {!isReadOnly ? (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteResource(resource)}
+                          disabled={deletingFileId === resource.fileId || isLecturerFile}
+                          className={`rounded-full p-2 transition-colors ${
+                            isLecturerFile
+                              ? "text-gray-300 cursor-not-allowed"
+                              : "text-red-400 hover:bg-red-100 hover:text-red-600"
+                          }`}
+                          title={isLecturerFile ? "Cannot delete lecturer's file" : "Delete file"}
+                        >
+                          {deletingFileId === resource.fileId ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
                         </button>
-                      ) : ( <div className="p-2 text-gray-300"><Lock className="h-4 w-4" /></div> )
-                    }
-                  </li>
-                ))}
+                      ) : (
+                        <div className="p-2 text-gray-300"><Lock className="h-4 w-4" /></div>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <div className="py-8 text-center text-sm text-gray-400">

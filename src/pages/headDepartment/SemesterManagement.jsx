@@ -39,6 +39,7 @@ export default function SemesterManagement() {
     setLoading(true);
     try {
       const data = await getSemester();
+      console.log('Fetched semesters:', data);
       setSemesters(Array.isArray(data) ? data : data.list || []);
     } catch (error) {
       toast.error('Failed to load semesters');

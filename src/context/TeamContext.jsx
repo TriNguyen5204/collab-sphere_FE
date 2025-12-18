@@ -5,6 +5,8 @@ import { useSelector } from 'react-redux';
 import { getDetailOfTeamByTeamId } from '../services/studentApi';
 import { TeamBoardService, EventHandlers } from '../services/teamBoardService';
 import { getNotifications } from '../services/notifiactionApi';
+import { isTokenExpired } from '../utils/tokenUtils';
+import apiClient from '../services/apiClient';
 
 const STORAGE_KEY = 'teamDetail';
 
@@ -168,7 +170,10 @@ export function TeamProvider({ children, initialTeam = null }) {
 
 	// Effect 1: Manage Connection (depends on auth only)
 	useEffect(() => {
-		if (!isAuthenticated || !user?.accessToken) {
+		const allowedRoles = ['student', 'lecturer'];
+		const userRole = user?.roleName?.toLowerCase();
+
+		if (!isAuthenticated || !user?.accessToken || !allowedRoles.includes(userRole)) {
 			if (teamBoard) {
 				teamBoard.disconnect();
 				setTeamBoard(null);
@@ -176,6 +181,19 @@ export function TeamProvider({ children, initialTeam = null }) {
 			}
 			return;
 		}
+
+		// Check if token is expired before trying to connect
+		if (isTokenExpired(user.accessToken)) {
+			console.warn("[TeamContext] Token expired. Waiting for refresh...");
+			// Trigger a dummy request to force apiClient's interceptor to refresh the token.
+			// When the token updates in Redux, this useEffect will re-run automatically.
+			apiClient.get('/auth/refresh-token').catch((err) => {
+				// Ignore errors, we just want to trigger the refresh interceptor
+				console.log("Triggered token refresh check");
+			});
+			return; // EXIT here so we don't try to connect with a bad token
+		}
+		// --- FIX END ---
 
 		const service = new TeamBoardService(user.accessToken);
 
@@ -204,7 +222,7 @@ export function TeamProvider({ children, initialTeam = null }) {
 			service.disconnect();
 			setTeamBoard(null);
 		};
-	}, [isAuthenticated, user?.accessToken]);
+	}, [isAuthenticated, user?.accessToken , user?.roleName]);
 
 	// Effect 2: Manage Team Specific Listeners (depends on teamBoard and normalizedTeamId)
 	useEffect(() => {

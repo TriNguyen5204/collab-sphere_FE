@@ -85,6 +85,10 @@ const ClassDetailPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // --- PAGINATION STATE ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
   // --- Data Fetching ---
   useEffect(() => {
     let ignore = false;
@@ -95,9 +99,7 @@ const ClassDetailPage = () => {
       try {
         const response = await getClassDetail(classId);
         if (ignore) return;
-        console.log('Raw class detail response:', response);
         const normalised = normaliseClassDetailPayload(response, numericClassId);
-        console.log('Normalised class detail:', normalised);
         setDetail(normalised);
       } catch (err) {
         if (!ignore) setError('Unable to load class details right now.');
@@ -115,6 +117,14 @@ const ClassDetailPage = () => {
   const students = detail?.students ?? [];
   const assignments = detail?.projectAssignments ?? [];
   const classTitle = summary?.name ?? detail?.className ?? 'Class Workspace';
+
+  // --- PAGINATION LOGIC ---
+  const totalPages = Math.ceil(students.length / itemsPerPage);
+  const indexOfLastStudent = currentPage * itemsPerPage;
+  const indexOfFirstStudent = indexOfLastStudent - itemsPerPage;
+  const currentStudents = students.slice(indexOfFirstStudent, indexOfLastStudent);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   const breadcrumbItems = useMemo(() => [
     { label: 'Classes', href: '/lecturer/classes' },
@@ -423,59 +433,106 @@ const ClassDetailPage = () => {
             {/* 2. CLASS ROSTER */}
             <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
               <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-slate-800">Class Roster</h2>
+                <h2 className="text-xl font-bold text-slate-800">Class Members</h2>
+                <span className="text-sm text-slate-500">
+                  Total: {students.length} students
+                </span>
               </div>
 
               {students.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm text-slate-600">
-                    <thead className="bg-slate-50/50 text-xs uppercase text-slate-400">
-                      <tr>
-                        <th className="px-4 py-3 font-semibold">Student</th>
-                        <th className="px-4 py-3 font-semibold">Code</th>
-                        <th className="px-4 py-3 font-semibold">Team</th>
-                        <th className="px-4 py-3 font-semibold">Role</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {students.map((member) => (
-                        <tr key={member.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <Avatar
-                                src={member.avatarImg}
-                                name={member.name}
-                                className="h-9 w-9 rounded-full border border-slate-200 shadow-sm"
-                              />
-                              <div>
-                                <p className="font-semibold text-slate-900">{member.name}</p>
-                                <p className="text-xs text-slate-400">{member.email}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 font-mono text-slate-500">{member.code || '—'}</td>
-                          <td className="px-4 py-3">
-                            {member.team ? (
-                              <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
-                                {member.team}
-                              </span>
-                            ) : (
-                              <span className="text-slate-400 italic">Unassigned</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3">
-                            {member.role === 'leader' && (
-                              <span className="inline-flex items-center gap-1 text-xs font-medium text-orangeFpt-600">
-                                <GraduationCap className="h-3 w-3" /> Leader
-                              </span>
-                            )}
-                            {member.role === 'member' && <span className="text-slate-500">Member</span>}
-                          </td>
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-slate-600">
+                      <thead className="bg-slate-50/50 text-xs uppercase text-slate-400">
+                        <tr>
+                          <th className="px-4 py-3 font-semibold w-[40%]">Student</th>
+                          <th className="px-4 py-3 font-semibold w-[20%]">Code</th>
+                          <th className="px-4 py-3 font-semibold w-[20%]">Team</th>
+                          <th className="px-4 py-3 font-semibold w-[20%]">Role</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {currentStudents.map((member) => (
+                          <tr key={member.id} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <Avatar
+                                  src={member.avatarImg}
+                                  name={member.name}
+                                  className="h-9 w-9 rounded-full border border-slate-200 shadow-sm"
+                                />
+                                <div>
+                                  <p className="font-semibold text-slate-900">{member.name}</p>
+                                  <p className="text-xs text-slate-400">{member.email}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 font-mono text-slate-500">{member.code || '—'}</td>
+                            <td className="px-4 py-3">
+                              {member.team ? (
+                                <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                                  {member.team}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 italic">Unassigned</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              {member.role === 'leader' && (
+                                <span className="inline-flex items-center gap-1 text-xs font-medium text-orangeFpt-600">
+                                  <GraduationCap className="h-3 w-3" /> Leader
+                                </span>
+                              )}
+                              {member.role === 'member' && <span className="text-slate-500">Member</span>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* PAGINATION CONTROLS */}
+                  {totalPages > 1 && (
+                    <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
+                      <p className="text-sm text-slate-500">
+                        Showing <span className="font-medium">{indexOfFirstStudent + 1}</span> to{' '}
+                        <span className="font-medium">
+                          {Math.min(indexOfLastStudent, students.length)}
+                        </span>{' '}
+                        of <span className="font-medium">{students.length}</span> results
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => paginate(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className="rounded-lg border border-slate-200 px-3 py-1 text-sm font-medium transition-colors hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-white"
+                        >
+                          Previous
+                        </button>
+                        {[...Array(totalPages)].map((_, i) => (
+                          <button
+                            key={i + 1}
+                            onClick={() => paginate(i + 1)}
+                            className={`hidden h-8 w-8 items-center justify-center rounded-lg text-sm font-medium transition-all sm:flex ${
+                              currentPage === i + 1
+                                ? 'bg-orangeFpt-500 text-white shadow-sm'
+                                : 'border border-slate-200 hover:bg-slate-50'
+                            }`}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => paginate(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          className="rounded-lg border border-slate-200 px-3 py-1 text-sm font-medium transition-colors hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-white"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="text-center py-10 text-slate-500">No students enrolled.</div>
               )}

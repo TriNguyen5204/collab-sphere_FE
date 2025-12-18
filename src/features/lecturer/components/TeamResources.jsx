@@ -22,6 +22,7 @@ import {
   postTeamResourceFilebyTeamId,
 } from "../../../services/studentApi";
 import useToastConfirmation from "../../../hooks/useToastConfirmation";
+import { useAvatar } from "../../../hooks/useAvatar";
 
 const VIETNAM_TIMEZONE = "Asia/Ho_Chi_Minh";
 const VIETNAM_UTC_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -73,13 +74,13 @@ const parseUtcDate = (value) => {
 const vietnamFormatter =
   typeof Intl !== "undefined" && typeof Intl.DateTimeFormat === "function"
     ? new Intl.DateTimeFormat("vi-VN", {
-        timeZone: VIETNAM_TIMEZONE,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+      timeZone: VIETNAM_TIMEZONE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
     : null;
 
 const formatVietnamTimeLabel = (utcDate) => {
@@ -136,10 +137,10 @@ const enrichResource = (resource) => {
     createdAtLabel: formatVietnamTimeLabel(createdAtDate),
     expireInfo: buildExpireInfo(
       resource?.urlExpireTime ??
-        resource?.urlExpireAt ??
-        resource?.expireTime ??
-        resource?.expiredAt ??
-        resource?.linkExpiredAt
+      resource?.urlExpireAt ??
+      resource?.expireTime ??
+      resource?.expiredAt ??
+      resource?.linkExpiredAt
     ),
   };
 };
@@ -385,6 +386,29 @@ const TeamResources = ({ teamId }) => {
       handleDragEnd();
     }
   };
+  const Avatar = ({ name, avatarUrl }) => {
+    const {
+      colorClass,
+      initials,
+      shouldShowImage,
+      setImageError
+    } = useAvatar(name, avatarUrl);
+    if (shouldShowImage) {
+      return (
+        <img
+          src={avatarUrl}
+          alt={name}
+          className="w-4 h-4 rounded-full object-cover border border-white/50"
+          onError={() => setImageError(true)}
+        />
+      );
+    }
+    return (
+      <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold ${colorClass}`}>
+        {initials}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -397,18 +421,18 @@ const TeamResources = ({ teamId }) => {
           <p className="text-sm text-slate-500 mt-1">Manage and share files with your team members.</p>
         </div>
         <div className="flex items-center gap-3">
-           <button
-             onClick={() => fetchResources()}
-             className="p-2 rounded-full bg-white/50 text-slate-600 hover:bg-white hover:text-orangeFpt-600 transition-all shadow-sm border border-white/50"
-             title="Refresh list"
-           >
-             <RefreshCw size={18} className={isLoadingResources ? "animate-spin" : ""} />
-           </button>
-           <div className="h-8 w-px bg-slate-200/50 mx-1"></div>
-           <div className="text-right">
-             <p className="text-xs font-bold text-slate-700">{totalFiles} Files</p>
-             <p className="text-[10px] text-slate-400">{folderKeys.length} Folders</p>
-           </div>
+          <button
+            onClick={() => fetchResources()}
+            className="p-2 rounded-full bg-white/50 text-slate-600 hover:bg-white hover:text-orangeFpt-600 transition-all shadow-sm border border-white/50"
+            title="Refresh list"
+          >
+            <RefreshCw size={18} className={isLoadingResources ? "animate-spin" : ""} />
+          </button>
+          <div className="h-8 w-px bg-slate-200/50 mx-1"></div>
+          <div className="text-right">
+            <p className="text-xs font-bold text-slate-700">{totalFiles} Files</p>
+            <p className="text-[10px] text-slate-400">{folderKeys.length} Folders</p>
+          </div>
         </div>
       </div>
 
@@ -455,19 +479,17 @@ const TeamResources = ({ teamId }) => {
                     setDragOverFolder(null);
                     handleDropOnFolder(folderKey);
                   }}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-medium transition-all duration-200 border ${
-                    currentFolder === folderKey
+                  className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-medium transition-all duration-200 border ${currentFolder === folderKey
                       ? "bg-orangeFpt-500/90 text-white shadow-lg shadow-orangeFpt-500/30 border-transparent backdrop-blur-md"
                       : dragOverFolder === folderKey
                         ? "bg-orangeFpt-100/80 text-orangeFpt-600 border-orangeFpt-300"
                         : "bg-white/40 text-slate-600 border-white/50 hover:bg-white/80 hover:shadow-sm"
-                  }`}
+                    }`}
                 >
                   <Folder size={16} className={currentFolder === folderKey ? "text-white" : "text-orangeFpt-400"} />
                   <span>{formatFolderLabel(folderKey)}</span>
-                  <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${
-                    currentFolder === folderKey ? "bg-white/20 text-white" : "bg-slate-200/50 text-slate-600"
-                  }`}>
+                  <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${currentFolder === folderKey ? "bg-white/20 text-white" : "bg-slate-200/50 text-slate-600"
+                    }`}>
                     {folderMap?.[folderKey]?.length ?? 0}
                   </span>
                 </button>
@@ -490,7 +512,7 @@ const TeamResources = ({ teamId }) => {
                 />
               </div>
 
-              <div 
+              <div
                 onClick={() => fileInputRef.current?.click()}
                 className="border-2 border-dashed border-slate-300/50 rounded-2xl p-6 text-center cursor-pointer hover:border-orangeFpt-400/50 hover:bg-orangeFpt-50/30 transition-all group bg-white/30"
               >
@@ -532,7 +554,7 @@ const TeamResources = ({ teamId }) => {
                     {isUploading ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
                     {isUploading ? "Uploading..." : "Start Upload"}
                   </button>
-                  
+
                   {uploadErrors.length > 0 && (
                     <div className="mt-3 p-3 rounded-xl bg-red-50/80 border border-red-100 backdrop-blur-sm">
                       <div className="flex items-center gap-2 text-red-600 font-bold text-xs mb-2">
@@ -559,7 +581,7 @@ const TeamResources = ({ teamId }) => {
           <div className="rounded-3xl border border-white/40 bg-white/60 p-6 shadow-xl backdrop-blur-xl min-h-[500px]">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <span className="text-slate-400 font-normal">Folder:</span> 
+                <span className="text-slate-400 font-normal">Folder:</span>
                 <span className="text-orangeFpt-600">{formatFolderLabel(currentFolder)}</span>
               </h3>
               {filesInFolder.length > 0 && (
@@ -582,14 +604,13 @@ const TeamResources = ({ teamId }) => {
                     draggable
                     onDragStart={() => handleDragStart(resource)}
                     onDragEnd={handleDragEnd}
-                    className={`group flex items-center gap-4 p-4 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/80 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300 backdrop-blur-sm ${
-                      draggedFileId === resource.fileId ? "opacity-50 border-dashed border-slate-300" : ""
-                    } ${movingFileId === resource.fileId ? "ring-2 ring-orangeFpt-300" : ""}`}
+                    className={`group flex items-center gap-4 p-4 rounded-2xl border border-white/60 bg-white/40 hover:bg-white/80 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300 backdrop-blur-sm ${draggedFileId === resource.fileId ? "opacity-50 border-dashed border-slate-300" : ""
+                      } ${movingFileId === resource.fileId ? "ring-2 ring-orangeFpt-300" : ""}`}
                   >
                     <div className="h-12 w-12 rounded-2xl bg-white text-orangeFpt-500 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-300">
                       <FileText size={24} />
                     </div>
-                    
+
                     <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handleOpenResource(resource)}>
                       <h4 className="font-bold text-slate-800 truncate group-hover:text-orangeFpt-600 transition-colors">
                         {resource.fileName}
@@ -600,17 +621,11 @@ const TeamResources = ({ teamId }) => {
                         </span>
                         <span>•</span>
                         <div className="flex items-center gap-1.5" title={`Uploaded by ${resource.userName}`}>
-                           {resource.avatarImg ? (
-                            <img 
-                              src={resource.avatarImg} 
-                              alt={resource.userName} 
-                              className="w-4 h-4 rounded-full object-cover border border-white/50"
-                            />
-                          ) : (
-                            <div className="w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-500">
-                              {(resource.userName || "?").charAt(0).toUpperCase()}
-                            </div>
-                          )}
+                          <Avatar
+                            name={resource.userName || "Unknown"}
+                            avatarUrl={resource.avatarImg}
+                          />
+
                           <span className="truncate max-w-[100px]">{resource.userName || "Unknown"}</span>
                         </div>
                         <span>•</span>
