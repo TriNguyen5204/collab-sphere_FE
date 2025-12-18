@@ -563,7 +563,12 @@ export default function ClassListStaff() {
           onClose={() => setIsOpen(false)}
           title='Create New Class'
         >
-          <CreateClassForm onClose={() => setIsOpen(false)} />
+          <CreateClassForm
+            onClose={() => {
+              setIsOpen(false);
+              fetchData();
+            }}
+          />
         </ModalWrapper>
         <ModalWrapper
           isOpen={isMultiOpen}
