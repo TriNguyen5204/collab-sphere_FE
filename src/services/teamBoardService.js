@@ -140,6 +140,7 @@ export class TeamBoardService {
                 console.warn(`Cannot invoke ${methodName}: SignalR not connected.`);
                 return;
             }
+            console.log(`Invoking ${methodName} with args:`, args);
             await this.connection.invoke(methodName, ...args);
         } catch (err) {
             console.error(`Failed to invoke ${methodName}:`, err);

@@ -19,6 +19,7 @@ import { createTeam } from '../../services/teamApi';
 import { getClassProjects } from '../../services/projectApi';
 import { getSemester } from '../../services/userService';
 import { useAvatar } from '../../hooks/useAvatar'; // Import the hook
+import useTeam from '../../context/useTeam';
 
 // --- Sub-Component for Individual Student Item ---
 const StudentListItem = ({ student, isSelected, onToggle }) => {
@@ -70,6 +71,7 @@ const StudentListItem = ({ student, isSelected, onToggle }) => {
 const CreateTeamPage = () => {
   const { classId } = useParams();
   const navigate = useNavigate();
+  const { teamBoard } = useTeam();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -284,6 +286,18 @@ const CreateTeamPage = () => {
       }
 
       toast.success('Team created successfully');
+      
+      // Refresh SignalR connection to ensure permissions for the new team are picked up
+      if (teamBoard) {
+        try {
+          console.log("Refreshing SignalR connection after team creation...");
+          await teamBoard.disconnect();
+          await teamBoard.joinServer();
+        } catch (connErr) {
+          console.warn("Failed to refresh SignalR connection:", connErr);
+        }
+      }
+
       navigate(`/lecturer/classes/${classId}`);
     } catch (error) {
       console.error('Create team error', error);

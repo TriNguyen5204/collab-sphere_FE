@@ -343,7 +343,7 @@ const ClassSyllabusPage = () => {
             <div className="lg:col-span-4 space-y-8">
               
               {/* Key Information */}
-              <ElegantCard title="At a Glance" icon={FileText}>
+              <ElegantCard title="Overview" icon={FileText}>
                 <div className="space-y-3">
                   <StatItem 
                     label="Subject Code" 
