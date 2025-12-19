@@ -138,7 +138,7 @@ const MilestoneHeader = ({
 
       </div>
 
-      <div className="border-t space-y-4 p-6">
+      <div className="">
         <MilestoneFilesModal
           isOpen={showFilesModal}
           files={lecturerFiles}
@@ -148,6 +148,7 @@ const MilestoneHeader = ({
 
         {/* Returns */}
         <MilestoneReturns
+          milestone={milestone}
           submissions={normalizedReturns}
           canManageReturns={canManageReturns}
           onUploadMilestoneFiles={onUploadMilestoneFiles}
@@ -248,12 +249,13 @@ const MilestoneHeader = ({
             </section>
           )}
         </div>
-      ) : (
+      ) : (milestone.status === 'Completed' ? (
         <div className='p-6 border-t '>
           <div className="text-center text-sm text-gray-500">
             No evaluation available for this milestone.
           </div>
         </div>
+      ) : null
       )}
 
 

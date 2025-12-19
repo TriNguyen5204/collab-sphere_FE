@@ -432,6 +432,8 @@ const CreateTeamPage = () => {
                     type="date"
                     className={getFieldClass('endDate')}
                     value={formData.endDate}
+                    min={semesterStartDate}
+                    max={semesterEndDate}
                     onChange={e => {
                       setFormData({ ...formData, endDate: e.target.value });
                       if (errors.endDate) setErrors({ ...errors, endDate: null });
