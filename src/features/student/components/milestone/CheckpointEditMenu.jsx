@@ -14,11 +14,13 @@ const CheckpointEditMenu = React.forwardRef((
     onToggleMenu,
     onCloseMenu,
     formState,
-    onChange, // This will now be the wrapper that clears errors
+    onChange,
     onSubmit,
     isSubmitting = false,
-    errorMessage, // Keep for generic errors (network, etc.)
-    errors = {}, // NEW: Field-specific errors
+    errorMessage,
+    errors = {},
+    milestoneStartDate,
+    milestoneEndDate
   },
   ref
 ) => {
@@ -138,6 +140,8 @@ const CheckpointEditMenu = React.forwardRef((
                   value={state.startDate ?? ''}
                   onChange={(event) => handleFieldChange('startDate', event.target.value)}
                   className={getInputClasses('startDate')}
+                  min={milestoneStartDate || ''}
+                  max={state.dueDate || milestoneEndDate || ''}
                 />
                 {renderError('startDate')}
               </div>
@@ -148,6 +152,8 @@ const CheckpointEditMenu = React.forwardRef((
                   value={state.dueDate ?? ''}
                   onChange={(event) => handleFieldChange('dueDate', event.target.value)}
                   className={getInputClasses('dueDate')}
+                  min={state.startDate || milestoneStartDate || ''}
+                  max={milestoneEndDate || ''}
                 />
                 {renderError('dueDate')}
               </div>

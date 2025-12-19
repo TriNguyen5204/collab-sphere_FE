@@ -13,6 +13,8 @@ const CheckpointCard = ({
   onMarkComplete,
   onDeleteSubmission,
   onAssign,
+  milestoneStartDate,
+  milestoneEndDate
 }) => {
   const resolveUiStatus = (value) => {
     if (typeof value === 'string') return value.toLowerCase();
@@ -219,6 +221,8 @@ const CheckpointCard = ({
         onUpdateCheckpoint={handleUpdateCheckpoint}
         canDelete={canEdit && typeof onDelete === 'function'}
         onDeleteCheckpoint={(id) => onDelete?.(id ?? checkpoint.id)}
+        milestoneEndDate={milestoneEndDate}
+        milestoneStartDate={milestoneStartDate}
       />
     </>
   );

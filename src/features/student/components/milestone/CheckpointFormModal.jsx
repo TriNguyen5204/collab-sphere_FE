@@ -8,16 +8,15 @@ const CheckpointFormModal = ({
   onChange, 
   onSubmit, 
   onClose,
-  errors = {} // New prop for error object
+  errors = {},
+  milestoneStartDate,
+  milestoneEndDate
 }) => {
   if (!isOpen) return null;
 
   // Basic validation for button state (keep your existing logic)
   const hasDueDate = Boolean(checkpoint.dueDate);
   const hasTitle = Boolean(checkpoint.title?.trim());
-  // Note: I removed hasDescription from "isFormValid" to allow API to validate it 
-  // or allow optional descriptions if your business logic changes, 
-  // but kept it consistent with your current request.
   const isFormValid = hasDueDate && hasTitle; 
   
   const actionButtonClasses = `px-6 py-2 text-white rounded-lg transition ${isFormValid ? 'bg-orangeFpt-500 hover:bg-orangeFpt-600' : 'bg-orangeFpt-300 cursor-not-allowed opacity-70'}`;
@@ -86,6 +85,8 @@ const CheckpointFormModal = ({
               <input
                 type="date"
                 value={checkpoint.startDate || ''}
+                min={milestoneStartDate || ''}
+                max={checkpoint.dueDate || milestoneEndDate || ''}
                 onChange={(e) => onChange({ ...checkpoint, startDate: e.target.value }, 'startDate')}
                 className={getInputClasses('startDate')}
               />
@@ -98,6 +99,8 @@ const CheckpointFormModal = ({
               <input
                 type="date"
                 value={checkpoint.dueDate}
+                min={checkpoint.startDate || milestoneStartDate || ''}
+                max={milestoneEndDate || ''}
                 onChange={(e) => onChange({ ...checkpoint, dueDate: e.target.value }, 'dueDate')}
                 className={getInputClasses('dueDate')}
               />

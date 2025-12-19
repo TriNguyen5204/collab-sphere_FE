@@ -27,7 +27,7 @@ const ProjectBoardHeader = ({
   };
 
   return (
-    <header className='sticky top-0 z-30 bg-white shadow-md border-b border-gray-200 p-4 flex items-center justify-between pl-6 pr-6'>
+    <header className='sticky top-0 left-0 w-full z-30 bg-white shadow-md border-b border-gray-200 p-4 flex items-center justify-between'>
       {/* Left side */}
       <div className='flex items-center gap-3'>
         <div className='relative'>
@@ -48,7 +48,7 @@ const ProjectBoardHeader = ({
           )}
         </div>
 
-        <h1 className='text-2xl font-bold bg-black bg-clip-text text-transparent'>
+        <h1 className='text-2xl font-bold truncate xl:w-auto lg:w-64 md:w-24 sm:w-10'>
           {team?.projectInfo?.projectName || 'Workspace'}
         </h1>
 

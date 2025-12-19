@@ -534,9 +534,9 @@ const TeamProjectDetail = () => {
       setTeamMembersRaw(detail?.memberInfo?.members || []);
       try {
         const semesterList = await getSemester();
-                const currentSemester = semesterList.find(sem => sem.semesterName === detail.semesterName);
-                setSemesterEndDate(currentSemester ? new Date(currentSemester.endDate) : null);
-                setSemesterStartDate(currentSemester ? new Date(currentSemester.startDate) : null);
+        const currentSemester = semesterList.find(sem => sem.semesterName === detail.semesterName);
+        setSemesterEndDate(currentSemester ? new Date(currentSemester.endDate) : null);
+        setSemesterStartDate(currentSemester ? new Date(currentSemester.startDate) : null);
       } catch (semError) {
         console.error('Error fetching semester data', semError);
       }

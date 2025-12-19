@@ -189,6 +189,8 @@ const CheckpointCardModal = ({
     onAssignMembers,
     onUpdateCheckpoint,
     onDeleteCheckpoint,
+    milestoneEndDate,
+    milestoneStartDate
 }) => {
     const modalRef = useRef(null);
     const assignContainerRef = useRef(null);
@@ -757,6 +759,8 @@ const CheckpointCardModal = ({
                                 isSubmitting={isSavingEdit}
                                 errorMessage={editError}
                                 errors={editErrors}
+                                milestoneEndDate={milestoneEndDate}
+                                milestoneStartDate={milestoneStartDate}
                             />
                             <button
                                 type="button"
