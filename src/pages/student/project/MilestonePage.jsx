@@ -45,6 +45,8 @@ const MilestonePage = () => {
   const { team, teamBoard } = useTeam();
   const teamId = team?.teamId ?? null;
   const confirmWithToast = useToastConfirmation();
+  const [milestoneEndDate, setMilestoneEndDate] = useState(null);
+  const [milestoneStartDate, setMilestoneStartDate] = useState(null);
 
   // --- STATE FOR FORM ERRORS ---
   const [formErrors, setFormErrors] = useState({});
@@ -389,7 +391,9 @@ const MilestonePage = () => {
     try {
       setIsLoadingDetail(true);
       const detail = await getDetailOfMilestoneByMilestoneId(milestoneId);
-
+      console.log('Fetched milestone detail from API:', detail);
+      setMilestoneEndDate(detail?.endDate ?? null);
+      setMilestoneStartDate(detail?.startDate ?? null);
       let baseMilestone = null;
       if (overrideBase) {
         baseMilestone = overrideBase;
@@ -1041,6 +1045,8 @@ const MilestonePage = () => {
                         onMarkComplete={(id) => checkpointReadOnly ? null : handleMarkComplete(id)}
                         onDeleteSubmission={(cpId, subId) => checkpointReadOnly ? null : handleDeleteSubmission(cpId, subId)}
                         onAssign={(cpId, memberIds) => checkpointReadOnly ? null : openAssignModal(cpId, memberIds)}
+                        milestoneStartDate={milestoneStartDate}
+                        milestoneEndDate={milestoneEndDate}
                       />
                     );
                   })
@@ -1065,12 +1071,8 @@ const MilestonePage = () => {
         onSubmit={handleCreateCheckpoint}
         onClose={resetCheckpointUI}
         errors={formErrors}
-      />
-      <MilestoneUpdateModal
-        isOpen={showUpdateModal}
-        onClose={() => setShowUpdateModal(false)}
-        milestone={milestoneToUpdate}
-        onUpdateSuccess={handleMilestoneUpdated}
+        milestoneStartDate={milestoneStartDate}
+        milestoneEndDate={milestoneEndDate}
       />
     </div>
   );

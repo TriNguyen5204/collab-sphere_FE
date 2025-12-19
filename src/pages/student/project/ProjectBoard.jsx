@@ -124,7 +124,7 @@ const ProjectBoard = () => {
 
   return (
     <div
-      className='min-h-screen min-w-full relative overflow-hidden'
+      className='min-h-screen  overflow-y-auto'
       style={{ backgroundColor: "#D5DADF" }}
     >
       {/* Background with blobs */}
@@ -146,7 +146,7 @@ const ProjectBoard = () => {
         />
       )}
 
-      <div className='p-6 overflow-auto h-[calc(100vh-64px)]'>
+      <div className='p-6'>
         {workspace && (
           <SignalRErrorBoundary>
             <SignalRProvider
