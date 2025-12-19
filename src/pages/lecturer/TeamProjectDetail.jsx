@@ -67,6 +67,7 @@ import { useSecureFileHandler } from '../../hooks/useSecureFileHandler';
 import useFileSizeFormatter from '../../hooks/useFileSizeFormatter';
 import { useAvatar } from '../../hooks/useAvatar';
 import useTeam from '../../context/useTeam';
+import { getSemester } from '../../services/userService';
 
 // --- Actor Icons Mapping ---
 const ACTOR_CONFIG = {
@@ -365,6 +366,8 @@ const TeamProjectDetail = () => {
   const [rosterSaving, setRosterSaving] = useState(false);
   const { teamBoard } = useTeam();
   const [isDescExpanded, setIsDescExpanded] = useState(false);
+  const [semesterEndDate, setSemesterEndDate] = useState(null);
+  const [semesterStartDate, setSemesterStartDate] = useState(null);
 
   // Hooks
   const { openSecureFile } = useSecureFileHandler();
@@ -529,7 +532,14 @@ const TeamProjectDetail = () => {
       if (!isMountedRef.current) return;
       setTeamDetail(detail);
       setTeamMembersRaw(detail?.memberInfo?.members || []);
-
+      try {
+        const semesterList = await getSemester();
+                const currentSemester = semesterList.find(sem => sem.semesterName === detail.semesterName);
+                setSemesterEndDate(currentSemester ? new Date(currentSemester.endDate) : null);
+                setSemesterStartDate(currentSemester ? new Date(currentSemester.startDate) : null);
+      } catch (semError) {
+        console.error('Error fetching semester data', semError);
+      }
       const projectId =
         detail?.projectInfo?.projectId || detail?.projectInfo?.id;
       if (projectId) {
@@ -1474,12 +1484,30 @@ const TeamProjectDetail = () => {
                   type='date'
                   className='w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none'
                   value={milestoneFormValues.startDate}
-                  onChange={e =>
+                  min={semesterStartDate ? semesterStartDate.toISOString().split('T')[0] : undefined}
+                  max={
+                    milestoneFormValues.endDate ||
+                    (semesterEndDate ? semesterEndDate.toISOString().split('T')[0] : undefined)
+                  }
+                  onChange={e => {
+                    let newStart = e.target.value;
+                    const semStart = semesterStartDate ? semesterStartDate.toISOString().split('T')[0] : undefined;
+                    const semEnd = semesterEndDate ? semesterEndDate.toISOString().split('T')[0] : undefined;
+
+                    if (semStart && newStart < semStart) newStart = semStart;
+                    if (semEnd && newStart > semEnd) newStart = semEnd;
+
+                    let newEnd = milestoneFormValues.endDate;
+                    if (newEnd && newEnd < newStart) {
+                      newEnd = newStart;
+                    }
+
                     setMilestoneFormValues({
                       ...milestoneFormValues,
-                      startDate: e.target.value,
-                    })
-                  }
+                      startDate: newStart,
+                      endDate: newEnd,
+                    });
+                  }}
                   required
                 />
               </div>
@@ -1491,12 +1519,30 @@ const TeamProjectDetail = () => {
                   type='date'
                   className='w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-orangeFpt-500 focus:outline-none'
                   value={milestoneFormValues.endDate}
-                  onChange={e =>
+                  min={
+                    milestoneFormValues.startDate ||
+                    (semesterStartDate ? semesterStartDate.toISOString().split('T')[0] : undefined)
+                  }
+                  max={semesterEndDate ? semesterEndDate.toISOString().split('T')[0] : undefined}
+                  onChange={e => {
+                    let newEnd = e.target.value;
+                    const semStart = semesterStartDate ? semesterStartDate.toISOString().split('T')[0] : undefined;
+                    const semEnd = semesterEndDate ? semesterEndDate.toISOString().split('T')[0] : undefined;
+
+                    if (semStart && newEnd < semStart) newEnd = semStart;
+                    if (semEnd && newEnd > semEnd) newEnd = semEnd;
+
+                    let newStart = milestoneFormValues.startDate;
+                    if (newStart && newEnd < newStart) {
+                      newStart = newEnd;
+                    }
+
                     setMilestoneFormValues({
                       ...milestoneFormValues,
-                      endDate: e.target.value,
-                    })
-                  }
+                      endDate: newEnd,
+                      startDate: newStart,
+                    });
+                  }}
                   required
                 />
               </div>
