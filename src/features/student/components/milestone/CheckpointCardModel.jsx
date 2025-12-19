@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Calendar, Clock, X, AlertCircle, FileText, Loader2, Trash2, History, User, Upload, CheckCircle, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, X, AlertCircle, FileText, Loader2, Trash2, History, User, Upload, CheckCircle, ChevronRight, UploadCloud } from 'lucide-react';
 import useTeam from '../../../../context/useTeam';
 import { useSecureFileHandler } from '../../../../hooks/useSecureFileHandler';
 import useIsoToLocalTime from '../../../../hooks/useIsoToLocalTime';
@@ -195,10 +195,42 @@ const CheckpointCardModal = ({
     const modalRef = useRef(null);
     const assignContainerRef = useRef(null);
     const editContainerRef = useRef(null);
+    const fileInputRef = useRef(null);
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0 && typeof onSelectLocalFiles === 'function') {
+            const syntheticEvent = {
+                target: {
+                    files: e.dataTransfer.files
+                }
+            };
+            onSelectLocalFiles(syntheticEvent);
+        }
+    };
     const { team } = useTeam();
     const [isAssignMenuOpen, setIsAssignMenuOpen] = useState(false);
     const [isEditMenuOpen, setIsEditMenuOpen] = useState(false);
     const [isSavingEdit, setIsSavingEdit] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handleUploadClick = async (e) => {
+        if (typeof onUploadLocalFiles !== 'function') return;
+        setIsUploading(true);
+        try {
+            await onUploadLocalFiles(e);
+        } catch (error) {
+            console.error("Upload failed", error);
+        } finally {
+            setIsUploading(false);
+        }
+    };
     const [editError, setEditError] = useState(null);
     const [editErrors, setEditErrors] = useState({});
     const [isDeleting, setIsDeleting] = useState(false);
@@ -815,15 +847,9 @@ const CheckpointCardModal = ({
                     )}
 
                     {!isLoading && !error && hasResolvedData && (
-                        <div className="space-y-6">
+                        <div className="space-y-2">
                             <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-                                        <History size={20} />
-                                        <span>Overview</span>
-                                    </h3>
-                                </div>
-                                <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                                <div className=" grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                                     <div className="space-y-3">
                                         <div className="rounded-lg border border-gray-200 bg-white shadow-sm px-4 py-3 text-sm text-gray-700 flex flex-col">
                                             <p className="text-xs uppercase text-gray-500 flex items-center gap-2">
@@ -885,7 +911,7 @@ const CheckpointCardModal = ({
                             </div>
                             <div className="">
                                 <div className="">
-                                    <div className="space-y-5">
+                                    <div className="space-y-2">
                                         <div className="flex items-center justify-between">
                                             <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
                                                 <Upload size={20} className="" />
@@ -897,7 +923,7 @@ const CheckpointCardModal = ({
                                                 <p className="text-sm text-gray-600">No submissions yet.</p>
                                             </div>
                                         ) : (
-                                            <ul className="space-y-3">
+                                            <ul className="space-y-3 max-h-56 overflow-y-auto customscroll pr-1">
                                                 {normalizedSubmissions.map((submission) => {
                                                     const submissionKey = submission._itemKey ?? submission.id;
                                                     const submissionId = submission.fileId ?? submission.id;
@@ -952,26 +978,29 @@ const CheckpointCardModal = ({
 
                                         {canShowUpload && (
                                             <div className="space-y-4 border-t border-gray-200 pt-4">
-                                                <div className="rounded-lg border-2 border-dashed border-gray-300 p-6 text-center">
-                                                    <Upload className="mx-auto mb-3 text-gray-400" size={32} />
-                                                    <input
-                                                        type="file"
-                                                        multiple
-                                                        onChange={onSelectLocalFiles}
-                                                        id={fileInputId}
-                                                        className="hidden"
-                                                        disabled={typeof onSelectLocalFiles !== 'function'}
-                                                    />
-                                                    <label
-                                                        htmlFor={fileInputId}
-                                                        className={`font-semibold ${typeof onSelectLocalFiles === 'function'
-                                                            ? 'cursor-pointer text-orangeFpt-500 hover:text-orangeFpt-600'
-                                                            : 'cursor-not-allowed text-gray-400'
-                                                            }`}
-                                                    >
-                                                        Choose files to upload
-                                                    </label>
-                                                    <p className="mt-1 text-xs text-gray-500">or drag and drop files here</p>
+                                                <div 
+                                                  onClick={() => fileInputRef.current?.click()}
+                                                  onDragOver={handleDragOver}
+                                                  onDrop={handleDrop}
+                                                  className="group relative border-2 border-dashed border-slate-300/60 rounded-2xl p-6 text-center cursor-pointer hover:border-orangeFpt-400/60 hover:bg-orangeFpt-50/30 transition-all duration-300 bg-white/20"
+                                                >
+                                                  <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                  <div className="relative z-10">
+                                                    <div className="w-12 h-12 rounded-xl bg-white/80 text-slate-400 mx-auto flex items-center justify-center mb-3 group-hover:text-orangeFpt-500 group-hover:scale-110 transition-all duration-300">
+                                                      <UploadCloud className="w-6 h-6" />
+                                                    </div>
+                                                    <p className="text-sm font-bold text-slate-700 group-hover:text-orangeFpt-600 transition-colors">Click to browse</p>
+                                                    <p className="text-xs text-slate-400 mt-1">or drag and drop files here</p>
+                                                  </div>
+                                                  <input
+                                                    ref={fileInputRef}
+                                                    type="file"
+                                                    multiple
+                                                    onChange={onSelectLocalFiles}
+                                                    id={fileInputId}
+                                                    className="hidden"
+                                                    disabled={typeof onSelectLocalFiles !== 'function'}
+                                                  />
                                                 </div>
 
                                                 {hasLocalFiles && (
@@ -1002,11 +1031,12 @@ const CheckpointCardModal = ({
                                                         <div className="flex justify-end">
                                                             <button
                                                                 type="button"
-                                                                onClick={onUploadLocalFiles}
-                                                                disabled={uploadDisabled || typeof onUploadLocalFiles !== 'function'}
-                                                                className="rounded-lg bg-orangeFpt-500 px-4 py-2 font-semibold text-white transition hover:bg-orangeFpt-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                                                onClick={handleUploadClick}
+                                                                disabled={uploadDisabled || typeof onUploadLocalFiles !== 'function' || isUploading}
+                                                                className="rounded-lg bg-orangeFpt-500 px-4 py-2 font-semibold text-white transition hover:bg-orangeFpt-600 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
                                                             >
-                                                                Upload ({localFiles.length})
+                                                                {isUploading ? <Loader2 className="animate-spin" size={20} /> : null}
+                                                                {isUploading ? "Uploading..." : `Upload (${localFiles.length})`}
                                                             </button>
                                                         </div>
                                                     </div>
@@ -1021,7 +1051,7 @@ const CheckpointCardModal = ({
                     )}
                 </div>
                 {canRenderMarkComplete && (
-                    <div className="border-t border-gray-200 bg-gray-50 px-5 py-4">
+                    <div className="border-t border-gray-200 bg-gray-50 px-5 py-4 rounded-b-2xl flex justify-end">
                         <button
                             type="button"
                             onClick={handleMarkCompleteClick}
