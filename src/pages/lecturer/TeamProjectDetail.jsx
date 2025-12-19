@@ -692,20 +692,28 @@ const TeamProjectDetail = () => {
         console.log('Milestone created with response:', response);
         const teamMilestoneId = response?.data?.teamMilestoneId;
         setMilestoneModal(null);
-        if (teamBoard) {
-          const linkForTeamMember = `/student/project/milestones&checkpoints/${teamMilestoneId}/${teamId}`;
-          console.log('Broadcasting new milestone to team members:',teamId, teamMilestoneId, linkForTeamMember);
-          await teamBoard.broadcastMilestoneCreate(teamId, teamMilestoneId, linkForTeamMember);
+        try {
+          if (teamBoard) {
+            const linkForTeamMember = `/student/project/milestones&checkpoints/${teamMilestoneId}/${teamId}`;
+            console.log('Broadcasting new milestone to team members:', teamId, teamMilestoneId, linkForTeamMember);
+            await teamBoard.broadcastMilestoneCreate(teamId, teamMilestoneId, linkForTeamMember);
+          }
+        } catch (broadcastError) {
+          console.error('Error broadcasting new milestone:', broadcastError);
         }
       } else {
-        const id =
-          milestoneModal.milestone.displayId || milestoneModal.milestone.id;
-        await updateMilestone(id, payload);
+        const id = milestoneModal.milestone.displayId || milestoneModal.milestone.id;
+        const response = await updateMilestone(id, payload);
+        console.log('Milestone updated with response:', response);
         toast.success('Milestone details updated');
         setMilestoneModal(null);
-        if (teamBoard) {
-          const linkForTeamMember = `/student/project/milestones&checkpoints/${id}/${teamId}`;
-          await teamBoard.broadcastMilestoneUpdate(teamId, id, linkForTeamMember);
+        try {
+          if (teamBoard) {
+            const linkForTeamMember = `/student/project/milestones&checkpoints/${id}/${teamId}`;
+            await teamBoard.broadcastMilestoneUpdate(teamId, id, linkForTeamMember);
+          }
+        } catch (broadcastError) {
+          console.error('Error broadcasting milestone update:', broadcastError);
         }
       }
       fetchMilestonesList(true);
@@ -1313,8 +1321,8 @@ const TeamProjectDetail = () => {
                           onClick={() => handleRemoveStudentFromRoster(member.studentId)}
                           disabled={isRosterLocked}
                           className={`rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold transition ${isRosterLocked
-                              ? 'opacity-50 cursor-not-allowed text-slate-400 bg-slate-100'
-                              : 'text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600'
+                            ? 'opacity-50 cursor-not-allowed text-slate-400 bg-slate-100'
+                            : 'text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600'
                             }`}
                         >
                           Remove
@@ -1366,8 +1374,8 @@ const TeamProjectDetail = () => {
                           onClick={() => handleAddStudentToRoster(student)}
                           disabled={isRosterLocked}
                           className={`rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold transition ${isRosterLocked
-                              ? 'opacity-50 cursor-not-allowed text-emerald-700 bg-emerald-50'
-                              : 'text-emerald-700 hover:bg-emerald-50'
+                            ? 'opacity-50 cursor-not-allowed text-emerald-700 bg-emerald-50'
+                            : 'text-emerald-700 hover:bg-emerald-50'
                             }`}
                         >
                           Add

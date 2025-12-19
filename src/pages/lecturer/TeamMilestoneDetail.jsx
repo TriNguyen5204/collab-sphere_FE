@@ -40,6 +40,7 @@ import {
   patchGenerateNewReturnFileLinkByMilestoneIdAndMileReturnId
 } from '../../services/studentApi';
 import { useSecureFileHandler } from '../../hooks/useSecureFileHandler';
+import useTeam from '../../context/useTeam';
 
 const formatDate = (value) => {
   if (!value) return '—';
@@ -245,6 +246,7 @@ const TeamMilestoneDetail = () => {
 
   // Files State
   const [activeFileKey, setActiveFileKey] = useState(null);
+  const {teamBoard} = useTeam();
 
   // --- Fetch Data ---
   useEffect(() => {
@@ -319,6 +321,14 @@ const TeamMilestoneDetail = () => {
 
       await updateMilestone(milestoneId, payload);
       toast.success('Milestone updated successfully');
+      try {
+          if (teamBoard) {
+            const linkForTeamMember = `/student/project/milestones&checkpoints/${milestoneId}/${teamId}`;
+            await teamBoard.broadcastMilestoneUpdate(teamId, milestoneId, linkForTeamMember);
+          }
+        } catch (broadcastError) {
+          console.error('Error broadcasting milestone update:', broadcastError);
+        }
       refreshMilestone();
     } catch (error) {
       console.error('Update failed:', error);

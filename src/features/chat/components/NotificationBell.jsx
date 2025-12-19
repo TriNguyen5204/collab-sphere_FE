@@ -128,7 +128,6 @@ export default function NotificationBell({ notifications, unreadCount, onOpen })
                 />
 
                 {/* Unread Count Badge */}
-                {console.log('Unread Count:', unreadCount)}
                 {unreadCount > 0 && (
                     <span className="absolute top-0.5 right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-gradient-to-r from-red-500 to-red-600 rounded-full border-2 border-white shadow-md animate-pulse">
                         {unreadCount > 99 ? '99+' : unreadCount}

@@ -95,7 +95,7 @@ export const updateMilestone = async (milestoneId, payload) => {
 
   try {
     const response = await apiClient.patch(`/milestone/${milestoneId}`, payload);
-    return response.data;
+    return response;
   } catch (error) {
     console.error(`Error updating milestone ${milestoneId}:`, error);
     throw new Error(normalizeError(error));

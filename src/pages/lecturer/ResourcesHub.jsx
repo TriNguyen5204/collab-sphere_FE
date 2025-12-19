@@ -25,9 +25,11 @@ import {
   getClassById,
   postClassFile,
   deleteClassFile,
-  patchRefreshClassFileUrl
+  patchRefreshClassFileUrl,
+  patchChangeClassResourceFilePath
 } from "../../services/classApi";
 import useToastConfirmation from "../../hooks/useToastConfirmation";
+import { useAvatar } from "../../hooks/useAvatar";
 
 const VIETNAM_TIMEZONE = "Asia/Ho_Chi_Minh";
 const VIETNAM_UTC_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -252,6 +254,27 @@ const subjectGradient = (subjectCode) => {
   return palettes[baseHash % palettes.length];
 };
 
+const ResourceAvatar = ({ resource }) => {
+  const { initials, colorClass, shouldShowImage, setImageError } = useAvatar(resource.userName, resource.avatarImg);
+
+  return (
+    <div className="relative w-4 h-4 rounded-full overflow-hidden border border-white/50 flex-shrink-0" title={`Uploaded by ${resource.userName}`}>
+      {shouldShowImage ? (
+        <img
+          src={resource.avatarImg}
+          alt={resource.userName}
+          onError={() => setImageError(true)}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className={`w-full h-full flex items-center justify-center text-[8px] font-bold ${colorClass}`}>
+          {initials}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ResourcesHub = () => {
   const { userId } = useSelector((state) => state.user);
   const location = useLocation();
@@ -270,6 +293,12 @@ const ResourcesHub = () => {
   const [openingFileId, setOpeningFileId] = useState(null);
   const [deletingFileId, setDeletingFileId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Drag and Drop State
+  const [movingFileId, setMovingFileId] = useState(null);
+  const [draggedResource, setDraggedResource] = useState(null);
+  const [draggedFileId, setDraggedFileId] = useState(null);
+  const [dragOverFolder, setDragOverFolder] = useState(null);
   
   const autoRefreshQueueRef = useRef(new Set());
   const confirmWithToast = useToastConfirmation();
@@ -364,6 +393,81 @@ const ResourcesHub = () => {
 
   const handleRemovePendingFile = (index) => {
     setPendingFiles((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      setPendingFiles((prev) => [...prev, ...files]);
+    }
+  }, []);
+
+  const handleDragStart = (e, resource) => {
+    e.dataTransfer.setData("application/json", JSON.stringify(resource));
+    e.dataTransfer.effectAllowed = "move";
+    setDraggedResource(resource);
+    setDraggedFileId(resource.fileId);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedResource(null);
+    setDraggedFileId(null);
+    setDragOverFolder(null);
+  };
+
+  const handleDropOnFolder = async (e, targetFolder) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverFolder(null);
+
+    // 1. Handle external files (Upload)
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files);
+      setPendingFiles((prev) => [...prev, ...files]);
+      setPendingFolder(stripFolderInput(targetFolder));
+      setCurrentFolder(targetFolder);
+      return;
+    }
+
+    // 2. Handle internal file move
+    if (!draggedResource || !selectedClass) return;
+
+    const sourceFolder = draggedResource.filePathPrefix;
+    // If dropping on same folder, do nothing
+    if (sourceFolder === targetFolder) return;
+
+    // Optimistic update
+    const fileId = draggedResource.fileId;
+    setMovingFileId(fileId);
+
+    try {
+      // Call API to move file
+      console.log("Moving file", fileId, "to", targetFolder);
+      await patchChangeClassResourceFilePath(
+        selectedClass.classId,
+        fileId,
+        targetFolder
+      );
+      
+      toast.success(`Moved to ${formatFolderLabel(targetFolder)}`);
+      
+      // Refresh resources
+      await fetchResources({ showSpinner: false });
+    } catch (error) {
+      console.error("Failed to move file:", error);
+      toast.error("Failed to move file");
+    } finally {
+      setMovingFileId(null);
+      setDraggedResource(null);
+      setDraggedFileId(null);
+    }
   };
 
   const handleUpload = async () => {
@@ -677,9 +781,17 @@ const ResourcesHub = () => {
                                 setPendingFolder("");
                               }
                             }}
+                            onDragOver={(e) => {
+                              handleDragOver(e);
+                              setDragOverFolder(folderKey);
+                            }}
+                            onDragLeave={() => setDragOverFolder(null)}
+                            onDrop={(e) => handleDropOnFolder(e, folderKey)}
                             className={`flex items-center gap-1.5 xl:gap-2 px-3 xl:px-4 py-1.5 xl:py-2 rounded-full text-xs xl:text-sm font-medium transition-all duration-300 border ${
                               currentFolder === folderKey
                                 ? "bg-slate-800 text-white border-transparent scale-105"
+                                : dragOverFolder === folderKey
+                                ? "bg-orangeFpt-100 text-orangeFpt-700 border-orangeFpt-300 scale-105 ring-2 ring-orangeFpt-200"
                                 : "bg-white/40 text-slate-600 border-white/50 hover:bg-white/80 hover:-translate-y-0.5"
                             }`}
                           >
@@ -716,6 +828,8 @@ const ResourcesHub = () => {
 
                         <div 
                           onClick={() => fileInputRef.current?.click()}
+                          onDragOver={handleDragOver}
+                          onDrop={handleDrop}
                           className="group relative border-2 border-dashed border-slate-300/60 rounded-2xl xl:rounded-3xl p-5 xl:p-8 text-center cursor-pointer hover:border-orangeFpt-400/60 hover:bg-orangeFpt-50/30 transition-all duration-300 bg-white/20"
                         >
                           <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/40 rounded-2xl xl:rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -821,7 +935,16 @@ const ResourcesHub = () => {
                           {filesInFolder.map((resource) => (
                             <div
                               key={resource.fileId}
-                              className="group flex items-center gap-3 xl:gap-4 p-3 xl:p-4 rounded-xl xl:rounded-2xl border border-white/40 bg-white/40 hover:bg-white/80 hover:-translate-y-0.5 transition-all duration-300 backdrop-blur-sm cursor-pointer"
+                              draggable
+                              onDragStart={(e) => handleDragStart(e, resource)}
+                              onDragEnd={handleDragEnd}
+                              className={`group flex items-center gap-3 xl:gap-4 p-3 xl:p-4 rounded-xl xl:rounded-2xl border transition-all duration-300 backdrop-blur-sm cursor-pointer ${
+                                movingFileId === resource.fileId
+                                  ? "opacity-50 border-orangeFpt-300 bg-orangeFpt-50"
+                                  : draggedFileId === resource.fileId
+                                  ? "opacity-40 border-dashed border-slate-400 bg-slate-50"
+                                  : "border-white/40 bg-white/40 hover:bg-white/80 hover:-translate-y-0.5"
+                              }`}
                               onClick={() => handleOpenResource(resource)}
                             >
                               <div className="h-10 w-10 xl:h-12 xl:w-12 rounded-xl xl:rounded-2xl bg-gradient-to-br from-white to-slate-50 text-orangeFpt-500 flex items-center justify-center flex-shrink-0 border border-white/60 group-hover:scale-110 transition-all duration-300">
@@ -838,17 +961,7 @@ const ResourcesHub = () => {
                                   </span>
                                   <span className="text-slate-300 hidden sm:inline">•</span>
                                   <div className="hidden sm:flex items-center gap-1.5" title={`Uploaded by ${resource.userName}`}>
-                                    {resource.avatarImg ? (
-                                      <img 
-                                        src={resource.avatarImg} 
-                                        alt={resource.userName} 
-                                        className="w-4 h-4 rounded-full object-cover border border-white/50"
-                                      />
-                                    ) : (
-                                      <div className="w-4 h-4 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-500 border border-white/50">
-                                        {(resource.userName || "?").charAt(0).toUpperCase()}
-                                      </div>
-                                    )}
+                                    <ResourceAvatar resource={resource} />
                                     <span className="truncate max-w-[80px] xl:max-w-[100px] font-medium">{resource.userName || "Unknown"}</span>
                                   </div>
                                   <span className="text-slate-300 hidden sm:inline">•</span>

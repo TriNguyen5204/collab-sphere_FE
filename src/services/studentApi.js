@@ -140,6 +140,7 @@ export const postTeamResourceFilebyTeamId = async (teamId, formData) => {
 
 export const patchChangeTeamResourceFilePathByTeamIdAndFileId = async (teamId, fileId, newPath) => {
   try {
+    console.log('Changing file path to:', newPath);
     const normalizedPath = normalizePathPrefix(newPath);
     const formData = new FormData();
     formData.append('pathPrefix', normalizedPath);

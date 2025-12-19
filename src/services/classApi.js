@@ -101,3 +101,30 @@ export const patchGenerateNewClassFileUrl = async (classId, fileId) => {
     throw error;
   }
 };
+const normalizePathPrefix = (rawValue) => {
+  if (typeof rawValue !== 'string') return '/';
+  const trimmed = rawValue.trim();
+  if (!trimmed || trimmed === '/') return '/';
+  const withoutLeading = trimmed.replace(/^\/+/, '');
+  const withoutTrailing = withoutLeading.replace(/\/+$/, '');
+  return withoutTrailing ? `${withoutTrailing}/` : '/';
+};
+
+export const patchChangeClassResourceFilePath = async (classId, fileId, newPath) => {
+  try {
+    console.log(`Changing file path for class ID ${classId} and file ID ${fileId} to new path: ${newPath}`);
+    const formData = new FormData();
+    const normalizedPath = normalizePathPrefix(newPath);
+    
+    formData.append('pathPrefix', normalizedPath);
+    formData.append('newPath', normalizedPath);
+
+    const response = await apiClient.post(`/class/${classId}/files/${fileId}/file-path`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error changing file path for class ID ${classId} and file ID ${fileId}:`, error);
+    throw error;
+  }
+};
