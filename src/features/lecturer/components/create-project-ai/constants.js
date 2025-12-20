@@ -51,7 +51,7 @@ export const COMPLEXITY_OPTIONS = [
 ];
 
 // Duration Options (weeks)
-export const DURATION_OPTIONS = [8, 10, 12, 14, 15];
+export const DURATION_OPTIONS = [8, 9, 10, 11];
 
 // Suggested Tech Stack
 export const SUGGESTED_TECH = [
@@ -70,7 +70,7 @@ export const DEFAULT_FORM_VALUES = {
   topicDomain: '',
   customTopicDomain: '',
   industryContext: '',
-  projectType: '',
+  projectType: [],
   customProjectType: '',
   complexity: 2,
   teamSize: 4,

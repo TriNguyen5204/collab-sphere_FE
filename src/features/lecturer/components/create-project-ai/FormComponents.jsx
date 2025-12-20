@@ -80,6 +80,7 @@ export const ComplexitySlider = ({ value, onChange }) => {
  */
 export const TeamSizeSelector = ({ value, onChange }) => {
   const sizes = [3, 4, 5, 6];
+  const isCustom = !sizes.includes(value);
 
   return (
     <div className="flex gap-2">
@@ -96,6 +97,40 @@ export const TeamSizeSelector = ({ value, onChange }) => {
           {size}
         </button>
       ))}
+      <div className={`relative flex-1 ${isCustom ? 'scale-105' : ''}`}>
+        <input
+          type="number"
+          min="7"
+          max="10"
+          placeholder="Custom"
+          value={isCustom ? value : ''}
+          onChange={(e) => {
+            // Ensure strictly integer input
+            const val = parseInt(e.target.value, 10);
+            if (!isNaN(val)) {
+              // Clamp value between 7 and 10 for custom input
+              onChange(Math.min(10, Math.max(7, val)));
+            } else if (e.target.value === '') {
+              // Handle empty input temporarily if needed, or reset to default
+              // For now, we might want to keep the previous value or handle it in parent
+            }
+          }}
+          onKeyDown={(e) => {
+            // Prevent non-numeric characters (e.g., '.', 'e', '+', '-')
+            if (['.', 'e', 'E', '+', '-'].includes(e.key)) {
+              e.preventDefault();
+            }
+          }}
+          onClick={() => {
+            if (!isCustom) onChange(7);
+          }}
+          className={`w-full h-full py-2.5 rounded-xl text-sm font-bold text-center transition-all duration-300 outline-none ${
+            isCustom
+              ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20 placeholder-white/50'
+              : 'bg-slate-50 text-slate-500 shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.05)] hover:bg-slate-100 placeholder-slate-500'
+          }`}
+        />
+      </div>
     </div>
   );
 };
@@ -152,6 +187,10 @@ export const TechStackSelector = ({ selected, onChange }) => {
     }
   };
 
+  const removeTech = (techToRemove) => {
+    onChange(selected.filter(t => t !== techToRemove));
+  };
+
   const filteredSuggestions = SUGGESTED_TECH.filter(
     t => t.toLowerCase().includes(input.toLowerCase())
   );
@@ -162,14 +201,22 @@ export const TechStackSelector = ({ selected, onChange }) => {
     <div className="space-y-3">
       {/* Custom Input */}
       <div className="flex gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomTech())}
-          placeholder="Search or add custom tech..."
-          className="flex-1 bg-slate-50 border-none shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.05)] rounded-xl px-4 py-2.5 text-sm focus:ring-4 focus:ring-[#fcd8b6] focus:bg-white transition-all"
-        />
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomTech())}
+            placeholder="Search or add custom tech..."
+            maxLength={50}
+            className="w-full bg-slate-50 border-none shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.05)] rounded-xl px-4 py-2.5 text-sm focus:ring-4 focus:ring-[#fcd8b6] focus:bg-white transition-all pr-12"
+          />
+          {input.length > 0 && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-medium">
+              {input.length}/50
+            </div>
+          )}
+        </div>
         {input && !SUGGESTED_TECH.some(t => t.toLowerCase() === input.toLowerCase()) && (
           <button
             onClick={addCustomTech}
@@ -211,14 +258,31 @@ export const TechStackSelector = ({ selected, onChange }) => {
         </button>
       )}
 
-      {/* Selected Count */}
+      {/* Selected Count & Custom Tech Display */}
       {selected.length > 0 && (
-        <div className="text-xs text-slate-500">
-          {selected.length} selected
+        <div className="space-y-2">
+          <div className="text-xs text-slate-500">
+            {selected.length} selected
+          </div>
+          
+          {/* Display selected custom tech with remove option */}
           {selected.some(t => !SUGGESTED_TECH.includes(t)) && (
-            <span className="ml-2 text-[#e75710]">
-              (includes custom: {selected.filter(t => !SUGGESTED_TECH.includes(t)).join(', ')})
-            </span>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {selected.filter(t => !SUGGESTED_TECH.includes(t)).map(tech => (
+                <div 
+                  key={tech}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-[#e75710] to-[#fb8239] text-white shadow-md"
+                >
+                  <span>{tech}</span>
+                  <button 
+                    onClick={() => removeTech(tech)}
+                    className="ml-1 hover:text-red-200 transition-colors"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}
