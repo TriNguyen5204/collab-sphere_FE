@@ -424,6 +424,7 @@ export const removeProject = async projectId => {
     return response.data;
   } catch (error) {
     console.error('Error deleting project', error);
+    throw error
   }
 };
 //admin

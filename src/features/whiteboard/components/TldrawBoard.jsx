@@ -27,7 +27,7 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
 
     const container = containerRef.current;
 
-    // ✅ FIX: Reduce mouse scroll sensitivity (zoom)
+    // FIX: Reduce mouse scroll sensitivity (zoom)
     const handleWheel = e => {
       if (e.cancelable) {
         // Reduce zoom speed to 40%
@@ -97,7 +97,7 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
     setWebsocket(ws);
   }, [ws]);
 
-  // 🚀 OPTIMIZATION: Memoized shape loader with caching
+  // OPTIMIZATION: Memoized shape loader with caching
   const loadShapesForPage = useCallback(
     async pageId => {
       if (!editor || !pageId) return;
@@ -143,10 +143,6 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
         );
         console.log('shape of page', shapesFromApi);
 
-        // const formattedShapes = shapesFromApi.shapes.map(s =>
-        //   parseShapeJson(s)
-        // );
-
         // Cache the shapes
         shapesCache.current.set(numericId, shapesFromApi);
 
@@ -174,7 +170,7 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
     [editor]
   );
 
-  // 🚀 OPTIMIZATION: Update cache when user makes changes
+  // OPTIMIZATION: Update cache when user makes changes
   useEffect(() => {
     if (!editor || !currentPageId) return;
 
@@ -207,10 +203,8 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
     const initializePages = async () => {
       try {
         if (whiteboardId != null) {
-          console.log('📋 Fetching pages for whiteboard:', whiteboardId);
 
           const responseData = await getPagesByWhiteboardId(whiteboardId);
-          console.log('📦 Full API Response:', responseData);
 
           const pages = responseData.pages || [];
           console.log(`✅ Pages loaded from DB: ${pages.length} pages`);
@@ -257,7 +251,6 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
               .map(r => r.id);
             if (fakeShapes.length) editor.store.remove(fakeShapes);
             editor.store.remove([defaultTldrawPageId]);
-            console.log('🗑️ Removed default Tldraw page');
           }
 
           const storageKey = `tldraw_current_page_${whiteboardId}`;
@@ -272,7 +265,6 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
             ? savedPageId
             : pageRecords[0].id;
 
-          console.log('🎯 Setting current page to:', targetPageId);
 
           // Set current page FIRST
           editor.setCurrentPage(targetPageId);
@@ -296,7 +288,7 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
     initializePages();
   }, [editor, whiteboardId, loadShapesForPage]);
 
-  // ========== 🚀 OPTIMIZED PAGE SWITCH LISTENER ==========
+  // ========== OPTIMIZED PAGE SWITCH LISTENER ==========
   useEffect(() => {
     if (!editor) return;
 

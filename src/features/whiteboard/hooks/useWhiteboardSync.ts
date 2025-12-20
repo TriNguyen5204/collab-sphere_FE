@@ -193,8 +193,8 @@ class OptimizedRAFBatcher {
 class PresenceThrottler {
     private lastPosition: { x: number, y: number, camera: any } | null = null;
     private lastSendTime: number = 0;
-    private throttleInterval: number = 16; 
-    private timeoutId: number | null = null;
+    private throttleInterval: number = 16;  //thời gian tối thiểu giữ 2 lần gửi tin
+    private timeoutId: number | null = null; //id bộ đếm giở để quản lý việc gửi trễ 
     private socket: WebSocket;
     private payload: any;
 
@@ -265,7 +265,7 @@ export function useWhiteboardSync(
     const [activeSocket, setActiveSocket] = useState<WebSocket | null>(null);
     const batcherRef = useRef<OptimizedRAFBatcher | null>(null)
     const presenceRef = useRef<PresenceThrottler | null>(null)
-    const msgBufferRef = useRef<string>('');
+    const msgBufferRef = useRef<string>(''); //bộ đệm string dùng để xử lý hiện tượng dính gói tin
     const isConnecting = useRef(false)
     const isMounted = useRef(true)
     const reconnectTimeoutRef = useRef<number | null>(null)
@@ -310,8 +310,6 @@ export function useWhiteboardSync(
 
         const wsUrl = `wss://collabsphere.azurewebsites.net/ws?whiteboardId=${whiteboardId}&pageId=${pageId}&drawerId=${drawerId}&userName=${encodeURIComponent(drawerName)}`;
 
-        console.log('🔌 Connecting to WebSocket:', wsUrl);
-
         const socket = new WebSocket(wsUrl);
         socketRef.current = socket
 
@@ -349,44 +347,52 @@ export function useWhiteboardSync(
         };
 
         socket.onopen = () => {
+            // ✅ 1. CONFIRMATION & STATE UPDATE
+            // Xác nhận kết nối thành công và cập nhật trạng thái UI
             console.log(`✅ Connected to page: ${pageId} as ${drawerId} (${drawerName})`);
             isConnecting.current = false
             if (isMounted.current) setActiveSocket(socket);
 
+            // 🛑 2. FAIL-FAST SAFETY CHECK
+            // Nếu editor chưa sẵn sàng (null) thì kết nối cũng vô nghĩa -> Đóng ngay để tiết kiệm tài nguyên.
             if (!editor) {
                 console.error('❌ Editor is null after connection opened!');
                 socket.close();
                 return;
             }
 
-            // editor.updateInstanceState({
-            //     cursor: { type: 'none', rotation: 0 },
-            // })
-
-            // Clear old shapes when connecting
+            // 🧹 3. CLEAN SLATE PROTOCOL (QUAN TRỌNG)
+            // Xóa toàn bộ hình vẽ cũ đang có ở Local trước khi đồng bộ.
+            // Lý do: Tránh xung đột ID (Duplicate ID conflict) hoặc hiển thị dữ liệu rác (Stale Data)
+            // khi Server chuẩn bị gửi về bộ dữ liệu mới nhất (Snapshot).
             const oldShapeIds = Array.from(editor.store.allRecords())
                 .filter((r) => r.typeName === "shape")
                 .map((r) => r.id);
             if (oldShapeIds.length) {
                 editor.store.remove(oldShapeIds);
-                console.log(`🗑️ Cleared ${oldShapeIds.length} old shapes`);
+                console.log(`🗑️ Cleared ${oldShapeIds.length} old shapes to prepare for sync`);
             }
 
-            // ✅ Initialize optimized batcher
+            // 🚀 4. INITIALIZE OPTIMIZERS (Bộ máy tối ưu hiệu năng)
+            // Khởi tạo Batcher: Gom nhóm các nét vẽ (Drawings) để gửi theo Frame (RAF).
             batcherRef.current = new OptimizedRAFBatcher(socket, drawerId, pageId);
 
-            // ✅ Initialize presence throttler
+            // Khởi tạo Throttler: Tiết lưu tần suất gửi vị trí con trỏ (Cursor) ~60ms/lần.
             presenceRef.current = new PresenceThrottler(socket, {
                 userId: drawerId,
                 userName: drawerName,
                 pageId: pageId,
                 whiteboardId: whiteboardId,
             });
+
+            // 💓 5. KEEP-ALIVE MECHANISM (HEARTBEAT)
+            // Ping Server mỗi 30s để giữ kết nối luôn mở.
+            // Ngăn chặn việc Load Balancer (Azure/AWS/Nginx) tự động đóng kết nối nhàn rỗi (Idle Timeout).
             pingIntervalRef.current = window.setInterval(() => {
                 if (socket.readyState === WebSocket.OPEN) {
                     try {
                         socket.send(JSON.stringify({ type: 'ping' }));
-                        // console.log('💓 Ping sent'); // Bật lên nếu muốn debug
+                        // console.log('💓 Ping sent');
                     } catch (e) {
                         console.error('Failed to send ping');
                     }
