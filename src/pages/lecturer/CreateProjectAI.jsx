@@ -517,7 +517,7 @@ const CreateProjectAI = () => {
   };
 
   // Generate more ideas (append to existing)
-  const handleGenerateMore = async () => {
+  const handleGenerateMore = async (refinementContext = '') => {
     // Validate required fields before generating more
     if (!selectedSubjectId) {
       toast.error('Please select a subject before generating more ideas.');
@@ -528,9 +528,14 @@ const CreateProjectAI = () => {
     let pollForMore = null;
     
     try {
-      // Pass existing ideas to avoid duplicates
-      const requestPayload = buildRequestPayload(lecturerId, aiIdeas);
-      setProgressLogs(prev => [...prev, { message: 'Generating more project concepts...', timestamp: new Date() }]);
+      // Pass existing ideas to avoid duplicates AND refinement context
+      const requestPayload = buildRequestPayload(lecturerId, aiIdeas, refinementContext);
+      
+      const logMessage = refinementContext 
+        ? 'Generating refined concepts based on your feedback...' 
+        : 'Generating more project concepts...';
+        
+      setProgressLogs(prev => [...prev, { message: logMessage, timestamp: new Date() }]);
 
       const analyzeResponse = await axios.post(`${AI_API_BASE_URL}/analyze`, requestPayload);
 
@@ -1125,7 +1130,7 @@ const CreateProjectAI = () => {
                   Duration (Weeks) <span className="text-[#e75710] ml-1">*</span>
                   <InfoTooltip 
                     text="Project duration in weeks. Combined with team size, AI calculates feasible workload distribution across the semester."
-                    example="14 weeks for a full semester project"
+                    example="10 weeks for a full semester project"
                   />
                 </label>
                 <div className="flex items-center gap-3 bg-[#F9FAFB] rounded-2xl p-3 border-2 border-transparent transition-all duration-300 focus-within:border-[#e75710]/30 focus-within:ring-4 focus-within:ring-[#e75710]/5">
@@ -1138,13 +1143,13 @@ const CreateProjectAI = () => {
                   <input
                     type="number"
                     value={durationWeeks}
-                    onChange={(e) => setDurationWeeks(Math.max(8, Math.min(15, parseInt(e.target.value) || 10)))}
+                    onChange={(e) => setDurationWeeks(Math.max(8, Math.min(11, parseInt(e.target.value) || 10)))}
                     className="flex-1 bg-transparent text-center text-xl font-bold text-[#1F2937] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     min={8}
-                    max={15}
+                    max={11}
                   />
                   <button
-                    onClick={() => setDurationWeeks(Math.min(15, durationWeeks + 1))}
+                    onClick={() => setDurationWeeks(Math.min(11, durationWeeks + 1))}
                     className="w-11 h-11 rounded-xl bg-white shadow-sm border border-slate-200 flex items-center justify-center text-[#6B7280] hover:bg-[#fcd8b6] hover:border-[#e75710]/30 hover:text-[#e75710] transition-all duration-200"
                   >
                     <Plus size={16} />
@@ -1199,17 +1204,23 @@ const CreateProjectAI = () => {
                   example="A premium diamond jewelry management system for PNJ Vietnam, serving both individual customers and corporate clients with GIA certification tracking"
                 />
               </label>
-              <textarea
-                value={industryContext}
-                onChange={(e) => setIndustryContext(e.target.value)}
-                placeholder="Describe the specific business context, target users, and unique requirements... (e.g., A premium jewelry management system for high-end retail stores)"
-                rows={3}
-                className={`w-full bg-white border-2 rounded-2xl px-5 py-4 text-sm font-medium text-[#1F2937] placeholder-slate-400 outline-none transition-all duration-300 resize-none ${
-                  mandatoryValidation.industryContext 
-                    ? 'border-emerald-300 ring-4 ring-emerald-50' 
-                    : 'border-slate-200 focus:border-[#e75710]/50 focus:ring-4 focus:ring-[#e75710]/10'
-                }`}
-              />
+              <div className="relative">
+                <textarea
+                  value={industryContext}
+                  onChange={(e) => setIndustryContext(e.target.value)}
+                  placeholder="Describe the specific business context, target users, and unique requirements... (e.g., A premium jewelry management system for high-end retail stores)"
+                  rows={3}
+                  maxLength={2000}
+                  className={`w-full bg-white border-2 rounded-2xl px-5 py-4 text-sm font-medium text-[#1F2937] placeholder-slate-400 outline-none transition-all duration-300 resize-none ${
+                    mandatoryValidation.industryContext 
+                      ? 'border-emerald-300 ring-4 ring-emerald-50' 
+                      : 'border-slate-200 focus:border-[#e75710]/50 focus:ring-4 focus:ring-[#e75710]/10'
+                  }`}
+                />
+                <div className="absolute bottom-3 right-4 text-[10px] font-medium text-slate-400 bg-white/80 px-1.5 py-0.5 rounded-md backdrop-blur-sm">
+                  {industryContext.length}/2000
+                </div>
+              </div>
             </div>
 
             {/* Complexity Slider */}
@@ -1297,9 +1308,15 @@ const CreateProjectAI = () => {
                 {PROJECT_TYPE_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
-                    onClick={() => setProjectType(projectType === opt.value ? '' : opt.value)}
+                    onClick={() => {
+                      if (projectType.includes(opt.value)) {
+                        setProjectType(projectType.filter(t => t !== opt.value));
+                      } else {
+                        setProjectType([...projectType, opt.value]);
+                      }
+                    }}
                     className={`flex items-center justify-center gap-2 px-5 py-4 rounded-2xl text-sm font-semibold transition-all duration-300 ${
-                      projectType === opt.value
+                      projectType.includes(opt.value)
                         ? 'bg-white text-[#e75710] border-2 border-[#e75710] shadow-[0_4px_16px_-4px_rgba(231,87,16,0.3)]'
                         : 'bg-[#F3F4F6] text-[#6B7280] border-2 border-transparent hover:bg-white hover:border-slate-200'
                     }`}
@@ -1310,16 +1327,19 @@ const CreateProjectAI = () => {
               </div>
               
               {/* Custom Project Type Input */}
-              {projectType === 'Custom' && (
-                <div className="mt-4">
+              {projectType.includes('Custom') && (
+                <div className="mt-4 relative">
                   <input
                     type="text"
                     value={customProjectType}
                     onChange={(e) => setCustomProjectType(e.target.value)}
                     placeholder="Enter your custom project type..."
-                    className="w-full px-5 py-4 bg-white/80 backdrop-blur-sm border-2 border-[#e75710]/20 rounded-2xl text-[#1F2937] placeholder-[#9CA3AF] focus:outline-none focus:border-[#e75710]/50 focus:ring-4 focus:ring-[#e75710]/10 transition-all duration-300"
                     maxLength={50}
+                    className="w-full px-5 py-4 bg-white/80 backdrop-blur-sm border-2 border-[#e75710]/20 rounded-2xl text-[#1F2937] placeholder-[#9CA3AF] focus:outline-none focus:border-[#e75710]/50 focus:ring-4 focus:ring-[#e75710]/10 transition-all duration-300 pr-16"
                   />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-medium text-slate-400 bg-white/80 px-1.5 py-0.5 rounded-md backdrop-blur-sm">
+                    {customProjectType.length}/50
+                  </div>
                   <p className="text-[11px] text-[#6B7280] mt-2 pl-1">E.g., IoT System, Blockchain DApp, AR/VR Application, etc.</p>
                 </div>
               )}

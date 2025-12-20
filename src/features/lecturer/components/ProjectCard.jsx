@@ -14,10 +14,10 @@ import {
 
 // Status configuration
 const STATUS_CONFIG = {
-   APPROVED: { label: 'Approved', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
-   PENDING: { label: 'Pending', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
-   REJECTED: { label: 'Rejected', icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-200' },
-   DRAFT: { label: 'Draft', icon: FileEdit, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' }
+   APPROVED: { label: 'APPROVED', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+   PENDING: { label: 'PENDING', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
+   DENIED: { label: 'DENIED', icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-200' },
+   DRAFT: { label: 'DRAFT', icon: FileEdit, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' }
 };
 
 /**

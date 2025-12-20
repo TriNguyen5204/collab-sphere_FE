@@ -106,6 +106,7 @@ const ProjectLibrary = () => {
          const matchStatus = statusFilter === 'all' || 
             (statusFilter === 'success' && p.statusString === 'APPROVED') ||
             (statusFilter === 'warning' && p.statusString === 'PENDING') ||
+            (statusFilter === 'error' && p.statusString === 'DENIED') ||
             (statusFilter === 'draft' && p.statusString === 'DRAFT');
          return matchSearch && matchStatus;
       });
@@ -280,6 +281,7 @@ const ProjectLibrary = () => {
                            <option value="all">All Statuses</option>
                            <option value="success">Approved</option>
                            <option value="warning">Pending</option>
+                           <option value="error">Denied</option>
                            <option value="draft">Draft</option>
                         </select>
                         <div className="h-8 w-px bg-slate-200/50 mx-1"></div>

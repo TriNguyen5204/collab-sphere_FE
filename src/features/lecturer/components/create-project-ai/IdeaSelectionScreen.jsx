@@ -26,14 +26,104 @@ import {
   BookOpen,
   FileText,
   List,
-  AlertCircle,
-  AlertTriangle
+  MessageSquare,
+  Send
 } from 'lucide-react';
 import { COMPLEXITY_OPTIONS } from './constants';
 
 /**
+ * Refinement Modal - Allows user to provide feedback for generating more ideas
+ */
+const RefinementModal = ({ isOpen, onClose, onGenerate }) => {
+  const [refinementText, setRefinementText] = useState('');
+
+  const handleSubmit = () => {
+    onGenerate(refinementText);
+    setRefinementText('');
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return createPortal(
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
+      >
+        {/* Header */}
+        <div className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-[#e75710] to-[#fb8239]" />
+          <div className="relative px-6 py-5 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
+              <Sparkles size={24} className="text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Refine Generation</h2>
+              <p className="text-white/80 text-sm">Guide the AI to generate better ideas</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-slate-600">
+            Not satisfied with the current ideas? Provide specific instructions to help the AI understand what you're looking for.
+          </p>
+          
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Your Instructions (Optional)
+            </label>
+            <textarea
+              value={refinementText}
+              onChange={(e) => setRefinementText(e.target.value)}
+              placeholder="e.g., Focus more on manufacturing processes instead of sales. I want students to learn about supply chain management."
+              className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:ring-4 focus:ring-[#fcd8b6] focus:border-[#fb8239] focus:bg-white transition-all outline-none resize-none"
+            />
+          </div>
+          
+          <div className="flex items-start gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg text-xs">
+            <MessageSquare size={14} className="mt-0.5 flex-shrink-0" />
+            <p>
+              The AI will prioritize your instructions over the initial configuration for the next batch of ideas.
+            </p>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50/50">
+          <button
+            onClick={onClose}
+            className="px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-[#e75710] to-[#fb8239] hover:from-[#d64d0e] hover:to-[#e75710] rounded-xl transition-all shadow-md hover:shadow-lg"
+          >
+            <RefreshCw size={16} />
+            Generate With Refinement
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>,
+    document.body
+  );
+};
+
+/**
  * Confirmation Modal for Back to Config - Elegant Soft Design
- * Uses createPortal to render at document.body level for proper centering
  */
 const ConfirmBackModal = ({ onConfirm, onCancel, ideasCount }) => {
   return createPortal(
@@ -333,10 +423,13 @@ const EditIdeaModal = ({ idea, onSave, onClose }) => {
   // Array-based state for business rules - handle multiple formats (-, •, or no prefix)
   const [businessRulesArray, setBusinessRulesArray] = useState(() => {
     if (!idea.businessRules) return [];
+    // Split by newline, filter empty, and clean up prefixes
     const rules = idea.businessRules
       .split('\n')
-      .map(r => r.replace(/^[-•*]\s*/, '').trim())  // Remove -, •, * prefixes
-      .filter(Boolean);
+      .map(r => r.trim())
+      .filter(Boolean)
+      .map(r => r.replace(/^[-•*]\s*/, '').trim()); // Remove -, •, * prefixes
+      
     console.log('Parsed business rules from:', idea.businessRules, 'to:', rules);
     return rules;
   });
@@ -350,6 +443,10 @@ const EditIdeaModal = ({ idea, onSave, onClose }) => {
     return actors;
   });
   const [newActorInput, setNewActorInput] = useState('');
+  
+  // State for inline editing
+  const [editingRuleIndex, setEditingRuleIndex] = useState(null);
+  const [editingActorIndex, setEditingActorIndex] = useState(null);
 
   const tabs = [
     { id: 'basic', label: 'Basic Info', icon: FileText },
@@ -369,6 +466,18 @@ const EditIdeaModal = ({ idea, onSave, onClose }) => {
   const handleRemoveRule = (ruleToRemove) => {
     setBusinessRulesArray(prev => prev.filter(rule => rule !== ruleToRemove));
   };
+  
+  const handleUpdateRule = (index, newValue) => {
+    const trimmedValue = newValue.trim();
+    if (trimmedValue) {
+      setBusinessRulesArray(prev => {
+        const newArray = [...prev];
+        newArray[index] = trimmedValue;
+        return newArray;
+      });
+    }
+    setEditingRuleIndex(null);
+  };
 
   // Actors Handlers
   const handleAddActor = (actor) => {
@@ -382,10 +491,26 @@ const EditIdeaModal = ({ idea, onSave, onClose }) => {
   const handleRemoveActor = (actorToRemove) => {
     setActorsArray(prev => prev.filter(actor => actor !== actorToRemove));
   };
+  
+  const handleUpdateActor = (index, newValue) => {
+    const trimmedValue = newValue.trim();
+    if (trimmedValue) {
+      setActorsArray(prev => {
+        const newArray = [...prev];
+        newArray[index] = trimmedValue;
+        return newArray;
+      });
+    }
+    setEditingActorIndex(null);
+  };
 
   // Save handler - format arrays back to strings
   const handleSave = () => {
-    const formattedBusinessRules = businessRulesArray.map(rule => `- ${rule}`).join('\n');
+    // Format business rules: ensure each rule starts with "- " if not already
+    const formattedBusinessRules = businessRulesArray
+      .map(rule => rule.trim().startsWith('-') ? rule : `- ${rule}`)
+      .join('\n');
+      
     const formattedActors = actorsArray.join(', ');
     
     const savedIdea = {
@@ -580,12 +705,35 @@ const EditIdeaModal = ({ idea, onSave, onClose }) => {
                     {businessRulesArray.map((rule, index) => (
                       <div
                         key={index}
-                        className="flex items-start gap-3 p-3 bg-white rounded-lg border border-slate-100 shadow-sm group"
+                        className="flex items-start gap-3 p-3 bg-white rounded-lg border border-slate-100 shadow-sm group hover:border-orange-200 transition-colors"
                       >
-                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#fcd8b6] text-[#e75710] text-xs font-bold flex items-center justify-center">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#fcd8b6] text-[#e75710] text-xs font-bold flex items-center justify-center mt-0.5">
                           {index + 1}
                         </span>
-                        <p className="flex-1 text-sm text-slate-700 leading-relaxed">{rule}</p>
+                        
+                        {editingRuleIndex === index ? (
+                          <input
+                            type="text"
+                            defaultValue={rule}
+                            autoFocus
+                            onBlur={(e) => handleUpdateRule(index, e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleUpdateRule(index, e.target.value);
+                              }
+                            }}
+                            className="flex-1 text-sm text-slate-700 leading-relaxed bg-slate-50 border border-orange-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-orange-200"
+                          />
+                        ) : (
+                          <p 
+                            className="flex-1 text-sm text-slate-700 leading-relaxed cursor-pointer hover:text-orange-800"
+                            onClick={() => setEditingRuleIndex(index)}
+                            title="Click to edit"
+                          >
+                            {rule}
+                          </p>
+                        )}
+                        
                         <button
                           type="button"
                           onClick={() => handleRemoveRule(rule)}
@@ -655,14 +803,39 @@ const EditIdeaModal = ({ idea, onSave, onClose }) => {
                     {actorsArray.map((actor, idx) => (
                       <span
                         key={idx}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 shadow-sm group"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 shadow-sm group hover:border-orange-200 transition-colors"
                       >
                         <UserCircle size={14} className="text-[#e75710]" />
-                        {actor}
+                        
+                        {editingActorIndex === idx ? (
+                          <input
+                            type="text"
+                            defaultValue={actor}
+                            autoFocus
+                            onBlur={(e) => handleUpdateActor(idx, e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleUpdateActor(idx, e.target.value);
+                              }
+                            }}
+                            style={{ width: `${Math.max(actor.length, 10) + 2}ch` }}
+                            className="min-w-[80px] max-w-[200px] text-sm text-slate-700 bg-transparent border-b border-orange-300 px-0 py-0 outline-none focus:border-orange-500 p-0 m-0 h-5"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <span 
+                            className="cursor-pointer hover:text-orange-800"
+                            onClick={() => setEditingActorIndex(idx)}
+                            title="Click to edit"
+                          >
+                            {actor}
+                          </span>
+                        )}
+                        
                         <button
                           type="button"
                           onClick={() => handleRemoveActor(actor)}
-                          className="hover:text-red-500 transition-colors"
+                          className="hover:text-red-500 transition-colors ml-1"
                         >
                           <X size={14} />
                         </button>
@@ -864,6 +1037,7 @@ const IdeaSelectionScreen = ({
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingIdeaId, setEditingIdeaId] = useState(null);
   const [confirmBackModalOpen, setConfirmBackModalOpen] = useState(false);
+  const [refinementModalOpen, setRefinementModalOpen] = useState(false);
 
   // Calculate selected ideas for progress modal
   const selectedIdeas = useMemo(() => 
@@ -895,6 +1069,14 @@ const IdeaSelectionScreen = ({
   const handleConfirmBack = () => {
     setConfirmBackModalOpen(false);
     onBackToConfig();
+  };
+
+  const handleGenerateMoreClick = () => {
+    setRefinementModalOpen(true);
+  };
+
+  const handleRefinementSubmit = (refinementText) => {
+    onGenerateMore(refinementText);
   };
 
   const editingIdea = ideas.find(i => i.id === editingIdeaId);
@@ -964,7 +1146,7 @@ const IdeaSelectionScreen = ({
           )}
           
           <button
-            onClick={onGenerateMore}
+            onClick={handleGenerateMoreClick}
             disabled={isGeneratingMore}
             className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#e75710] to-[#fb8239] rounded-xl hover:from-[#a51200] hover:to-[#e75710] hover:shadow-lg hover:shadow-[#fcd8b6] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md disabled:opacity-50 disabled:hover:scale-100"
           >
@@ -1004,7 +1186,7 @@ const IdeaSelectionScreen = ({
           </AnimatePresence>
         </div>
       ) : (
-        <EmptyState onGenerateMore={onGenerateMore} />
+        <EmptyState onGenerateMore={handleGenerateMoreClick} />
       )}
 
       {/* Floating Bottom Bar - Selection Summary */}
@@ -1063,6 +1245,17 @@ const IdeaSelectionScreen = ({
               setEditModalOpen(false);
               setEditingIdeaId(null);
             }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Refinement Modal */}
+      <AnimatePresence>
+        {refinementModalOpen && (
+          <RefinementModal
+            isOpen={refinementModalOpen}
+            onClose={() => setRefinementModalOpen(false)}
+            onGenerate={handleRefinementSubmit}
           />
         )}
       </AnimatePresence>
