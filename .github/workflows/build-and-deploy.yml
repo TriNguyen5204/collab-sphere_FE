@@ -7,11 +7,12 @@ on:
 
 env:
   DOCKER_IMAGE: nguyense21/collabsphere-frontend
+  SERVER_IMAGE: nguyense21/collabsphere-token-server
   JENKINS_URL: http://13.229.249.207:8080/
 
 jobs:
   build:
-    name: Build Docker Image
+    name: Build Docker Images
     runs-on: ubuntu-latest
     
     steps:
@@ -27,7 +28,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       
-      - name: Build and push Docker image
+      - name: Build and push Frontend Image
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -40,6 +41,19 @@ jobs:
             VITE_TILDRAW_LICENSE_KEY=${{ secrets.VITE_TILDRAW_LICENSE_KEY }}
             VITE_PORT_URL=${{ secrets.VITE_PORT_URL }}
             VITE_FRONTEND_URL=${{ secrets.VITE_FRONTEND_URL }}
+            VITE_LIVEKIT_URL=${{ secrets.VITE_LIVEKIT_URL }}
+            VITE_TOKEN_SERVER_URL=${{ secrets.VITE_TOKEN_SERVER_URL }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Token Server Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          push: true
+          tags: |
+            ${{ env.SERVER_IMAGE }}:latest
+            ${{ env.SERVER_IMAGE }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
       

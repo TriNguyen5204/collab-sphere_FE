@@ -30,17 +30,10 @@ export const getMeeting = async filter => {
 };
 export const updateMeeting = async updateData => {
   const cleanedData = cleanParams(updateData);
-  try {
-    const response = await apiClient.patch(
-      `/meeting/${updateData.meetingId}`,
-      null, 
-      { params: cleanedData } 
-    );
-    return response.data;
-  } catch (error) {
-    console.error('Error updating meeting:', error);
-    throw error;
-  }
+  const response = await apiClient.patch(`/meeting/${updateData.meetingId}`, null, {
+    params: cleanedData
+  });
+  return response.data;
 };
 
 export const getMeetingById = async meetingId => {
@@ -62,19 +55,10 @@ export const deleteMeeting = async meetingId => {
   }
 };
 export const getRecordUrl = async (videoFile) => {
-  console.log('video', videoFile)
   const formData = new FormData();
   formData.append('VideoFile', videoFile);
-
-  try {
-    const response = await apiClient.post('/video/uploadation', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error uploading video file:', error);
-    throw error;
-  }
+  const response = await apiClient.post('/video/uploadation', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return response.data;
 };
