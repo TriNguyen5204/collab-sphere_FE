@@ -255,10 +255,10 @@ export const getAllAccount = async () => {
 };
 //head of department
 export const getSemester = async () => {
-  try{
+  try {
     const response = await apiClient.get('/semester');
     return response.data;
-  }catch(error){
+  } catch (error) {
     console.log('Error fetching data', error)
     throw error
   }
@@ -368,10 +368,10 @@ export const getAllProject = async (params = {}) => {
   }
 };
 export const getProjectById = async (id) => {
-  try{
+  try {
     const response = await apiClient.get(`/project/${id}`)
     return response.data
-  }catch(error){
+  } catch (error) {
     console.log("Get error", error)
     throw error
   }
@@ -403,18 +403,25 @@ export const getPendingProjects = async (params = {}) => {
     throw error;
   }
 };
-export const handleProject = async (projectId, status) => {
+export const handleProject = async (projectId, isApproved, reason) => {
   try {
+    console.log(`Handling project approval for ID ${projectId}: isApproved=${isApproved}, reason=${reason}`);
     const response = await apiClient.patch(
       `/project/${projectId}/approval`,
-      null,
+      isApproved ? null : JSON.stringify(reason),
       {
-        params: { Approve: status },
+        params: { Approve: isApproved },
+        headers: {
+          'Content-Type': 'application/json',
+        },
       }
     );
     return response.data;
   } catch (error) {
-    console.error(`Error approving project with ID ${projectId}:`, error);
+    console.error(`Error handling project approval for ID ${projectId}:`, error);
+    if (error.response?.data) {
+      console.error('Server error details:', error.response.data);
+    }
     throw error;
   }
 };
@@ -428,19 +435,19 @@ export const removeProject = async projectId => {
 };
 //admin
 export const deactivateAccount = async (userId) => {
-  try{
+  try {
     const response = await apiClient.patch(`/admin/user/${userId}/deactivate`);
     return response.data;
-  }catch(error){
+  } catch (error) {
     console.error(`Error deactivating account with ID ${userId}:`, error);
     throw error;
   }
 }
 export const createAccount = async (data) => {
-  try{
+  try {
     const response = await apiClient.post('/admin/user/head-department-staff', data);
     return response.data;
-  }catch(error){
+  } catch (error) {
     console.error('Error creating account:', error);
     throw error;
   }

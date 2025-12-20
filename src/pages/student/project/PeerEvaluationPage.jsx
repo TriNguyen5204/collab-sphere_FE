@@ -16,6 +16,7 @@ const PeerEvaluationPage = () => {
     if (Array.isArray(members) && members.length) {
       return members.map((m) => ({
         studentId: m?.studentId ?? m?.userId ?? m?.id,
+        classMemberId: m?.classMemberId,
         name: m?.studentName ?? m?.fullName ?? m?.name,
         role:
           m?.roleName ??

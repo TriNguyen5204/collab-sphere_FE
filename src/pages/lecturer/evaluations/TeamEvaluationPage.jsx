@@ -35,7 +35,8 @@ import {
    getTeamEvaluationSummary,
    submitTeamEvaluation,
    getMemberEvaluations,
-   submitMemberEvaluations
+   submitMemberEvaluations,
+   getAllMemberEvaluationsInTeam
 } from '../../../services/evaluationApi';
 import { useSecureFileHandler } from '../../../hooks/useSecureFileHandler';
 import { useAvatar } from '../../../hooks/useAvatar';
@@ -105,6 +106,7 @@ const TeamEvaluationPage = () => {
    const [finalEvaluationSummary, setFinalEvaluationSummary] = useState(null);
    const [memberScores, setMemberScores] = useState({});
    const [memberEvaluations, setMemberEvaluations] = useState(null);
+   const [allMemberEvaluations, setAllMemberEvaluations] = useState([]);
    //   const [memberProfiles, setMemberProfiles] = useState({});
 
    const [loading, setLoading] = useState({
@@ -127,9 +129,12 @@ const TeamEvaluationPage = () => {
                getTeamDetail(teamId),
                getMilestonesByTeam(teamId)
             ]);
+            const memberAllEvaluations = await getAllMemberEvaluationsInTeam(teamId);
+            console.log('Fetched all member evaluations in team:', memberAllEvaluations.memberEvaluations);
             setTeamInfo(team);
             console.log('Fetched milestones for team:', mileList);
             console.log('Team info:', team);
+            setAllMemberEvaluations(memberAllEvaluations?.memberEvaluations || []);
             let mList = [];
             if (Array.isArray(mileList?.teamMilestones)) mList = mileList.teamMilestones;
             else if (Array.isArray(mileList?.list)) mList = mileList.list;
@@ -854,20 +859,24 @@ const TeamEvaluationPage = () => {
                                                       </div>
                                                    </div>
                                                    
-                                                   {/* Bottom Row: Contribution Stats */}
-                                                   <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-                                                      <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">Contributions:</span>
-                                                      <div className="flex items-center gap-2 flex-1">
-                                                         <div className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 rounded-lg border border-indigo-100">
-                                                            <span className="text-[10px] text-indigo-600 font-semibold">Questions</span>
-                                                            <span className="text-sm font-bold text-indigo-700">{questionPct}%</span>
-                                                         </div>
-                                                         <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 rounded-lg border border-emerald-100">
-                                                            <span className="text-[10px] text-emerald-600 font-semibold">Checkpoints</span>
-                                                            <span className="text-sm font-bold text-emerald-700">{checkpointPct}%</span>
+                                                   {/* Bottom Row: Contribution Stats & Peer Reviews */}
+                                                   <PeerReviewsSection
+                                                      reviews={Array.isArray(allMemberEvaluations) ? allMemberEvaluations.find(e => e.receiverId == member.classMemberId)?.evaluations || [] : []}
+                                                   >
+                                                      <div className="flex items-center gap-2">
+                                                         <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">Contributions:</span>
+                                                         <div className="flex items-center gap-2 flex-1">
+                                                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 rounded-lg border border-indigo-100">
+                                                               <span className="text-[10px] text-indigo-600 font-semibold">Questions</span>
+                                                               <span className="text-sm font-bold text-indigo-700">{questionPct}%</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 rounded-lg border border-emerald-100">
+                                                               <span className="text-[10px] text-emerald-600 font-semibold">Checkpoints</span>
+                                                               <span className="text-sm font-bold text-emerald-700">{checkpointPct}%</span>
+                                                            </div>
                                                          </div>
                                                       </div>
-                                                   </div>
+                                                   </PeerReviewsSection>
                                                 </div>
                                              );
                                           })}
@@ -1370,6 +1379,86 @@ const EvaluationItem = ({ evaluation }) => {
                   {formatDate(evaluation.createTime)}
                </p>
             )}
+         </div>
+      </div>
+   );
+};
+
+const PeerReviewsSection = ({ reviews, children }) => {
+   const [isOpen, setIsOpen] = useState(false);
+
+   return (
+      <div className="pt-2 border-t border-slate-100">
+         <div className="flex items-center justify-between gap-2">
+            {/* Left side: Contributions (passed as children) */}
+            <div className="flex-1">
+               {children}
+            </div>
+
+            {/* Right side: Toggle Button */}
+            {reviews && reviews.length > 0 ? (
+               <button
+                  type="button"
+                  onClick={() => setIsOpen(!isOpen)}
+                  className="flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-indigo-600 transition-colors"
+               >
+                  <span>Peer Reviews ({reviews.length})</span>
+                  <ChevronDownIcon className={`h-3 w-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+               </button>
+            ) : (
+               <span className="text-[10px] text-slate-400 italic">No reviews</span>
+            )}
+         </div>
+
+         {/* Collapsible Content */}
+         {isOpen && reviews && reviews.length > 0 && (
+            <div className="mt-3 space-y-3 pl-2 border-l-2 border-slate-100">
+               {reviews.map((review, idx) => (
+                  <PeerReviewItem key={idx} review={review} />
+               ))}
+            </div>
+         )}
+      </div>
+   );
+};
+
+const PeerReviewItem = ({ review }) => {
+   const { initials, colorClass, shouldShowImage, setImageError } = useAvatar(review.raterName, review.raterAvatar);
+
+   return (
+      <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+         <div className="flex items-center gap-2 mb-2">
+            {/* Avatar & Name */}
+            <div className="flex items-center gap-2 flex-1">
+               <div className="relative shrink-0">
+                  {shouldShowImage ? (
+                     <img
+                        src={review.raterAvatar}
+                        alt={review.raterName}
+                        onError={() => setImageError(true)}
+                        className="w-6 h-6 rounded-full object-cover border border-slate-200"
+                     />
+                  ) : (
+                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold border border-slate-200 ${colorClass}`}>
+                        {initials}
+                     </div>
+                  )}
+               </div>
+               <div>
+                  <p className="text-xs font-bold text-slate-700">{review.raterName}</p>
+                  <p className="text-[9px] text-slate-400 uppercase">{review.raterTeamRole === 1 ? 'Leader' : 'Member'}</p>
+               </div>
+            </div>
+         </div>
+
+         {/* Scores */}
+         <div className="grid grid-cols-2 gap-2">
+            {review.scoreDetails.map((detail, dIdx) => (
+               <div key={dIdx} className="flex justify-between items-center bg-white px-2 py-1 rounded border border-slate-100">
+                  <span className="text-[10px] text-slate-500 truncate pr-2" title={detail.scoreDetailName}>{detail.scoreDetailName}</span>
+                  <span className="text-xs font-bold text-indigo-600">{detail.score}</span>
+               </div>
+            ))}
          </div>
       </div>
    );

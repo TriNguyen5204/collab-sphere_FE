@@ -40,6 +40,7 @@ const PendingProjectDetail = () => {
   // State for Modals
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
 
   // Helper: Parse business rules
   const parseBusinessRules = (rules) => {
@@ -95,7 +96,7 @@ const PendingProjectDetail = () => {
   const handleRejectProject = async () => {
     setLoading(true);
     try {
-      const response = await handleProject(project.projectId, false);
+      const response = await handleProject(project.projectId, false, rejectReason);
       if (response) {
         toast.success('Project rejected');
         setShowRejectModal(false);
@@ -465,9 +466,20 @@ const PendingProjectDetail = () => {
                     </div>
                     
                     <h3 className="mb-2 text-2xl font-bold text-slate-800">Reject Project?</h3>
-                    <p className="mb-8 text-slate-500 leading-relaxed max-w-[280px]">
+                    <p className="mb-6 text-slate-500 leading-relaxed max-w-[280px]">
                       Are you sure you want to reject <span className="font-bold text-slate-800">"{project.projectName}"</span>? This cannot be undone.
                     </p>
+
+                    <div className="w-full mb-6 text-left">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Reason for Rejection <span className="text-red-500">*</span></label>
+                        <textarea
+                            value={rejectReason}
+                            onChange={(e) => setRejectReason(e.target.value)}
+                            placeholder="Please provide a reason for rejection..."
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#F26F21] focus:ring-2 focus:ring-orange-100 outline-none transition-all resize-none text-sm"
+                            rows={3}
+                        />
+                    </div>
 
                     <div className="grid w-full grid-cols-2 gap-4">
                        <button
@@ -478,7 +490,7 @@ const PendingProjectDetail = () => {
                        </button>
                        <button
                           onClick={handleRejectProject}
-                          disabled={loading}
+                          disabled={loading || !rejectReason.trim()}
                           className="flex items-center justify-center gap-2 rounded-xl bg-red-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-200 hover:bg-red-600 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
                        >
                           {loading ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : 'Confirm Reject'}
