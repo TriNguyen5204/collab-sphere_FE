@@ -854,7 +854,7 @@ const UpdateSubjectForm = ({ subject, onSuccess, onCancel }) => {
                                   value={m.startWeek}
                                   onChange={e => handleMilestoneChange(outcomeIndex, milestoneIndex, 'startWeek', e.target.value)}
                                   min='1'
-                                  max='10'
+                                  max='11'
                                   className={`w-full px-2 py-2 border rounded-lg focus:border-orangeFpt-500 focus:ring-2 focus:ring-orangeFpt-100 outline-none text-sm ${
                                     validationErrors[`milestone_${outcomeIndex}_${milestoneIndex}_start`]
                                       ? 'border-red-300' 
@@ -873,7 +873,7 @@ const UpdateSubjectForm = ({ subject, onSuccess, onCancel }) => {
                                   value={m.duration}
                                   onChange={e => handleMilestoneChange(outcomeIndex, milestoneIndex, 'duration', e.target.value)}
                                   min='1'
-                                  max='10'
+                                  max='11'
                                   className={`w-full px-2 py-2 border rounded-lg focus:border-orangeFpt-500 focus:ring-2 focus:ring-orangeFpt-100 outline-none text-sm ${
                                     validationErrors[`milestone_${outcomeIndex}_${milestoneIndex}_duration`]
                                       ? 'border-red-300' 

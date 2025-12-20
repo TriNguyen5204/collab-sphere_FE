@@ -26,8 +26,8 @@ import { useAvatar } from '../../hooks/useAvatar';
 const StatusBadge = ({ isActive }) => (
   <span
     className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-      isActive 
-        ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20' 
+      isActive
+        ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20'
         : 'bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/10'
     }`}
   >
@@ -50,7 +50,9 @@ const UserAvatar = ({ user }) => {
       onError={() => setImageError(true)}
     />
   ) : (
-    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold shadow-sm flex-shrink-0 border ${colorClass}`}>
+    <div
+      className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold shadow-sm flex-shrink-0 border ${colorClass}`}
+    >
       {initials}
     </div>
   );
@@ -66,7 +68,6 @@ export default function LecturerListStaff() {
   const [isMultipleOpen, setIsMultipleOpen] = useState(false);
   const [isStudentOpen, setIsStudentOpen] = useState(false);
   const [isMultipleStudentOpen, setIsMultipleStudentOpen] = useState(false);
-  const [accounts, setAccounts] = useState([]);
   const [filteredAccounts, setFilteredAccounts] = useState([]);
   const [pageNum, setPageNum] = useState(1);
   const [pageCount, setPageCount] = useState(0);
@@ -77,11 +78,12 @@ export default function LecturerListStaff() {
   useEffect(() => {
     const fetchAccounts = async () => {
       let response;
+      const keyword = searchQuery.trim();
       if (accountType === 'lecturer') {
         response = await getAllLecturer(
           false,
           '', // Email
-          '', // FullName
+          keyword, // FullName
           null, // Yob
           '', // LecturerCode
           '', // Major
@@ -92,7 +94,7 @@ export default function LecturerListStaff() {
         response = await getAllStudent(
           false,
           '', // Email
-          '', // FullName
+          keyword, // FullName
           null, // Yob
           '', // StudentCode
           '', // Major
@@ -102,30 +104,27 @@ export default function LecturerListStaff() {
       }
 
       if (response?.list) {
-        setAccounts(response.list);
+        setFilteredAccounts(response.list);
         setPageCount(response.pageCount);
         setItemCount(response.itemCount);
+      } else {
+        setFilteredAccounts([]);
+        setPageCount(0);
+        setItemCount(0);
       }
     };
-    fetchAccounts();
-  }, [accountType, pageNum]);
+    const timer = setTimeout(() => {
+      fetchAccounts();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [accountType, pageNum, searchQuery]);
 
   // Filter accounts client-side by name or code (instant search)
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredAccounts(accounts);
-    } else {
-      const query = searchQuery.toLowerCase().trim();
-      const filtered = accounts.filter(account => {
-        const name = (account.fullname || '').toLowerCase();
-        const code = accountType === 'lecturer' 
-          ? (account.lecturerCode || '').toLowerCase()
-          : (account.studentCode || '').toLowerCase();
-        return name.includes(query) || code.includes(query);
-      });
-      setFilteredAccounts(filtered);
-    }
-  }, [accounts, searchQuery, accountType]);
+  const handleSearchChange = e => {
+    setSearchQuery(e.target.value);
+    setPageNum(1);
+  };
 
   const handlePrevPage = () => {
     if (pageNum > 1) setPageNum(pageNum - 1);
@@ -135,7 +134,7 @@ export default function LecturerListStaff() {
     if (pageNum < pageCount) setPageNum(pageNum + 1);
   };
 
-  const handleTabChange = (type) => {
+  const handleTabChange = type => {
     setAccountType(type);
     setSearchQuery('');
     setPageNum(1);
@@ -150,22 +149,24 @@ export default function LecturerListStaff() {
       <StaffDashboardLayout>
         <div className='bg-gradient-to-br from-gray-50 to-gray-100'>
           <div className='mx-auto space-y-6'>
-            
             {/* Header Section */}
-            <div className="relative overflow-hidden rounded-3xl border border-orangeFpt-50 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white shadow-md shadow-orangeFpt-100/60 backdrop-blur">
-              <div className="relative z-10 px-6 py-8 lg:px-10">
-                <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="max-w-2xl space-y-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500 flex items-center gap-2">
+            <div className='relative overflow-hidden rounded-3xl border border-orangeFpt-50 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white shadow-md shadow-orangeFpt-100/60 backdrop-blur'>
+              <div className='relative z-10 px-6 py-8 lg:px-10'>
+                <div className='flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between'>
+                  <div className='max-w-2xl space-y-4'>
+                    <p className='text-xs font-semibold uppercase tracking-[0.35em] text-slate-500 flex items-center gap-2'>
                       Staff Hub
                     </p>
-                    <h1 className="mt-2 text-3xl font-semibold text-slate-900">
-                      Account <span className="text-orangeFpt-500 font-bold">Management</span>
+                    <h1 className='mt-2 text-3xl font-semibold text-slate-900'>
+                      Account{' '}
+                      <span className='text-orangeFpt-500 font-bold'>
+                        Management
+                      </span>
                     </h1>
-                    <p className="mt-1 text-sm text-slate-600">
+                    <p className='mt-1 text-sm text-slate-600'>
                       Manage lecturer and student accounts efficiently.
                     </p>
-                    
+
                     {/* Account Type Toggle - Switch Style */}
                     <div className='inline-flex p-1 bg-slate-100 rounded-xl mt-2'>
                       <button
@@ -190,21 +191,24 @@ export default function LecturerListStaff() {
                       </button>
                     </div>
                   </div>
-                  
+
                   {/* Stats Cards */}
-                  <div className="w-full max-w-sm">
+                  <div className='w-full max-w-sm'>
                     <div
                       className={`rounded-2xl border px-5 py-4 shadow-sm backdrop-blur transition-all duration-200
                         border-orangeFpt-500 bg-orangeFpt-50 ring-1 ring-orangeFpt-500
                       `}
                     >
-                      <div className="flex justify-between items-start">
+                      <div className='flex justify-between items-start'>
                         <p className='text-[11px] uppercase tracking-wide font-semibold text-orangeFpt-700'>
-                          Total {accountType === 'lecturer' ? 'Lecturers' : 'Students'}
+                          Total{' '}
+                          {accountType === 'lecturer'
+                            ? 'Lecturers'
+                            : 'Students'}
                         </p>
                         <Users className='w-5 h-5 text-orangeFpt-600' />
                       </div>
-                      <p className="text-3xl font-bold text-orangeFpt-600 mt-2">
+                      <p className='text-3xl font-bold text-orangeFpt-600 mt-2'>
                         {itemCount}
                       </p>
                     </div>
@@ -220,10 +224,12 @@ export default function LecturerListStaff() {
                   <h2 className='text-lg font-bold text-slate-800 flex items-center gap-2'>
                     {accountType === 'lecturer' ? 'Lecturers' : 'Students'}
                     <span className='px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium'>
-                      {searchQuery ? `${filteredAccounts.length} of ${itemCount}` : `${itemCount} total`}
+                      {searchQuery
+                        ? `${filteredAccounts.length} of ${itemCount}`
+                        : `${itemCount} total`}
                     </span>
                   </h2>
-                  
+
                   {/* Search & Action Buttons */}
                   <div className='flex flex-wrap items-center gap-3'>
                     {/* Search Bar - Instant search on typing */}
@@ -231,7 +237,7 @@ export default function LecturerListStaff() {
                       <input
                         type='text'
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={handleSearchChange}
                         placeholder={`Search by name or code...`}
                         className='w-64 bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 focus:ring-2 focus:ring-orangeFpt-500/20 focus:border-orangeFpt-500 focus:outline-none focus:bg-white transition-all text-sm'
                       />
@@ -242,7 +248,9 @@ export default function LecturerListStaff() {
                     {accountType === 'lecturer' && (
                       <div className='relative'>
                         <button
-                          onClick={() => setShowLecturerDropdown(!showLecturerDropdown)}
+                          onClick={() =>
+                            setShowLecturerDropdown(!showLecturerDropdown)
+                          }
                           className='flex items-center gap-2 bg-orangeFpt-500 text-white px-4 py-2 rounded-xl hover:bg-orangeFpt-600 transition-all shadow-lg shadow-orangeFpt-500/30 font-medium text-sm'
                         >
                           <Plus className='w-4 h-4' />
@@ -278,7 +286,9 @@ export default function LecturerListStaff() {
                     {accountType === 'student' && (
                       <div className='relative'>
                         <button
-                          onClick={() => setShowStudentDropdown(!showStudentDropdown)}
+                          onClick={() =>
+                            setShowStudentDropdown(!showStudentDropdown)
+                          }
                           className='flex items-center gap-2 bg-orangeFpt-500 text-white px-4 py-2 rounded-xl hover:bg-orangeFpt-600 transition-all shadow-lg shadow-orangeFpt-500/30 font-medium text-sm'
                         >
                           <Plus className='w-4 h-4' />
@@ -326,7 +336,9 @@ export default function LecturerListStaff() {
                       No {accountType}s found
                     </h3>
                     <p className='text-slate-500'>
-                      {searchQuery ? 'Try a different search term' : 'No accounts available'}
+                      {searchQuery
+                        ? 'Try a different search term'
+                        : 'No accounts available'}
                     </p>
                   </div>
                 ) : (
@@ -362,9 +374,9 @@ export default function LecturerListStaff() {
                       </tr>
                     </thead>
                     <tbody className='divide-y divide-slate-100'>
-                      {filteredAccounts.map((account) => (
-                        <tr 
-                          key={account.uId} 
+                      {filteredAccounts.map(account => (
+                        <tr
+                          key={account.uId}
                           onClick={() => handleAccountClick(account.uId)}
                           className='hover:bg-slate-50 transition-colors cursor-pointer'
                         >
@@ -376,7 +388,9 @@ export default function LecturerListStaff() {
                                   {account.fullname}
                                 </p>
                                 <p className='text-xs text-slate-500'>
-                                  {accountType === 'lecturer' ? 'Lecturer' : 'Student'}
+                                  {accountType === 'lecturer'
+                                    ? 'Lecturer'
+                                    : 'Student'}
                                 </p>
                               </div>
                             </div>
@@ -384,12 +398,16 @@ export default function LecturerListStaff() {
                           <td className='px-6 py-4'>
                             <div className='flex items-center gap-2 text-slate-600 min-w-0'>
                               <Mail className='w-4 h-4 flex-shrink-0 text-slate-400' />
-                              <span className='truncate text-sm'>{account.email}</span>
+                              <span className='truncate text-sm'>
+                                {account.email}
+                              </span>
                             </div>
                           </td>
                           <td className='px-6 py-4'>
                             <span className='font-mono text-sm text-slate-600'>
-                              {accountType === 'lecturer' ? account.lecturerCode : account.studentCode || 'N/A'}
+                              {accountType === 'lecturer'
+                                ? account.lecturerCode
+                                : account.studentCode || 'N/A'}
                             </span>
                           </td>
                           <td className='px-6 py-4'>

@@ -34,6 +34,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
   const [errors, setErrors] = useState([]);
   const [structureErrors, setStructureErrors] = useState([]);
   const [apiErrors, setApiErrors] = useState([]);
+  const [duplicateErrors, setDuplicateErrors] = useState([]);
   const fileInputRef = useRef(null);
 
   // Download template using utility
@@ -62,6 +63,69 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
     return validateDataWithRules(data, LECTURER_TEMPLATE.validationRules);
   };
 
+
+  // Check for duplicate emails and lecturer codes
+  const checkDuplicates = data => {
+    const duplicateErrors = [];
+    const emailMap = new Map();
+    const codeMap = new Map();
+
+    data.forEach((item, index) => {
+      const email = item.Email?.trim().toLowerCase();
+      const code = item.LecturerCode?.trim();
+      const rowNumber = index + 2; // +2 because Excel starts at row 1 and has header row
+
+      // Check duplicate email
+      if (email) {
+        if (emailMap.has(email)) {
+          const existingRows = emailMap.get(email);
+          existingRows.push(rowNumber);
+          emailMap.set(email, existingRows);
+        } else {
+          emailMap.set(email, [rowNumber]);
+        }
+      }
+
+      // Check duplicate lecturer code
+      if (code) {
+        if (codeMap.has(code)) {
+          const existingRows = codeMap.get(code);
+          existingRows.push(rowNumber);
+          codeMap.set(code, existingRows);
+        } else {
+          codeMap.set(code, [rowNumber]);
+        }
+      }
+    });
+
+    // Report duplicate emails
+    emailMap.forEach((rows, email) => {
+      if (rows.length > 1) {
+        duplicateErrors.push({
+          type: 'duplicate',
+          field: 'Email',
+          value: email,
+          rows: rows,
+          message: `Duplicate email "${email}" found in rows: ${rows.join(', ')}`,
+        });
+      }
+    });
+
+    // Report duplicate lecturer codes
+    codeMap.forEach((rows, code) => {
+      if (rows.length > 1) {
+        duplicateErrors.push({
+          type: 'duplicate',
+          field: 'LecturerCode',
+          value: code,
+          rows: rows,
+          message: `Duplicate lecturer code "${code}" found in rows: ${rows.join(', ')}`,
+        });
+      }
+    });
+
+    return duplicateErrors;
+  };
   // Check file type
   const isValidExcelFile = file => {
     const validExtensions = ['.xlsx', '.xls'];
@@ -77,6 +141,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
     setErrors([]);
     setStructureErrors([]);
     setApiErrors([]);
+    setDuplicateErrors([]);
 
     // Validate file type
     if (!isValidExcelFile(file)) {
@@ -220,14 +285,23 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
         // VALIDATE DATA
         const dataErrors = validateData(filteredData);
 
+        // CHECK DUPLICATES
+        const duplicates = checkDuplicates(filteredData);
+
         setErrors(dataErrors);
+        setDuplicateErrors(duplicates);
         setLecturers(filteredData);
         setUploadStatus('success');
 
-        if (dataErrors.length === 0) {
+        if (dataErrors.length === 0 && duplicates.length === 0) {
           toast.success(`Loaded ${filteredData.length} lecturers from file`);
         } else {
-          toast.warning(`Found ${dataErrors.length} errors in file`);
+          if (duplicates.length > 0) {
+            toast.error(`Found ${duplicates.length} duplicate(s) in file!`);
+          }
+          if (dataErrors.length > 0) {
+            toast.warning(`Found ${dataErrors.length} validation error(s)`);
+          }
         }
       } catch (error) {
         console.error('Error reading file:', error);
@@ -260,6 +334,11 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
 
     if (errors.length > 0) {
       toast.error('Please fix errors in file before submitting!');
+      return;
+    }
+
+    if (duplicateErrors.length > 0) {
+      toast.error('Please fix duplicate emails or lecturer codes in file!');
       return;
     }
 
@@ -333,6 +412,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
     setErrors([]);
     setStructureErrors([]);
     setApiErrors([]);
+    setDuplicateErrors([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -505,6 +585,56 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
         </div>
       )}
 
+      {/* Duplicate Errors */}
+      {duplicateErrors.length > 0 && (
+        <div className='p-4 bg-orange-50 border-2 border-orange-200 rounded-xl'>
+          <div className='flex items-start gap-3'>
+            <AlertTriangle className='w-5 h-5 text-orange-500 mt-0.5 flex-shrink-0' />
+            <div className='flex-1'>
+              <h4 className='font-semibold text-orange-800 mb-2'>
+                Duplicate Data Found ({duplicateErrors.length})
+              </h4>
+              <div className='space-y-2 max-h-48 overflow-y-auto'>
+                {duplicateErrors.map((err, idx) => (
+                  <div
+                    key={idx}
+                    className='text-sm bg-white p-3 rounded-lg border border-orange-200'
+                  >
+                    <div className='flex items-start gap-2 mb-1'>
+                      {err.field === 'Email' ? (
+                        <Mail size={14} className='text-orange-600 mt-0.5' />
+                      ) : (
+                        <User size={14} className='text-orange-600 mt-0.5' />
+                      )}
+                      <div className='flex-1'>
+                        <p className='text-orange-800 font-medium'>
+                          {err.field === 'Email'
+                            ? 'Duplicate Email'
+                            : 'Duplicate Lecturer Code'}
+                        </p>
+                        <p className='text-orange-700 font-mono text-xs mt-1'>
+                          {err.value}
+                        </p>
+                        <p className='text-orange-600 text-xs mt-1'>
+                          Found in rows: {err.rows.join(', ')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={resetForm}
+                className='mt-3 text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1'
+              >
+                <X size={14} />
+                Fix duplicates and upload again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Data Errors */}
       {errors.length > 0 && (
         <div className='p-4 bg-amber-50 border-2 border-amber-200 rounded-xl'>
@@ -545,7 +675,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
       {/* Preview Section */}
       {uploadStatus === 'success' &&
         lecturers.length > 0 &&
-        errors.length === 0 && (
+        errors.length === 0 && duplicateErrors.length === 0 && (
           <div className='border-2 border-gray-200 rounded-xl overflow-hidden'>
             <div className='bg-gradient-to-r from-green-50 to-emerald-50 px-4 py-3 border-b border-gray-200'>
               <div className='flex items-center justify-between'>
@@ -581,10 +711,19 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
                       Lecturer Code
                     </th>
                     <th className='px-3 py-2 text-left font-semibold text-gray-600'>
-                      Major
+                      Address
                     </th>
                     <th className='px-3 py-2 text-left font-semibold text-gray-600'>
                       Phone
+                    </th>
+                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>
+                      YOB
+                    </th>
+                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>
+                      School
+                    </th>
+                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>
+                      Major
                     </th>
                   </tr>
                 </thead>
@@ -616,10 +755,28 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
                         </span>
                       </td>
                       <td className='px-3 py-2 text-gray-600'>
-                        {lecturer.Major}
+                        <div className='flex items-center gap-1'>
+                          <MapPin size={12} className='text-gray-400' />
+                          <span className='text-xs'>{lecturer.Address}</span>
+                        </div>
                       </td>
                       <td className='px-3 py-2 text-gray-600'>
-                        {lecturer.PhoneNumber}
+                        <div className='flex items-center gap-1'>
+                          <Phone size={12} className='text-gray-400' />
+                          {lecturer.PhoneNumber}
+                        </div>
+                      </td>
+                      <td className='px-3 py-2 text-gray-600 text-center'>
+                        {lecturer.YOB}
+                      </td>
+                      <td className='px-3 py-2 text-gray-600'>
+                        <div className='flex items-center gap-1'>
+                          <Building size={12} className='text-gray-400' />
+                          {lecturer.School}
+                        </div>
+                      </td>
+                      <td className='px-3 py-2 text-gray-600'>
+                        {lecturer.Major}
                       </td>
                     </tr>
                   ))}
@@ -650,7 +807,7 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
       <div className='pt-4 border-t border-gray-200'>
         <div className='flex items-center justify-between'>
           <div className='text-sm text-gray-500'>
-            {lecturers.length > 0 && errors.length === 0 && !isSubmitting && (
+            {lecturers.length > 0 && errors.length === 0 && duplicateErrors.length === 0 && !isSubmitting && (
               <span>
                 Ready to create{' '}
                 <strong className='text-gray-700'>{lecturers.length}</strong>{' '}
@@ -674,12 +831,14 @@ const CreateMultipleLecturerForm = ({ onClose }) => {
                 isLoading ||
                 lecturers.length === 0 ||
                 errors.length > 0 ||
+                duplicateErrors.length > 0 ||
                 isSubmitting
               }
               className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold transition-all ${
                 isLoading ||
                 lecturers.length === 0 ||
                 errors.length > 0 ||
+                duplicateErrors.length > 0 ||
                 isSubmitting
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 text-white hover:from-orangeFpt-600 hover:to-orangeFpt-700 shadow-lg hover:shadow-xl'

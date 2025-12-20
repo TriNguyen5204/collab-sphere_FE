@@ -16,47 +16,6 @@ function isPage(record: TLRecord): record is TLPage {
 }
 
 /**
- * ✅ Parse potentially concatenated JSON messages
- */
-function parseWebSocketMessage(data: string): any[] {
-    const messages: any[] = [];
-
-    try {
-        const singleMessage = JSON.parse(data);
-        return [singleMessage];
-    } catch (err) {
-        // Multiple messages concatenated
-    }
-
-    let depth = 0;
-    let start = 0;
-
-    for (let i = 0; i < data.length; i++) {
-        if (data[i] === '{') {
-            if (depth === 0) start = i;
-            depth++;
-        } else if (data[i] === '}') {
-            depth--;
-            if (depth === 0) {
-                const jsonStr = data.substring(start, i + 1);
-                try {
-                    const parsed = JSON.parse(jsonStr);
-                    messages.push(parsed);
-                } catch (parseErr) {
-                    console.error('❌ Failed to parse chunk');
-                }
-            }
-        }
-    }
-
-    if (messages.length > 1) {
-        console.log(`✅ Parsed ${messages.length} concatenated messages`);
-    }
-
-    return messages;
-}
-
-/**
  * 🚀 OPTIMIZED: Request Animation Frame batching
  * Batches all changes within a single frame (~16ms) before sending
  */
@@ -76,10 +35,10 @@ class OptimizedRAFBatcher {
     private drawerId: string;
     private pageId: number;
     private lastSendTime: number = 0;
-    private minSendInterval: number = 16;
+    private minSendInterval: number = 8;
 
     private drawingTimer: number | null = null;
-    private drawingCompleteDelay: number = 50;
+    private drawingCompleteDelay: number = 15;
     private isDrawing: boolean = false;
 
     constructor(socket: WebSocket, drawerId: string, pageId: number) {
@@ -234,7 +193,7 @@ class OptimizedRAFBatcher {
 class PresenceThrottler {
     private lastPosition: { x: number, y: number, camera: any } | null = null;
     private lastSendTime: number = 0;
-    private throttleInterval: number = 50; // Send max 20 times/second
+    private throttleInterval: number = 16; 
     private timeoutId: number | null = null;
     private socket: WebSocket;
     private payload: any;

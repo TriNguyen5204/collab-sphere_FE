@@ -654,7 +654,7 @@ const CreateSubjectForm = ({ onClose }) => {
                                           )
                                         }
                                         min='1'
-                                        max='10'
+                                        max='11'
                                         className='w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orangeFpt-500 focus:border-transparent text-sm'
                                         required
                                       />
@@ -675,7 +675,7 @@ const CreateSubjectForm = ({ onClose }) => {
                                           )
                                         }
                                         min='1'
-                                        max='10'
+                                        max='11'
                                         className='w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orangeFpt-500 focus:border-transparent text-sm'
                                         required
                                       />
@@ -685,7 +685,7 @@ const CreateSubjectForm = ({ onClose }) => {
                                   {/* Week Range Indicator */}
                                   {(() => {
                                     const endWeek = milestone.startWeek + milestone.duration - 1;
-                                    const isValid = endWeek <= 10;
+                                    const isValid = endWeek <= 11;
                                     return (
                                       <div className={`text-xs font-medium px-4 py-3 rounded-xl ${
                                         isValid 
@@ -702,7 +702,7 @@ const CreateSubjectForm = ({ onClose }) => {
                                         </div>
                                         {!isValid && (
                                           <div className='mt-1 text-red-600 font-semibold'>
-                                            ⚠ Exceeds week 10 limit!
+                                            ⚠ Exceeds week 11 limit!
                                           </div>
                                         )}
                                       </div>

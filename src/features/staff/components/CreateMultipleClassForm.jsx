@@ -8,6 +8,8 @@ import {
   AlertCircle,
   FileSpreadsheet,
   Loader2,
+  AlertTriangle,
+  X,
 } from 'lucide-react';
 import { createMultipleClasses } from '../../../services/userService';
 
@@ -18,6 +20,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [fileName, setFileName] = useState('');
   const [apiErrors, setApiErrors] = useState([]);
+  const [duplicateErrors, setDuplicateErrors] = useState([]);
 
   const downloadTemplate = () => {
     // Download file template có sẵn
@@ -29,7 +32,43 @@ const CreateMultipleClassForm = ({ onClose }) => {
     document.body.removeChild(link);
 
     toast.success('Template downloaded successfully!');
-  };
+  }
+    // Check for duplicate class names
+    const checkDuplicates = data => {
+      const duplicateErrors = [];
+      const classNameMap = new Map();
+
+      data.forEach((item, index) => {
+        const className = item.ClassName?.trim();
+        const rowNumber = index + 2; // +2 because Excel starts at row 1 and has header row
+
+        // Check duplicate class name
+        if (className) {
+          if (classNameMap.has(className)) {
+            const existingRows = classNameMap.get(className);
+            existingRows.push(rowNumber);
+            classNameMap.set(className, existingRows);
+          } else {
+            classNameMap.set(className, [rowNumber]);
+          }
+        }
+      });
+
+      // Report duplicate class names
+      classNameMap.forEach((rows, className) => {
+        if (rows.length > 1) {
+          duplicateErrors.push({
+            type: 'duplicate',
+            field: 'ClassName',
+            value: className,
+            rows: rows,
+            message: `Duplicate class name "${className}" found in rows: ${rows.join(', ')}`,
+          });
+        }
+      });
+
+      return duplicateErrors;
+    };
 
   const handleFileUpload = event => {
     const file = event.target.files[0];
@@ -37,6 +76,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
 
     setErrors([]);
     setApiErrors([]);
+    setDuplicateErrors([]);
 
     setFileName(file.name);
     setUploadStatus('processing');
@@ -88,8 +128,27 @@ const CreateMultipleClassForm = ({ onClose }) => {
           }
         });
 
+        // CHECK DUPLICATES
+        const duplicates = checkDuplicates(filteredData);
+
         setErrors(validationErrors);
+        setDuplicateErrors(duplicates);
         setClasses(filteredData);
+        setUploadStatus(filteredData.length > 0 ? 'success' : 'empty');
+
+        // Show toast notifications
+        if (validationErrors.length === 0 && duplicates.length === 0) {
+          toast.success(`Loaded ${filteredData.length} classes from file`);
+        } else {
+          if (duplicates.length > 0) {
+            toast.error(`Found ${duplicates.length} duplicate class name(s)!`);
+          }
+          if (validationErrors.length > 0) {
+            toast.warning(
+              `Found ${validationErrors.length} validation error(s)`
+            );
+          }
+        }
         setUploadStatus(filteredData.length > 0 ? 'success' : 'empty');
       } catch (error) {
         console.error('File read error:', error);
@@ -109,6 +168,15 @@ const CreateMultipleClassForm = ({ onClose }) => {
       return;
     }
 
+    if (duplicateErrors.length > 0) {
+      toast.error('Please fix duplicate class names in file!');
+      return;
+    }
+
+    if (errors.length > 0) {
+      toast.error('Please fix validation errors in file!');
+      return;
+    }
     setIsLoading(true);
     try {
       const fileInput = document.getElementById('file-upload');
@@ -142,6 +210,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
     setUploadStatus('idle');
     setFileName('');
     setApiErrors([]);
+    setDuplicateErrors([]);
   };
 
   return (
@@ -193,6 +262,7 @@ const CreateMultipleClassForm = ({ onClose }) => {
               <input
                 type='file'
                 accept='.xlsx, .xls'
+                onClick={e => (e.target.value = null)}
                 onChange={handleFileUpload}
                 className='hidden'
                 id='file-upload'
@@ -227,72 +297,116 @@ const CreateMultipleClassForm = ({ onClose }) => {
         )}
 
         {/* Success - Class List */}
-        {uploadStatus === 'success' && classes.length > 0 && (
-          <div className='mb-6'>
-            <div className='bg-white rounded-xl border-2 border-slate-200 overflow-hidden shadow-sm '>
-              <div className='max-h-80 overflow-y-auto'>
-                <table className='w-full text-sm'>
-                  <thead className='bg-orangeFpt-50 sticky top-0 z-10'>
-                    <tr>
-                      <th className='px-4 py-3 text-left font-bold text-orangeFpt-900 border-b-2 border-orangeFpt-200'>
-                        No.
-                      </th>
-                      <th className='px-4 py-3 text-left font-bold text-orangeFpt-900 border-b-2 border-orangeFpt-200'>
-                        Class Name
-                      </th>
-                      <th className='px-4 py-3 text-left font-bold text-orangeFpt-900 border-b-2 border-orangeFpt-200'>
-                        Subject Code
-                      </th>
-                      <th className='px-4 py-3 text-left font-bold text-orangeFpt-900 border-b-2 border-orangeFpt-200'>
-                        Lecturer
-                      </th>
-                      <th className='px-4 py-3 text-left font-bold text-orangeFpt-900 border-b-2 border-orangeFpt-200'>
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {classes.map((cls, idx) => (
-                      <tr
-                        key={idx}
-                        className='border-b border-slate-100 hover:bg-orangeFpt-50/30 transition-colors'
-                      >
-                        <td className='px-4 py-3 text-slate-600 font-medium'>
-                          {idx + 1}
-                        </td>
-                        <td className='px-4 py-3 font-bold text-slate-800'>
-                          {cls.ClassName}
-                        </td>
-                        <td className='px-4 py-3 text-slate-600'>
-                          <span className='px-2 py-1 bg-orangeFpt-100 text-orangeFpt-700 rounded-md font-mono text-xs font-semibold'>
-                            {cls.SubjectCode}
-                          </span>
-                        </td>
-                        <td className='px-4 py-3 text-slate-600 font-medium'>
-                          {cls.LecturerCode}
-                        </td>
-                        <td className='px-4 py-3'>
-                          <span
-                            className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${
-                              cls.IsActive === true || cls.IsActive === 'true'
-                                ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                                : 'bg-slate-100 text-slate-600 border border-slate-200'
-                            }`}
-                          >
-                            {cls.IsActive === true || cls.IsActive === 'true'
-                              ? 'Active'
-                              : 'Inactive'}
-                          </span>
-                        </td>
+        {uploadStatus === 'success' &&
+          classes.length > 0 &&
+          errors.length === 0 &&
+          duplicateErrors.length === 0 && (
+            <div className='mb-6'>
+              <div className='bg-white rounded-xl border-2 border-slate-200 overflow-hidden shadow-sm '>
+                <div className='max-h-80 overflow-y-auto'>
+                  <table className='w-full text-sm'>
+                    <thead className='bg-orangeFpt-50 sticky top-0 z-10'>
+                      <tr>
+                        <th className='px-4 py-3 text-left font-bold text-orangeFpt-900 border-b-2 border-orangeFpt-200'>
+                          No.
+                        </th>
+                        <th className='px-4 py-3 text-left font-bold text-orangeFpt-900 border-b-2 border-orangeFpt-200'>
+                          Class Name
+                        </th>
+                        <th className='px-4 py-3 text-left font-bold text-orangeFpt-900 border-b-2 border-orangeFpt-200'>
+                          Subject Code
+                        </th>
+                        <th className='px-4 py-3 text-left font-bold text-orangeFpt-900 border-b-2 border-orangeFpt-200'>
+                          Lecturer
+                        </th>
+                        <th className='px-4 py-3 text-left font-bold text-orangeFpt-900 border-b-2 border-orangeFpt-200'>
+                          Status
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {classes.map((cls, idx) => (
+                        <tr
+                          key={idx}
+                          className='border-b border-slate-100 hover:bg-orangeFpt-50/30 transition-colors'
+                        >
+                          <td className='px-4 py-3 text-slate-600 font-medium'>
+                            {idx + 1}
+                          </td>
+                          <td className='px-4 py-3 font-bold text-slate-800'>
+                            {cls.ClassName}
+                          </td>
+                          <td className='px-4 py-3 text-slate-600'>
+                            <span className='px-2 py-1 bg-orangeFpt-100 text-orangeFpt-700 rounded-md font-mono text-xs font-semibold'>
+                              {cls.SubjectCode}
+                            </span>
+                          </td>
+                          <td className='px-4 py-3 text-slate-600 font-medium'>
+                            {cls.LecturerCode}
+                          </td>
+                          <td className='px-4 py-3'>
+                            <span
+                              className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${
+                                cls.IsActive === true || cls.IsActive === 'true'
+                                  ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                  : 'bg-slate-100 text-slate-600 border border-slate-200'
+                              }`}
+                            >
+                              {cls.IsActive === true || cls.IsActive === 'true'
+                                ? 'Active'
+                                : 'Inactive'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+        {/* Duplicate Errors */}
+        {duplicateErrors.length > 0 && (
+          <div className='mb-6 p-5 bg-orange-50 border-2 border-orange-200 rounded-xl'>
+            <div className='flex items-start gap-4'>
+              <div className='p-2 bg-orange-100 rounded-lg'>
+                <AlertTriangle className='w-6 h-6 text-orange-600' />
+              </div>
+              <div className='flex-1'>
+                <h4 className='font-bold text-orange-800 mb-3 text-lg'>
+                  Duplicate Class Names Found ({duplicateErrors.length})
+                </h4>
+                <div className='space-y-2 max-h-48 overflow-y-auto'>
+                  {duplicateErrors.map((err, idx) => (
+                    <div
+                      key={idx}
+                      className='p-3 bg-white rounded-lg border border-orange-100'
+                    >
+                      <div className='flex items-start gap-2'>
+                        <div className='flex-1'>
+                          <p className='text-orange-800 font-bold'>
+                            Duplicate: {err.value}
+                          </p>
+                          <p className='text-orange-600 text-sm mt-1'>
+                            Found in rows: {err.rows.join(', ')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={resetForm}
+                  className='mt-3 text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1'
+                >
+                  <X size={14} />
+                  Clear and upload again
+                </button>
               </div>
             </div>
           </div>
         )}
-
         {/* Errors */}
         {errors.length > 0 && (
           <div className='mb-6 p-5 bg-red-50 border-2 border-red-200 rounded-xl'>
@@ -368,7 +482,9 @@ const CreateMultipleClassForm = ({ onClose }) => {
             <div className='flex items-center gap-4'>
               <button
                 onClick={onClose}
-                disabled={isLoading}
+                disabled={
+                  isLoading || errors.length > 0 || duplicateErrors.length > 0
+                }
                 className={`px-6 py-2.5 ${
                   isLoading
                     ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
@@ -379,7 +495,14 @@ const CreateMultipleClassForm = ({ onClose }) => {
               </button>
               <button
                 onClick={handleSubmit}
-                className='inline-flex items-center px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-xl transition-all font-bold shadow-lg shadow-emerald-200 hover:shadow-xl active:scale-95'
+                disabled={
+                  isLoading || errors.length > 0 || duplicateErrors.length > 0
+                }
+                className={`inline-flex items-center px-6 py-2.5 rounded-xl transition-all font-bold shadow-lg hover:shadow-xl active:scale-95 ${
+                  isLoading || errors.length > 0 || duplicateErrors.length > 0
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white shadow-emerald-200'
+                }`}
               >
                 {isLoading ? (
                   <>

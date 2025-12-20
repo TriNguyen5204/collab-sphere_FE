@@ -12,6 +12,10 @@ import {
   User,
   Save,
   Check,
+  Mail,
+  Phone,
+  MapPin,
+  Building,
 } from 'lucide-react';
 import { importStudentList } from '../../../services/userService';
 import { toast } from 'sonner';
@@ -31,7 +35,7 @@ const CreateMultipleStudentForm = ({ onClose }) => {
   const [structureErrors, setStructureErrors] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef(null);
-
+  const [duplicateErrors, setDuplicateErrors] = useState([]);
   // Download template
   const downloadTemplate = () => {
     // Download file template có sẵn
@@ -55,6 +59,73 @@ const CreateMultipleStudentForm = ({ onClose }) => {
     return validateDataWithRules(data, STUDENT_TEMPLATE.validationRules);
   };
 
+  const checkDuplicates = data => {
+    const duplicateErrors = [];
+    const emailMap = new Map();
+    const codeMap = new Map();
+
+    data.forEach((item, index) => {
+      const email = item.Email?.trim().toLowerCase();
+      const code = item.StudentCode?.trim();
+      const rowNumber = index + 2;
+      // +2 because Excel starts at row 1 and has header row
+
+      // Check duplicate email
+
+      if (email) {
+        if (emailMap.has(email)) {
+          const existingRows = emailMap.get(email);
+          existingRows.push(rowNumber);
+
+          emailMap.set(email, existingRows);
+        } else {
+          emailMap.set(email, [rowNumber]);
+        }
+      }
+
+      // Check duplicate student code
+
+      if (code) {
+        if (codeMap.has(code)) {
+          const existingRows = codeMap.get(code);
+          existingRows.push(rowNumber);
+
+          codeMap.set(code, existingRows);
+        } else {
+          codeMap.set(code, [rowNumber]);
+        }
+      }
+    });
+    // Report duplicate emails
+
+    emailMap.forEach((rows, email) => {
+      if (rows.length > 1) {
+        duplicateErrors.push({
+          type: 'duplicate',
+          field: 'Email',
+          value: email,
+          rows: rows,
+          message: `Duplicate email "${email}" found in rows: ${rows.join(', ')}`,
+        });
+      }
+    });
+    // Report duplicate student codes
+
+    codeMap.forEach((rows, code) => {
+      if (rows.length > 1) {
+        duplicateErrors.push({
+          type: 'duplicate',
+          field: 'StudentCode',
+          value: code,
+          rows: rows,
+          message: `Duplicate student code "${code}" found in rows: ${rows.join(', ')}`,
+        });
+      }
+    });
+
+    return duplicateErrors;
+  };
+
   // Check file type
   const isValidExcelFile = file => {
     const validExtensions = ['.xlsx', '.xls'];
@@ -69,6 +140,7 @@ const CreateMultipleStudentForm = ({ onClose }) => {
 
     setErrors([]);
     setStructureErrors([]);
+    setDuplicateErrors([]);
 
     // Validate file type
     if (!isValidExcelFile(file)) {
@@ -129,6 +201,7 @@ const CreateMultipleStudentForm = ({ onClose }) => {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+      toast.error('Cannot read file. Please check the file.');
     };
 
     reader.onload = evt => {
@@ -163,6 +236,7 @@ const CreateMultipleStudentForm = ({ onClose }) => {
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
           }
+          setUploadStatus('empty');
           return;
         }
 
@@ -207,15 +281,22 @@ const CreateMultipleStudentForm = ({ onClose }) => {
 
         // VALIDATE DATA
         const dataErrors = validateData(parsedData);
+        const duplicates = checkDuplicates(parsedData);
 
         setErrors(dataErrors);
+        setDuplicateErrors(duplicates);
         setStudents(parsedData);
         setUploadStatus('success');
 
-        if (dataErrors.length === 0) {
+        if (dataErrors.length === 0 && duplicates.length === 0) {
           toast.success(`Loaded ${parsedData.length} students from file`);
         } else {
-          toast.warning(`Found ${dataErrors.length} errors in file`);
+          if (duplicates.length > 0) {
+            toast.error(`Found ${duplicates.length} duplicate(s) in file!`);
+          }
+          if (dataErrors.length > 0) {
+            toast.warning(`Found ${dataErrors.length} validation error(s)`);
+          }
         }
       } catch (error) {
         console.error('Error reading file:', error);
@@ -248,6 +329,11 @@ const CreateMultipleStudentForm = ({ onClose }) => {
 
     if (errors.length > 0) {
       toast.error('Please fix errors in file before submitting!');
+      return;
+    }
+
+    if (duplicateErrors.length > 0) {
+      toast.error('Please fix duplicate emails or student codes in file!');
       return;
     }
 
@@ -317,6 +403,7 @@ const CreateMultipleStudentForm = ({ onClose }) => {
     setFileName('');
     setErrors([]);
     setStructureErrors([]);
+    setDuplicateErrors([]);
     setIsSubmitting(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -490,6 +577,51 @@ const CreateMultipleStudentForm = ({ onClose }) => {
         </div>
       )}
 
+      {/* Duplicate Errors */}
+      {duplicateErrors.length > 0 && (
+        <div className='p-4 bg-orange-50 border-2 border-orange-200 rounded-xl'>
+          <div className='flex items-start gap-3'>
+            <AlertTriangle className='w-5 h-5 text-orange-500 mt-0.5 flex-shrink-0' />
+            <div className='flex-1'>
+              <h4 className='font-semibold text-orange-800 mb-2'>
+                Duplicate Data Found ({duplicateErrors.length})
+              </h4>
+              <div className='space-y-2 max-h-48 overflow-y-auto'>
+                {duplicateErrors.map((err, idx) => (
+                  <div
+                    key={idx}
+                    className='text-sm bg-white p-3 rounded-lg border border-orange-200'
+                  >
+                    <div className='flex items-start gap-2 mb-1'>
+                      <User size={14} className='text-orange-600 mt-0.5' />
+                      <div className='flex-1'>
+                        <p className='text-orange-800 font-medium'>
+                          {err.field === 'Email'
+                            ? 'Duplicate Email'
+                            : 'Duplicate Student Code'}
+                        </p>
+                        <p className='text-orange-700 font-mono text-xs mt-1'>
+                          {err.value}
+                        </p>
+                        <p className='text-orange-600 text-xs mt-1'>
+                          Found in rows: {err.rows.join(', ')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={resetForm}
+                className='mt-3 text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1'
+              >
+                <X size={14} />
+                Fix duplicates and upload again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Data Errors */}
       {errors.length > 0 && (
         <div className='p-4 bg-amber-50 border-2 border-amber-200 rounded-xl'>
@@ -530,7 +662,8 @@ const CreateMultipleStudentForm = ({ onClose }) => {
       {/* Preview Section */}
       {uploadStatus === 'success' &&
         students.length > 0 &&
-        errors.length === 0 && (
+        errors.length === 0 &&
+        duplicateErrors.length === 0 && (
           <div className='border-2 border-gray-200 rounded-xl overflow-hidden'>
             <div className='bg-gradient-to-r from-green-50 to-emerald-50 px-4 py-3 border-b border-gray-200'>
               <div className='flex items-center justify-between'>
@@ -566,13 +699,23 @@ const CreateMultipleStudentForm = ({ onClose }) => {
                       Student Code
                     </th>
                     <th className='px-3 py-2 text-left font-semibold text-gray-600'>
-                      Major
+                      Address
+                    </th>
+                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>
+                      Phone
+                    </th>
+                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>
+                      YOB
                     </th>
                     <th className='px-3 py-2 text-left font-semibold text-gray-600'>
                       School
                     </th>
+                    <th className='px-3 py-2 text-left font-semibold text-gray-600'>
+                      Major
+                    </th>
                   </tr>
                 </thead>
+
                 <tbody className='divide-y divide-gray-100'>
                   {students.map((student, idx) => (
                     <tr
@@ -582,6 +725,7 @@ const CreateMultipleStudentForm = ({ onClose }) => {
                       <td className='px-3 py-2 text-gray-400 font-medium'>
                         {idx + 1}
                       </td>
+
                       <td className='px-3 py-2'>
                         <div className='flex items-center gap-2'>
                           <div className='w-7 h-7 bg-orangeFpt-100 rounded-full flex items-center justify-center'>
@@ -592,19 +736,44 @@ const CreateMultipleStudentForm = ({ onClose }) => {
                           </span>
                         </div>
                       </td>
+
                       <td className='px-3 py-2 text-gray-600'>
                         {student.Email}
                       </td>
+
                       <td className='px-3 py-2'>
                         <span className='px-2 py-0.5 bg-orangeFpt-100 text-orangeFpt-700 rounded-md text-xs font-medium'>
                           {student.StudentCode}
                         </span>
                       </td>
+
+                      <td className='px-3 py-2 text-gray-600'>
+                        <div className='flex items-center gap-1'>
+                          <MapPin size={12} className='text-gray-400' />
+                          <span className='text-xs'>{student.Address}</span>
+                        </div>
+                      </td>
+
+                      <td className='px-3 py-2 text-gray-600'>
+                        <div className='flex items-center gap-1'>
+                          <Phone size={12} className='text-gray-400' />
+                          {student.PhoneNumber}
+                        </div>
+                      </td>
+
+                      <td className='px-3 py-2 text-gray-600 text-center'>
+                        {student.YOB}
+                      </td>
+
+                      <td className='px-3 py-2 text-gray-600'>
+                        <div className='flex items-center gap-1'>
+                          <Building size={12} className='text-gray-400' />
+                          {student.School}
+                        </div>
+                      </td>
+
                       <td className='px-3 py-2 text-gray-600'>
                         {student.Major}
-                      </td>
-                      <td className='px-3 py-2 text-gray-600'>
-                        {student.School}
                       </td>
                     </tr>
                   ))}
@@ -618,13 +787,16 @@ const CreateMultipleStudentForm = ({ onClose }) => {
       <div className='pt-4 border-t border-gray-200'>
         <div className='flex items-center justify-between'>
           <div className='text-sm text-gray-500'>
-            {students.length > 0 && errors.length === 0 && !isSubmitting && (
-              <span>
-                Ready to create{' '}
-                <strong className='text-gray-700'>{students.length}</strong>{' '}
-                student accounts
-              </span>
-            )}
+            {students.length > 0 &&
+              errors.length === 0 &&
+              duplicateErrors.length === 0 &&
+              !isSubmitting && (
+                <span>
+                  Ready to create{' '}
+                  <strong className='text-gray-700'>{students.length}</strong>{' '}
+                  student accounts
+                </span>
+              )}
           </div>
           <div className='flex items-center gap-3'>
             <button
@@ -642,11 +814,13 @@ const CreateMultipleStudentForm = ({ onClose }) => {
                 loading ||
                 students.length === 0 ||
                 errors.length > 0 ||
+                duplicateErrors.length > 0 ||
                 isSubmitting
               }
               className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold transition-all ${
                 loading ||
                 students.length === 0 ||
+                duplicateErrors.length > 0 ||
                 errors.length > 0 ||
                 isSubmitting
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
