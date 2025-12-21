@@ -82,7 +82,7 @@ export default function CustomPageMenu({
     setOpen(false);
   };
 
-  // ========== ✅ CREATE PAGE (NO PROMPT) ==========
+  // ========== CREATE PAGE ==========
   const handleCreatePage = async () => {
     const nextIndex = pages.length + 1;
     const defaultTitle = `Page ${nextIndex}`;
@@ -149,14 +149,14 @@ export default function CustomPageMenu({
             },
           };
           websocket.send(JSON.stringify(payload));
-          console.log('📡 Broadcasted new_page:', payload);
+          console.log(' Broadcasted new_page:', payload);
         } else {
-          console.warn('⚠️ WebSocket not ready, cannot broadcast new page');
+          console.warn('WebSocket not ready, cannot broadcast new page');
         }
 
         return pTitle;
       } catch (error) {
-        console.error('❌ Create page error:', error);
+        console.error('Create page error:', error);
         throw error;
       }
     };
@@ -170,7 +170,7 @@ export default function CustomPageMenu({
     setOpen(false);
   };
 
-  // ========== ✅ RENAME PAGE ==========
+  // ========== RENAME PAGE ==========
   const startEdit = page => {
     if (page.id === DEFAULT_TLDRAW_PAGE_ID) {
       toast.warning('Không thể đổi tên trang mặc định');
@@ -215,7 +215,7 @@ export default function CustomPageMenu({
       try {
         // Gọi API Background
         await updatePageTitle(numericPageId, newTitle);
-        console.log('✅ API: Page renamed to:', newTitle);
+        console.log(' API: Page renamed to:', newTitle);
 
         // Broadcast WebSocket
         if (websocket && websocket.readyState === WebSocket.OPEN) {
@@ -229,7 +229,7 @@ export default function CustomPageMenu({
           websocket.send(JSON.stringify(payload));
         }
       } catch (error) {
-        console.error('❌ Rename error:', error);
+        console.error(' Rename error:', error);
         // Revert lại tên cũ nếu API lỗi
         editor.updatePage({ id: page.id, name: oldName });
         throw error;

@@ -106,13 +106,13 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
 
       // Check if already loading
       if (loadingPages.current.has(numericId)) {
-        console.log(`⏳ Already loading page ${pageId}, skipping...`);
+        console.log(` Already loading page ${pageId}, skipping...`);
         return;
       }
 
       // Check cache first
       if (shapesCache.current.has(numericId)) {
-        console.log(`💾 Using cached shapes for page: ${pageId}`);
+        console.log(` Using cached shapes for page: ${pageId}`);
         const cachedShapes = shapesCache.current.get(numericId);
 
         // Clear current shapes
@@ -132,15 +132,13 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
 
       // Load from API
       loadingPages.current.add(numericId);
-      console.log(`📄 Loading shapes from API for page: ${pageId}`);
+      console.log(` Loading shapes from API for page: ${pageId}`);
 
       try {
         if (!numericId) throw new Error('Invalid page ID format');
 
         const shapesFromApi = await getShapesByPageId(numericId);
-        console.log(
-          `📦 Received ${shapesFromApi.shapes?.length || 0} shapes from API`
-        );
+        
         console.log('shape of page', shapesFromApi);
 
         // Cache the shapes
@@ -157,12 +155,12 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
         // Put new shapes
         if (shapesFromApi.length) {
           editor.store.put(shapesFromApi);
-          console.log(`✅ Loaded ${shapesFromApi.length} shapes for ${pageId}`);
+          console.log(`Loaded ${shapesFromApi.length} shapes for ${pageId}`);
         } else {
-          console.log(`ℹ️ No shapes found for ${pageId}`);
+          console.log(`No shapes found for ${pageId}`);
         }
       } catch (e) {
-        console.error('💥 load shapes error:', e);
+        console.error('load shapes error:', e);
       } finally {
         loadingPages.current.delete(numericId);
       }
@@ -207,10 +205,10 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
           const responseData = await getPagesByWhiteboardId(whiteboardId);
 
           const pages = responseData.pages || [];
-          console.log(`✅ Pages loaded from DB: ${pages.length} pages`);
+          console.log(` Pages loaded from DB: ${pages.length} pages`);
 
           if (!pages.length) {
-            console.warn('⚠️ No pages found, using default.');
+            console.warn(' No pages found, using default.');
             hasInitialized.current = true;
             setCurrentPageId(editor.getCurrentPageId());
             return;
@@ -274,12 +272,12 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
           await loadShapesForPage(targetPageId);
 
           hasInitialized.current = true;
-          console.log('✅ Initialization complete');
+          console.log('Initialization complete');
         }
       } catch (e) {
-        console.error('💥 init pages error:', e);
-        console.error('💥 Error message:', e.message);
-        console.warn('⚠️ Falling back to default page due to error');
+        console.error('init pages error:', e);
+        console.error('Error message:', e.message);
+        console.warn('Falling back to default page due to error');
         hasInitialized.current = true;
         setCurrentPageId(editor.getCurrentPageId());
       }
@@ -306,7 +304,7 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
         const newPageId = editor.getCurrentPageId();
         if (!newPageId || newPageId === currentPageId) return;
 
-        console.log('🔄 User switched to page:', newPageId);
+        console.log('User switched to page:', newPageId);
         localStorage.setItem(`tldraw_current_page_${whiteboardId}`, newPageId);
         setCurrentPageId(newPageId);
 
@@ -339,7 +337,7 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
       <Tldraw
         onMount={e => {
           setEditor(e);
-          console.log('✅ tldraw ready');
+          console.log('tldraw ready');
         }}
         licenseKey={tildrawKey}
         components={{
