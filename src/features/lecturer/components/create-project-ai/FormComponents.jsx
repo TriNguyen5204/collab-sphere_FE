@@ -97,40 +97,6 @@ export const TeamSizeSelector = ({ value, onChange }) => {
           {size}
         </button>
       ))}
-      <div className={`relative flex-1 ${isCustom ? 'scale-105' : ''}`}>
-        <input
-          type="number"
-          min="7"
-          max="10"
-          placeholder="Custom"
-          value={isCustom ? value : ''}
-          onChange={(e) => {
-            // Ensure strictly integer input
-            const val = parseInt(e.target.value, 10);
-            if (!isNaN(val)) {
-              // Clamp value between 7 and 10 for custom input
-              onChange(Math.min(10, Math.max(7, val)));
-            } else if (e.target.value === '') {
-              // Handle empty input temporarily if needed, or reset to default
-              // For now, we might want to keep the previous value or handle it in parent
-            }
-          }}
-          onKeyDown={(e) => {
-            // Prevent non-numeric characters (e.g., '.', 'e', '+', '-')
-            if (['.', 'e', 'E', '+', '-'].includes(e.key)) {
-              e.preventDefault();
-            }
-          }}
-          onClick={() => {
-            if (!isCustom) onChange(7);
-          }}
-          className={`w-full h-full py-2.5 rounded-xl text-sm font-bold text-center transition-all duration-300 outline-none ${
-            isCustom
-              ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20 placeholder-white/50'
-              : 'bg-slate-50 text-slate-500 shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.05)] hover:bg-slate-100 placeholder-slate-500'
-          }`}
-        />
-      </div>
     </div>
   );
 };

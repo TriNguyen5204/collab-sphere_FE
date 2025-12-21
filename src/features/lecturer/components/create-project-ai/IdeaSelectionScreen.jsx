@@ -27,7 +27,9 @@ import {
   FileText,
   List,
   MessageSquare,
-  Send
+  Send,
+  AlertTriangle,
+  AlertCircle
 } from 'lucide-react';
 import { COMPLEXITY_OPTIONS } from './constants';
 

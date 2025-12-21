@@ -65,6 +65,15 @@ app.get('/api/meeting/token', async (req, res) => {
       isHost = true;
     }
 
+    // If this user is the host, ensure the room is not marked as ended from a previous session
+    if (isHost) {
+      const presence = hostPresence.get(roomName);
+      if (presence && presence.isEnded) {
+        console.log(`[Token Generation] New host ${participantName} starting fresh session in room ${roomName}. Clearing old ended status.`);
+        hostPresence.delete(roomName);
+      }
+    }
+
     // Everyone joins directly now (no waiting room)
     const token = await createToken(roomName, participantName, isHost, true);
     res.json({ token, isHost, needsApproval: false });
@@ -142,6 +151,9 @@ app.post('/api/meeting/host/end-meeting', (req, res) => {
     endReason: 'host_ended'
   });
 
+  // Clear the host assignment so a new meeting can start later
+  roomHosts.delete(roomName);
+
   console.log(`[Meeting Ended] Host intentionally ended meeting in room ${roomName}`);
 
   res.json({ success: true, message: 'Meeting ended' });
@@ -187,6 +199,10 @@ app.post('/api/meeting/host/disconnect', (req, res) => {
         gracePeriodTimeout: null,
         endReason: 'host_disconnected_timeout'
       });
+      
+      // Clear the host assignment so a new meeting can start later
+      roomHosts.delete(roomName);
+      
       console.log(`[Meeting Ended] Grace period expired for room ${roomName}, meeting ended`);
     }
   }, HOST_GRACE_PERIOD);

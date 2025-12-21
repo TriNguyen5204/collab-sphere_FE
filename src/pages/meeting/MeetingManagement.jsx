@@ -171,7 +171,7 @@ const MeetingManagement = () => {
                   items={[
                     {
                       label: 'Lecturer Workspace',
-                      href: '/lecturer/dashboard',
+                      href: '/lecturer/classes',
                     },
                     { label: 'Meeting History', href: null },
                   ]}
