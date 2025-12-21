@@ -11,9 +11,6 @@ const MilestoneUpdateModal = ({ isOpen, onClose, milestone, onUpdateSuccess }) =
     endDate: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Determine if it's a custom milestone (manually created)
-  // If milestoneId (reference to project milestone) is missing or 0, it's custom.
   const isCustom = !milestone?.milestoneId; 
 
   useEffect(() => {

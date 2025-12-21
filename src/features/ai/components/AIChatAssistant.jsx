@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Loader2, Sparkles, User, Bot } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { useSelector } from 'react-redux';
 
 const AI_API_BASE_URL = 'https://u8ls7dz738.execute-api.ap-southeast-1.amazonaws.com/dev';
 
@@ -13,6 +14,7 @@ const AIChatAssistant = () => {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const { accessToken } = useSelector(state => state.user);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -39,7 +41,14 @@ const AIChatAssistant = () => {
         // Add session ID or other context if needed in the future
       };
 
-      const response = await axios.post(`${AI_API_BASE_URL}/chat`, payload);
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      };
+
+      const response = await axios.post(`${AI_API_BASE_URL}/chat`, payload, config);
       
       // Assuming response.data contains the reply in a 'message' or 'reply' field
       // Adjust based on actual API response structure
