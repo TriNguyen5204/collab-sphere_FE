@@ -413,7 +413,7 @@ const DashboardLayout = ({ children }) => {
             onSignup={handleSignup}
           />
         </aside>
-        <main className='flex-1 min-w-0 px-4 py-6 md:px-6 lg:px-8 ml-56 custom-scrollbar'>
+        <main className='flex-1 min-w-0 ml-56 h-[calc(100vh-4rem)] overflow-hidden pt-6'>
           {children}
         </main>
       </div>
