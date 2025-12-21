@@ -359,7 +359,7 @@ const MeetingManagement = () => {
                           </div>
                           <div className='min-w-0'>
                             <p
-                              className='text-sm font-semibold text-slate-900 truncate max-w-[250px]'
+                              className='text-sm font-semibold text-slate-900 truncate max-w-[350px]'
                               title={meeting.title}
                             >
                               {meeting.title}
@@ -447,11 +447,10 @@ const MeetingManagement = () => {
                       <button
                         key={pageNum}
                         onClick={() => handlePageChange(pageNum)}
-                        className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-all ${
-                          filters.pageNum === pageNum
+                        className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-all ${filters.pageNum === pageNum
                             ? 'bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-600 text-white shadow-md shadow-orangeFpt-500/20'
                             : 'border border-gray-200 hover:bg-white'
-                        }`}
+                          }`}
                       >
                         {pageNum}
                       </button>

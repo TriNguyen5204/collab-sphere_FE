@@ -137,8 +137,12 @@ function JoinPage() {
       const response = await createMeeting(payload);
       if (response) {
         toast.success('Meeting created successfully!');
-        const idMatch = response.message.match(/ID:\s*(\d+)/);
+        // Match "MeetingID: 123" (new format) or "ID: 123" (old format)
+        const idMatch = response.message.match(/MeetingID:\s*(\d+)/) || response.message.match(/ID:\s*(\d+)/);
         const meetingId = idMatch ? parseInt(idMatch[1], 10) : null;
+        
+        console.log('[RoomJoinPage] Created meeting with ID:', meetingId);
+
         cleanupAndNavigate(`/room/${newRoomId}`, {
           title,
           description: '',

@@ -30,17 +30,10 @@ export const getMeeting = async filter => {
 };
 export const updateMeeting = async updateData => {
   const cleanedData = cleanParams(updateData);
-  try {
-    const response = await apiClient.patch(
-      `/meeting/${updateData.meetingId}`,
-      null, 
-      { params: cleanedData } 
-    );
-    return response.data;
-  } catch (error) {
-    console.error('Error updating meeting:', error);
-    throw error;
-  }
+  const response = await apiClient.patch(`/meeting/${updateData.meetingId}`, null, {
+    params: cleanedData
+  });
+  return response.data;
 };
 
 export const getMeetingById = async meetingId => {
@@ -61,20 +54,17 @@ export const deleteMeeting = async meetingId => {
     throw error;
   }
 };
-export const getRecordUrl = async (videoFile) => {
-  console.log('video', videoFile)
+export const getRecordUrl = async (videoFile, onUploadProgress) => {
   const formData = new FormData();
   formData.append('VideoFile', videoFile);
-
-  try {
-    const response = await apiClient.post('/video/uploadation', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error uploading video file:', error);
-    throw error;
-  }
+  const response = await apiClient.post('/video/uploadation', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: (progressEvent) => {
+      if (onUploadProgress) {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        onUploadProgress(percentCompleted);
+      }
+    }
+  });
+  return response.data;
 };
