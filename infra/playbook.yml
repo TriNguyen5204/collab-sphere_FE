@@ -45,6 +45,7 @@
           - docker-ce
           - docker-ce-cli
           - containerd.io
+          - docker-compose-plugin
         state: present
 
     - name: "DOCKER | Ensure Docker service is started and enabled on boot"

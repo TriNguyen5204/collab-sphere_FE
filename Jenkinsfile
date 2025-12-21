@@ -224,16 +224,16 @@ EOF
                                     # echo "\${DOCKER_PASSWORD}" | docker login -u "\${DOCKER_USERNAME}" --password-stdin
 
                                     echo "Cleaning up old containers and images..."
-                                    docker-compose down || true
+                                    docker compose down || true
                                     docker rmi nguyense21/collabsphere-frontend:latest || true
                                     docker rmi nguyense21/collabsphere-token-server:latest || true
                                     docker image prune -f
 
                                     echo "Pulling latest images..."
-                                    docker-compose pull
+                                    docker compose pull
 
                                     echo "Starting application stack..."
-                                    docker-compose up -d --remove-orphans
+                                    docker compose up -d --remove-orphans
                                 '
                             """
                         }
