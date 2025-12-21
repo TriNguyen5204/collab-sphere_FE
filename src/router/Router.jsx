@@ -76,7 +76,7 @@ import SystemReport from '../pages/admin/SystemReport';
 
 import Layout from '../pages/meeting/MeetingLayout'
 import RoomJoinPage from '../pages/meeting/RoomJoinPage';
-import MeetingRoomTest from '../pages/meeting/MeetingRoomTest';
+import MeetingRoom from '../pages/meeting/MeetingRoom';
 // import MeetingHistory from '../test/Meeting/MeetingHistory';
 import MeetingSchedulerFull from '../pages/meeting/MeetingSchedule';
 import MeetingManagement from '../pages/meeting/MeetingManagement';
@@ -120,7 +120,7 @@ const studentRoutes = [
   { path: '/task-board', element: protectRoute(['STUDENT', 'LECTURER'], <ProjectBoard />) },
   { path: '/meeting/:teamId', element: protectRoute(['STUDENT'], <Layout/>) },
   { path: '/join-room/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <RoomJoinPage/>)},
-  { path: '/room/:roomId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingRoomTest/>)},
+  { path: '/room/:roomId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingRoom/>)},
   { path: '/meeting/history/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingManagement/> )},
   { path: '/meeting/schedule/:teamId', element: protectRoute(['STUDENT', 'LECTURER'], <MeetingSchedulerFull/> )},
   { path: '/whiteboard',  element: protectRoute(['STUDENT', 'LECTURER'], <Whiteboard/>)},
