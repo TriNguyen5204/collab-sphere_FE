@@ -111,14 +111,14 @@ const UpdateSubjectForm = ({ subject, onSuccess, onCancel }) => {
               if (!milestone.description?.trim()) {
                 errors[`milestone_${index}_${mIndex}_desc`] = `Milestone description is required`;
               }
-              if (!milestone.startWeek || milestone.startWeek < 1 || milestone.startWeek > 10) {
-                errors[`milestone_${index}_${mIndex}_start`] = `Start week must be 1-10`;
+              if (!milestone.startWeek || milestone.startWeek < 1 || milestone.startWeek > 11) {
+                errors[`milestone_${index}_${mIndex}_start`] = `Start week must be 1-11`;
               }
-              if (!milestone.duration || milestone.duration < 1 || milestone.duration > 10) {
-                errors[`milestone_${index}_${mIndex}_duration`] = `Duration must be 1-10`;
+              if (!milestone.duration || milestone.duration < 1 || milestone.duration > 11) {
+                errors[`milestone_${index}_${mIndex}_duration`] = `Duration must be 1-11`;
               }
-              if ((milestone.startWeek + milestone.duration - 1) > 10) {
-                errors[`milestone_${index}_${mIndex}_range`] = `Week range cannot exceed 10`;
+              if ((milestone.startWeek + milestone.duration - 1) > 11) {
+                errors[`milestone_${index}_${mIndex}_range`] = `Week range cannot exceed 11`;
               }
             });
           }
@@ -850,7 +850,7 @@ const UpdateSubjectForm = ({ subject, onSuccess, onCancel }) => {
                                 </label>
                                 <input
                                   type='number'
-                                  placeholder='1-10'
+                                  placeholder='1-11'
                                   value={m.startWeek}
                                   onChange={e => handleMilestoneChange(outcomeIndex, milestoneIndex, 'startWeek', e.target.value)}
                                   min='1'
@@ -912,7 +912,7 @@ const UpdateSubjectForm = ({ subject, onSuccess, onCancel }) => {
                           {/* Week Range Indicator and Remove Button */}
                           <div className='flex justify-between items-center'>
                             <div className={`text-xs font-medium px-2 py-1 rounded-lg ${
-                              (m.startWeek + m.duration - 1) <= 10 ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+                              (m.startWeek + m.duration - 1) <= 11 ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
                             }`}>
                               Week {m.startWeek} → {m.startWeek + m.duration - 1}
                               {validationErrors[`milestone_${outcomeIndex}_${milestoneIndex}_range`] && (

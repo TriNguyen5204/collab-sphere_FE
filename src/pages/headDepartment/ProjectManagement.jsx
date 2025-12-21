@@ -101,17 +101,17 @@ export default function ProjectManagement() {
   }, []);
 
   // Reset to page 1 when filters change
-  const handleSearchChange = (value) => {
+  const handleSearchChange = value => {
     setSearch(value);
     setPageNum(1);
   };
 
-  const handleSubjectChange = (value) => {
+  const handleSubjectChange = value => {
     setSubjectId(value);
     setPageNum(1);
   };
 
-  const handleLecturerChange = (value) => {
+  const handleLecturerChange = value => {
     setLecturerId(value);
     setPageNum(1);
   };
@@ -146,7 +146,15 @@ export default function ProjectManagement() {
         setProjects(prev => prev.filter(p => p.projectId !== deleteId));
       }
     } catch (error) {
-      toast.error('Failed to delete project');
+      const apiError = error.response.data;
+      if (apiError?.errorList?.length > 0) {
+        // Hiển thị message cụ thể từ backend
+        toast.error(apiError.errorList[0].message);
+      } else if (apiError?.message) {
+        toast.error(apiError.message);
+      } else {
+        toast.error('Failed to delete project');
+      }
     } finally {
       setDeleteId(null);
     }
@@ -171,22 +179,24 @@ export default function ProjectManagement() {
     <HeadDashboardLayout>
       <div className=' bg-gradient-to-br from-slate-50 to-slate-100'>
         <div className=' space-y-6'>
-          
           {/* Header Section - Matching Staff/Admin style */}
-          <div className="relative overflow-hidden rounded-3xl border border-orangeFpt-50 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white shadow-md shadow-orangeFpt-100/60 backdrop-blur">
-            <div className="relative z-10 px-6 py-8 lg:px-10">
-              <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-                <div className="max-w-2xl space-y-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500 flex items-center gap-2">
+          <div className='relative overflow-hidden rounded-3xl border border-orangeFpt-50 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white shadow-md shadow-orangeFpt-100/60 backdrop-blur'>
+            <div className='relative z-10 px-6 py-8 lg:px-10'>
+              <div className='flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between'>
+                <div className='max-w-2xl space-y-4'>
+                  <p className='text-xs font-semibold uppercase tracking-[0.35em] text-slate-500 flex items-center gap-2'>
                     Head Department
                   </p>
-                  <h1 className="mt-2 text-3xl font-semibold text-slate-900">
-                    Project <span className="text-orangeFpt-500 font-bold">Management</span>
+                  <h1 className='mt-2 text-3xl font-semibold text-slate-900'>
+                    Project{' '}
+                    <span className='text-orangeFpt-500 font-bold'>
+                      Management
+                    </span>
                   </h1>
-                  <p className="mt-1 text-sm text-slate-600">
+                  <p className='mt-1 text-sm text-slate-600'>
                     Manage and monitor all capstone projects
                   </p>
-                  
+
                   {/* View Toggle */}
                   <div className='inline-flex p-1 bg-slate-100 rounded-xl mt-2'>
                     <button
@@ -211,21 +221,21 @@ export default function ProjectManagement() {
                     </button>
                   </div>
                 </div>
-                
+
                 {/* Stats Card */}
-                <div className="w-full max-w-sm">
+                <div className='w-full max-w-sm'>
                   <div
                     className={`rounded-2xl border px-5 py-4 shadow-sm backdrop-blur transition-all duration-200
                       border-orangeFpt-500 bg-orangeFpt-50 ring-1 ring-orangeFpt-500
                     `}
                   >
-                    <div className="flex justify-between items-start">
+                    <div className='flex justify-between items-start'>
                       <p className='text-[11px] uppercase tracking-wide font-semibold text-orangeFpt-700'>
                         Total Projects
                       </p>
                       <FolderKanban className='w-5 h-5 text-orangeFpt-600' />
                     </div>
-                    <p className="text-3xl font-bold text-orangeFpt-600 mt-2">
+                    <p className='text-3xl font-bold text-orangeFpt-600 mt-2'>
                       {itemCount}
                     </p>
                   </div>
@@ -245,7 +255,7 @@ export default function ProjectManagement() {
                     {projects?.length || 0} showing
                   </span>
                 </h2>
-                
+
                 {/* Search & Filters */}
                 <div className='flex flex-wrap items-center gap-3'>
                   {/* Search Bar */}
@@ -318,7 +328,8 @@ export default function ProjectManagement() {
                     No projects found
                   </h3>
                   <p className='text-slate-500 mt-1'>
-                    Try adjusting your search or filters to find what you're looking for.
+                    Try adjusting your search or filters to find what you're
+                    looking for.
                   </p>
                 </div>
               ) : (
@@ -336,26 +347,42 @@ export default function ProjectManagement() {
                             <div className='space-y-2 flex-1 min-w-0 pr-3'>
                               <div className='flex items-center gap-2'>
                                 <span className='inline-flex items-center rounded-lg bg-orangeFpt-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-orangeFpt-700 border border-orangeFpt-100'>
-                                  {project.subjectCode || project.majorName?.substring(0, 3).toUpperCase() || 'PROJ'}
+                                  {project.subjectCode ||
+                                    project.majorName
+                                      ?.substring(0, 3)
+                                      .toUpperCase() ||
+                                    'PROJ'}
                                 </span>
                                 {project.lecturerName && (
-                                  <span className='inline-flex items-center gap-1 text-[11px] text-slate-500' title={`Created by ${project.lecturerName}`}>
+                                  <span
+                                    className='inline-flex items-center gap-1 text-[11px] text-slate-500'
+                                    title={`Created by ${project.lecturerName}`}
+                                  >
                                     <UserIcon className='h-3 w-3' />
-                                    <span className='truncate max-w-[100px]'>{project.lecturerName}</span>
+                                    <span className='truncate max-w-[100px]'>
+                                      {project.lecturerName}
+                                    </span>
                                   </span>
                                 )}
                               </div>
-                              <h3 className='text-base font-bold text-slate-900 line-clamp-1 group-hover:text-orangeFpt-600 transition-colors duration-200' title={project.projectName}>
+                              <h3
+                                className='text-base font-bold text-slate-900 line-clamp-1 group-hover:text-orangeFpt-600 transition-colors duration-200'
+                                title={project.projectName}
+                              >
                                 {project.projectName}
                               </h3>
                             </div>
 
                             <div className='flex flex-col items-end gap-2'>
-                              <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${getStatusColor(project.status || (project.isActive ? 'active' : 'pending'))}`}>
+                              <span
+                                className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${getStatusColor(project.status || (project.isActive ? 'active' : 'pending'))}`}
+                              >
                                 {getStatusLabel(project)}
                               </span>
                               <button
-                                onClick={e => confirmDelete(e, project.projectId)}
+                                onClick={e =>
+                                  confirmDelete(e, project.projectId)
+                                }
                                 className='opacity-0 group-hover:opacity-100 p-2 rounded-full text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all duration-200'
                                 title='Delete Project'
                               >
@@ -365,11 +392,14 @@ export default function ProjectManagement() {
                           </div>
 
                           <p className='mb-5 text-xs text-slate-500 line-clamp-2 flex-1 leading-relaxed'>
-                            {project.description || 'No description provided for this project.'}
+                            {project.description ||
+                              'No description provided for this project.'}
                           </p>
 
                           <div className='mt-auto flex items-center justify-between border-t border-slate-100 pt-4'>
-                            <span className='text-xs font-semibold text-slate-400 group-hover:text-orangeFpt-600 transition-colors'>View Details</span>
+                            <span className='text-xs font-semibold text-slate-400 group-hover:text-orangeFpt-600 transition-colors'>
+                              View Details
+                            </span>
                             <div className='flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-all duration-200 group-hover:bg-orangeFpt-100 group-hover:text-orangeFpt-600'>
                               <ArrowRight className='h-4 w-4' />
                             </div>
@@ -388,9 +418,15 @@ export default function ProjectManagement() {
                           <div className='flex-1 min-w-0'>
                             <div className='flex items-center gap-3 mb-2'>
                               <span className='inline-flex items-center rounded-lg bg-orangeFpt-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-orangeFpt-700 border border-orangeFpt-100'>
-                                {project.subjectCode || project.majorName?.substring(0, 3).toUpperCase() || 'PROJ'}
+                                {project.subjectCode ||
+                                  project.majorName
+                                    ?.substring(0, 3)
+                                    .toUpperCase() ||
+                                  'PROJ'}
                               </span>
-                              <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${getStatusColor(project.status || (project.isActive ? 'active' : 'pending'))}`}>
+                              <span
+                                className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${getStatusColor(project.status || (project.isActive ? 'active' : 'pending'))}`}
+                              >
                                 {getStatusLabel(project)}
                               </span>
                               {project.lecturerName && (
@@ -405,13 +441,17 @@ export default function ProjectManagement() {
                               {project.projectName}
                             </h3>
                             <p className='text-xs text-slate-500 truncate max-w-lg mt-1'>
-                              {project.description || 'No description available'}
+                              {project.description ||
+                                'No description available'}
                             </p>
                           </div>
 
                           <div className='flex sm:w-auto w-full gap-2'>
                             <button
-                              onClick={e => { e.stopPropagation(); handleProject(project.projectId); }}
+                              onClick={e => {
+                                e.stopPropagation();
+                                handleProject(project.projectId);
+                              }}
                               className='group/btn flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:border-orangeFpt-200 hover:bg-orangeFpt-50 hover:text-orangeFpt-700 active:scale-[0.98]'
                             >
                               <span>Details</span>
@@ -452,10 +492,13 @@ export default function ProjectManagement() {
                 <div className='p-3 bg-red-50 rounded-full border border-red-100'>
                   <AlertTriangle className='w-6 h-6 text-red-600' />
                 </div>
-                <h2 className='text-lg font-bold text-slate-800'>Delete Project?</h2>
+                <h2 className='text-lg font-bold text-slate-800'>
+                  Delete Project?
+                </h2>
               </div>
               <p className='text-slate-500 mb-6 text-sm leading-relaxed'>
-                Are you sure you want to delete this project? This action cannot be undone and will remove all associated data.
+                Are you sure you want to delete this project? This action cannot
+                be undone and will remove all associated data.
               </p>
               <div className='flex justify-end gap-3'>
                 <button
