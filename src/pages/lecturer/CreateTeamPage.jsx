@@ -100,6 +100,7 @@ const CreateTeamPage = () => {
   // Load Data Effect (Same as before)
   useEffect(() => {
     if (!classId) return;
+    console.log(semesterEndDate, semesterStartDate);
 
     const loadData = async () => {
       setLoading(true);
@@ -174,6 +175,10 @@ const CreateTeamPage = () => {
         setFormData(prev => ({ ...prev, leaderId: '' }));
       }
     } else {
+      if (selectedMembers.length >= 5) {
+        toast.error('Maximum 5 members allowed per team');
+        return;
+      }
       setSelectedMembers(prev => [...prev, student]);
       // Clear member error if adding
       if (errors.members) {
@@ -210,7 +215,7 @@ const CreateTeamPage = () => {
       const selectedEndDate = new Date(formData.endDate);
       selectedEndDate.setHours(0, 0, 0, 0);
       if (selectedEndDate > semesterEndDate) {
-        newErrors.endDate = 'End Date must be later than' + ` semester end date (${semesterEndDate.toISOString().split('T')[0]})`;
+        newErrors.endDate = 'End Date must be earlier than' + ` semester end date (${semesterEndDate.toISOString().split('T')[0]})`;
         fieldsToShake.push('endDate');
       } else {
         if (selectedEndDate < semesterStartDate) {
@@ -432,8 +437,8 @@ const CreateTeamPage = () => {
                     type="date"
                     className={getFieldClass('endDate')}
                     value={formData.endDate}
-                    min={semesterStartDate}
-                    max={semesterEndDate}
+                    min={semesterStartDate?.toISOString().split('T')[0]}
+                    max={semesterEndDate?.toISOString().split('T')[0]}
                     onChange={e => {
                       setFormData({ ...formData, endDate: e.target.value });
                       if (errors.endDate) setErrors({ ...errors, endDate: null });

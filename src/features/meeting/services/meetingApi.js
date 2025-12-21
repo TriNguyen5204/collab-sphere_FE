@@ -54,11 +54,17 @@ export const deleteMeeting = async meetingId => {
     throw error;
   }
 };
-export const getRecordUrl = async (videoFile) => {
+export const getRecordUrl = async (videoFile, onUploadProgress) => {
   const formData = new FormData();
   formData.append('VideoFile', videoFile);
   const response = await apiClient.post('/video/uploadation', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: (progressEvent) => {
+      if (onUploadProgress) {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        onUploadProgress(percentCompleted);
+      }
+    }
   });
   return response.data;
 };

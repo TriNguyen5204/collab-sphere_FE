@@ -75,11 +75,11 @@ const RecordUrlCell = ({ recordUrl }) => {
           href={recordUrl}
           target='_blank'
           rel='noopener noreferrer'
-          className='text-sm text-blue-600 hover:text-blue-800 hover:underline truncate block max-w-[200px]'
+          className='text-sm text-blue-600 hover:text-blue-800 hover:underline truncate block'
           title={recordUrl}
           onClick={(e) => e.stopPropagation()}
         >
-          {truncateUrl(recordUrl)}
+          {(recordUrl)}
         </a>
         <span className='text-xs text-slate-500'>
           {isGoogleDriveDownload ? 'Download link' : 'Recording link'}
@@ -99,15 +99,6 @@ const RecordUrlCell = ({ recordUrl }) => {
           ) : (
             <Copy className='h-4 w-4 text-slate-600' />
           )}
-        </button>
-
-        {/* Open in New Tab Button */}
-        <button
-          onClick={handleOpen}
-          className='p-1.5 hover:bg-slate-100 rounded-lg transition-colors'
-          title='Open in new tab'
-        >
-          <ExternalLink className='h-4 w-4 text-slate-600' />
         </button>
       </div>
     </div>

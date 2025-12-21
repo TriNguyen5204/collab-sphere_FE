@@ -144,6 +144,7 @@ const ProjectDetail = () => {
    const [isEditSaving, setIsEditSaving] = useState(false);
    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
    const [isDeleteSubmitting, setIsDeleteSubmitting] = useState(false);
+   const [isDenied, setIsDenied] = useState(false);
 
    // --- Fetch Data ---
    const fetchProject = useCallback(async (silent = false) => {
@@ -152,6 +153,11 @@ const ProjectDetail = () => {
       try {
          const data = await getProjectDetail(projectId);
          console.log('API Response - Project Detail:', data);
+         if(data.statusString && data.statusString.toUpperCase() === 'DENIED') {
+            setIsDenied(true);
+         } else { 
+            setIsDenied(false);
+         }
          setProject(data);
       } catch (err) {
          toast.error('Failed to load project details.');
@@ -355,7 +361,7 @@ const ProjectDetail = () => {
                   </div>
 
                   {/* Quick Actions */}
-                  {isPending && (
+                  {isPending || isDenied && (
                      <div className="flex flex-col gap-3 sm:flex-row">
                         <button
                            onClick={handleOpenEdit}
@@ -373,6 +379,17 @@ const ProjectDetail = () => {
                   )}
                </div>
             </header>
+
+            {/* --- REJECTION REASON ALERT --- */}
+            {(statusKey === 'DENIED' || statusKey === 'REJECTED') && project.rejectReason && (
+               <div className="rounded-2xl border border-red-200 bg-red-50 p-4 flex items-start gap-3 animate-in fade-in slide-in-from-top-4 duration-500">
+                  <AlertCircle className="text-red-600 shrink-0 mt-0.5" size={20} />
+                  <div>
+                     <h3 className="text-sm font-bold text-red-800 mb-1">Rejection Reason</h3>
+                     <p className="text-sm text-red-700 leading-relaxed">{project.rejectReason}</p>
+                  </div>
+               </div>
+            )}
 
             {/* --- BENTO GRID CONTENT --- */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

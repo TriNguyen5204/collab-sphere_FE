@@ -56,7 +56,7 @@ export default function GoogleMeetStage() {
         </>
       ) : (
         /* --- STANDARD DYNAMIC GRID LAYOUT --- */
-        tracks.length === 0 ? (
+        cameraTracks.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-[#9aa0a6] w-full h-full">
             <div className="w-24 h-24 bg-[#3c4043] rounded-full flex items-center justify-center mb-4">
               <Users className="w-10 h-10" />

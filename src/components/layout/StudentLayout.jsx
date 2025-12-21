@@ -1,8 +1,29 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import StudentHeader from './StudentHeader';
 import StudentSidebar from './StudentSidebar';
+import AIChatAssistant from '../../features/ai/components/AIChatAssistant';
 
 const StudentLayout = ({ children }) => {
+  const location = useLocation();
+
+  const showChatAssistant = useMemo(() => {
+    const path = location.pathname;
+    // Define paths where the chat assistant should be visible
+    const allowedPaths = [
+      '/student',
+    ];
+
+    // Define paths where the chat assistant should be hidden
+    const excludedPaths = [
+      // Add any specific paths to exclude here
+    ];
+
+    if (excludedPaths.some(p => path.startsWith(p))) return false;
+
+    return allowedPaths.some(p => path === p || path.startsWith(p));
+  }, [location.pathname]);
+
   return (
     <div className='min-h-screen w-full bg-slate-50 flex flex-col'>
       <StudentHeader />
@@ -14,6 +35,7 @@ const StudentLayout = ({ children }) => {
           {children}
         </main>
       </div>
+      {showChatAssistant && <AIChatAssistant />}
     </div>
   );
 };
