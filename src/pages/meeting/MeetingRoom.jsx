@@ -845,23 +845,21 @@ export default function MeetingRoom() {
   const { roomId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Get teamId from multiple sources (priority order):
-  // 1. Navigation state (from RoomJoinPage)
-  // 2. localStorage (from TeamContext - stored when user visits team-workspace)
-  // 3. Meeting API lookup (fallback)
   const stateTeamId = location.state?.teamId;
+  const stateMeetingId = location.state?.meetingId; // Get meetingId from navigation state
   const storedTeamId = useMemo(() => getTeamIdFromStorage(), []);
 
   // Get user info from Redux
   const fullName = useSelector(state => state.user.fullName);
   const userId = useSelector(state => state.user.userId);
+  const roleName = useSelector(state => state.user.roleName); // Get roleName from Redux
 
   const [token, setToken] = useState('');
   const [error, setError] = useState(null);
 
   // Resolved teamId - from state, localStorage, OR looked up from meeting API
   const [resolvedTeamId, setResolvedTeamId] = useState(stateTeamId || storedTeamId);
+  const [resolvedMeetingId, setResolvedMeetingId] = useState(stateMeetingId); // Store resolved meetingId
   const [isResolvingTeamId, setIsResolvingTeamId] = useState(!stateTeamId && !storedTeamId);
 
   // Host state
@@ -872,29 +870,17 @@ export default function MeetingRoom() {
     return `${fullName || 'Guest'} (${userId || Math.floor(Math.random() * 1000)})`;
   }, [fullName, userId]);
 
-  // Resolve teamId from meeting API if not in navigation state or localStorage (direct URL access)
   useEffect(() => {
     const resolveTeamIdFromMeeting = async () => {
-      // If we already have teamId from state or localStorage, use it
-      if (stateTeamId || storedTeamId) {
-        const teamId = stateTeamId || storedTeamId;
-        console.log('[MeetingRoom] Using teamId from', stateTeamId ? 'navigation state' : 'localStorage', ':', teamId);
-        setResolvedTeamId(teamId);
-        setIsResolvingTeamId(false);
-        return;
-      }
 
-      // Fallback: Try to find the meeting by URL to get teamId
       try {
-        console.log('[MeetingRoom] No teamId in state/localStorage, attempting to look up from meeting API...');
+        console.log('[MeetingRoom] Attempting to look up meeting details from API...');
 
-        // Try to find meeting with matching URL
         const response = await getMeeting({ pageNum: 1, pageSize: 100 });
 
         if (response?.isSuccess && response.paginatedMeeting?.list) {
           const meetings = response.paginatedMeeting.list;
 
-          // Find meeting where meetingUrl contains our roomId
           const matchingMeeting = meetings.find(meeting => {
             if (!meeting.meetingUrl) return false;
             return meeting.meetingUrl.includes(roomId);
@@ -907,17 +893,25 @@ export default function MeetingRoom() {
               title: matchingMeeting.title
             });
             setResolvedTeamId(matchingMeeting.teamId);
+            setResolvedMeetingId(matchingMeeting.meetingId); // Set meetingId from API
           } else {
             console.log('[MeetingRoom] No matching meeting found for roomId:', roomId);
-            setResolvedTeamId(null);
+            // Only clear if we don't have state/stored values
+            if (!stateTeamId && !storedTeamId) {
+              setResolvedTeamId(null);
+            }
           }
         } else {
-          console.log('[MeetingRoom] Failed to fetch meetings for teamId lookup');
-          setResolvedTeamId(null);
+          console.log('[MeetingRoom] Failed to fetch meetings for lookup');
+          if (!stateTeamId && !storedTeamId) {
+            setResolvedTeamId(null);
+          }
         }
       } catch (error) {
-        console.error('[MeetingRoom] Error resolving teamId from meeting API:', error);
-        setResolvedTeamId(null);
+        console.error('[MeetingRoom] Error resolving meeting details:', error);
+        if (!stateTeamId && !storedTeamId) {
+          setResolvedTeamId(null);
+        }
       } finally {
         setIsResolvingTeamId(false);
       }
@@ -959,7 +953,19 @@ export default function MeetingRoom() {
   }, [roomId, fullName, participantIdentity]);
 
   const handleLeave = () => {
-    navigate('/meeting');
+    if (roleName === 'LECTURER') {
+      navigate('/lecturer/meetings');
+    } else if (roleName === 'STUDENT') {
+      // For students, we might want to go back to the meeting list for the specific team
+      // If we have resolvedTeamId, use it. Otherwise, go to a general student page or back to home.
+      if (resolvedTeamId) {
+        navigate(`/student/meeting/history/${resolvedTeamId}`);
+      } else {
+        navigate('/student'); // Fallback
+      }
+    } else {
+      navigate('/'); // Default fallback for other roles
+    }
   };
 
   if (error) {
@@ -1000,12 +1006,12 @@ export default function MeetingRoom() {
       style={{ height: '100vh', backgroundColor: '#202124' }}
       onDisconnected={handleLeave}
     >
-      <MeetingContent roomId={roomId} onLeave={handleLeave} isHost={isHost} />
+      <MeetingContent roomId={roomId} resolvedTeamId={resolvedTeamId} resolvedMeetingId={resolvedMeetingId} onLeave={handleLeave} isHost={isHost} />
     </LiveKitRoom>
   );
 }
 
-function MeetingContent({ roomId, onLeave, isHost }) {
+function MeetingContent({ roomId, resolvedTeamId, resolvedMeetingId, onLeave, isHost }) {
   const connectionState = useConnectionState();
   const room = useRoomContext();
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -1038,15 +1044,23 @@ function MeetingContent({ roomId, onLeave, isHost }) {
     recordingUserId,
     isUploading,
     uploadProgress,
-    isDownloading,
     recordingError,
-    toggleRecording,
+    startRecording,
+    stopRecording,
     handleRecordingMessage,
   } = useLiveKitRecorder({
-    meetingId: roomId,
+    meetingId: resolvedMeetingId || resolvedTeamId, // Use resolvedMeetingId if available, fallback to teamId
     currentUserId: localParticipant?.identity,
     sendDataChannelMessage,
   });
+
+  const toggleRecording = async () => {
+    if (isRecording) {
+      await stopRecording();
+    } else {
+      await startRecording();
+    }
+  };
 
   // Show recording errors via toast
   useEffect(() => {

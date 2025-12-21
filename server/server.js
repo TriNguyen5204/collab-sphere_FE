@@ -5,9 +5,6 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Store waiting participants per room
-const waitingRooms = new Map(); // roomName -> Set of { participantId, participantName, timestamp }
-
 // Store room hosts
 const roomHosts = new Map(); // roomName -> hostIdentity
 
@@ -51,7 +48,6 @@ app.get('/api/meeting/token', async (req, res) => {
   }
 
   try {
-    const isTeam = isTeamMember === 'true';
     const isLecturerFlag = isLecturer === 'true';
     
     // Determine host status
@@ -69,139 +65,14 @@ app.get('/api/meeting/token', async (req, res) => {
       isHost = true;
     }
 
-    // Team members join directly, non-team members need waiting room
-    if (isTeam || isHost) {
-      const token = await createToken(roomName, participantName, isHost, true);
-      res.json({ token, isHost, needsApproval: false });
-    } else {
-      // Non-team member needs to wait for approval
-      res.json({ token: null, isHost: false, needsApproval: true, participantName });
-    }
+    // Everyone joins directly now (no waiting room)
+    const token = await createToken(roomName, participantName, isHost, true);
+    res.json({ token, isHost, needsApproval: false });
+
   } catch (error) {
     console.error('Error generating token:', error);
     res.status(500).json({ error: 'Failed to generate token' });
   }
-});
-
-// Request to join waiting room
-app.post('/api/meeting/waiting-room/join', (req, res) => {
-  const { roomName, participantId, participantName } = req.body;
-
-  if (!roomName || !participantId || !participantName) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
-
-  if (!waitingRooms.has(roomName)) {
-    waitingRooms.set(roomName, new Map());
-  }
-
-  const waitingRoom = waitingRooms.get(roomName);
-  waitingRoom.set(participantId, {
-    participantId,
-    participantName,
-    timestamp: Date.now(),
-  });
-
-  res.json({ success: true, message: 'Added to waiting room' });
-});
-
-// Get waiting room participants (for host)
-app.get('/api/meeting/waiting-room/:roomName', (req, res) => {
-  const { roomName } = req.params;
-  
-  const waitingRoom = waitingRooms.get(roomName);
-  if (!waitingRoom) {
-    return res.json({ participants: [] });
-  }
-
-  const participants = Array.from(waitingRoom.values()).sort((a, b) => a.timestamp - b.timestamp);
-  res.json({ participants });
-});
-
-// Approve participant
-app.post('/api/meeting/waiting-room/approve', async (req, res) => {
-  const { roomName, participantId, participantName } = req.body;
-
-  if (!roomName || !participantId) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
-
-  try {
-    // Remove from waiting room
-    const waitingRoom = waitingRooms.get(roomName);
-    if (waitingRoom) {
-      waitingRoom.delete(participantId);
-    }
-
-    // Generate token for approved participant
-    const token = await createToken(roomName, participantName, false, true);
-    res.json({ success: true, token });
-  } catch (error) {
-    console.error('Error approving participant:', error);
-    res.status(500).json({ error: 'Failed to approve participant' });
-  }
-});
-
-// Reject participant
-app.post('/api/meeting/waiting-room/reject', (req, res) => {
-  const { roomName, participantId } = req.body;
-
-  if (!roomName || !participantId) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
-
-  const waitingRoom = waitingRooms.get(roomName);
-  if (waitingRoom) {
-    waitingRoom.delete(participantId);
-  }
-
-  res.json({ success: true, message: 'Participant rejected' });
-});
-
-// Approve all waiting participants
-app.post('/api/meeting/waiting-room/approve-all', async (req, res) => {
-  const { roomName } = req.body;
-
-  if (!roomName) {
-    return res.status(400).json({ error: 'Missing roomName' });
-  }
-
-  try {
-    const waitingRoom = waitingRooms.get(roomName);
-    if (!waitingRoom || waitingRoom.size === 0) {
-      return res.json({ success: true, approved: [] });
-    }
-
-    const approved = [];
-    for (const [participantId, participant] of waitingRoom.entries()) {
-      const token = await createToken(roomName, participant.participantName, false, true);
-      approved.push({ participantId, participantName: participant.participantName, token });
-    }
-
-    // Clear waiting room
-    waitingRoom.clear();
-
-    res.json({ success: true, approved });
-  } catch (error) {
-    console.error('Error approving all participants:', error);
-    res.status(500).json({ error: 'Failed to approve participants' });
-  }
-});
-
-// Leave waiting room
-app.post('/api/meeting/waiting-room/leave', (req, res) => {
-  const { roomName, participantId } = req.body;
-
-  if (!roomName || !participantId) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
-
-  const waitingRoom = waitingRooms.get(roomName);
-  if (waitingRoom) {
-    waitingRoom.delete(participantId);
-  }
-
-  res.json({ success: true });
 });
 
 // Host heartbeat - called periodically by host to indicate they're still connected
@@ -368,27 +239,6 @@ app.get('/api/meeting/status/:roomName', (req, res) => {
       ? 'Host temporarily disconnected, waiting for reconnection...' 
       : 'Meeting is active'
   });
-});
-
-// Clean up when room is empty
-app.post('/api/meeting/room/cleanup', (req, res) => {
-  const { roomName } = req.body;
-
-  if (roomName) {
-    waitingRooms.delete(roomName);
-    roomHosts.delete(roomName);
-    
-    // Clear any grace period timeout before deleting
-    const presence = hostPresence.get(roomName);
-    if (presence && presence.gracePeriodTimeout) {
-      clearTimeout(presence.gracePeriodTimeout);
-    }
-    hostPresence.delete(roomName);
-    
-    console.log(`[Room Cleanup] Room ${roomName} cleaned up`);
-  }
-
-  res.json({ success: true });
 });
 
 app.listen(port, () => {

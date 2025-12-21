@@ -178,40 +178,62 @@ pipeline {
         stage('Deploy to App Server') {
             steps {
                 script {
-                    echo "=== DEPLOYING TO APP SERVER ==="
+                    echo "=== DEPLOYING STACK TO APP SERVER ==="
                     echo "Target: ${env.APP_SERVER_IP}"
-                    echo "Image: ${env.DOCKER_IMAGE_NAME}"
                     
-                    sshagent(credentials: [env.WORKING_SSH_CREDENTIAL]) {
-                        sh """
-                            ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_SERVER_IP} '
-                                echo "Pulling latest image on App Server..."
-                                docker pull ${env.DOCKER_IMAGE_NAME}
-                                
-                                echo "Stopping old container..."
-                                docker stop collabsphere-app || true
-                                docker rm collabsphere-app || true
-                                
-                                echo "Starting new container..."
-                                docker run -d \\
-                                    --name collabsphere-app \\
-                                    --restart unless-stopped \\
-                                    -p 80:80 \\
-                                    ${env.DOCKER_IMAGE_NAME}
-                                
-                                echo "Waiting for container to start..."
-                                sleep 5
-                                
-                                echo "Checking container status..."
-                                docker ps | grep collabsphere-app || {
-                                    echo "❌ Container failed to start"
-                                    docker logs collabsphere-app
-                                    exit 1
-                                }
-                                
-                                echo "✅ Deployment successful!"
-                            '
-                        """
+                    // Lấy secrets từ Jenkins Credentials
+                    withCredentials([
+                        string(credentialsId: 'LIVEKIT_API_KEY', variable: 'LK_KEY'),
+                        string(credentialsId: 'LIVEKIT_API_SECRET', variable: 'LK_SECRET'),
+                        string(credentialsId: 'LIVEKIT_URL', variable: 'LK_URL')
+                    ]) {
+                        sshagent(credentials: [env.WORKING_SSH_CREDENTIAL]) {
+                            sh """
+                                ssh -o StrictHostKeyChecking=no ubuntu@${env.APP_SERVER_IP} '
+                                    # 1. Tạo file docker-compose.yml
+                                    cat <<EOF > docker-compose.yml
+version: "3.8"
+services:
+  token-server:
+    image: nguyense21/collabsphere-token-server:latest
+    container_name: collabsphere-token-server
+    restart: unless-stopped
+    environment:
+      - LIVEKIT_API_KEY=${LK_KEY}
+      - LIVEKIT_API_SECRET=${LK_SECRET}
+      - LIVEKIT_URL=${LK_URL}
+    networks:
+      - app-network
+
+  frontend:
+    image: nguyense21/collabsphere-frontend:latest
+    container_name: collabsphere-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - token-server
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+EOF
+
+                                    # 2. Pull images mới nhất
+                                    echo "Pulling latest images..."
+                                    docker-compose pull
+
+                                    # 3. Restart services
+                                    echo "Restarting stack..."
+                                    docker-compose up -d --remove-orphans
+                                    
+                                    # 4. Cleanup
+                                    docker image prune -f
+                                '
+                            """
+                        }
                     }
                 }
             }
