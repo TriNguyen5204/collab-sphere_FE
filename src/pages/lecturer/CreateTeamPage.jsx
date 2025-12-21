@@ -175,8 +175,8 @@ const CreateTeamPage = () => {
         setFormData(prev => ({ ...prev, leaderId: '' }));
       }
     } else {
-      if (selectedMembers.length >= 5) {
-        toast.error('Maximum 5 members allowed per team');
+      if (selectedMembers.length >= 6) {
+        toast.error('Maximum 6 members allowed per team');
         return;
       }
       setSelectedMembers(prev => [...prev, student]);
@@ -416,7 +416,7 @@ const CreateTeamPage = () => {
                 <h2 className="text-lg font-bold text-slate-800">Team Information</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="mb-6">
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-700">Team Name <span className="text-red-500">*</span></label>
                   <input
@@ -431,7 +431,7 @@ const CreateTeamPage = () => {
                   />
                   {errors.teamName && <p className="text-xs text-red-500 animate-pulse">{errors.teamName}</p>}
                 </div>
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-700">End Date <span className="text-red-500">*</span></label>
                   <input
                     type="date"
@@ -445,7 +445,7 @@ const CreateTeamPage = () => {
                     }}
                   />
                   {errors.endDate && <p className="text-xs text-red-500 animate-pulse">{errors.endDate}</p>}
-                </div>
+                </div> */}
               </div>
 
               <div className="space-y-6">

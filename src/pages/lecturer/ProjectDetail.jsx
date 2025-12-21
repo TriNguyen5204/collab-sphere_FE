@@ -83,9 +83,27 @@ const ACTOR_CONFIG = {
 // --- Helpers ---
 const resolveProjectStatusKey = (project) => {
    if (!project) return 'PENDING';
-   if (project.statusString) return project.statusString.toUpperCase();
-   if (typeof project.status === 'string') return project.status.toUpperCase();
-   if (typeof project.status === 'number') return STATUS_CODE_MAP[project.status] ?? 'PENDING';
+   
+   // 1. Try statusString
+   if (project.statusString) {
+      const key = project.statusString.toUpperCase();
+      if (STATUS_CONFIG[key]) return key;
+   }
+
+   // 2. Try status as number (or string number)
+   if (project.status !== undefined && project.status !== null) {
+      const code = Number(project.status);
+      if (!isNaN(code) && STATUS_CODE_MAP[code]) {
+         return STATUS_CODE_MAP[code];
+      }
+      
+      // 3. Try status as string key
+      if (typeof project.status === 'string') {
+         const key = project.status.toUpperCase();
+         if (STATUS_CONFIG[key]) return key;
+      }
+   }
+
    return 'PENDING';
 };
 
