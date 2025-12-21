@@ -922,35 +922,57 @@ export default function MeetingRoom() {
 
   // Fetch token directly
   useEffect(() => {
-    if (!roomId || !fullName) return;
+    if (!roomId) return;
 
     const fetchToken = async () => {
       try {
-        const tokenServerUrl = import.meta.env.VITE_TOKEN_SERVER_URL || 'http://localhost:5000';
-        console.log('[MeetingRoom] Fetching token');
+        let tokenServerUrl = import.meta.env.VITE_TOKEN_SERVER_URL;
+        if (!tokenServerUrl || tokenServerUrl === 'http://api') {
+             tokenServerUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : '';
+        }
+
+        if (tokenServerUrl.endsWith('/')) {
+            tokenServerUrl = tokenServerUrl.slice(0, -1);
+        }
+
+        const effectiveName = fullName || `Guest-${Math.floor(Math.random() * 1000)}`;
+        const identity = `${effectiveName} (${userId || 'anon'})`;
+
+        console.log('[MeetingRoom] Fetching token from:', `${tokenServerUrl}/api/meeting/token`);
+        
         const resp = await fetch(
-          `${tokenServerUrl}/api/meeting/token?roomName=${roomId}&participantName=${encodeURIComponent(participantIdentity)}&isTeamMember=true`
+          `${tokenServerUrl}/api/meeting/token?roomName=${roomId}&participantName=${encodeURIComponent(identity)}&isTeamMember=true`
         );
 
         if (!resp.ok) {
-          throw new Error('Failed to fetch token');
+          // Kiểm tra xem response có phải là JSON không
+          const contentType = resp.headers.get("content-type");
+          if (contentType && contentType.indexOf("application/json") !== -1) {
+            const errData = await resp.json();
+            throw new Error(errData.error || `Failed to fetch token: ${resp.status}`);
+          } else {
+            // Nếu không phải JSON (ví dụ HTML lỗi 404/500 từ proxy), đọc text để debug
+            const text = await resp.text();
+            console.error('[MeetingRoom] Non-JSON response:', text.substring(0, 200));
+            throw new Error(`Server returned non-JSON response (${resp.status}). Check server URL.`);
+          }
         }
 
         const data = await resp.json();
-        console.log('[MeetingRoom] Token response:', data);
+        console.log('[MeetingRoom] Token received successfully');
 
         setToken(data.token);
         if (data.isHost) {
           setIsHost(true);
         }
       } catch (e) {
-        console.error(e);
-        setError('Failed to connect to meeting server');
+        console.error('[MeetingRoom] Token Error:', e);
+        setError(e.message || 'Failed to connect to meeting server');
       }
     };
 
     fetchToken();
-  }, [roomId, fullName, participantIdentity]);
+  }, [roomId, fullName, userId]);
 
   const handleLeave = () => {
     if (roleName === 'LECTURER') {
