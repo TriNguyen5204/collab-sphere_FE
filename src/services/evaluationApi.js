@@ -136,3 +136,16 @@ export const submitMemberEvaluations = async (teamId, memberScores = []) => {
   return response.data;
 };
 
+export const getAllMemberEvaluationsInTeam = async (teamId) => {
+  validateIdentifier(teamId, 'teamId');
+  try {
+    const response = await apiClient.get(`/evaluate/member/team/${teamId}/lecturer`);
+    return response.data;
+  } catch (error) {
+    if (error?.response?.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+};
+

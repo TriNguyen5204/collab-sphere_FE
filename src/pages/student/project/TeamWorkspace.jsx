@@ -256,7 +256,7 @@ const TeamWorkspace = () => {
                       Team Members ({team?.memberInfo?.memberCount ?? 0})
                     </h2>
                     {teamLoading ? (
-                      <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                      <div className="space-y-3">
                         {Array.from({ length: 5 }).map((_, i) => (
                           <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
                             <Skeleton className="h-12 w-12 rounded-full" />
@@ -272,7 +272,7 @@ const TeamWorkspace = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                      <div className="space-y-3 max-h-[325px] overflow-y-auto custom-scrollbar pr-1">
                         {(team?.memberInfo?.members ?? []).map((member) => (
                           <div key={member.studentId} className="flex items-center justify-between gap-3 p-4 border rounded-lg hover:bg-gray-50 transition">
                             <div className="flex items-center gap-4">
@@ -293,15 +293,15 @@ const TeamWorkspace = () => {
                             </div>
                             {/* Contribution Stats */}
                             <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 rounded-lg border border-indigo-100">
-                                <span className="text-sm text-indigo-600 font-semibold">Questions</span>
-                                <span className="text-lg font-bold text-indigo-700">
+                              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-50 rounded-lg border border-indigo-100 ">
+                                <span className="text-xs text-indigo-600 font-semibold">Questions</span>
+                                <span className="text-md font-bold text-indigo-700">
                                   {member.milestoneAnsContributionPercentage ? Math.round(member.milestoneAnsContributionPercentage * 100) : 0}%
                                 </span>
                               </div>
-                              <div className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 rounded-lg border border-emerald-100">
-                                <span className="text-sm text-emerald-600 font-semibold">Checkpoints</span>
-                                <span className="text-lg font-bold text-emerald-700">
+                              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 rounded-lg border border-emerald-100">
+                                <span className="text-xs text-emerald-600 font-semibold">Checkpoints</span>
+                                <span className="text-md font-bold text-emerald-700">
                                   {member.checkpointContributionPercentage ? Math.round(member.checkpointContributionPercentage * 100) : 0}%
                                 </span>
                               </div>

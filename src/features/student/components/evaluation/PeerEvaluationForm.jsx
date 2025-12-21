@@ -90,7 +90,7 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
 
     const payload = {
       evaluatorDetails: members.map((m) => ({
-        receiverId: m.studentId ?? m.id ?? m.userId ?? m.memberId ?? m.accountId ?? m.receiverId ?? m.user?.id,
+        receiverId: m.studentId,
         scoreDetails: CRITERIA.map((c) => ({
           scoreDetailName: c,
           score: Number(ratings[m._memberKey]?.[c] || 0),
@@ -101,6 +101,7 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
     // Call api to submit peer evaluation
     try {
       setSubmitting(true);
+      console.log('Submitting peer evaluation payload:', payload);
 
       const res = await postSubmitPeerEvaluation(teamId, payload);
       console.log('Submit peer evaluation response:', res);
@@ -128,69 +129,75 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
   const { team } = useTeam();
   const teamOverAllProgress = team?.teamProgress?.overallProgress ?? 0;
   // Call api get own evaluation to prefill if exists
-  const fetchOwnEvaluation = async () => {
-    setLoading(true);
-    try {
-      console.log('Fetching own evaluation for teamId:', team);
-      const response = await getOwnEvaluationByTeamId(teamId);
-      const detailsArr = (
-        response?.ownEvaluations ?? response?.data ?? []
-      );
-
-      if (Array.isArray(detailsArr) && detailsArr.length) {
-        const map = new Map();
-        for (const item of detailsArr) {
-          const rid = String(
-            item?.receiverId ?? item?.receiverUserId ?? item?.userId ?? item?.studentId ?? item?.accountId ?? ''
-          );
-          const sd = Array.isArray(item?.scoreDetails)
-            ? item?.scoreDetails
-            : Array.isArray(item?.details)
-              ? item?.details
-              : Array.isArray(item?.scores)
-                ? item?.scores
-                : [];
-
-          const row = {};
-          for (const d of sd) {
-            const name = d?.scoreDetailName ?? d?.name ?? d?.criterion ?? '';
-            const val = Number(d?.score ?? d?.value ?? 0);
-            if (name) row[name] = val;
-          }
-          if (rid) map.set(rid, row);
-        }
-
-        setRatings((prev) => {
-          const next = { ...prev };
-          members.forEach((m, idx) => {
-            const rawId = String(
-              m.studentId ?? m.userId ?? m.id ?? m.memberId ?? m.accountId ?? m.receiverId ?? m.user?.id ?? ''
-            );
-            const existing = map.get(rawId) || {};
-            const entry = { ...(next[m._memberKey] || {}) };
-            CRITERIA.forEach((c) => {
-              entry[c] = Number(existing[c] ?? entry[c] ?? 0);
-            });
-            next[m._memberKey] = entry;
-          });
-          return next;
-        });
-        setPrefilled(true);
-      } else {
-        setPrefilled(false);
-      }
-    } catch (error) {
-      console.error('Error fetching own evaluation:', error);
-      setPrefilled(false);
-    } finally {
-      setLoading(false);
-    }
-  };
   useEffect(() => {
-    if (teamId) {
-      fetchOwnEvaluation();
-    }
-  }, [teamId]);
+    if (!teamId || members.length === 0) return;
+
+    const fetchOwnEvaluation = async () => {
+      setLoading(true);
+      try {
+        const response = await getOwnEvaluationByTeamId(teamId);
+        console.log('Fetched own evaluation response:', response);
+        const detailsArr = Array.isArray(response)
+          ? response
+          : (response?.ownEvaluations ?? response?.data ?? []);
+        
+        if (Array.isArray(detailsArr) && detailsArr.length) {
+          const map = new Map();
+          for (const item of detailsArr) {
+            const rid = String(
+              item?.receiverId ?? item?.receiverUserId ?? item?.userId ?? item?.studentId ?? item?.accountId ?? ''
+            );
+            const rcode = item?.receiverCode;
+            const sd = Array.isArray(item?.scoreDetails)
+              ? item?.scoreDetails
+              : Array.isArray(item?.scoreDetailName)
+                ? item?.scoreDetailName
+                : Array.isArray(item?.score)
+                  ? item?.score
+                  : [];
+            const row = {};
+            for (const d of sd) {
+              const name = d?.scoreDetailName ?? d?.name ?? d?.criterion ?? '';
+              const val = Number(d?.score ?? d?.value ?? 0);
+              if (name) row[name] = val;
+            }
+            if (rid) map.set(rid, row);
+            if (rcode) map.set(rcode, row);
+          }
+
+          setRatings((prev) => {
+            const next = { ...prev };
+            
+            members.forEach((m, idx) => {
+              const rawId = String(
+                m?.classMemberId ??''
+              );
+              const rawCode = m.code ?? m.studentCode ?? m.rollNumber ?? '';
+              const existing = map.get(rawId) || (rawCode ? map.get(rawCode) : undefined);
+              const entry = { ...(next[m._memberKey] || {}) };
+              if (existing) {
+                CRITERIA.forEach((c) => {
+                  entry[c] = Number(existing[c] ?? entry[c] ?? 0);
+                });
+              }
+              next[m._memberKey] = entry;
+            });
+            return next;
+          });
+          setPrefilled(true);
+        } else {
+          setPrefilled(false);
+        }
+      } catch (error) {
+        console.error('Error fetching own evaluation:', error);
+        setPrefilled(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOwnEvaluation();
+  }, [teamId, members]);
 
   const MemberAvatar = ({ name, src, alt, className }) => {
     const { initials, colorClass, setImageError, shouldShowImage } = useAvatar(name, src);
@@ -242,11 +249,11 @@ const PeerEvaluationForm = ({ teamMembers = [], teamId, onSubmitted }) => {
               <table className="min-w-full border-separate border-spacing-y-3">
                 <thead>
                   <tr className="text-left text-sm text-gray-600">
-                    <th className="px-3 py-2">Member</th>
+                    <th className="px-3 py-2 w-[20%]">Member</th>
                     {CRITERIA.map((c) => (
-                      <th key={c} className="px-3 py-2 font-medium">{c}</th>
+                      <th key={c} className="px-3 py-2 font-medium w-[25%]">{c}</th>
                     ))}
-                    <th className="px-3 py-2">Total</th>
+                    <th className="px-3 py-2 w-[5%]">Total</th>
                   </tr>
                 </thead>
                 <tbody>
