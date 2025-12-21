@@ -221,21 +221,17 @@ networks:
     driver: bridge
 EOF
 
-                                    # 1. Login Docker Hub (Optional but good practice)
-                                    # echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
+                                    # echo "\${DOCKER_PASSWORD}" | docker login -u "\${DOCKER_USERNAME}" --password-stdin
 
-                                    # 2. Dọn dẹp Image cũ & Container cũ (QUAN TRỌNG)
                                     echo "Cleaning up old containers and images..."
                                     docker-compose down || true
                                     docker rmi nguyense21/collabsphere-frontend:latest || true
                                     docker rmi nguyense21/collabsphere-token-server:latest || true
                                     docker image prune -f
 
-                                    # 3. Pull images mới nhất từ Docker Hub
                                     echo "Pulling latest images..."
                                     docker-compose pull
 
-                                    # 4. Khởi động lại stack
                                     echo "Starting application stack..."
                                     docker-compose up -d --remove-orphans
                                 '
