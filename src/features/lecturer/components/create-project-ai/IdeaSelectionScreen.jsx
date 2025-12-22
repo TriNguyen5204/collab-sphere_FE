@@ -322,6 +322,85 @@ const IdeaCard = ({
               : idea.description || 'No description provided.'}
           </p>
 
+          {/* Tech Stack Analysis - New Section */}
+          {idea.techStackAnalysis ? (
+            <div className="mb-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Layers size={10} className={isSelected ? 'text-orange-600' : 'text-slate-400'} />
+                <p className={`text-[10px] font-semibold uppercase tracking-wider ${
+                  isSelected ? 'text-orange-600' : 'text-slate-400'
+                }`}>
+                  Tech Stack
+                </p>
+              </div>
+              
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {/* User Selected Tags */}
+                {idea.techStackAnalysis.userSelected?.map((tech, idx) => (
+                  <span 
+                    key={`user-${idx}`}
+                    className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${
+                      isSelected 
+                        ? 'bg-blue-50 text-blue-600 border-blue-200' 
+                        : 'bg-slate-50 text-slate-500 border-slate-200'
+                    }`}
+                  >
+                    {tech}
+                  </span>
+                ))}
+                
+                {/* AI Recommended Tags */}
+                {idea.techStackAnalysis.aiRecommended?.map((tech, idx) => (
+                  <span 
+                    key={`ai-${idx}`}
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${
+                      isSelected 
+                        ? 'bg-purple-50 text-purple-600 border-purple-200' 
+                        : 'bg-slate-50 text-slate-500 border-slate-200'
+                    }`}
+                  >
+                    <Sparkles size={8} />
+                    {tech}
+                  </span>
+                ))}
+              </div>
+
+              {/* Reasoning */}
+              {idea.techStackAnalysis.reasoning && (
+                <div className="flex items-start gap-1.5 text-[10px] text-slate-400 leading-tight">
+                  <AlertCircle size={10} className="mt-0.5 flex-shrink-0" />
+                  <p>AI Suggestion: {idea.techStackAnalysis.reasoning}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Fallback for legacy data */
+            idea.tech_stack && (
+              <div className="mb-4">
+                <p className={`text-[10px] font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5 ${
+                  isSelected ? 'text-orange-600' : 'text-slate-400'
+                }`}>
+                  <Layers size={10} />
+                  Tech Stack
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {Array.isArray(idea.tech_stack) ? idea.tech_stack.map((tech, idx) => (
+                    <span 
+                      key={idx}
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${
+                        isSelected 
+                          ? 'bg-slate-100 text-slate-600 border-slate-200' 
+                          : 'bg-slate-50 text-slate-500 border-slate-200'
+                      }`}
+                    >
+                      {tech}
+                    </span>
+                  )) : null}
+                </div>
+              </div>
+            )
+          )}
+
           {/* Business Rules Preview - Softer */}
           {businessRulesPreview.length > 0 && (
             <div className={`mb-4 p-3 rounded-lg border transition-all ${
@@ -454,6 +533,7 @@ const EditIdeaModal = ({ idea, onSave, onClose }) => {
     { id: 'basic', label: 'Basic Info', icon: FileText },
     { id: 'rules', label: 'Business Rules', icon: BookOpen },
     { id: 'actors', label: 'Actors & Roles', icon: Users },
+    { id: 'tech', label: 'Tech Stack', icon: Layers },
   ];
 
   // Business Rules Handlers
@@ -852,6 +932,102 @@ const EditIdeaModal = ({ idea, onSave, onClose }) => {
                 
               </motion.div>
             )}
+
+            {/* Tech Stack Tab - Read Only View */}
+            {activeTab === 'tech' && (
+              <motion.div
+                key="tech"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6"
+              >
+                {editedIdea.techStackAnalysis ? (
+                  <>
+                    {/* User Selected */}
+                    <div>
+                      <label className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">
+                        <UserCircle size={12} />
+                        Your Selection
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {editedIdea.techStackAnalysis.userSelected?.length > 0 ? (
+                          editedIdea.techStackAnalysis.userSelected.map((tech, idx) => (
+                            <span 
+                              key={`user-${idx}`}
+                              className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200"
+                            >
+                              {tech}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-sm text-slate-400 italic">No specific technologies selected</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* AI Recommended */}
+                    <div>
+                      <label className="flex items-center gap-2 text-xs font-bold text-purple-600 uppercase tracking-wider mb-3">
+                        <Sparkles size={12} />
+                        AI Recommendations
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {editedIdea.techStackAnalysis.aiRecommended?.length > 0 ? (
+                          editedIdea.techStackAnalysis.aiRecommended.map((tech, idx) => (
+                            <span 
+                              key={`ai-${idx}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-purple-50 text-purple-700 border border-purple-200 shadow-sm"
+                            >
+                              <Sparkles size={12} />
+                              {tech}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-sm text-slate-400 italic">No additional recommendations</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Reasoning */}
+                    {editedIdea.techStackAnalysis.reasoning && (
+                      <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                        <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                          <AlertCircle size={12} />
+                          Why these choices?
+                        </label>
+                        <p className="text-sm text-slate-600 leading-relaxed">
+                          {editedIdea.techStackAnalysis.reasoning}
+                        </p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  /* Fallback for legacy data */
+                  <div>
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">
+                      <Layers size={12} />
+                      Technology Stack
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {Array.isArray(editedIdea.tech_stack) && editedIdea.tech_stack.length > 0 ? (
+                        editedIdea.tech_stack.map((tech, idx) => (
+                          <span 
+                            key={idx}
+                            className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-700 border border-slate-200"
+                          >
+                            {tech}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-sm text-slate-400 italic">No tech stack defined</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
 
@@ -1034,7 +1210,8 @@ const IdeaSelectionScreen = ({
   onDeleteIdea,
   onCreateSelectedProjects,
   onGenerateMore,
-  onBackToConfig
+  onBackToConfig,
+  generationCount = 0, // Add prop with default
 }) => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingIdeaId, setEditingIdeaId] = useState(null);
@@ -1149,8 +1326,8 @@ const IdeaSelectionScreen = ({
           
           <button
             onClick={handleGenerateMoreClick}
-            disabled={isGeneratingMore}
-            className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#e75710] to-[#fb8239] rounded-xl hover:from-[#a51200] hover:to-[#e75710] hover:shadow-lg hover:shadow-[#fcd8b6] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md disabled:opacity-50 disabled:hover:scale-100"
+            disabled={isGeneratingMore || (generationCount >= 4)}
+            className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#e75710] to-[#fb8239] rounded-xl hover:from-[#a51200] hover:to-[#e75710] hover:shadow-lg hover:shadow-[#fcd8b6] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
           >
             {isGeneratingMore ? (
               <>
@@ -1160,11 +1337,20 @@ const IdeaSelectionScreen = ({
             ) : (
               <>
                 <RefreshCw size={16} />
-                Generate More
+                {generationCount >= 4 ? 'Limit Reached' : `Generate More (${generationCount}/4)`}
               </>
             )}
           </button>
         </div>
+        
+        {/* Rate Limit Info */}
+        {generationCount > 0 && (
+          <div className="flex justify-center mt-2">
+            <p className="text-xs text-slate-400 font-medium">
+              Generations used: <span className={generationCount >= 4 ? "text-rose-500" : "text-[#e75710]"}>{generationCount}/4</span>
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Ideas Grid - 2 columns for better readability */}
@@ -1192,50 +1378,54 @@ const IdeaSelectionScreen = ({
       )}
 
       {/* Floating Bottom Bar - Selection Summary */}
-      <AnimatePresence>
-        {selectedIdeaIds.length > 0 && !isCreatingProjects && (
-          <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40"
-          >
-            <div className="flex items-center gap-4 px-6 py-4 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_20px_60px_-15px_rgba(165,18,0,0.2)] border border-[#fb8239]/30">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#a51200] to-[#e75710] flex items-center justify-center shadow-lg shadow-[#fcd8b6]">
-                  <CheckCircle size={24} className="text-white" />
+      {createPortal(
+        <AnimatePresence>
+          {selectedIdeaIds.length > 0 && !isCreatingProjects && (
+            <motion.div
+              key="floating-bar"
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="fixed bottom-6 right-6 z-[100]"
+            >
+              <div className="flex items-center gap-4 px-6 py-4 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_20px_60px_-15px_rgba(165,18,0,0.2)] border border-[#fb8239]/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#a51200] to-[#e75710] flex items-center justify-center shadow-lg shadow-[#fcd8b6]">
+                    <CheckCircle size={24} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">
+                      {selectedIdeaIds.length} project{selectedIdeaIds.length > 1 ? 's' : ''} selected
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Ready to create
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-900">
-                    {selectedIdeaIds.length} project{selectedIdeaIds.length > 1 ? 's' : ''} selected
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Ready to create
-                  </p>
+                
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={onDeselectAll}
+                    className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={onCreateSelectedProjects}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#a51200] to-[#e75710] text-white rounded-xl text-sm font-bold hover:from-[#450b00] hover:to-[#a51200] hover:shadow-lg hover:shadow-[#fcd8b6] transition-all"
+                  >
+                    <Save size={16} />
+                    Create {selectedIdeaIds.length > 1 ? 'Projects' : 'Project'}
+                    <ChevronRight size={16} />
+                  </button>
                 </div>
               </div>
-              
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={onDeselectAll}
-                  className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
-                >
-                  Clear
-                </button>
-                <button
-                  onClick={onCreateSelectedProjects}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#a51200] to-[#e75710] text-white rounded-xl text-sm font-bold hover:from-[#450b00] hover:to-[#a51200] hover:shadow-lg hover:shadow-[#fcd8b6] transition-all"
-                >
-                  <Save size={16} />
-                  Create {selectedIdeaIds.length > 1 ? 'Projects' : 'Project'}
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* Edit Modal */}
       <AnimatePresence>

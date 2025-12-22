@@ -19,6 +19,15 @@ export const STORAGE_KEYS = {
   CURRENT_JOB_ID: GLOBAL_STORAGE_KEYS.AI_CURRENT_JOB_ID,
   JOB_STATUS: GLOBAL_STORAGE_KEYS.AI_JOB_STATUS,
   JOB_START_TIME: GLOBAL_STORAGE_KEYS.AI_JOB_START_TIME,
+  // Rate limiting keys
+  LAST_GEN_TIME: 'ai_last_gen_time',
+  GEN_COUNT: 'ai_gen_count',
+};
+
+// Rate Limiting Constants
+export const GENERATION_LIMITS = {
+  COOLDOWN_MS: 60000, // 60 seconds cooldown between generations
+  MAX_PER_SESSION: 5, // Maximum 5 generations per session (Initial + 4 Generate More)
 };
 
 // Topic Domain Options

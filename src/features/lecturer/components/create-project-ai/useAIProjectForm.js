@@ -21,6 +21,10 @@ export const useAIProjectForm = () => {
   const [optionalTechStack, setOptionalTechStack] = useState(DEFAULT_FORM_VALUES.optionalTechStack);
   const [selectedSubjectId, setSelectedSubjectId] = useState(DEFAULT_FORM_VALUES.selectedSubjectId);
 
+  // Rate Limiting State
+  const [generationCount, setGenerationCount] = useState(0);
+  const [lastGenerationTime, setLastGenerationTime] = useState(0);
+
   // Track if form has been initialized from localStorage
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -77,6 +81,13 @@ export const useAIProjectForm = () => {
         localStorage.removeItem(STORAGE_KEYS.FORM_DATA);
       }
     }
+    
+    // Load rate limiting data
+    const savedGenCount = localStorage.getItem('ai_gen_count');
+    const savedLastGenTime = localStorage.getItem('ai_last_gen_time');
+    if (savedGenCount) setGenerationCount(parseInt(savedGenCount, 10));
+    if (savedLastGenTime) setLastGenerationTime(parseInt(savedLastGenTime, 10));
+
     setIsInitialized(true);
   }, []);
 
@@ -210,6 +221,24 @@ export const useAIProjectForm = () => {
     selectedSubjectId,
   ]);
 
+  // Rate Limiting Helpers
+  const checkRateLimit = useCallback(() => {
+    // Check max count
+    if (generationCount >= 4) {
+      return { allowed: false, reason: 'limit_reached' };
+    }
+    return { allowed: true };
+  }, [generationCount]);
+
+  const incrementGenerationCount = useCallback(() => {
+    const newCount = generationCount + 1;
+    const now = Date.now();
+    setGenerationCount(newCount);
+    setLastGenerationTime(now);
+    localStorage.setItem('ai_gen_count', newCount.toString());
+    localStorage.setItem('ai_last_gen_time', now.toString());
+  }, [generationCount]);
+
   return {
     // Form Fields
     topicDomain,
@@ -242,6 +271,11 @@ export const useAIProjectForm = () => {
     actualProjectType,
     mandatoryValidation,
     isConfigReady,
+    
+    // Rate Limiting
+    generationCount,
+    checkRateLimit,
+    incrementGenerationCount,
     isInitialized,
 
     // Helper Functions

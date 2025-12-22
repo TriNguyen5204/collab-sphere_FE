@@ -130,6 +130,9 @@ const CreateProjectAI = () => {
     removeReferenceUrl,
     clearFormData,
     buildRequestPayload,
+    generationCount,
+    checkRateLimit,
+    incrementGenerationCount,
   } = useAIProjectForm();
 
   const { userId } = useSelector((state) => state.user);
@@ -377,6 +380,7 @@ const CreateProjectAI = () => {
         if (status === 'COMPLETED') {
           clearInterval(interval);
           clearJobPersistence(); // Clear persisted job
+          console.log('AI Result Data (Initial):', result); // Log AI data for debugging
           handleAnalysisComplete(result);
         } else if (status === 'FAILED') {
           clearInterval(interval);
@@ -519,6 +523,17 @@ const CreateProjectAI = () => {
 
   // Generate more ideas (append to existing)
   const handleGenerateMore = async (refinementContext = '') => {
+    // Check rate limit
+    const limitCheck = checkRateLimit();
+    if (!limitCheck.allowed) {
+      if (limitCheck.reason === 'cooldown') {
+        toast.error(`Please wait ${limitCheck.remaining}s before generating more ideas.`);
+      } else if (limitCheck.reason === 'limit_reached') {
+        toast.error("You've reached the maximum number of generations for this session. Please refine your inputs or start over.");
+      }
+      return;
+    }
+
     // Validate required fields before generating more
     if (!selectedSubjectId) {
       toast.error('Please select a subject before generating more ideas.');
@@ -565,7 +580,10 @@ const CreateProjectAI = () => {
 
             if (status === 'COMPLETED') {
               clearInterval(pollForMore);
+              console.log('AI Result Data:', result); // Log AI data for debugging
               handleIdeasGenerated(result, true); // append = true
+              // Increment generation count on success
+              incrementGenerationCount();
             } else if (status === 'FAILED') {
               clearInterval(pollForMore);
               toast.error('Failed to generate more ideas');
@@ -1850,6 +1868,7 @@ const CreateProjectAI = () => {
                   onCreateSelectedProjects={handleCreateSelectedProjects}
                   onGenerateMore={handleGenerateMore}
                   onBackToConfig={handleBackToConfig}
+                  generationCount={generationCount}
                 />
               </motion.div>
             )}
