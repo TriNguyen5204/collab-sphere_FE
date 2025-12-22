@@ -250,32 +250,31 @@ const ClassSyllabusPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-[#fff8f3]/30 p-6 md:p-8 font-sans">
+      <div className="space-y-6">
         <div className="w-full space-y-8">
           <LecturerBreadcrumbs items={breadcrumbItems} />
 
           {/* Header Section */}
-          <div className="relative overflow-hidden rounded-[2.5rem] bg-white border border-orangeFpt-100 p-8 md:p-12 shadow-2xl shadow-orangeFpt-100/50">
+          <div className="relative overflow-hidden rounded-[2.5rem] bg-white border border-orangeFpt-100 p-8 shadow-2xl shadow-orangeFpt-100/50">
             {/* Decorative Circles */}
             <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-orangeFpt-100 rounded-full filter blur-3xl opacity-60 animate-blob"></div>
             <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-72 h-72 bg-orangeFpt-50 rounded-full filter blur-3xl opacity-60 animate-blob animation-delay-2000"></div>
             
             <div className="relative z-10 flex flex-col md:flex-row justify-between items-start gap-6">
-              <div className="space-y-4 max-w-3xl">
+              <div className="space-y-4 max-w-7xl">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orangeFpt-50 border border-orangeFpt-100 text-xs font-bold uppercase tracking-widest text-orangeFpt-600">
                   <BookOpen size={12} />
                   Course Syllabus
                 </div>
-                <h1 className="text-3xl md:text-5xl font-bold leading-tight text-slate-900">
+                <h1 className="text-3xl font-bold leading-tight text-slate-900">
                   {syllabus?.syllabusName || classData?.subjectName || 'Subject Syllabus'}
                 </h1>
                 {syllabus?.description && (
-                  <p className="text-lg text-slate-500 leading-relaxed max-w-2xl">
+                  <p className="text-md text-slate-500 leading-relaxed max-w-7xl">
                     {syllabus.description}
                   </p>
                 )}
               </div>
-
               <div className={`
                 flex-shrink-0 px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 border
                 ${syllabus?.isActive !== false
@@ -289,7 +288,7 @@ const ClassSyllabusPage = () => {
           </div>
 
           {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl mx-auto">
             
             {/* Left Column: Outcomes & Schedule */}
             <div className="lg:col-span-8 space-y-8">

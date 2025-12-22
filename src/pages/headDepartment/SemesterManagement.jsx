@@ -102,7 +102,7 @@ export default function SemesterManagement() {
   return (
     <HeadDashboardLayout>
       <div className='bg-gradient-to-br from-gray-50 to-gray-100'>
-        <div className='space-y-'>
+        <div className='space-y-6'>
           
           {/* Header Section */}
           <div className="relative overflow-hidden rounded-3xl border border-orangeFpt-50 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white shadow-md shadow-orangeFpt-100/60 backdrop-blur">
@@ -148,7 +148,7 @@ export default function SemesterManagement() {
           </div>
 
           {/* Content Section */}
-          <div className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mx-auto max-w-[95%] mt-6'>
+          <div className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden '>
             {/* Filters */}
             <div className='p-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4'>
               <h2 className='text-lg font-bold text-slate-800 flex items-center gap-2'>

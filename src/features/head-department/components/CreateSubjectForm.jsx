@@ -276,8 +276,7 @@ const CreateSubjectForm = ({ onClose }) => {
   );
 
   return (
-    <div className='bg-white rounded-3xl shadow-soft-lg max-w-6xl w-full overflow-hidden flex flex-col'>
-
+    <div className=''>
       {/* Error Message - Soft Minimalism: Gentle colors, rounded corners */}
       {error && (
         <div className='mx-8 mt-6 bg-red-50 border border-red-200 rounded-2xl p-5'>
@@ -287,9 +286,9 @@ const CreateSubjectForm = ({ onClose }) => {
 
       {/* Form Content - Scrollable */}
       <form onSubmit={handleSubmit} className='flex-1 overflow-y-auto'>
-        <div className='p-8 space-y-8'>
+        <div className='space-y-8'>
           {/* ==================== SUBJECT BASIC INFO ==================== */}
-          <section className='bg-gray-50 rounded-2xl p-8 border border-gray-100'>
+          <section className='bg-gray-50 rounded-2xl p-4 border border-gray-100'>
             <div className='flex items-center gap-4 mb-8'>
               <div className='w-12 h-12 bg-orangeFpt-50 rounded-2xl flex items-center justify-center border border-orangeFpt-100'>
                 <FileText className='w-6 h-6 text-orangeFpt-600' />
@@ -345,7 +344,7 @@ const CreateSubjectForm = ({ onClose }) => {
           </section>
 
           {/* ==================== SYLLABUS INFO ==================== */}
-          <section className='bg-gray-50 rounded-2xl p-8 border border-gray-100'>
+          <section className='bg-gray-50 rounded-2xl p-4 border border-gray-100'>
             <div className='flex items-center gap-4 mb-8'>
               <div className='w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center border border-blue-100'>
                 <BookOpen className='w-6 h-6 text-blue-600' />
@@ -443,8 +442,8 @@ const CreateSubjectForm = ({ onClose }) => {
           </section>
 
           {/* ==================== GRADE COMPONENTS ==================== */}
-          <section className='bg-gray-50 rounded-2xl p-6 border border-gray-200'>
-            <div className='flex items-center justify-between mb-6'>
+          <section className='bg-gray-50 rounded-2xl p-4 border border-gray-200'>
+            <div className='flex items-center justify-between mb-8'>
               <div className='flex items-center gap-3'>
                 <div className='w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center'>
                   <BarChart3 className='w-5 h-5 text-green-600' />
@@ -536,7 +535,7 @@ const CreateSubjectForm = ({ onClose }) => {
           </section>
 
           {/* ==================== SUBJECT OUTCOMES ==================== */}
-          <section className='bg-gray-50 rounded-2xl p-6 border border-gray-200'>
+          <section className='bg-gray-50 rounded-2xl p-4 border border-gray-200'>
             <div className='flex items-center justify-between mb-6'>
               <div className='flex items-center gap-3'>
                 <div className='w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center'>
@@ -755,7 +754,7 @@ const CreateSubjectForm = ({ onClose }) => {
         </div>
 
         {/* Footer - Soft Minimalism: Clean separation, generous spacing */}
-        <div className='border-t border-gray-200 bg-gray-50 px-8 py-5 flex items-center justify-between'>
+        <div className='border-t border-gray-200 mt-6 p-4 pb-0 flex items-center justify-between'>
           <button
             type='button'
             onClick={() => onClose(false)}

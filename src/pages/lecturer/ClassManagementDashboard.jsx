@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { AcademicCapIcon, ClipboardDocumentListIcon, Squares2X2Icon, UserGroupIcon } from '@heroicons/react/24/outline';
 import { getLecturerClasses } from '../../services/classApi';
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 const REQUIRED_CLASS_FIELDS = {
   classId: 'Used as the unique key for cards and navigation into class detail.',
@@ -345,7 +345,8 @@ const ClassManagementDashboard = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <header className="relative flex flex-col gap-4 rounded-3xl border border-indigo-100 bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-6 shadow-[0_25px_80px_rgba(15,23,42,0.08)] lg:flex-row lg:items-center lg:justify-between">
+        {/* Header Section */}
+        <header className="relative flex flex-col justify-between gap-4 rounded-3xl border border-orangeFpt-100 bg-gradient-to-br from-sky-50 via-white to-orangeFpt-50 p-6 shadow-[0_25px_80px_rgba(15,23,42,0.08)] lg:flex-row lg:items-start">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Lecturer workspace</p>
             <h1 className="mt-2 text-3xl font-semibold text-slate-900">Class Dashboard</h1>
@@ -355,74 +356,55 @@ const ClassManagementDashboard = () => {
                 : 'No classes are assigned to you yet.'}
             </p>
           </div>
+          <div className="hidden lg:block">
+            <span className="rounded-full bg-white/60 px-4 py-2 text-sm font-bold text-orangeFpt-600 border border-orangeFpt-100 shadow-sm backdrop-blur-sm">
+              {filteredClasses.length} Result{filteredClasses.length !== 1 && 's'}
+            </span>
+          </div>
         </header>
 
-        {error && (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-sm text-rose-700">
-            {error}
-          </div>
-        )}
-        <section className="space-y-8">
-          {/* --- HEADER & CONTROLS --- */}
-          <div className={`${glassPanelClass} overflow-hidden rounded-3xl border border-white/20 shadow-xl shadow-orange-500/5`}>
-
-            {/* Top Bar: Title & Search */}
-            <div className="flex flex-col gap-6 border-b border-slate-100 p-6 lg:flex-row lg:items-start lg:justify-between">
-              <div className="flex-1 space-y-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-800">Class Directory</h2>
-                  <p className="text-sm text-slate-500">Manage and view your assigned academic rosters.</p>
-                </div>
-
-                {/* Search Input Area */}
-                <div className="relative max-w-xl">
-                  <div className="relative group">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                      <Search className="h-5 w-5 text-slate-400 group-focus-within:text-orange-500 transition-colors" />
-                    </div>
-                    <input
-                      value={searchTerm}
-                      onChange={(event) => updateSearchTerm(event.target.value)}
-                      onBlur={commitSearch}
-                      placeholder="Search by class, subject, or code..."
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3 pl-11 pr-4 text-sm text-slate-800 outline-none transition-all placeholder:text-slate-400 hover:border-orange-200 focus:border-orange-500 focus:bg-white focus:ring-4 focus:ring-orange-500/10"
-                    />
-                  </div>
-
-                  {/* Recent Searches Pills */}
-                  {recentSearches.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 py-1">Recent:</span>
-                      {recentSearches.map((term) => (
-                        <button
-                          key={term}
-                          type="button"
-                          onMouseDown={(event) => {
-                            event.preventDefault();
-                            setSearchTerm(term);
-                          }}
-                          className="group flex items-center gap-1 rounded-full bg-white border border-slate-200 px-2.5 py-0.5 text-xs text-slate-600 transition hover:border-orange-300 hover:text-orange-600"
-                        >
-                          {term}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+        {/* Controls Section */}
+        <div className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+          
+          {/* Search */}
+          <div className="flex-1 max-w-xl space-y-3">
+            <div className="relative group">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                <Search className="h-5 w-5 text-slate-400 group-focus-within:text-orangeFpt-500 transition-colors" />
               </div>
-
-              {/* Result Count Badge (Top Right) */}
-              <div className="hidden lg:block">
-                <span className="rounded-full bg-orange-50 px-4 py-2 text-sm font-bold text-orange-600 border border-orange-100">
-                  {filteredClasses.length} Result{filteredClasses.length !== 1 && 's'}
-                </span>
-              </div>
+              <input
+                value={searchTerm}
+                onChange={(event) => updateSearchTerm(event.target.value)}
+                onBlur={commitSearch}
+                placeholder="Search by class, subject, or code..."
+                className="w-full rounded-2xl border border-slate-200 bg-white/60 py-3 pl-11 pr-4 text-sm text-slate-800 outline-none transition-all placeholder:text-slate-400 hover:border-orangeFpt-200 focus:border-orangeFpt-500 focus:bg-white focus:ring-4 focus:ring-orangeFpt-500/10"
+              />
             </div>
+            {recentSearches.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 py-1">Recent:</span>
+                {recentSearches.map((term) => (
+                  <button
+                    key={term}
+                    type="button"
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      setSearchTerm(term);
+                    }}
+                    className="group flex items-center gap-1 rounded-full bg-white border border-slate-200 px-2.5 py-0.5 text-xs text-slate-600 transition hover:border-orangeFpt-300 hover:text-orangeFpt-600"
+                  >
+                    {term}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-            {/* Bottom Bar: Filters */}
-            <div className="flex flex-col gap-4 bg-slate-50/50 p-4 lg:flex-row lg:items-center lg:justify-between">
-
-              {/* Status Tabs */}
+          {/* Filters */}
+          <div className="flex flex-col gap-4">
+            {/* Status */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Status:</span>
               <div className="flex rounded-xl bg-slate-200/50 p-1">
                 {[
                   { id: 'all', label: 'All' },
@@ -433,7 +415,7 @@ const ClassManagementDashboard = () => {
                     key={option.id}
                     onClick={() => setStatusFilter(option.id)}
                     className={`relative rounded-lg px-4 py-1.5 text-sm font-semibold transition-all duration-200 ${statusFilter === option.id
-                      ? 'bg-white text-orange-600 shadow-sm ring-1 ring-black/5'
+                      ? 'bg-white text-orangeFpt-600 shadow-sm ring-1 ring-black/5'
                       : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
                       }`}
                   >
@@ -441,63 +423,89 @@ const ClassManagementDashboard = () => {
                   </button>
                 ))}
               </div>
+              {/* Reset Filters */}
+              {(searchTerm || statusFilter !== 'all' || subjectFilter !== 'all' || semesterFilter !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                    setSubjectFilter('all');
+                    setSemesterFilter('all');
+                  }}
+                  className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                  title="Reset all filters"
+                >
+                  <X className="h-3 w-3" />
+                  Reset
+                </button>
+              )}
+            </div>
 
-              <div className="flex flex-wrap items-center gap-4">
-                {/* Semester Pills */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="mr-1 text-xs font-bold uppercase tracking-wider text-slate-400">Semester:</span>
+            {/* Semester & Subject */}
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Semester */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="mr-1 text-xs font-bold uppercase tracking-wider text-slate-400">Semester:</span>
+                <button
+                  onClick={() => setSemesterFilter('all')}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition ${semesterFilter === 'all'
+                    ? 'border-orangeFpt-500 bg-orangeFpt-500 text-white shadow-md shadow-orangeFpt-200'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-orangeFpt-300 hover:text-orangeFpt-600'
+                    }`}
+                >
+                  All
+                </button>
+                {semesters.map((sem) => (
                   <button
-                    onClick={() => setSemesterFilter('all')}
-                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${semesterFilter === 'all'
-                      ? 'border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-200'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-600'
+                    key={sem}
+                    onClick={() => setSemesterFilter(sem)}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${semesterFilter === sem
+                      ? 'border-orangeFpt-500 bg-orangeFpt-500 text-white shadow-md shadow-orangeFpt-200'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-orangeFpt-300 hover:text-orangeFpt-600'
                       }`}
                   >
-                    All
+                    {sem}
                   </button>
-                  {semesters.map((sem) => (
-                    <button
-                      key={sem}
-                      onClick={() => setSemesterFilter(sem)}
-                      className={`rounded-full border px-3 py-1 text-xs font-medium transition ${semesterFilter === sem
-                        ? 'border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-200'
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-600'
-                        }`}
-                    >
-                      {sem}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Subject Pills */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="mr-1 text-xs font-bold uppercase tracking-wider text-slate-400">Subject:</span>
-                  <button
-                    onClick={() => setSubjectFilter('all')}
-                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${subjectFilter === 'all'
-                      ? 'border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-200'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-600'
-                      }`}
-                  >
-                    All
-                  </button>
-                  {subjects.map((code) => (
-                    <button
-                      key={code}
-                      onClick={() => setSubjectFilter(code)}
-                      className={`rounded-full border px-3 py-1 text-xs font-medium transition ${subjectFilter === code
-                        ? 'border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-200'
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-600'
-                        }`}
-                    >
-                      {code}
-                    </button>
-                  ))}
-                </div>
+                ))}
               </div>
+
+              {/* Subject */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="mr-1 text-xs font-bold uppercase tracking-wider text-slate-400">Subject:</span>
+                <button
+                  onClick={() => setSubjectFilter('all')}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition ${subjectFilter === 'all'
+                    ? 'border-orangeFpt-500 bg-orangeFpt-500 text-white shadow-md shadow-orangeFpt-200'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-orangeFpt-300 hover:text-orangeFpt-600'
+                    }`}
+                >
+                  All
+                </button>
+                {subjects.map((code) => (
+                  <button
+                    key={code}
+                    onClick={() => setSubjectFilter(code)}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${subjectFilter === code
+                      ? 'border-orangeFpt-500 bg-orangeFpt-500 text-white shadow-md shadow-orangeFpt-200'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-orangeFpt-300 hover:text-orangeFpt-600'
+                      }`}
+                  >
+                    {code}
+                  </button>
+                ))}
+              </div>
+
+              
             </div>
           </div>
+        </div>
 
+        {error && (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-sm text-rose-700">
+            {error}
+          </div>
+        )}
+        <section className="space-y-8">
           {/* --- GRID CONTENT --- */}
           <div className="space-y-4">
             {/* Mobile Result Count (Visible only on small screens) */}
@@ -608,7 +616,7 @@ const ClassCard = ({ cls, onView, subjectGradient }) => {
       onClick={handleClick}
       className={`${glassPanelClass} flex h-full flex-col rounded-3xl bg-gradient-to-br ${subjectGradient(
         cls.subjectCode
-      )} p-5 text-left transition hover:-translate-y-1 hover:shadow-2xl focus:outline-none focus-visible:ring-4 focus-visible:ring-indigo-200`}
+      )} p-5 text-left transition hover:-translate-y-1 hover:shadow-2xl focus:outline-none focus-visible:ring-4 focus-visible:ring-orangeFpt-200`}
     >
       <div className="flex items-center justify-between gap-3">
         <div>

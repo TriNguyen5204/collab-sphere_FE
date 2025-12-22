@@ -245,7 +245,7 @@ export default function ProjectManagement() {
           </div>
 
           {/* Filter & Table Section */}
-          <div className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mx-auto max-w-[95%]'>
+          <div className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden'>
             {/* Filter Header */}
             <div className='p-5 border-b border-slate-100'>
               <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-4'>

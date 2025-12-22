@@ -38,7 +38,7 @@ const ProjectLibrary = () => {
    const createMenuRef = useRef(null);
    const [pagination, setPagination] = useState({
       pageNum: 1,
-      pageSize: 12,
+      pageSize: 6,
       pageCount: 1,
       totalItems: 0
    });
@@ -103,7 +103,7 @@ const ProjectLibrary = () => {
                (p.subjectCode || '').toLowerCase().includes(term) ||
                (p.subjectName || '').toLowerCase().includes(term)
             );
-         const matchStatus = statusFilter === 'all' || 
+         const matchStatus = statusFilter === 'all' ||
             (statusFilter === 'success' && p.statusString === 'APPROVED') ||
             (statusFilter === 'warning' && p.statusString === 'PENDING') ||
             (statusFilter === 'error' && p.statusString === 'DENIED') ||
@@ -165,15 +165,12 @@ const ProjectLibrary = () => {
                </div>
 
                <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-4 max-w-2xl">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-8">
                      <div>
-                        <div className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500/10 to-rose-500/10 backdrop-blur-sm px-3 py-1 mb-3">
-                           <Sparkles className="h-3.5 w-3.5 text-orange-500" />
-                           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-600">Lecturer Workspace</p>
-                        </div>
-                        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Project Library</h1>
-                        <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-                           Manage your project templates, track approval statuses, and organize learning objectives for your classes.
+                        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Lecturer workspace</p>
+                        <h1 className="mt-2 text-3xl font-semibold text-slate-900">Project Library</h1>
+                        <p className="mt-1 text-sm text-slate-600">
+                           Manage your project templates and organize learning objectives for your classes.
                         </p>
                      </div>
                   </div>
@@ -227,54 +224,60 @@ const ProjectLibrary = () => {
 
                {/* LEFT: PROJECT LIST */}
                <div className="col-span-1 xl:col-span-8 2xl:col-span-9">
-                  
-                  {/* Tabs with Glassmorphism */}
-                  <div className="mb-6 rounded-2xl border border-white/60 backdrop-blur-xl bg-white/50 p-1.5">
-                     <div className="flex gap-2">
-                        <button
-                           onClick={() => {
-                              setOwnerFilter('all');
-                              setPagination(prev => ({ ...prev, pageNum: 1 }));
-                           }}
-                           className={`relative flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                              ownerFilter === 'all'
-                                 ? 'bg-white text-slate-900 shadow-md'
-                                 : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
-                           }`}
-                        >
-                           All Approved Projects
-                        </button>
-                        <button
-                           onClick={() => {
-                              setOwnerFilter('my');
-                              setPagination(prev => ({ ...prev, pageNum: 1 }));
-                           }}
-                           className={`relative flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                              ownerFilter === 'my'
-                                 ? 'bg-white text-slate-900 shadow-md'
-                                 : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
-                           }`}
-                        >
-                           Personal Projects
-                        </button>
-                     </div>
-                  </div>
 
-                  {/* Toolbar with Glassmorphism */}
-                  <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                     <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                        <input
-                           type="text"
-                           placeholder="Search projects, subjects, domains..."
-                           className="w-full rounded-xl border border-white/60 backdrop-blur-xl bg-white/70 py-2.5 pl-11 pr-4 text-sm font-medium text-slate-700 placeholder:text-slate-400 focus:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all"
-                           value={searchTerm}
-                           onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                  {/* Combined Toolbar */}
+                  <div className="mb-6 flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+                     {/* Left: Search & Owner Filter */}
+                     <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-center">
+                        {/* Search */}
+                        <div className="relative group flex-1 max-w-xl border border-slate-200 rounded-xl shadow-sm backdrop-blur-xl bg-white/70">
+                           <input
+                              type="text"
+                              placeholder="Search projects..."
+                              className="w-full rounded-xl border border-white/60 backdrop-blur-xl bg-white/70 py-2.5 pl-11 pr-4 text-sm font-medium text-slate-700 placeholder:text-slate-400 focus:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all"
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                           />
+                           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                              <Search className="h-5 w-5 text-slate-400 group-focus-within:text-orangeFpt-500 transition-colors" />
+                           </div>
+                        </div>
+
                      </div>
+
+                     {/* Right: Status & View Mode */}
                      <div className="flex items-center gap-3">
+                        {/* Owner Filter Tabs */}
+                        <div className="rounded-xl border border-slate-200/50 shadow-sm backdrop-blur-xl bg-white/30 text-sm font-medium text-slate-700 focus:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500/20">
+                           <button
+                              onClick={() => {
+                                 setOwnerFilter('all');
+                                 setPagination(prev => ({ ...prev, pageNum: 1 }));
+                              }}
+                              className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${ownerFilter === 'all'
+                                    ? 'bg-white text-slate-900 shadow-sm border-r  '
+                                    : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
+                                 }`}
+                           >
+                              All
+                           </button>
+                           <button
+                              onClick={() => {
+                                 setOwnerFilter('my');
+                                 setPagination(prev => ({ ...prev, pageNum: 1 }));
+                              }}
+                              className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${ownerFilter === 'my'
+                                    ? 'bg-white text-slate-900 shadow-sm border-l '
+                                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100 roun'
+                                 }`}
+                           >
+                              Personal
+                           </button>
+                        </div>
+                        <div className="h-8 w-px bg-slate-200/50 mx-1"></div>
+                        {/* Status Filter */}
                         <select
-                           className="rounded-xl border border-white/60 backdrop-blur-xl bg-white/70 px-4 py-2.5 text-sm font-medium text-slate-700 focus:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                           className="rounded-xl border border-slate-200/50 shadow-sm backdrop-blur-xl bg-white/30 px-4 py-2.5 text-sm font-medium text-slate-700 focus:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
                            value={statusFilter}
                            onChange={(e) => setStatusFilter(e.target.value)}
                         >
@@ -284,8 +287,10 @@ const ProjectLibrary = () => {
                            <option value="error">Denied</option>
                            <option value="draft">Draft</option>
                         </select>
+
                         <div className="h-8 w-px bg-slate-200/50 mx-1"></div>
-                        <div className="flex rounded-xl border border-white/60 backdrop-blur-xl bg-white/50 p-1">
+
+                        <div className="flex rounded-xl border border-slate-200/50 backdrop-blur-xl bg-white/50 ">
                            <button
                               onClick={() => setViewMode('list')}
                               className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'text-orange-600 bg-white shadow-sm' : 'text-slate-400 hover:text-orange-500'}`}
@@ -301,7 +306,7 @@ const ProjectLibrary = () => {
                         </div>
                      </div>
                   </div>
-
+                  
                   {/* Content Area */}
                   {isLoading ? (
                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">

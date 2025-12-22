@@ -622,7 +622,6 @@ const ClassProjectAssignment = () => {
                      </div>
                      <p className="text-lg text-slate-500 leading-relaxed">
                         Manage projects for <strong>{classDetail?.className || '...'}</strong> ({classDetail?.subjectCode}).
-                        Projects assigned here will be available for student teams.
                      </p>
                   </div>
 
@@ -639,10 +638,10 @@ const ClassProjectAssignment = () => {
                </div>
             </div>
 
-            <div className=" flex flex-col gap-10 mx-auto">
+            <div className=" flex flex-col gap-8">
 
-               <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <div className="mb-6 flex items-center justify-between">
+               <section className="">
+                  {/* <div className="mb-6 flex items-center justify-between">
                      <div>
                         <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                            <CheckCircleSolidIcon className="h-6 w-6 text-emerald-500" />
@@ -661,7 +660,7 @@ const ClassProjectAssignment = () => {
                            {projectsToRemove.size} marked for removal
                         </span>
                      )}
-                  </div>
+                  </div> */}
 
                   {isInitialising ? (
                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -748,8 +747,8 @@ const ClassProjectAssignment = () => {
                   )}
                </section>
 
-               <div className="sticky top-4 z-30 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white/90 backdrop-blur-md p-4 shadow-sm xl:flex-row xl:items-center xl:justify-between transition-all">
-
+               <div className="sticky top-4 z-30 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white/90 backdrop-blur-md p-4 shadow-sm  transition-all">
+                  <div className="flex items-center gap-4 flex-1">
                   <div className="flex rounded-lg bg-slate-100 p-1">
                      <button
                         onClick={() => setFilterMode('ALL')}
@@ -785,21 +784,8 @@ const ClassProjectAssignment = () => {
                         <ArrowPathIcon className={`h-5 w-5 ${isInitialising ? 'animate-spin' : ''}`} />
                      </button>
                   </div>
-               </div>
-
-               <section className="space-y-4">
-                  <div className="flex items-center gap-3 px-1">
-                     <div className="p-2 rounded-lg bg-orangeFpt-100 text-orangeFpt-600">
-                        <ClipboardDocumentListIcon className="h-5 w-5" />
-                     </div>
-                     <div>
-                        <h2 className="text-lg font-bold text-slate-800">Available Library</h2>
-                        <p className="text-sm text-slate-500">
-                           {filterMode === 'ALL' ? 'Showing all approved projects' : 'Showing your approved projects'}
-                        </p>
-                     </div>
                   </div>
-
+                  <section className="space-y-4">
                   <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                      {isInitialising ? (
                         Array.from({ length: 3 }).map((_, i) => renderSkeletonCard(`avail-skel-${i}`))
@@ -881,7 +867,7 @@ const ClassProjectAssignment = () => {
                      )}
                   </div>
 
-                  <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200 pt-6">
+                  <div className="pt-3 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200 ">
                      <div className="text-sm text-slate-500">
                         Showing <span className="font-medium text-slate-900">{paginatedAvailableProjects.length}</span> of <span className="font-medium text-slate-900">{filteredAvailableProjects.length}</span> available projects
                      </div>
@@ -910,6 +896,7 @@ const ClassProjectAssignment = () => {
                      </div>
                   </div>
                </section>
+               </div>
 
             </div>
 

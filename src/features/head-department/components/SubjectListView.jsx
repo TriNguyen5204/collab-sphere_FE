@@ -15,7 +15,7 @@ export default function SubjectListView({ subjects, onView }) {
     <div className='overflow-x-auto'>
       <table className='w-full table-fixed'>
         <thead>
-          <tr className='border-b border-slate-200 bg-slate-100'>
+          <tr className='border-b border-slate-200 bg-slate-50'>
             <th className='w-[140px] px-4 py-3 text-left text-sm font-semibold text-slate-700'>
               Code
             </th>

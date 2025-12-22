@@ -427,6 +427,10 @@ const TeamProjectDetail = () => {
 
   const handleAddStudentToRoster = (student) => {
     if (!student) return;
+    if (rosterDraft.length >= 6) {
+      toast.error('A team can only have a maximum of 6 members.');
+      return;
+    }
     setBenchStudents((prev) => prev.filter((candidate) => candidate.studentId !== student.studentId));
     setRosterDraft((prev) => {
       if (prev.some((member) => member.studentId === student.studentId)) {
@@ -482,6 +486,10 @@ const TeamProjectDetail = () => {
   const handleSaveRoster = async () => {
     if (!rosterDraft.length) {
       toast.error('Add at least one member to the team.');
+      return;
+    }
+    if (rosterDraft.length > 6) {
+      toast.error('A team can only have a maximum of 6 members.');
       return;
     }
     if (!rosterLeaderId || !rosterDraft.some((member) => member.studentId === rosterLeaderId)) {

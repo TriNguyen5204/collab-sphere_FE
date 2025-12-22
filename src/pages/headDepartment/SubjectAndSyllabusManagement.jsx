@@ -137,7 +137,7 @@ export default function SubjectManagement() {
           />
 
           {/* User Table - Matching Staff/Admin style */}
-          <div className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mx-auto max-w-[95%]'>
+          <div className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden'>
             {/* Table Header with Filters */}
             <div className=' border-b border-slate-200 p-2'>
               <SubjectFilters

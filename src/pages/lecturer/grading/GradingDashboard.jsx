@@ -61,7 +61,7 @@ const GradingDashboard = () => {
     pageCount: 1,
     totalItems: 0
   });
-  
+
   // Filter & Sort State
   const [searchTerm, setSearchTerm] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
@@ -183,7 +183,7 @@ const GradingDashboard = () => {
 
   const filteredCards = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
-    
+
     let result = cards.filter((cls) => {
       const matchesSearch =
         !normalizedSearch ||
@@ -209,7 +209,7 @@ const GradingDashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen space-y-8 bg-slate-50/50">
+      <div className=" space-y-8 bg-slate-50/50">
 
         <header className="relative overflow-hidden rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50">
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-orangeFpt-100/50 blur-3xl"></div>
@@ -220,15 +220,6 @@ const GradingDashboard = () => {
               <p className="mt-1 text-sm text-slate-600 mb-4">
                 Monitor grading progress across all your classes and identify teams that need evaluation.
               </p>
-              <button
-                type="button"
-                onClick={handleRefresh}
-                disabled={loading}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-orangeFpt-600 transition-all shadow-sm active:scale-95 disabled:opacity-50"
-              >
-                <ArrowPathIcon className={`h-5 w-5 ${loading ? 'animate-spin text-orangeFpt-500' : ''}`} />
-                Refresh Data
-              </button>
             </div>
             <div className="flex items-center gap-4">
               <div className="hidden sm:flex flex-col items-end text-right">
@@ -241,24 +232,26 @@ const GradingDashboard = () => {
 
         {/* --- FILTERS & SEARCH --- */}
         <div className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-          
+
           {/* Search */}
           <div className="relative flex-1 max-w-md">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <Search className="h-5 w-5 text-slate-400" />
+            <div className="relative group">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                <Search className="h-5 w-5 text-slate-400 group-focus-within:text-orangeFpt-500 transition-colors" />
+              </div>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search class, subject..."
+                className="w-full rounded-2xl border border-slate-200 bg-white/60 py-3 pl-11 pr-4 text-sm text-slate-800 outline-none transition-all placeholder:text-slate-400 hover:border-orangeFpt-200 focus:border-orangeFpt-500 focus:bg-white focus:ring-4 focus:ring-orangeFpt-500/10"
+              />
             </div>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search class, subject..."
-              className="block w-full rounded-xl border-slate-200 bg-slate-50 pl-10 text-sm focus:border-orangeFpt-500 focus:ring-orangeFpt-500"
-            />
           </div>
 
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-3">
-            
+
             {/* Semester Filter */}
             <select
               value={semesterFilter}
@@ -288,6 +281,16 @@ const GradingDashboard = () => {
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>
             </select>
+            {/* Refresh Button */}
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-orangeFpt-600 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+            >
+              <ArrowPathIcon className={`h-5 w-5 ${loading ? 'animate-spin text-orangeFpt-500' : ''}`} />
+              Refresh Data
+            </button>
           </div>
         </div>
 
@@ -370,7 +373,7 @@ const GradingDashboard = () => {
                   {cards.length === 0 ? 'No Active Classes' : 'No classes found'}
                 </h3>
                 <p className="text-sm text-slate-500 mt-1 max-w-md">
-                  {cards.length === 0 
+                  {cards.length === 0
                     ? "You don't have any classes assigned for grading yet. Once you are linked to a class, it will appear here."
                     : "Try adjusting your search or filters to find what you're looking for."}
                 </p>
