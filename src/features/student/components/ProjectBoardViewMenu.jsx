@@ -19,7 +19,7 @@ const ProjectBoardViewMenu = () => {
     { name: 'Task Board', icon: Kanban, path: `/task-board` },
     { name: 'Milestones & Checkpoints', icon: Flag, path: `/student/project/milestones&checkpoints` },
     { name: 'Peer Evaluation', icon: UsersRound, path: `/student/project/peer-evaluation` },
-    { name: 'Meeting room', icon: VideoIcon, path: `/meeting/${team?.teamId}`},
+    { name: 'Meeting room', icon: VideoIcon, path: `/meeting`},
     { name: 'Whiteboard', icon: CircuitBoardIcon, path: `/whiteboard`},
     { name: 'Text Editor', icon: FileText, path: `/text-editor`},
   ];
