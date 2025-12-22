@@ -11,10 +11,11 @@ const HomeLayout = ({ children }) => {
   console.log('MeetingLayout - teamId from sessionStorage:', teamId);
 
   // Redirect if no teamId found in sessionStorage
+  // This layout is for STUDENT only (see Router.jsx), so redirect to student home
   useEffect(() => {
     if (!teamId) {
-      toast.error('No team selected. Please select a team first.');
-      navigate('/lecturer/meetings');
+      toast.error('No team selected. Please select a team from your project workspace first.');
+      navigate('/student');
     }
   }, [teamId, navigate]);
 

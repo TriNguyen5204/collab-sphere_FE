@@ -1,12 +1,14 @@
 import React, { useState, useRef } from 'react';
-import { useParams, Link, useLocation } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Kanban, Flag, CheckSquare, MessageSquare, ClipboardList, ChevronDown, UsersRound, VideoIcon, CircuitBoardIcon, FileText  } from 'lucide-react';
 import useClickOutside from '../../../hooks/useClickOutside';
 import useTeam from '../../../context/useTeam';
+import { setMeetingTeamId } from '../../../utils/meetingSessionHelper';
 
 const ProjectBoardViewMenu = () => {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
+  const navigate = useNavigate();
   const { projectId, projectName, teamId, id: legacyTeamId } = useParams();
   const location = useLocation();
 
@@ -19,7 +21,7 @@ const ProjectBoardViewMenu = () => {
     { name: 'Task Board', icon: Kanban, path: `/task-board` },
     { name: 'Milestones & Checkpoints', icon: Flag, path: `/student/project/milestones&checkpoints` },
     { name: 'Peer Evaluation', icon: UsersRound, path: `/student/project/peer-evaluation` },
-    { name: 'Meeting room', icon: VideoIcon, path: `/meeting/${team?.teamId}`},
+    { name: 'Meeting room', icon: VideoIcon, path: `/meeting`, requiresTeamId: true },
     { name: 'Whiteboard', icon: CircuitBoardIcon, path: `/whiteboard`},
     { name: 'Text Editor', icon: FileText, path: `/text-editor`},
   ];
@@ -60,17 +62,25 @@ const ProjectBoardViewMenu = () => {
 
       {open && (
         <ul className="absolute right-0 mt-2 bg-white text-gray-900 shadow-lg rounded-lg border border-gray-200 text-sm z-10 w-max min-w-full whitespace-nowrap">
-          {menuItems.map(({ name, icon: Icon, path }) => {
+          {menuItems.map(({ name, icon: Icon, path, requiresTeamId }) => {
             const normalizedPath = normalizePath(path);
             const isActive = normalizedPath === activePath;
+
+            const handleClick = (e) => {
+              setOpen(false);
+              // For meeting room, set teamId in sessionStorage before navigating
+              if (requiresTeamId && team?.teamId) {
+                e.preventDefault();
+                setMeetingTeamId(team.teamId);
+                navigate(path);
+              }
+            };
 
             return (
               <li key={name}>
                 <Link
                   to={path}
-                  onClick={() => {
-                    setOpen(false);
-                  }}
+                  onClick={handleClick}
                   className={`flex items-center px-4 py-2.5 hover:bg-orangeFpt-600 rounded transition ${
                     isActive ? 'bg-orangeFpt-500 text-white font-semibold' : ''
                   }`}

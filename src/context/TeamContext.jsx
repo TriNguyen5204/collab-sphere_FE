@@ -7,8 +7,9 @@ import { TeamBoardService, EventHandlers } from '../services/teamBoardService';
 import { getNotifications } from '../services/notifiactionApi';
 import { isTokenExpired } from '../utils/tokenUtils';
 import apiClient from '../services/apiClient';
+import { STORAGE_KEYS } from '../utils/storageUtils';
 
-const STORAGE_KEY = 'teamDetail';
+const STORAGE_KEY = STORAGE_KEYS.TEAM_DETAIL;
 
 const defaultContextValue = {
 	teamId: null,

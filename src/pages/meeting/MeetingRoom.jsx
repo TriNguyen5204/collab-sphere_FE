@@ -736,9 +736,11 @@ function GoogleMeetStage() {
   );
 }
 
+import { STORAGE_KEYS } from '../../utils/storageUtils';
+
 const getTeamIdFromStorage = () => {
   try {
-    const raw = localStorage.getItem('teamDetail');
+    const raw = localStorage.getItem(STORAGE_KEYS.TEAM_DETAIL);
     if (!raw) return null;
 
     const parsed = JSON.parse(raw);
@@ -833,11 +835,8 @@ export default function MeetingRoom() {
     if (roleName === 'LECTURER') {
       navigate('/lecturer/meetings');
     } else if (roleName === 'STUDENT') {
-      if (resolvedTeamId) {
-        navigate(`/student/meeting/history/${resolvedTeamId}`);
-      } else {
-        navigate('/student'); 
-      }
+      // Navigate to meeting history (teamId is stored in sessionStorage, not URL)
+      navigate('/student/meeting/history');
     } else {
       navigate('/'); 
     }

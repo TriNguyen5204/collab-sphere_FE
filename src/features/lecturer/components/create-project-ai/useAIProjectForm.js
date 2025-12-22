@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { STORAGE_KEYS, DEFAULT_FORM_VALUES, FORM_VERSION } from './constants';
+import { DEFAULT_FORM_VALUES, FORM_VERSION } from './constants';
+import { STORAGE_KEYS } from '../../../../utils/storageUtils';
 
 /**
  * Custom hook to manage AI Project form state with localStorage persistence
@@ -47,14 +48,14 @@ export const useAIProjectForm = () => {
 
   // Load form data from localStorage on mount
   useEffect(() => {
-    const savedData = localStorage.getItem(STORAGE_KEYS.FORM_DATA);
+    const savedData = localStorage.getItem(STORAGE_KEYS.AI_FORM_DATA);
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
         
         // Check version - clear if outdated
         if (parsed.version !== FORM_VERSION) {
-          localStorage.removeItem(STORAGE_KEYS.FORM_DATA);
+          localStorage.removeItem(STORAGE_KEYS.AI_FORM_DATA);
           setIsInitialized(true);
           return;
         }
@@ -100,7 +101,7 @@ export const useAIProjectForm = () => {
       savedAt: new Date().toISOString(),
     };
 
-    localStorage.setItem(STORAGE_KEYS.FORM_DATA, JSON.stringify(formData));
+    localStorage.setItem(STORAGE_KEYS.AI_FORM_DATA, JSON.stringify(formData));
   }, [
     isInitialized,
     topicDomain,
@@ -140,7 +141,7 @@ export const useAIProjectForm = () => {
 
   // Clear all form data
   const clearFormData = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEYS.FORM_DATA);
+    localStorage.removeItem(STORAGE_KEYS.AI_FORM_DATA);
     setTopicDomain(DEFAULT_FORM_VALUES.topicDomain);
     setCustomTopicDomain(DEFAULT_FORM_VALUES.customTopicDomain);
     setIndustryContext(DEFAULT_FORM_VALUES.industryContext);

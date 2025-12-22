@@ -1,8 +1,9 @@
 
 import Cookies from "js-cookie";
 import { createSlice } from "@reduxjs/toolkit";
+import { clearAllAppStorage, STORAGE_KEYS } from "../../utils/storageUtils";
 
-const storedUser = Cookies.get("user");
+const storedUser = Cookies.get(STORAGE_KEYS.USER);
 const initialState = storedUser ? JSON.parse(storedUser) : {
   userId: '',
   fullName: '',
@@ -38,7 +39,7 @@ const userSlice = createSlice({
       state.refreshToken = "";
       state.avatar = "";
       state.refreshTokenExpiryTime = "";
-      Cookies.remove("user");
+      clearAllAppStorage();
     },
   }
 });

@@ -3,6 +3,7 @@ import Cookies from 'js-cookie';
 import { store } from '../store/index';
 import { logout, setUserRedux } from '../store/slices/userSlice';
 import { isTokenExpired } from '../utils/tokenUtils';
+import { STORAGE_KEYS } from '../utils/storageUtils';
 
 const baseURL = import.meta.env.VITE_API_BASE_URL;
 
@@ -34,13 +35,13 @@ const requestAccessTokenRefresh = async (userState) => {
         };
 
         store.dispatch(setUserRedux(updatedUser));
-        Cookies.set('user', JSON.stringify(updatedUser), { expires: 7 });
+        Cookies.set(STORAGE_KEYS.USER, JSON.stringify(updatedUser), { expires: 7 });
 
         return data.accessToken;
     } catch (error) {
         console.error('Refresh token request failed:', error);
         store.dispatch(logout());
-        Cookies.remove('user');
+        // Cookies.remove(STORAGE_KEYS.USER); // Handled by logout action
         if (typeof window !== 'undefined') {
             window.location.href = '/login';
         }
@@ -64,7 +65,7 @@ apiClient.interceptors.request.use(
             if (isTokenExpired(token)) {
                 if (!userState?.refreshToken || !userState?.userId) {
                     store.dispatch(logout());
-                    Cookies.remove('user');
+                    // Cookies.remove(STORAGE_KEYS.USER); // Handled by logout action
                     if (typeof window !== 'undefined') {
                         window.location.href = '/login';
                     }
@@ -110,7 +111,7 @@ apiClient.interceptors.response.use(
         const userState = store.getState().user;
         if (!userState?.refreshToken || !userState?.userId) {
             store.dispatch(logout());
-            Cookies.remove('user');
+            Cookies.remove(STORAGE_KEYS.USER);
             if (typeof window !== 'undefined') {
                 window.location.href = '/login';
             }

@@ -4,6 +4,7 @@ import Cookies from "js-cookie";
 import { refreshToken } from "../services/authService";
 import { logout, setUserRedux } from "../store/slices/userSlice";
 import { isTokenExpired } from "../utils/tokenUtils";
+import { STORAGE_KEYS } from "../utils/storageUtils";
 
 export function useAuthCheck() {
   const dispatch = useDispatch();
@@ -48,7 +49,7 @@ export function useAuthCheck() {
   const handleLogout = (reason) => {
     console.warn("[Auth] Ending session:", reason);
     dispatch(logout());
-    Cookies.remove("user");
+    Cookies.remove(STORAGE_KEYS.USER);
     if (typeof window !== "undefined") {
       window.location.href = "/login";
     }
@@ -78,7 +79,7 @@ export function useAuthCheck() {
         };
 
         dispatch(setUserRedux(updated));
-        Cookies.set("user", JSON.stringify(updated), { expires: 7 });
+        Cookies.set(STORAGE_KEYS.USER, JSON.stringify(updated), { expires: 7 });
         // Effect will re-run with updated user and schedule the next refresh.
         return;
       }

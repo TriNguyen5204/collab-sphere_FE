@@ -3,7 +3,9 @@
  * This prevents exposing teamId in URL parameters
  */
 
-const MEETING_TEAM_ID_KEY = 'meeting_team_id';
+import { SESSION_KEYS } from './storageUtils';
+
+const MEETING_TEAM_ID_KEY = SESSION_KEYS.MEETING_TEAM_ID;
 
 /**
  * Store teamId securely in sessionStorage

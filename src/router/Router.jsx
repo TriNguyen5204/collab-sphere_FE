@@ -35,7 +35,6 @@ import CreateProject from '../pages/lecturer/CreateProject';
 import CreateProjectAI from '../pages/lecturer/CreateProjectAI';
 import ProjectLibrary from '../pages/lecturer/ProjectLibrary';
 import ProjectDetail from '../pages/lecturer/ProjectDetail';
-import ProjectAnalysis from '../pages/lecturer/ProjectAnalysis';
 import LecturerMonitoringDashboard from '../pages/lecturer/LecturerMonitoringDashboard';
 import ClassProjectAssignment from '../pages/lecturer/ClassProjectAssignment';
 import GradingDashboard from '../pages/lecturer/grading/GradingDashboard';
@@ -153,7 +152,6 @@ const lecturerRoutes = [
   { path: '/lecturer/projects/upload', element: protectRoute(['LECTURER'], <CreateProject />) },
   { path: '/lecturer/projects/:projectId', element: protectRoute(['LECTURER'], <ProjectDetail />) },
   { path: '/lecturer/projects/:projectId/edit', element: protectRoute(['LECTURER'], <ProjectDetail />) },
-  { path: '/lecturer/projects/:projectId/analysis', element: protectRoute(['LECTURER'], <ProjectAnalysis />) },
   { path: '/lecturer/monitoring/:classId', element: protectRoute(['LECTURER'], <LecturerMonitoringDashboard />) },
   { path: '/lecturer/monitoring', element: protectRoute(['LECTURER'], <LecturerMonitoringDashboard />) },
   { path: '/lecturer/grading', element: protectRoute(['LECTURER'], <GradingDashboard />) },

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle, GitBranch, Sparkles, ExternalLink, Settings } from 'lucide-react';
 import apiClient from '../../../services/apiClient';
+import { STORAGE_KEYS } from '../../../utils/storageUtils';
 
 /**
  * GitHubAppInstaller Component
@@ -74,8 +75,8 @@ const GitHubAppInstaller = ({ projectId, projectName, teamId }) => {
       savedAt: new Date().toISOString(),
     };
 
-    localStorage.setItem('github_installation_context', JSON.stringify(installationContext));
-    localStorage.setItem('github_installation_project_id', projectId);
+    localStorage.setItem(STORAGE_KEYS.GITHUB_INSTALLATION_CONTEXT, JSON.stringify(installationContext));
+    localStorage.setItem(STORAGE_KEYS.GITHUB_INSTALLATION_PROJECT_ID, projectId);
     
     // Redirect to GitHub App installation page
     // No need for redirect_url parameter - using Setup URL in GitHub App settings instead

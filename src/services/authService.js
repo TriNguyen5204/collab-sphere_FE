@@ -3,11 +3,12 @@ import Cookies from 'js-cookie';
 import { store } from '../store';
 import { setUserRedux, logout } from '../store/slices/userSlice';
 import { isTokenExpired } from '../utils/tokenUtils';
+import { clearAllAppStorage, STORAGE_KEYS } from '../utils/storageUtils';
 
 // ==================== Helper Functions ====================
 
 const getPersistedUser = () => {
-  const storedUser = Cookies.get('user');
+  const storedUser = Cookies.get(STORAGE_KEYS.USER);
   if (!storedUser) return null;
 
   try {
@@ -18,19 +19,19 @@ const getPersistedUser = () => {
     };
   } catch (error) {
     console.warn('[Auth] Failed to parse stored user cookie.', error);
-    Cookies.remove('user');
+    Cookies.remove(STORAGE_KEYS.USER);
     return null;
   }
 };
 
 const persistUser = (user) => {
   store.dispatch(setUserRedux(user));
-  Cookies.set('user', JSON.stringify(user), { expires: 7 });
+  Cookies.set(STORAGE_KEYS.USER, JSON.stringify(user), { expires: 7 });
 };
 
 const clearUser = () => {
   store.dispatch(logout());
-  Cookies.remove('user');
+  clearAllAppStorage();
 };
 
 // ==================== API Calls ====================

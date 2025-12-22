@@ -39,6 +39,8 @@ const SpatialInput = ({ label, type, name, value, onChange, icon: Icon, error, r
   </div>
 );
 
+import { STORAGE_KEYS } from '../../utils/storageUtils';
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -106,7 +108,7 @@ const LoginPage = () => {
         };
 
         dispatch(setUserRedux(normalizedUser));
-        Cookies.set('user', JSON.stringify(normalizedUser), { expires: 7 });
+        Cookies.set(STORAGE_KEYS.USER, JSON.stringify(normalizedUser), { expires: 7 });
         if (response.accessToken) {
           apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.accessToken}`;
         }

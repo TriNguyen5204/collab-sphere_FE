@@ -197,7 +197,6 @@ const ProjectLibrary = () => {
                               </div>
                               <div>
                                  <div className="font-semibold">Create Manually</div>
-                                 <div className="text-xs text-slate-500">Build from scratch</div>
                               </div>
                            </button>
 
@@ -210,7 +209,6 @@ const ProjectLibrary = () => {
                               </div>
                               <div>
                                  <div className="font-semibold">Create with AI</div>
-                                 <div className="text-xs text-slate-500">Generate from PDF</div>
                               </div>
                            </button>
                         </div>
@@ -403,31 +401,6 @@ const ProjectLibrary = () => {
 
                {/* RIGHT: SIDEBAR with Enhanced Glassmorphism */}
                <aside className="xl:col-span-4 2xl:col-span-3 space-y-6">
-                  {/* AI Assistance Card */}
-                  <div className="relative overflow-hidden rounded-3xl border border-white/60 backdrop-blur-xl bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-pink-500/10 p-6 shadow-lg">
-                     <div className="absolute inset-0 pointer-events-none">
-                        <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-gradient-to-br from-indigo-400/20 to-purple-400/20 blur-2xl"></div>
-                        <div className="absolute -left-4 -bottom-4 h-24 w-24 rounded-full bg-gradient-to-tr from-pink-400/20 to-rose-400/20 blur-2xl"></div>
-                     </div>
-                     <div className="relative">
-                        <div className="flex items-center gap-2 mb-3">
-                           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/25">
-                              <Sparkles className="h-5 w-5 text-white" />
-                           </div>
-                           <h3 className="text-lg font-bold text-slate-800">AI Assistance</h3>
-                        </div>
-                        <p className="text-sm text-slate-600 mb-4 leading-relaxed">
-                           Need help drafting milestones? Our AI tool can generate structure from a simple PDF syllabus.
-                        </p>
-                        <button
-                           onClick={() => navigate('/lecturer/projects/create-with-ai')}
-                           className="w-full rounded-xl bg-white/80 backdrop-blur-sm py-2.5 text-sm font-semibold text-indigo-600 hover:bg-white hover:shadow-md transition-all border border-indigo-100"
-                        >
-                           Try AI Generation
-                        </button>
-                     </div>
-                  </div>
-
                   {/* Quick Tips Card */}
                   <div className="relative overflow-hidden rounded-3xl border border-white/60 backdrop-blur-xl bg-white/70 p-6 shadow-lg">
                      <div className="flex items-center gap-2 mb-4">

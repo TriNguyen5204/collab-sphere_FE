@@ -1,3 +1,5 @@
+import { STORAGE_KEYS as GLOBAL_STORAGE_KEYS } from '../../../../utils/storageUtils';
+
 // AI Project Generator Constants
 
 export const AI_API_BASE_URL = 'https://u8ls7dz738.execute-api.ap-southeast-1.amazonaws.com/dev';
@@ -6,16 +8,17 @@ export const AI_API_BASE_URL = 'https://u8ls7dz738.execute-api.ap-southeast-1.am
 export const FORM_VERSION = 2;
 
 // LocalStorage Keys (obscured for privacy)
+// Mapped from global storage utils to maintain backward compatibility with existing code
 export const STORAGE_KEYS = {
-  FORM_DATA: '_aipf_d',
-  IDEAS: '_aipf_i',
-  CONFIG: '_aipf_c',
-  PHASE: '_aipf_p',
-  SELECTED_IDS: '_aipf_s',
+  FORM_DATA: GLOBAL_STORAGE_KEYS.AI_FORM_DATA,
+  IDEAS: GLOBAL_STORAGE_KEYS.AI_IDEAS,
+  CONFIG: GLOBAL_STORAGE_KEYS.AI_CONFIG,
+  PHASE: GLOBAL_STORAGE_KEYS.AI_PHASE,
+  SELECTED_IDS: GLOBAL_STORAGE_KEYS.AI_SELECTED_IDS,
   // Job persistence keys (for resume polling after refresh)
-  CURRENT_JOB_ID: '_aipf_jid',
-  JOB_STATUS: '_aipf_js',
-  JOB_START_TIME: '_aipf_jt',
+  CURRENT_JOB_ID: GLOBAL_STORAGE_KEYS.AI_CURRENT_JOB_ID,
+  JOB_STATUS: GLOBAL_STORAGE_KEYS.AI_JOB_STATUS,
+  JOB_START_TIME: GLOBAL_STORAGE_KEYS.AI_JOB_START_TIME,
 };
 
 // Topic Domain Options
