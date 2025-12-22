@@ -443,53 +443,16 @@ const TeamEvaluationPage = () => {
 
    return (
       <DashboardLayout>
-         <div className="flex flex-col h-full">
+         <div className="space-y-8 bg-slate-50/50">
 
             {/* --- HERO HEADER --- */}
-            <div className="mx-auto w-full shrink-0 px-4 lg:px-6">
                <LecturerBreadcrumbs items={breadcrumbItems} />
 
-               {/* <div className="mt-6 relative overflow-hidden rounded-3xl border border-white/60 bg-white p-8 shadow-xl shadow-slate-200/50">
-                  <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-orangeFpt-100/50 blur-3xl"></div>
-
-                  <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                     <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                           <span className="px-2.5 py-0.5 rounded-lg bg-orangeFpt-50 text-orangeFpt-700 text-xs font-bold border border-orangeFpt-200 uppercase tracking-wider">
-                              Final Evaluation
-                           </span>
-                        </div>
-                        <h1 className="text-3xl font-bold text-slate-900">{teamInfo?.teamName || 'Loading Team...'}</h1>
-                        <p className="text-slate-600 text-base">
-                           Review milestone submissions and input final grades for the team.
-                        </p>
-                     </div>
-
-                     <div className="flex items-center gap-3">
-                        <button
-                           onClick={() => navigate(-1)}
-                           className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-orangeFpt-600 transition-all shadow-sm active:scale-95"
-                        >
-                           <ArrowLeftIcon className="h-4 w-4" />
-                           Back
-                        </button>
-                        <Link
-                           to={`/lecturer/grading/class/${classId}/team/${teamId}/milestones/evaluate`}
-                           className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white border border-indigo-200 text-indigo-600 text-sm font-semibold hover:bg-indigo-50 transition-all shadow-sm"
-                        >
-                           <BeakerIcon className="w-4 h-4" />
-                           Grade Milestones
-                        </Link>
-                     </div>
-                  </div>
-               </div> */}
-            </div>
-
-            <div className="flex-1 min-h-0 px-4 lg:px-6 pb-6">
-               <div className="h-full grid grid-cols-12 gap-3 lg:gap-4 xl:gap-6 mt-3 lg:mt-4">
+            <div className="flex-1">
+               <div className="grid grid-cols-12 gap-3 lg:gap-4 xl:gap-6 mt-3 lg:mt-4">
 
                {/* COLUMN 1: Milestones (Left) */}
-               <div className="col-span-12 lg:col-span-4 xl:col-span-3 flex flex-col h-full min-h-0 gap-3 lg:gap-4 xl:gap-6">
+               <div className="col-span-12 lg:col-span-4 xl:col-span-3 flex flex-col max-h-[calc(100vh-11.1rem)] min-h-0 gap-3 lg:gap-4 xl:gap-6">
                   <div className="flex-1 rounded-2xl lg:rounded-3xl border border-slate-200 bg-white shadow-sm flex flex-col min-h-0">
                      <div className="flex justify-between gap-2 lg:gap-3 lg:mb-4 p-3 border-b border-slate-100">
                         <div className="flex items-center gap-1.5 lg:gap-2">
@@ -552,7 +515,7 @@ const TeamEvaluationPage = () => {
                </div>
 
                {/* COLUMN 2: Grading Workspace (Middle) */}
-               <div className="col-span-12 lg:col-span-8 xl:col-span-6 flex flex-col h-full min-h-0 rounded-2xl lg:rounded-3xl border border-slate-200 bg-white">
+               <div className="col-span-12 lg:col-span-8 xl:col-span-6 flex flex-col max-h-[calc(100vh-11.1rem)] min-h-0 rounded-2xl lg:rounded-3xl border border-slate-200 bg-white">
                   {selectedMilestoneId ? (
                      // MODE A: Milestone Details
                      <div className="h-full flex flex-col min-h-0">
@@ -633,23 +596,23 @@ const TeamEvaluationPage = () => {
                   ) : (
                      // MODE B: Final Grading Form
                      <div className="h-full flex flex-col min-h-0">
-                        <div className="mb-3 lg:mb-4 xl:mb-6 border-b border-slate-100 pb-3  flex justify-between items-end px-3 lg:px-4 xl:px-5 pt-3">
+                        <div className=" border-b border-slate-100  flex justify-between items-end py-3 px-5">
                            <div>
-                              <span className="text-[10px] lg:text-xs font-bold text-emerald-600 uppercase tracking-wider bg-emerald-50 px-1.5 lg:px-2 py-0.5 lg:py-1 rounded-md">Final Grading</span>
-                              <h2 className="text-lg lg:text-xl xl:text-2xl font-bold text-slate-900 mt-1 lg:mt-2">Team Evaluation</h2>
+                              {/* <span className="text-[10px] lg:text-xs font-bold text-emerald-600 uppercase tracking-wider bg-emerald-50 px-1.5 lg:px-2 py-0.5 lg:py-1 rounded-md">Final Grading</span> */}
+                              <h2 className="text-lg lg:text-xl xl:text-2xl font-bold text-slate-900">Final Evaluation</h2>
                            </div>
-                           <div className="text-right bg-slate-50 p-1.5 lg:p-2 px-2 lg:px-3 rounded-lg lg:rounded-xl border border-slate-100">
-                              <p className="text-[9px] lg:text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total</p>
-                              <div className="flex items-baseline justify-end gap-0.5 lg:gap-1">
-                                 <p className="text-xl lg:text-2xl font-black text-orangeFpt-600">{displayTotal}</p>
-                                 <span className="text-base lg:text-lg text-slate-400 font-bold">/10</span>
+                           <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-1 shadow-sm">
+                              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Total:</span>
+                              <div className="flex items-baseline gap-1">
+                                 <span className="text-2xl font-black text-orangeFpt-600">{displayTotal}</span>
+                                 <span className="text-lg font-bold text-slate-400">/10</span>
                               </div>
                            </div>
                         </div>
 
                         {/* Team Progress Overview */}
                         {teamInfo?.teamProgress && (
-                           <div className="mb-3 p-3 mx-3 rounded-xl lg:rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white">
+                           <div className="p-3 m-2 rounded-xl lg:rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white">
                               <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-2">
                                  <div className="h-1.5 w-1.5 rounded-full bg-indigo-500"></div>
                                  Team Progress Overview
@@ -983,7 +946,7 @@ const TeamEvaluationPage = () => {
                </div>
 
                {/* COLUMN 3: Team Members & Feedback (Right) */}
-               <div className="col-span-12 lg:col-span-12 xl:col-span-3 flex flex-col h-full min-h-0 gap-3 lg:gap-4">
+               <div className="col-span-12 lg:col-span-12 xl:col-span-3 flex flex-col max-h-[calc(100vh-11.1rem)] min-h-0 gap-3 lg:gap-4">
                   {/* Team Members Section */}
                   <div className="rounded-2xl lg:rounded-3xl border border-slate-200 bg-white shadow-sm shrink-0 flex flex-col min-h-0 max-h-[40%]">
                      <button

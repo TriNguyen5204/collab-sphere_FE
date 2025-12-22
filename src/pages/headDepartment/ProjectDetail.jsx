@@ -159,7 +159,7 @@ const ProjectDetail = () => {
       <div className='min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50'>
         {/* Hero Header */}
         <div className='relative overflow-hidden rounded-3xl border border-orangeFpt-50 bg-gradient-to-tl from-orangeFpt-50 via-white/45 to-white shadow-md shadow-orangeFpt-100/60 backdrop-blur'>
-          <div className='max-w-7xl mx-auto px-6 py-8'>
+          <div className=' px-6 py-8'>
             {/* Back Button */}
             <button
               onClick={() => navigate(-1)}
@@ -211,7 +211,7 @@ const ProjectDetail = () => {
         </div>
 
         {/* Main Content */}
-        <div className='max-w-7xl mx-auto px-6 py-8'>
+        <div className=' px-6 py-8'>
           <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
             {/* Main Column */}
             <div className='lg:col-span-2 space-y-6'>

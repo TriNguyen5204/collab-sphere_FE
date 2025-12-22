@@ -340,7 +340,7 @@ export default function ProjectManagement() {
                         <div
                           key={project.projectId}
                           onClick={() => handleProject(project.projectId)}
-                          className='group relative flex cursor-pointer flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-orangeFpt-300 hover:shadow-lg hover:shadow-orangeFpt-50'
+                          className='group relative flex cursor-pointer flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-orangeFpt-300 hover:shadow-lg hover:shadow-orangeFpt-50'
                         >
                           {/* Card Header */}
                           <div className='mb-4 flex items-start justify-between'>
@@ -396,7 +396,7 @@ export default function ProjectManagement() {
                               'No description provided for this project.'}
                           </p>
 
-                          <div className='mt-auto flex items-center justify-between border-t border-slate-100 pt-4'>
+                          <div className='flex items-center justify-between border-t border-slate-100 pt-3'>
                             <span className='text-xs font-semibold text-slate-400 group-hover:text-orangeFpt-600 transition-colors'>
                               View Details
                             </span>

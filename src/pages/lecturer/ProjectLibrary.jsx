@@ -154,7 +154,7 @@ const ProjectLibrary = () => {
 
    return (
       <DashboardLayout>
-         <div className="min-h-screen space-y-8">
+         <div className=" space-y-8">
 
             {/* --- HERO SECTION --- */}
             <header className="relative z-20 rounded-3xl border border-white/60 backdrop-blur-xl bg-white/70 p-8 shadow-xl shadow-slate-200/30">
@@ -218,10 +218,10 @@ const ProjectLibrary = () => {
             </header>
 
             {/* --- MAIN CONTENT AREA --- */}
-            <div className="grid grid-cols-1 gap-8 xl:grid-cols-12">
+            <div className="gap-6">
 
                {/* LEFT: PROJECT LIST */}
-               <div className="col-span-1 xl:col-span-8 2xl:col-span-9">
+               <div className="">
 
                   {/* Combined Toolbar */}
                   <div className="mb-6 flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
@@ -374,7 +374,7 @@ const ProjectLibrary = () => {
                   )}
 
                   {!isLoading && totalPages > 1 && (
-                     <div className="mt-8 flex items-center justify-between rounded-2xl border border-white/60 backdrop-blur-xl bg-white/50 p-4">
+                     <div className="mt-4 flex items-center justify-between px-10">
                         <p className="text-sm text-slate-500">
                            Showing page <span className="font-bold text-slate-900">{pagination.pageNum}</span> of{' '}
                            <span className="font-bold text-slate-900">{totalPages}</span>
@@ -400,8 +400,7 @@ const ProjectLibrary = () => {
                </div>
 
                {/* RIGHT: SIDEBAR with Enhanced Glassmorphism */}
-               <aside className="xl:col-span-4 2xl:col-span-3 space-y-6">
-                  {/* Quick Tips Card */}
+               {/* <aside className="xl:col-span-4 2xl:col-span-3 space-y-6">
                   <div className="relative overflow-hidden rounded-3xl border border-white/60 backdrop-blur-xl bg-white/70 p-6 shadow-lg">
                      <div className="flex items-center gap-2 mb-4">
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-100 to-orange-100">
@@ -424,7 +423,7 @@ const ProjectLibrary = () => {
                         </li>
                      </ul>
                   </div>
-               </aside>
+               </aside> */}
 
             </div>
          </div>

@@ -26,7 +26,7 @@ const STATUS_CONFIG = {
 const StatusBadge = ({ status }) => {
    const config = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING;
    const Icon = config.icon;
-   
+
    return (
       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${config.bg} ${config.color} ${config.border}`}>
          <Icon size={10} />
@@ -86,10 +86,10 @@ const ProjectCard = ({ project, onClick }) => {
             </div>
 
             {/* Project Name & Description */}
-            <div className="mb-4 flex-1">
+            <div className="mb-2 flex-1">
                <div className="flex items-start gap-2 mb-2">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-50">
-                     <FolderOpen size={16} className="text-indigo-500" />
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-xl bg-indigo-50">
+                     <FolderOpen size={13} className="text-indigo-500" />
                   </div>
                   <h3 className="text-base font-bold text-slate-900 line-clamp-2 group-hover:text-indigo-600 transition-colors leading-snug">
                      {project.projectName}
@@ -99,21 +99,21 @@ const ProjectCard = ({ project, onClick }) => {
                   {project.description}
                </p>
             </div>
-
-            {/* Subject Name */}
-            <div className="flex items-center gap-1.5 mb-2 text-xs text-slate-500">
-               <BookOpen size={12} />
-               <span className="truncate">{project.subjectName}</span>
+            <div className='flex'>
+               {/* Subject Name */}
+               <div className="flex items-center gap-1.5 mb-2 text-xs text-slate-500">
+                  <BookOpen size={12} />
+                  <span className="truncate">{project.subjectName}</span>
+               </div>
+               <div className="text-slate-200 px-2 text-xs">|</div>
+               {/* Lecturer Name */}
+               <div className="flex items-center gap-1.5 mb-2 text-xs text-slate-500">
+                  <User size={12} />
+                  <span className="truncate">{project.lecturerName}</span>
+               </div>
             </div>
-
-            {/* Lecturer Name */}
-            <div className="flex items-center gap-1.5 mb-3 text-xs text-slate-500">
-               <User size={12} />
-               <span className="truncate">{project.lecturerName}</span>
-            </div>
-
             {/* Rules & Actors Count */}
-            <div className="flex items-center justify-between py-3 border-t border-slate-100">
+            <div className="flex items-center justify-between py-2 border-t border-slate-100">
                <div className="flex items-center gap-1.5 text-xs text-slate-600">
                   <ListChecks size={14} className="text-slate-400" />
                   <span className="font-medium">{rulesCount} Rules</span>
@@ -125,12 +125,12 @@ const ProjectCard = ({ project, onClick }) => {
             </div>
 
             {/* View Action */}
-            <div className="flex items-center justify-end pt-3 border-t border-slate-100">
+            {/* <div className="flex items-center justify-end pt-3 border-t border-slate-100">
                <div className="flex items-center gap-1 text-xs font-semibold text-slate-500 group-hover:text-indigo-600 transition-colors">
                   <span>View Details</span>
                   <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
                </div>
-            </div>
+            </div> */}
          </div>
       </div>
    );

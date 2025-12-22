@@ -237,12 +237,12 @@ const ClassGradingOverview = () => {
               <table className="w-full text-left text-sm text-slate-600">
                 <thead className="bg-slate-50/50 text-xs uppercase text-slate-500 font-bold">
                   <tr>
-                    <th className="px-4 py-3 rounded-l-xl">Team</th>
-                    <th className="px-4 py-3">Project</th>
-                    <th className="px-4 py-3 text-center">Members</th>
-                    <th className="px-4 py-3 text-center">Grade</th>
-                    <th className="px-4 py-3 text-center">Status</th>
-                    <th className="px-4 py-3 rounded-r-xl text-right">Action</th>
+                    <th className="px-4 py-3 rounded-l-xl w-[20%]">Team</th>
+                    <th className="px-4 py-3 w-[40%]">Project</th>
+                    <th className="px-4 py-3 text-center w-[10%]">Members</th>
+                    <th className="px-4 py-3 text-center w-[10%]">Grade</th>
+                    <th className="px-4 py-3 text-center w-[10%]">Status</th>
+                    <th className="px-4 py-3 rounded-r-xl text-center w-[10%]">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -262,9 +262,8 @@ const ClassGradingOverview = () => {
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-3">
                             <TeamAvatar
-                              src={team.teamImage}
-                              name={team.teamName}
-                              className="h-10 w-10 rounded-full object-cover ring-2 ring-white shadow-sm"
+                              teamImage={team.teamImage}
+                              teamName={team.teamName}
                             />
                             <div>
                               <div className="font-bold text-slate-900 group-hover:text-orangeFpt-700 transition-colors">{team.teamName}</div>
@@ -273,7 +272,7 @@ const ClassGradingOverview = () => {
                           </div>
                         </td>
                         <td className="px-4 py-4">
-                          <span className="line-clamp-1 max-w-[250px] font-medium text-slate-700" title={team.projectName}>
+                          <span className="line-clamp-1 max-w-[400px] font-medium text-slate-700" title={team.projectName}>
                             {team.projectName}
                           </span>
                         </td>
@@ -290,13 +289,13 @@ const ClassGradingOverview = () => {
                             {team.status === 'graded' ? 'Graded' : 'Pending'}
                           </span>
                         </td>
-                        <td className="px-4 py-4 text-right">
+                        <td className="px-4 py-4 text-center">
                           <button
                             type="button"
                             onClick={() => handleOpenTeam(team.teamId)}
                             className="inline-flex items-center gap-1 text-sm font-bold text-orangeFpt-600 hover:text-orangeFpt-700 hover:underline decoration-2 underline-offset-4 transition-all"
                           >
-                            {team.status === 'graded' ? 'Review Grade' : 'Grade Now'}
+                            {team.status === 'graded' ? 'Review' : 'Grade'}
                             <ChevronRightIcon className="h-4 w-4" />
                           </button>
                         </td>

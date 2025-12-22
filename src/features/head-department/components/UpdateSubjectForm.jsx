@@ -411,9 +411,9 @@ const UpdateSubjectForm = ({ subject, onSuccess, onCancel }) => {
   // ✅ Hiển thị loading hoặc error nếu không có syllabus
   if (loading && !form.subjectSyllabus) {
     return (
-      <div className='bg-white rounded-2xl shadow-soft-lg w-full max-w-5xl mx-auto overflow-hidden flex flex-col'>
+      <div className='flex flex-col overflow-hidden'>
         {/* Header */}
-        <div className='bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-400 px-6 py-5 flex items-center justify-between flex-shrink-0'>
+        {/* <div className='bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-400 px-6 py-5 flex items-center justify-between flex-shrink-0'>
           <div className='flex items-center gap-3'>
             <div className='w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center'>
               <BookOpen className='w-6 h-6 text-white' />
@@ -432,7 +432,7 @@ const UpdateSubjectForm = ({ subject, onSuccess, onCancel }) => {
           >
             <X className='w-5 h-5' />
           </button>
-        </div>
+        </div> */}
         <div className='flex items-center justify-center p-12'>
           <div className='text-center'>
             <div className='animate-spin w-8 h-8 border-4 border-orangeFpt-500 border-t-transparent rounded-full mx-auto mb-4' />
@@ -446,7 +446,7 @@ const UpdateSubjectForm = ({ subject, onSuccess, onCancel }) => {
   // ❌ Nếu không có syllabus sau khi load xong
   if (!loading && !form.subjectSyllabus) {
     return (
-      <div className='bg-white rounded-2xl shadow-soft-lg w-full max-w-5xl mx-auto overflow-hidden'>
+      <div className='overflow-hidden'>
         <div className='bg-gradient-to-r from-red-500 to-red-400 px-6 py-5 flex items-center justify-between'>
           <div className='flex items-center gap-3'>
             <div className='w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center'>
@@ -483,9 +483,9 @@ const UpdateSubjectForm = ({ subject, onSuccess, onCancel }) => {
   }
 
   return (
-    <div className='bg-white rounded-2xl shadow-soft-lg w-full max-w-5xl mx-auto overflow-hidden flex flex-col max-h-[90vh]'>
+    <div className='flex flex-col overflow-hidden -m-6'>
       {/* Header */}
-      <div className='bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-400 px-6 py-5 flex items-center justify-between flex-shrink-0'>
+      {/* <div className='bg-gradient-to-r from-orangeFpt-500 to-orangeFpt-400 px-6 py-5 flex items-center justify-between flex-shrink-0'>
         <div className='flex items-center gap-3'>
           <div className='w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center'>
             <BookOpen className='w-6 h-6 text-white' />
@@ -504,7 +504,7 @@ const UpdateSubjectForm = ({ subject, onSuccess, onCancel }) => {
         >
           <X className='w-5 h-5' />
         </button>
-      </div>
+      </div> */}
 
       {/* Validation Errors Summary */}
       {Object.keys(validationErrors).length > 0 && (
@@ -695,7 +695,7 @@ const UpdateSubjectForm = ({ subject, onSuccess, onCancel }) => {
 
           {/* Outcomes Tab */}
           {activeTab === 'outcomes' && (
-            <div className='space-y-4'>
+            <div className='space-y-6'>
               <div className='flex justify-between items-center'>
                 <div>
                   <h3 className='font-bold text-lg'>Learning Outcomes</h3>
@@ -953,7 +953,7 @@ const UpdateSubjectForm = ({ subject, onSuccess, onCancel }) => {
 
           {/* Grading Tab */}
           {activeTab === 'grading' && (
-            <div className='space-y-4'>
+            <div className='space-y-6'>
               <div className='flex justify-between items-center'>
                 <div>
                   <h3 className='font-bold text-lg'>Grade Components</h3>
@@ -1035,7 +1035,7 @@ const UpdateSubjectForm = ({ subject, onSuccess, onCancel }) => {
       </form>
 
       {/* Footer */}
-      <div className='border-t border-slate-200 bg-slate-50 px-6 py-4 flex justify-between flex-shrink-0'>
+      <div className='px-6 py-4 flex justify-between flex-shrink-0 rounded-2xl'>
         <button
           type='button'
           onClick={onCancel}
