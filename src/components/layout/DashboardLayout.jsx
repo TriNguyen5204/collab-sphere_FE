@@ -274,7 +274,7 @@ const normalizePath = (path = '/') => {
   return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
 };
 
-const DashboardLayout = ({ children }) => {
+const   DashboardLayout = ({ children }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const location = useLocation();
@@ -413,7 +413,7 @@ const DashboardLayout = ({ children }) => {
             onSignup={handleSignup}
           />
         </aside>
-        <main className='flex-1 min-w-0 ml-56 h-[calc(100vh-4rem)] overflow-y-auto overflow-x-hidden pt-6'>
+        <main className='flex-1 min-w-0 ml-56 h-[calc(100vh-4.3rem)] overflow-y-auto px-4 py-6 overflow-x-hidden pt-6 custom-scrollbar'>
           {children}
         </main>
       </div>
