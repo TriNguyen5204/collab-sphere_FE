@@ -162,9 +162,9 @@ export default function CustomPageMenu({
     };
 
     toast.promise(createPromise(), {
-      loading: 'Đang tạo trang mới...',
-      success: name => `Đã tạo: ${name}`,
-      error: err => `Lỗi: ${err.message}`,
+      loading: 'Creating new page...',
+      success: name => `Created: ${name}`,
+      error: err => `Error: ${err.message}`,
     });
 
     setOpen(false);
@@ -173,7 +173,7 @@ export default function CustomPageMenu({
   // ========== RENAME PAGE ==========
   const startEdit = page => {
     if (page.id === DEFAULT_TLDRAW_PAGE_ID) {
-      toast.warning('Không thể đổi tên trang mặc định');
+      toast.warning('Cannot rename the default page');
       return;
     }
     setEditingPageId(page.id);
@@ -189,7 +189,7 @@ export default function CustomPageMenu({
     if (!page) return;
     const newTitle = (editingValue ?? '').trim();
 
-    // Nếu không có thay đổi, hủy edit ngay
+    // If no changes, cancel edit immediately
     if (!newTitle || newTitle === page.name) {
       cancelEdit();
       return;
@@ -198,22 +198,22 @@ export default function CustomPageMenu({
     const numericPageId = page.id.split(':')[1];
 
     if (!numericPageId || numericPageId === 'page') {
-      toast.error('Không thể đổi tên trang mặc định');
+      toast.error('Cannot rename the default page');
       cancelEdit();
       return;
     }
 
-    // Lưu tên cũ để revert nếu lỗi
+    // Save old name to revert if error occurs
     const oldName = page.name;
 
-    // 1. CẬP NHẬT UI NGAY LẬP TỨC (Không chờ API)
+    // 1. UPDATE UI IMMEDIATELY (Don't wait for API)
     editor.updatePage({ id: page.id, name: newTitle });
 
     cancelEdit();
 
     const updatePromise = async () => {
       try {
-        // Gọi API Background
+        // Call API in background
         await updatePageTitle(numericPageId, newTitle);
         console.log('✅ API: Page renamed to:', newTitle);
 
@@ -230,44 +230,44 @@ export default function CustomPageMenu({
         }
       } catch (error) {
         console.error(' Rename error:', error);
-        // Revert lại tên cũ nếu API lỗi
+        // Revert to old name if API error
         editor.updatePage({ id: page.id, name: oldName });
         throw error;
       }
     };
 
-    // Vẫn hiện toast để báo trạng thái lưu
+    // Still show toast to indicate save status
     toast.promise(updatePromise(), {
-      loading: 'Đang lưu tên mới...',
-      success: 'Đã lưu tên trang',
-      error: 'Lỗi lưu tên trang (đã hoàn tác)',
+      loading: 'Saving new name...',
+      success: 'Page name saved',
+      error: 'Error saving page name (reverted)',
     });
   };
 
   // ========== DELETE PAGE ==========
   const handleDelete = async page => {
-    // ✅ Kiểm tra nếu chỉ còn 1 page thì không cho xóa
+    // ✅ Check if only 1 page left, cannot delete
     if (pages.length <= 1) {
-      toast.warning('Không thể xóa trang cuối cùng. Whiteboard phải có ít nhất 1 trang.');
+      toast.warning('Cannot delete the last page. Whiteboard must have at least 1 page.');
       return;
     }
 
     const confirmed = await confirmWithToast({
-      message: `Xóa trang "${page.name}"? Hành động này không thể hoàn tác.`,
-      confirmText: 'Xóa ngay',
-      cancelText: 'Hủy',
+      message: `Delete page "${page.name}"? This action cannot be undone.`,
+      confirmText: 'Delete Now',
+      cancelText: 'Cancel',
       variant: 'danger',
     });
 
     if (!confirmed) return;
 
     try {
-      // 1. Gọi API
+      // 1. Call API
       console.log('Deleting page with ID:', page.id);
       const numericId = page.id.replace('page:', '');
       const response = await deletePage(numericId);
       console.log('API: Page deleted:', response);
-      // 2. Cập nhật local editor ngay lập tức
+      // 2. Update local editor immediately
       editor.deletePage(page.id);
     } catch (err) {
       console.error('Delete failed', err);
@@ -473,7 +473,7 @@ export default function CustomPageMenu({
                               fontStyle: 'italic',
                             }}
                           >
-                            (mặc định)
+                            (default)
                           </span>
                         )}
                       </>
