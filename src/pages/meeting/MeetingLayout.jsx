@@ -1,14 +1,32 @@
 import MeetingHomePage from './MeetingHomePage';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { getMeetingTeamId } from '../../utils/meetingSessionHelper';
+import { toast } from 'sonner';
 
 const HomeLayout = ({ children }) => {
-  const { teamId } = useParams();
   const navigate = useNavigate();
+  const teamId = getMeetingTeamId();
+  console.log('MeetingLayout - teamId from sessionStorage:', teamId);
+
+  // Redirect if no teamId found in sessionStorage
+  useEffect(() => {
+    if (!teamId) {
+      toast.error('No team selected. Please select a team first.');
+      navigate('/lecturer/meetings');
+    }
+  }, [teamId, navigate]);
 
   const handleBack = () => {
     navigate(`/student/project/team-workspace`);
   };
+  
+  // Don't render if no teamId
+  if (!teamId) {
+    return null;
+  }
+
   return (
     <main className='relative'>
       <button

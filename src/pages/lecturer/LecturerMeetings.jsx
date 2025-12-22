@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { getLecturerClasses, getClassTeams } from '../../services/classApi';
 import { 
   CalendarDaysIcon, 
@@ -13,18 +13,27 @@ import {
 import { toast } from 'sonner';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import MeetingTypeList from '../../features/meeting/components/MeetingTypeList';
+import { setMeetingTeamId, getMeetingTeamId, clearMeetingTeamId } from '../../utils/meetingSessionHelper';
 
 const LecturerMeetings = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { userId } = useSelector(state => state.user);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedClass, setExpandedClass] = useState(null);
   const [classTeams, setClassTeams] = useState({});
   const [loadingTeams, setLoadingTeams] = useState({});
-  
-  const selectedTeamId = searchParams.get('teamId');
+  const [selectedTeamId, setSelectedTeamId] = useState(null);
+
+  // Check if there's a teamId in sessionStorage on mount
+  useEffect(() => {
+    const storedTeamId = getMeetingTeamId();
+    console.log('LecturerMeetings - storedTeamId from sessionStorage:', storedTeamId);
+    if (storedTeamId) {
+      setSelectedTeamId(storedTeamId);
+      console.log('LecturerMeetings - selectedTeamId set to:', storedTeamId);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -71,11 +80,13 @@ const LecturerMeetings = () => {
   };
 
   const handleNavigateToMeeting = (teamId) => {
-    setSearchParams({ teamId });
+    setMeetingTeamId(teamId);
+    setSelectedTeamId(teamId);
   };
 
   const handleBackToSelection = () => {
-    setSearchParams({});
+    clearMeetingTeamId();
+    setSelectedTeamId(null);
   };
 
   return (

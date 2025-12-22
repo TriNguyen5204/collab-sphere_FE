@@ -12,10 +12,11 @@ import {
   RefreshCw,
   Video,
 } from 'lucide-react';
-import { useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import StudentLayout from '../../components/layout/StudentLayout';
 import { useAvatar } from '../../hooks/useAvatar';
 import RecordUrlCell from '../../features/meeting/components/RecordUrlCell';
+import { getMeetingTeamId } from '../../utils/meetingSessionHelper';
 
 // Avatar Component using useAvatar hook (consistent with ClassDetailPage)
 const Avatar = ({ src, name, className = '' }) => {
@@ -46,8 +47,12 @@ const Avatar = ({ src, name, className = '' }) => {
 };
 
 const StudentMeetingManagement = () => {
-  const { teamId } = useParams();
-  const teamIdNumber = parseInt(teamId) || 2;
+  const navigate = useNavigate();
+  const teamId = getMeetingTeamId();
+  const teamIdNumber = parseInt(teamId);
+  
+  console.log('StudentMeetingManagement - teamId from sessionStorage:', teamId);
+  console.log('StudentMeetingManagement - teamIdNumber for API:', teamIdNumber);
 
   const [meetings, setMeetings] = useState([]);
   const [filters, setFilters] = useState({
@@ -62,6 +67,14 @@ const StudentMeetingManagement = () => {
   const [pagination, setPagination] = useState({ pageCount: 1, itemCount: 0 });
   const [loading, setLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Validate teamId
+  useEffect(() => {
+    if (!teamId) {
+      toast.error('No team selected. Please select a team first.');
+      navigate('/student/home');
+    }
+  }, [teamId, navigate]);
 
   // UTC conversion
   const convertToUTC = localDateStr => {

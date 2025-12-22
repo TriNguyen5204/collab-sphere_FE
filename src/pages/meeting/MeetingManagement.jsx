@@ -12,11 +12,12 @@ import {
   RefreshCw,
   Video,
 } from 'lucide-react';
-import { useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import LecturerBreadcrumbs from '../../features/lecturer/components/LecturerBreadcrumbs';
 import RecordUrlCell from '../../features/meeting/components/RecordUrlCell';
 import { useAvatar } from '../../hooks/useAvatar';
+import { getMeetingTeamId } from '../../utils/meetingSessionHelper';
 
 // Avatar Component using useAvatar hook (consistent with ClassDetailPage)
 const Avatar = ({ src, name, className = '' }) => {
@@ -47,8 +48,12 @@ const Avatar = ({ src, name, className = '' }) => {
 };
 
 const MeetingManagement = () => {
-  const { teamId } = useParams();
-  const teamIdNumber = parseInt(teamId) || 2;
+  const navigate = useNavigate();
+  const teamId = getMeetingTeamId();
+  const teamIdNumber = parseInt(teamId);
+  
+  console.log('MeetingManagement - teamId from sessionStorage:', teamId);
+  console.log('MeetingManagement - teamIdNumber for API:', teamIdNumber);
 
   const [meetings, setMeetings] = useState([]);
   const [filters, setFilters] = useState({
@@ -73,6 +78,14 @@ const MeetingManagement = () => {
     ).toISOString();
   };
 
+  // Validate teamId
+  useEffect(() => {
+    if (!teamId) {
+      toast.error('No team selected. Please select a team first.');
+      navigate('/lecturer/meetings');
+    }
+  }, [teamId, navigate]);
+
   // Fetch meetings
   const fetchMeetings = async () => {
     setLoading(true);
@@ -81,7 +94,8 @@ const MeetingManagement = () => {
         ...filters,
         scheduleTime: convertToUTC(filters.scheduleTime),
       };
-
+      
+      console.log('MeetingManagement - Calling API with payload:', payload);
       const res = await getMeeting(payload);
 
       if (res?.isSuccess && res.paginatedMeeting?.list) {

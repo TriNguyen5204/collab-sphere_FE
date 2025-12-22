@@ -16,7 +16,7 @@ const TimePreview = ({ selectedDate, startTime, formatIsoString }) => {
       </div>
       <div className='mt-1.5 flex items-center gap-1.5 text-xs text-orangeFpt-600 ml-6'>
         <Globe className='w-3 h-3' />
-        <span>Timezone: Asia/Ho_Chi_Minh (GMT+7)</span>
+        <span>Timezone: Asia/Ho Chi Minh (GMT+7)</span>
       </div>
     </div>
   );
