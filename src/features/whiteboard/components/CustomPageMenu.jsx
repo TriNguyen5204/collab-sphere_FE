@@ -215,7 +215,7 @@ export default function CustomPageMenu({
       try {
         // Gọi API Background
         await updatePageTitle(numericPageId, newTitle);
-        console.log(' API: Page renamed to:', newTitle);
+        console.log('✅ API: Page renamed to:', newTitle);
 
         // Broadcast WebSocket
         if (websocket && websocket.readyState === WebSocket.OPEN) {
@@ -246,6 +246,12 @@ export default function CustomPageMenu({
 
   // ========== DELETE PAGE ==========
   const handleDelete = async page => {
+    // ✅ Kiểm tra nếu chỉ còn 1 page thì không cho xóa
+    if (pages.length <= 1) {
+      toast.warning('Không thể xóa trang cuối cùng. Whiteboard phải có ít nhất 1 trang.');
+      return;
+    }
+
     const confirmed = await confirmWithToast({
       message: `Xóa trang "${page.name}"? Hành động này không thể hoàn tác.`,
       confirmText: 'Xóa ngay',
