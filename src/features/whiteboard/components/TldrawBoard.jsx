@@ -254,11 +254,11 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
           const storageKey = `tldraw_current_page_${whiteboardId}`;
           const savedPageId = localStorage.getItem(storageKey);
 
-          // Kiểm tra xem trang đã lưu có còn tồn tại trong danh sách mới load không
+          // Check if the saved page still exists in the newly loaded list
           const targetPageExists =
             savedPageId && pageRecords.some(p => p.id === savedPageId);
 
-          // Nếu có trang đã lưu thì dùng, không thì dùng trang đầu tiên (đã sort)
+          // If there's a saved page, use it; otherwise use the first page (already sorted)
           const targetPageId = targetPageExists
             ? savedPageId
             : pageRecords[0].id;

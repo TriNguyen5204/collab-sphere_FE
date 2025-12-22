@@ -31,7 +31,8 @@ import {
   CreditCard,
   GraduationCap,
   PanelRightClose,
-  RotateCcw
+  RotateCcw,
+  Flag
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createProject } from '../../services/projectApi';
@@ -916,6 +917,35 @@ const CreateProjectAI = () => {
                                 <span className="text-white text-xs font-bold">{index + 1}</span>
                               </div>
                               <p className="text-sm text-[#1F2937] leading-relaxed">{outcome.outcomeDetail}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Milestones */}
+                    {syllabus.syllabusMilestones?.length > 0 && (
+                      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm">
+                        <div className="px-5 py-4 border-b border-slate-100/80 bg-gradient-to-r from-blue-50/50 to-white/50">
+                          <div className="flex items-center gap-2">
+                            <Flag size={18} className="text-blue-600" />
+                            <h4 className="font-bold text-[#1F2937]">Milestones</h4>
+                          </div>
+                        </div>
+                        <div className="p-4 space-y-3">
+                          {syllabus.syllabusMilestones.sort((a, b) => a.startWeek - b.startWeek).map((milestone, index) => (
+                            <div key={milestone.syllabusMilestoneId || index} className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-100/50 hover:bg-slate-50 transition-colors">
+                              <div className="flex justify-between items-start mb-2">
+                                <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold border border-blue-100">
+                                  Week {milestone.startWeek}
+                                </span>
+                                <span className="text-xs text-[#6B7280] font-medium flex items-center gap-1">
+                                  <Clock size={12} />
+                                  {milestone.duration} {milestone.duration > 1 ? 'Weeks' : 'Week'}
+                                </span>
+                              </div>
+                              <h5 className="text-sm font-bold text-[#1F2937] mb-1">{milestone.title}</h5>
+                              <p className="text-sm text-[#6B7280] leading-relaxed">{milestone.description}</p>
                             </div>
                           ))}
                         </div>

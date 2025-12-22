@@ -51,9 +51,9 @@ export default function Whiteboard() {
         onClick={() => navigate(-1)}
         style={{
           position: 'absolute',
-          bottom: 20, // Cách đáy 20px
-          right: 20, // Cách trái 20px
-          zIndex: 999999, // Luôn nằm trên cùng
+          bottom: 20, // 20px from bottom
+          right: 20, // 20px from right
+          zIndex: 999999, // Always on top
           background: 'white',
           border: '1px solid #e0e0e0',
           borderRadius: '8px',

@@ -379,7 +379,7 @@ const ProjectDetail = () => {
                   </div>
 
                   {/* Quick Actions */}
-                  {isPending || isDenied && (
+                  {(isPending || isDenied) && (
                      <div className="flex flex-col gap-3 sm:flex-row">
                         <button
                            onClick={handleOpenEdit}
@@ -399,7 +399,7 @@ const ProjectDetail = () => {
             </header>
 
             {/* --- REJECTION REASON ALERT --- */}
-            {(statusKey === 'DENIED' || statusKey === 'REJECTED') && project.rejectReason && (
+            {statusKey !== 'APPROVED' && project.rejectReason && (
                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 flex items-start gap-3 animate-in fade-in slide-in-from-top-4 duration-500">
                   <AlertCircle className="text-red-600 shrink-0 mt-0.5" size={20} />
                   <div>

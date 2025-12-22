@@ -19,7 +19,9 @@ import {
    CreditCard,
    Target,
    GraduationCap,
-   BarChart3
+   BarChart3,
+   Flag,
+   Clock
 } from "lucide-react";
 
 import { createProject } from "../../services/projectApi";
@@ -858,24 +860,55 @@ const CreateProject = () => {
                                        <Target size={16} />
                                        <span className="text-xs font-semibold uppercase">Outcomes</span>
                                     </div>
-                                    <p className="text-2xl font-bold text-emerald-700">{syllabusData.subjectOutcomes?.length || 0}</p>
+                                    <p className="text-2xl font-bold text-emerald-700">{syllabusData.subjectSyllabus.subjectOutcomes?.length || 0}</p>
                                  </div>
                               </div>
 
                               {/* Learning Outcomes */}
-                              {syllabusData.subjectOutcomes?.length > 0 && (
-                                 <div>
-                                    <div className="flex items-center gap-2 mb-3">
-                                       <GraduationCap size={16} className="text-[#e75710]" />
-                                       <h4 className="text-sm font-bold text-slate-700">Learning Outcomes</h4>
+                              {syllabusData.subjectSyllabus.subjectOutcomes?.length > 0 && (
+                                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm">
+                                    <div className="px-5 py-4 border-b border-slate-100/80 bg-gradient-to-r from-[#fcd8b6]/50 to-white/50">
+                                       <div className="flex items-center gap-2">
+                                          <GraduationCap size={18} className="text-[#e75710]" />
+                                          <h4 className="font-bold text-[#1F2937]">Learning Outcomes</h4>
+                                       </div>
                                     </div>
-                                    <div className="space-y-2">
-                                       {syllabusData.subjectOutcomes.map((outcome, idx) => (
-                                          <div key={outcome.subjectOutcomeId || idx} className="flex gap-3 text-sm p-3 rounded-xl bg-slate-50 border border-slate-100">
-                                             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#e75710]/10 text-[#e75710] text-xs font-bold">
-                                                {idx + 1}
-                                             </span>
-                                             <span className="text-slate-600 leading-relaxed">{outcome.outcomeDetail}</span>
+                                    <div className="p-4 space-y-3">
+                                       {syllabusData.subjectSyllabus.subjectOutcomes.map((outcome, idx) => (
+                                          <div key={outcome.subjectOutcomeId || idx} className="flex gap-3 p-3.5 bg-slate-50/80 rounded-xl border border-slate-100/50 hover:bg-slate-50 transition-colors">
+                                             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#e75710] to-[#fb8239] flex items-center justify-center flex-shrink-0 shadow-sm">
+                                                <span className="text-white text-xs font-bold">{idx + 1}</span>
+                                             </div>
+                                             <p className="text-sm text-[#1F2937] leading-relaxed">{outcome.outcomeDetail}</p>
+                                          </div>
+                                       ))}
+                                    </div>
+                                 </div>
+                              )}
+
+                              {/* Milestones */}
+                              {syllabusData.subjectSyllabus.syllabusMilestones?.length > 0 && (
+                                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm">
+                                    <div className="px-5 py-4 border-b border-slate-100/80 bg-gradient-to-r from-blue-50/50 to-white/50">
+                                       <div className="flex items-center gap-2">
+                                          <Flag size={18} className="text-blue-600" />
+                                          <h4 className="font-bold text-[#1F2937]">Milestones</h4>
+                                       </div>
+                                    </div>
+                                    <div className="p-4 space-y-3">
+                                       {syllabusData.subjectSyllabus.syllabusMilestones.sort((a, b) => a.startWeek - b.startWeek).map((milestone, idx) => (
+                                          <div key={milestone.syllabusMilestoneId || idx} className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-100/50 hover:bg-slate-50 transition-colors">
+                                             <div className="flex justify-between items-start mb-2">
+                                                <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold border border-blue-100">
+                                                   Week {milestone.startWeek}
+                                                </span>
+                                                <span className="text-xs text-[#6B7280] font-medium flex items-center gap-1">
+                                                   <Clock size={12} />
+                                                   {milestone.duration} {milestone.duration > 1 ? 'Weeks' : 'Week'}
+                                                </span>
+                                             </div>
+                                             <h5 className="text-sm font-bold text-[#1F2937] mb-1">{milestone.title}</h5>
+                                             <p className="text-sm text-[#6B7280] leading-relaxed">{milestone.description}</p>
                                           </div>
                                        ))}
                                     </div>
@@ -883,19 +916,30 @@ const CreateProject = () => {
                               )}
 
                               {/* Grade Components */}
-                              {syllabusData.gradeComponents?.length > 0 && (
-                                 <div>
-                                    <div className="flex items-center gap-2 mb-3">
-                                       <BarChart3 size={16} className="text-[#e75710]" />
-                                       <h4 className="text-sm font-bold text-slate-700">Grade Components</h4>
+                              {syllabusData.subjectSyllabus.subjectGradeComponents?.length > 0 && (
+                                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm">
+                                    <div className="px-5 py-4 border-b border-slate-100/80 bg-gradient-to-r from-purple-50/50 to-white/50">
+                                       <div className="flex items-center gap-2">
+                                          <BarChart3 size={18} className="text-purple-600" />
+                                          <h4 className="font-bold text-[#1F2937]">Assessment Components</h4>
+                                       </div>
                                     </div>
-                                    <div className="space-y-2">
-                                       {syllabusData.gradeComponents.map((comp, idx) => (
-                                          <div key={comp.subjectGradeComponentId || idx} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
-                                             <span className="text-sm text-slate-700 font-medium">{comp.componentName}</span>
-                                             <span className="text-sm font-bold text-[#e75710]">{comp.referencePercentage}%</span>
+                                    <div className="p-4 space-y-3">
+                                       {syllabusData.subjectSyllabus.subjectGradeComponents.map((comp, idx) => (
+                                          <div key={comp.subjectGradeComponentId || idx} className="flex items-center justify-between p-3.5 bg-slate-50/80 rounded-xl border border-slate-100/50 hover:bg-slate-50 transition-colors">
+                                             <div className="flex items-center gap-3">
+                                                <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-purple-500 to-purple-400" />
+                                                <span className="text-sm font-medium text-[#1F2937]">{comp.componentName}</span>
+                                             </div>
+                                             <span className="text-sm font-bold text-purple-600">{comp.referencePercentage}%</span>
                                           </div>
                                        ))}
+                                       <div className="flex items-center justify-between pt-3 mt-1 border-t border-slate-200/60">
+                                          <span className="text-sm font-bold text-[#6B7280]">Total</span>
+                                          <span className="text-sm font-bold text-[#1F2937]">
+                                             {syllabusData.subjectSyllabus.subjectGradeComponents.reduce((sum, c) => sum + c.referencePercentage, 0)}%
+                                          </span>
+                                       </div>
                                     </div>
                                  </div>
                               )}

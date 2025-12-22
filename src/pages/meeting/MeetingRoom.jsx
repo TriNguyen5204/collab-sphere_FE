@@ -850,7 +850,7 @@ export default function MeetingRoom() {
           <XCircle className="h-12 w-12 text-red-500" />
           <p className="text-lg font-medium">{error}</p>
           <button
-            onClick={() => navigate('/meeting')}
+            onClick={() => navigate(-1)}
             className="px-4 py-2 bg-[#3c4043] hover:bg-[#4b4f54] rounded-lg transition-colors"
           >
             Go Back

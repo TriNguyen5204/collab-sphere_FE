@@ -12,6 +12,7 @@ import MeetingCard from './MeetingCard';
 import { useSelector } from 'react-redux';
 
 const MeetingTypeList = ({ teamId }) => {
+  console.log('MeetingTypeList - teamId prop:', teamId);
   const [meetingState, setMeetingState] = useState('');
   const roleName = useSelector(state => state.user.roleName);
   const navigate = useNavigate();
@@ -20,17 +21,17 @@ const MeetingTypeList = ({ teamId }) => {
     if (!meetingState) return;
 
     if (meetingState === 'isInstantMeeting') {
-      navigate(`/join-room/${teamId}`);
+      navigate('/join-room');
     } else if (meetingState === 'history') {
       if (roleName === 'LECTURER') {
-        navigate(`/meeting/history/${teamId}`);
+        navigate('/meeting/history');
       } else if (roleName === 'STUDENT') {
-        navigate(`/student/meeting/history/${teamId}`);
+        navigate('/student/meeting/history');
       }
     } else if (meetingState === 'schedule') {
-      navigate(`/meeting/schedule/${teamId}`);
+      navigate('/meeting/schedule');
     }
-  }, [meetingState, teamId, roleName, navigate]);
+  }, [meetingState, roleName, navigate]);
 
   const meetingTypes = [
     {

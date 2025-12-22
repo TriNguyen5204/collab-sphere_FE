@@ -274,7 +274,7 @@ const normalizePath = (path = '/') => {
   return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
 };
 
-const DashboardLayout = ({ children }) => {
+const   DashboardLayout = ({ children }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const location = useLocation();

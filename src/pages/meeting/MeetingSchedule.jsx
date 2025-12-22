@@ -3,10 +3,11 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { createMeeting, getMeeting } from '../../features/meeting/services/meetingApi';
 import { toast } from 'sonner';
 import useIsoToLocalTime from '../../hooks/useIsoToLocalTime';
+import { getMeetingTeamId } from '../../utils/meetingSessionHelper';
 
 // Import components and utilities
 import {
@@ -26,9 +27,11 @@ import {
 // ==================== MAIN COMPONENT ====================
 
 const MeetingSchedulerFull = () => {
-  const { teamId } = useParams();
   const navigate = useNavigate();
+  const teamId = getMeetingTeamId();
   const { formatIsoString } = useIsoToLocalTime(TIME_FORMATTER_CONFIG);
+  
+  console.log('MeetingSchedule - teamId from sessionStorage:', teamId);
   
   // State
   const [events, setEvents] = useState([]);
@@ -40,15 +43,27 @@ const MeetingSchedulerFull = () => {
   const [emptyMessage, setEmptyMessage] = useState('');
   const [eventForm, setEventForm] = useState(INITIAL_FORM_STATE);
 
+  // Validate teamId
+  useEffect(() => {
+    if (!teamId) {
+      toast.error('No team selected. Please select a team first.');
+      navigate('/lecturer/meetings');
+    }
+  }, [teamId, navigate]);
+
   // Fetch meetings on mount
   useEffect(() => {
-    fetchMeetings();
+    if (teamId) {
+      fetchMeetings();
+    }
   }, [teamId]);
 
   // Fetch meetings from API
   const fetchMeetings = async () => {
     setLoading(true);
     setEmptyMessage('');
+    
+    console.log('MeetingSchedule - Calling getMeeting API with teamId:', teamId);
     
     try {
       const response = await getMeeting({ teamId });

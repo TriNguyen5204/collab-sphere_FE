@@ -347,13 +347,13 @@ export function useWhiteboardSync(
         };
 
         socket.onopen = () => {
-            // ✅ 1. CONFIRMATION & STATE UPDATE
+            // 1. CONFIRMATION & STATE UPDATE
             // Xác nhận kết nối thành công và cập nhật trạng thái UI
             console.log(`✅ Connected to page: ${pageId} as ${drawerId} (${drawerName})`);
             isConnecting.current = false
             if (isMounted.current) setActiveSocket(socket);
 
-            // 🛑 2. FAIL-FAST SAFETY CHECK
+            // 2. FAIL-FAST SAFETY CHECK
             // Nếu editor chưa sẵn sàng (null) thì kết nối cũng vô nghĩa -> Đóng ngay để tiết kiệm tài nguyên.
             if (!editor) {
                 console.error('❌ Editor is null after connection opened!');
@@ -361,7 +361,7 @@ export function useWhiteboardSync(
                 return;
             }
 
-            // 🧹 3. CLEAN SLATE PROTOCOL (QUAN TRỌNG)
+            // 3. CLEAN SLATE PROTOCOL (QUAN TRỌNG)
             // Xóa toàn bộ hình vẽ cũ đang có ở Local trước khi đồng bộ.
             // Lý do: Tránh xung đột ID (Duplicate ID conflict) hoặc hiển thị dữ liệu rác (Stale Data)
             // khi Server chuẩn bị gửi về bộ dữ liệu mới nhất (Snapshot).
@@ -373,7 +373,7 @@ export function useWhiteboardSync(
                 console.log(`🗑️ Cleared ${oldShapeIds.length} old shapes to prepare for sync`);
             }
 
-            // 🚀 4. INITIALIZE OPTIMIZERS (Bộ máy tối ưu hiệu năng)
+            // 4. INITIALIZE OPTIMIZERS (Bộ máy tối ưu hiệu năng)
             // Khởi tạo Batcher: Gom nhóm các nét vẽ (Drawings) để gửi theo Frame (RAF).
             batcherRef.current = new OptimizedRAFBatcher(socket, drawerId, pageId);
 
@@ -385,7 +385,7 @@ export function useWhiteboardSync(
                 whiteboardId: whiteboardId,
             });
 
-            // 💓 5. KEEP-ALIVE MECHANISM (HEARTBEAT)
+            // 5. KEEP-ALIVE MECHANISM (HEARTBEAT)
             // Ping Server mỗi 30s để giữ kết nối luôn mở.
             // Ngăn chặn việc Load Balancer (Azure/AWS/Nginx) tự động đóng kết nối nhàn rỗi (Idle Timeout).
             pingIntervalRef.current = window.setInterval(() => {
@@ -517,22 +517,6 @@ export function useWhiteboardSync(
                         editor.store.remove([tldrawPageId]);
                         console.log(`✅ Removed page from WebSocket: ${tldrawPageId}`);
                     }
-
-                    const myCurrent = editor.getCurrentPageId();
-                    if (myCurrent === tldrawPageId) {
-                        const ok = await confirmWithToast(
-                            "The page you are viewing was deleted by someone else. Click Confirm to reload.",
-                            {
-                                description: "This action cannot be undone.",
-                                confirmText: "Reload",
-                                cancelText: "Stay",
-                                dismissible: false,
-                            }
-                        );
-                        if (ok) {
-                            window.location.reload();
-                        }
-                    }
                     return;
                 }
 
@@ -578,7 +562,7 @@ export function useWhiteboardSync(
                                 if (updateRec && updateRec.id) {
                                     const existing = recordsMap.get(updateRec.id);
                                     if (existing) {
-                                        // 🌟 LOGIC MERGE QUAN TRỌNG:
+                                        // LOGIC MERGE QUAN TRỌNG:
                                         // Nếu đã có bản ghi (từ added), hãy gộp update mới vào nó
                                         // thay vì thay thế hoàn toàn (để tránh mất prop geo, type...)
                                         recordsMap.set(updateRec.id, {
@@ -599,10 +583,9 @@ export function useWhiteboardSync(
 
                         // 4. Thực thi update store
                         const toPut = Array.from(recordsMap.values());
-                        const toRemove = Array.from(idsToRemove); // Đã đúng kiểu TLRecord['id'][]
+                        const toRemove = Array.from(idsToRemove); 
 
                         if (toRemove.length > 0) {
-                            // TypeScript sẽ không báo lỗi nữa vì toRemove đã đúng kiểu
                             editor.store.remove(toRemove);
                         }
 

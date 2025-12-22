@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { LogIn, Plus, Users, Clock, ArrowLeft, ShieldAlert, Loader2 } from 'lucide-react';
 import { createMeeting } from '../../features/meeting/services/meetingApi';
 import { toast } from 'sonner';
 import ClipLoader from 'react-spinners/ClipLoader';
+import { getMeetingTeamId } from '../../utils/meetingSessionHelper';
 
 function JoinPage() {
   // Get authenticated user data from Redux store (secure source)
@@ -17,7 +18,16 @@ function JoinPage() {
   const [title, setTitle] = useState('');
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const { teamId } = useParams();
+  const teamId = getMeetingTeamId();
+  console.log('RoomJoinPage - teamId from sessionStorage:', teamId);
+
+  // Redirect if no teamId found in sessionStorage
+  useEffect(() => {
+    if (!teamId) {
+      toast.error('No team selected. Please select a team first.');
+      navigate('/lecturer/meetings');
+    }
+  }, [teamId, navigate]);
 
   // Navigation function - pass user data securely
   const cleanupAndNavigate = (path, navState) => {
@@ -97,9 +107,9 @@ function JoinPage() {
 
   const handleBack = () => {
     if (roleName === 'LECTURER') {
-      navigate(`/lecturer/meetings?teamId=${teamId}`);
+      navigate('/lecturer/meetings');
     } else if (roleName === 'STUDENT') {
-      navigate(`/meeting/${teamId}`);
+      navigate('/meeting');
     } else {
       navigate('/');
     }
