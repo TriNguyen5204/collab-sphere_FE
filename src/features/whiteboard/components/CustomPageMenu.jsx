@@ -82,7 +82,7 @@ export default function CustomPageMenu({
     setOpen(false);
   };
 
-  // ========== ✅ CREATE PAGE (NO PROMPT) ==========
+  // ========== CREATE PAGE ==========
   const handleCreatePage = async () => {
     const nextIndex = pages.length + 1;
     const defaultTitle = `Page ${nextIndex}`;
@@ -131,7 +131,7 @@ export default function CustomPageMenu({
           id: `page:${pId}`,
           typeName: 'page',
           name: pTitle,
-          index: newIndex, // ✅ Proper fractional index
+          index: newIndex, // Proper fractional index
           meta: {},
         };
 
@@ -149,14 +149,14 @@ export default function CustomPageMenu({
             },
           };
           websocket.send(JSON.stringify(payload));
-          console.log('📡 Broadcasted new_page:', payload);
+          console.log(' Broadcasted new_page:', payload);
         } else {
-          console.warn('⚠️ WebSocket not ready, cannot broadcast new page');
+          console.warn('WebSocket not ready, cannot broadcast new page');
         }
 
         return pTitle;
       } catch (error) {
-        console.error('❌ Create page error:', error);
+        console.error('Create page error:', error);
         throw error;
       }
     };
@@ -170,7 +170,7 @@ export default function CustomPageMenu({
     setOpen(false);
   };
 
-  // ========== ✅ RENAME PAGE ==========
+  // ========== RENAME PAGE ==========
   const startEdit = page => {
     if (page.id === DEFAULT_TLDRAW_PAGE_ID) {
       toast.warning('Không thể đổi tên trang mặc định');
@@ -209,16 +209,15 @@ export default function CustomPageMenu({
     // 1. CẬP NHẬT UI NGAY LẬP TỨC (Không chờ API)
     editor.updatePage({ id: page.id, name: newTitle });
 
-    // Đóng input edit ngay để trải nghiệm mượt mà
     cancelEdit();
 
     const updatePromise = async () => {
       try {
-        // 2. Gọi API Background
+        // Gọi API Background
         await updatePageTitle(numericPageId, newTitle);
-        console.log('✅ API: Page renamed to:', newTitle);
+        console.log(' API: Page renamed to:', newTitle);
 
-        // 3. Broadcast WebSocket
+        // Broadcast WebSocket
         if (websocket && websocket.readyState === WebSocket.OPEN) {
           const payload = {
             type: 'update_page',
@@ -230,7 +229,7 @@ export default function CustomPageMenu({
           websocket.send(JSON.stringify(payload));
         }
       } catch (error) {
-        console.error('❌ Rename error:', error);
+        console.error(' Rename error:', error);
         // Revert lại tên cũ nếu API lỗi
         editor.updatePage({ id: page.id, name: oldName });
         throw error;
@@ -245,7 +244,7 @@ export default function CustomPageMenu({
     });
   };
 
-  // ========== 🔥 FIX: DELETE PAGE ==========
+  // ========== DELETE PAGE ==========
   const handleDelete = async page => {
     const confirmed = await confirmWithToast({
       message: `Xóa trang "${page.name}"? Hành động này không thể hoàn tác.`,
@@ -261,7 +260,7 @@ export default function CustomPageMenu({
       console.log('Deleting page with ID:', page.id);
       const numericId = page.id.replace('page:', '');
       const response = await deletePage(numericId);
-      console.log('✅ API: Page deleted:', response);
+      console.log('API: Page deleted:', response);
       // 2. Cập nhật local editor ngay lập tức
       editor.deletePage(page.id);
     } catch (err) {

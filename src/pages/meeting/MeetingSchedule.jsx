@@ -138,6 +138,28 @@ const MeetingSchedulerFull = () => {
         toast.error("Cannot create meetings in the past.");
         return;
       }
+
+      // Check for overlapping meetings
+      const isOverlapping = events.some(event => {
+        const eventStart = new Date(event.start);
+        // Assuming meetings last 1 hour by default if no end time is specified
+        // You might want to adjust this logic if you have variable meeting durations
+        const eventEnd = event.end ? new Date(event.end) : new Date(eventStart.getTime() + 60 * 60 * 1000);
+        
+        const newMeetingStart = meetingTime;
+        const newMeetingEnd = new Date(newMeetingStart.getTime() + 60 * 60 * 1000); // Default 1 hour duration
+
+        return (
+          (newMeetingStart >= eventStart && newMeetingStart < eventEnd) ||
+          (newMeetingEnd > eventStart && newMeetingEnd <= eventEnd) ||
+          (newMeetingStart <= eventStart && newMeetingEnd >= eventEnd)
+        );
+      });
+
+      if (isOverlapping) {
+        toast.error("A meeting already exists at this time.");
+        return;
+      }
     }
 
     if (selectedEvent) {
@@ -397,25 +419,71 @@ const MeetingSchedulerFull = () => {
                   color: #64748b !important;
                   font-weight: 600 !important;
                   font-size: 0.9rem !important;
-                  padding: 0.6rem 1.5rem !important;
-                  border-radius: 9999px !important;
-                  transition: all 0.3s ease !important;
+                /* Calendar Container */
+                .fc {
+                  font-family: 'Inter', sans-serif;
+                  --fc-border-color: rgba(255, 255, 255, 0.2);
+                  --fc-button-text-color: #475569;
+                  --fc-button-bg-color: rgba(255, 255, 255, 0.8);
+                  --fc-button-border-color: rgba(255, 255, 255, 0.5);
+                  --fc-button-hover-bg-color: #ffffff;
+                  --fc-button-hover-border-color: rgba(255, 255, 255, 0.8);
+                  --fc-button-active-bg-color: #ffffff;
+                  --fc-button-active-border-color: rgba(255, 255, 255, 1);
+                  --fc-event-bg-color: #f97316;
+                  --fc-event-border-color: #f97316;
+                  --fc-today-bg-color: rgba(255, 255, 255, 0.3);
+                  --fc-neutral-bg-color: rgba(255, 255, 255, 0.3);
+                }
+
+                /* Header Toolbar */
+                .fc-header-toolbar {
+                  margin-bottom: 2rem !important;
+                  padding: 0 1rem;
+                }
+
+                .fc-toolbar-title {
+                  font-size: 1.75rem !important;
+                  font-weight: 800 !important;
+                  background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
+                  -webkit-background-clip: text;
+                  -webkit-text-fill-color: transparent;
+                  letter-spacing: -0.025em;
+                }
+
+                /* View Buttons (Month/Week/Day) */
+                .fc-button-group {
+                  background: rgba(241, 245, 249, 0.6);
+                  padding: 4px;
+                  border-radius: 16px;
+                  border: 1px solid rgba(255, 255, 255, 0.6);
+                  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+                }
+
+                .fc-button {
+                  background: transparent !important;
+                  border: none !important;
+                  color: #64748b !important;
+                  font-weight: 600 !important;
+                  font-size: 0.9rem !important;
+                  padding: 0.5rem 1.2rem !important;
+                  border-radius: 12px !important;
+                  transition: all 0.2s ease !important;
                   box-shadow: none !important;
                   text-transform: capitalize;
+                  margin: 0 !important;
                 }
 
                 .fc-button:hover {
                   color: #334155 !important;
-                  background: rgba(255, 255, 255, 0.5) !important;
+                  background: rgba(255, 255, 255, 0.8) !important;
                 }
 
                 .fc-button-active {
                   background: white !important;
-                  color: #0f172a !important;
-                  box-shadow: 
-                    0 4px 12px rgba(0,0,0,0.08),
-                    0 2px 4px rgba(0,0,0,0.05) !important;
-                  transform: scale(1.05);
+                  color: #f97316 !important;
+                  box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+                  font-weight: 700 !important;
                 }
                 
                 .fc-button:focus {
@@ -425,22 +493,24 @@ const MeetingSchedulerFull = () => {
                 /* Navigation Buttons (Prev/Next) */
                 .fc-prev-button, .fc-next-button {
                   background: white !important;
-                  border: 1px solid rgba(255,255,255,0.8) !important;
+                  border: 1px solid rgba(226, 232, 240, 0.8) !important;
                   color: #64748b !important;
                   border-radius: 12px !important;
-                  width: 40px !important;
-                  height: 40px !important;
+                  width: 36px !important;
+                  height: 36px !important;
                   display: flex !important;
                   align-items: center !important;
                   justify-content: center !important;
-                  box-shadow: 0 2px 5px rgba(0,0,0,0.05) !important;
+                  box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
                   margin-right: 8px !important;
+                  transition: all 0.2s ease !important;
                 }
                 
                 .fc-prev-button:hover, .fc-next-button:hover {
                   transform: translateY(-1px);
-                  box-shadow: 0 4px 8px rgba(0,0,0,0.08) !important;
+                  box-shadow: 0 4px 8px rgba(0,0,0,0.05) !important;
                   color: #334155 !important;
+                  border-color: rgba(226, 232, 240, 1) !important;
                 }
 
                 .fc-today-button {
@@ -448,35 +518,109 @@ const MeetingSchedulerFull = () => {
                   color: #ea580c !important;
                   font-weight: 700 !important;
                   border: 1px solid rgba(249, 115, 22, 0.2) !important;
+                  border-radius: 12px !important;
+                  padding: 0.5rem 1.2rem !important;
+                  margin-left: 8px !important;
+                }
+
+                /* Day Grid */
+                .fc-daygrid-day {
+                  transition: background-color 0.2s ease;
+                }
+                
+                .fc-daygrid-day:hover {
+                  background-color: rgba(255, 255, 255, 0.4);
                 }
 
                 /* Day Number Styling */
+                .fc-daygrid-day-top {
+                  flex-direction: row;
+                  padding: 8px 12px;
+                }
+
                 .fc-daygrid-day-number {
-                  font-size: 0.95rem;
+                  font-size: 0.9rem;
                   font-weight: 600;
                   color: #64748b;
-                  padding: 12px 16px !important;
-                  opacity: 0.8;
+                  padding: 0 !important;
+                  width: 28px;
+                  height: 28px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  border-radius: 50%;
+                  transition: all 0.2s ease;
                 }
                 
                 .fc-day-today .fc-daygrid-day-number {
-                  color: #ea580c;
-                  font-weight: 800;
-                  opacity: 1;
-                  font-size: 1.1rem;
+                  background: #f97316;
+                  color: white;
+                  font-weight: 700;
+                  box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);
                 }
-                
+
+                /* Events */
+                .fc-event {
+                  border: none !important;
+                  border-radius: 8px !important;
+                  padding: 2px 4px !important;
+                  margin-bottom: 2px !important;
+                  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                  transition: transform 0.2s ease, box-shadow 0.2s ease;
+                  cursor: pointer;
+                }
+
+                .fc-event:hover {
+                  transform: translateY(-1px) scale(1.01);
+                  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                  z-index: 5;
+                }
+
+                .fc-event-main {
+                  padding: 2px 4px;
+                  font-weight: 500;
+                  font-size: 0.85rem;
+                }
+
+                .fc-daygrid-event-dot {
+                  border-color: white !important;
+                }
+
                 /* More Link */
                 .fc-daygrid-more-link {
                   color: #64748b;
                   font-weight: 600;
-                  font-size: 0.8rem;
+                  font-size: 0.75rem;
                   text-decoration: none;
-                  background: rgba(255,255,255,0.5);
+                  background: rgba(241, 245, 249, 0.8);
                   padding: 2px 8px;
                   border-radius: 12px;
+                  margin-top: 2px;
+                  display: inline-block;
+                }
+                
+                .fc-daygrid-more-link:hover {
+                  background: #e2e8f0;
+                  color: #334155;
                 }
 
+                /* Grid Borders */
+                .fc-theme-standard td, .fc-theme-standard th {
+                  border-color: rgba(226, 232, 240, 0.6);
+                }
+
+                .fc-col-header-cell {
+                  background: rgba(248, 250, 252, 0.5);
+                  padding: 12px 0 !important;
+                }
+
+                .fc-col-header-cell-cushion {
+                  color: #64748b;
+                  font-weight: 600;
+                  text-transform: uppercase;
+                  font-size: 0.75rem;
+                  letter-spacing: 0.05em;
+                }
               `}</style>
 
               <FullCalendar

@@ -443,7 +443,7 @@ const TeamEvaluationPage = () => {
 
    return (
       <DashboardLayout>
-         <div className="flex flex-col">
+         <div className="flex flex-col h-full">
 
             {/* --- HERO HEADER --- */}
             <div className="mx-auto w-full shrink-0 px-4 lg:px-6">
@@ -485,10 +485,11 @@ const TeamEvaluationPage = () => {
                </div> */}
             </div>
 
-            <div className="mx-auto w-full grid grid-cols-12 gap-3 lg:gap-4 xl:gap-6 mt-3 lg:mt-4 flex-1 min-h-0 pb-2 px-4 lg:px-6">
+            <div className="flex-1 min-h-0 px-4 lg:px-6 pb-6">
+               <div className="h-full grid grid-cols-12 gap-3 lg:gap-4 xl:gap-6 mt-3 lg:mt-4">
 
                {/* COLUMN 1: Milestones (Left) */}
-               <div className="col-span-12 lg:col-span-4 xl:col-span-3 flex flex-col gap-3 lg:gap-4 xl:gap-6  max-h-[700px] lg:max-h-[720px] xl:max-h-[760px]">
+               <div className="col-span-12 lg:col-span-4 xl:col-span-3 flex flex-col h-full min-h-0 gap-3 lg:gap-4 xl:gap-6">
                   <div className="flex-1 rounded-2xl lg:rounded-3xl border border-slate-200 bg-white shadow-sm flex flex-col min-h-0">
                      <div className="flex justify-between gap-2 lg:gap-3 lg:mb-4 p-3 border-b border-slate-100">
                         <div className="flex items-center gap-1.5 lg:gap-2">
@@ -504,7 +505,7 @@ const TeamEvaluationPage = () => {
                            Grade
                         </Link>
                      </div>
-                     <div className="flex-1 overflow-y-auto px-3 space-y-1.5 lg:space-y-2 custom-scrollbar">
+                     <div className="flex-1 min-h-0 overflow-y-auto px-3 space-y-1.5 lg:space-y-2 custom-scrollbar">
                         {milestones.map(m => {
                            const isSelected = selectedMilestoneId === (m.teamMilestoneId || m.id);
                            const score = m.milestoneEvaluation?.score ?? m.score;
@@ -551,10 +552,10 @@ const TeamEvaluationPage = () => {
                </div>
 
                {/* COLUMN 2: Grading Workspace (Middle) */}
-               <div className="col-span-12 lg:col-span-8 xl:col-span-6 flex flex-col rounded-2xl lg:rounded-3xl border border-slate-200 bg-white max-h-[700px] lg:max-h-[720px] xl:max-h-[760px]">
+               <div className="col-span-12 lg:col-span-8 xl:col-span-6 flex flex-col h-full min-h-0 rounded-2xl lg:rounded-3xl border border-slate-200 bg-white">
                   {selectedMilestoneId ? (
                      // MODE A: Milestone Details
-                     <div className="h-full flex flex-col">
+                     <div className="h-full flex flex-col min-h-0">
                         <div className="border-b border-slate-100">
                            <div className="space-y-1 p-3 lg:p-4 xl:p-5">
                               <div className="flex items-center gap-1.5 lg:gap-2 text-indigo-600 mb-1 lg:mb-2">
@@ -565,7 +566,7 @@ const TeamEvaluationPage = () => {
                            </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 lg:space-y-4 xl:space-y-6 p-3 lg:p-4 xl:p-5">
+                        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-3 lg:space-y-4 xl:space-y-6 p-3 lg:p-4 xl:p-5">
                            {/* Description */}
                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                               <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Description</h4>
@@ -631,7 +632,7 @@ const TeamEvaluationPage = () => {
                      </div>
                   ) : (
                      // MODE B: Final Grading Form
-                     <div className="h-full flex flex-col">
+                     <div className="h-full flex flex-col min-h-0">
                         <div className="mb-3 lg:mb-4 xl:mb-6 border-b border-slate-100 pb-3  flex justify-between items-end px-3 lg:px-4 xl:px-5 pt-3">
                            <div>
                               <span className="text-[10px] lg:text-xs font-bold text-emerald-600 uppercase tracking-wider bg-emerald-50 px-1.5 lg:px-2 py-0.5 lg:py-1 rounded-md">Final Grading</span>
@@ -736,10 +737,21 @@ const TeamEvaluationPage = () => {
                                     </span>
                                  )}
                               </button>
+                              <button
+                                 type="button"
+                                 onClick={() => setActiveGradingTab('peer-eval')}
+                                 className={`flex items-center gap-1.5 lg:gap-2 px-3 lg:px-4 py-2 lg:py-2.5 text-xs lg:text-sm font-semibold transition-all rounded-t-lg ${activeGradingTab === 'peer-eval'
+                                    ? 'bg-white text-orangeFpt-600 border-b-2 border-orangeFpt-600'
+                                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                                    }`}
+                              >
+                                 <ChatBubbleLeftRightIcon className="h-4 w-4" />
+                                 Peer Evaluations
+                              </button>
                            </div>
 
                            {/* Tab Content */}
-                           <div className="flex-1 overflow-y-auto pr-1 lg:pr-2 custom-scrollbar">
+                           <div className="flex-1 min-h-0 overflow-y-auto pr-1 lg:pr-2 custom-scrollbar">
                               {/* Team Grading Tab */}
                               {activeGradingTab === 'team' && (
                                  <div className="space-y-2 lg:space-y-3 xl:space-y-4 px-3 lg:px-4 xl:px-5">
@@ -806,7 +818,7 @@ const TeamEvaluationPage = () => {
 
                               {/* Member Scoring Tab */}
                               {activeGradingTab === 'members' && (
-                                 <div className="flex-1 overflow-y-auto pr-1 lg:pr-2 custom-scrollbar">
+                                 <div className="">
                                     {memberEvaluations?.memberScores && memberEvaluations.memberScores.length > 0 ? (
                                        <div className="space-y-2 px-3 lg:px-4 xl:px-5">
                                           {memberEvaluations.memberScores.map(member => {
@@ -859,10 +871,8 @@ const TeamEvaluationPage = () => {
                                                       </div>
                                                    </div>
                                                    
-                                                   {/* Bottom Row: Contribution Stats & Peer Reviews */}
-                                                   <PeerReviewsSection
-                                                      reviews={Array.isArray(allMemberEvaluations) ? allMemberEvaluations.find(e => e.receiverId == member.classMemberId)?.evaluations || [] : []}
-                                                   >
+                                                   {/* Bottom Row: Contribution Stats */}
+                                                   <div className="pt-2 border-t border-slate-100">
                                                       <div className="flex items-center gap-2">
                                                          <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">Contributions:</span>
                                                          <div className="flex items-center gap-2 flex-1">
@@ -876,7 +886,7 @@ const TeamEvaluationPage = () => {
                                                             </div>
                                                          </div>
                                                       </div>
-                                                   </PeerReviewsSection>
+                                                   </div>
                                                 </div>
                                              );
                                           })}
@@ -890,6 +900,47 @@ const TeamEvaluationPage = () => {
                                                 <p className="text-xs text-slate-500">Member evaluation data will appear here once available.</p>
                                              </div>
                                           </div>
+                                       </div>
+                                    )}
+                                 </div>
+                              )}
+
+                              {/* Peer Evaluations Tab */}
+                              {activeGradingTab === 'peer-eval' && (
+                                 <div className="flex-1 overflow-y-auto pr-1 lg:pr-2 custom-scrollbar">
+                                    {memberEvaluations?.memberScores && memberEvaluations.memberScores.length > 0 ? (
+                                       <div className="space-y-4 px-3 lg:px-4 xl:px-5">
+                                          {memberEvaluations.memberScores.map(member => {
+                                             const reviews = Array.isArray(allMemberEvaluations) ? allMemberEvaluations.find(e => e.receiverId == member.classMemberId)?.evaluations || [] : [];
+                                             
+                                             return (
+                                                <div key={member.classMemberId} className="p-3 lg:p-4 rounded-xl border border-slate-200 bg-white shadow-sm">
+                                                   <div className="flex items-center gap-3 mb-3 pb-3 border-b border-slate-100">
+                                                      <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm">
+                                                         {member.memberName?.charAt(0)?.toUpperCase()}
+                                                      </div>
+                                                      <div>
+                                                         <h4 className="font-bold text-slate-800">{member.memberName}</h4>
+                                                         <p className="text-xs text-slate-500">Received {reviews.length} reviews</p>
+                                                      </div>
+                                                   </div>
+                                                   
+                                                   {reviews.length > 0 ? (
+                                                      <div className="space-y-3">
+                                                         {reviews.map((review, idx) => (
+                                                            <PeerReviewItem key={idx} review={review} />
+                                                         ))}
+                                                      </div>
+                                                   ) : (
+                                                      <p className="text-xs text-slate-400 italic text-center py-2">No peer reviews received yet.</p>
+                                                   )}
+                                                </div>
+                                             );
+                                          })}
+                                       </div>
+                                    ) : (
+                                       <div className="p-5 text-center text-slate-400">
+                                          <p>No peer evaluation data available.</p>
                                        </div>
                                     )}
                                  </div>
@@ -932,12 +983,12 @@ const TeamEvaluationPage = () => {
                </div>
 
                {/* COLUMN 3: Team Members & Feedback (Right) */}
-               <div className="col-span-12 lg:col-span-12 xl:col-span-3 flex flex-col gap-3 lg:gap-4 max-h-[700px] lg:max-h-[720px] xl:max-h-[760px]">
+               <div className="col-span-12 lg:col-span-12 xl:col-span-3 flex flex-col h-full min-h-0 gap-3 lg:gap-4">
                   {/* Team Members Section */}
-                  <div className="rounded-2xl lg:rounded-3xl border border-slate-200 bg-white shadow-sm shrink-0">
+                  <div className="rounded-2xl lg:rounded-3xl border border-slate-200 bg-white shadow-sm shrink-0 flex flex-col min-h-0 max-h-[40%]">
                      <button
                         onClick={() => setIsTeamMembersOpen(!isTeamMembersOpen)}
-                        className="w-full flex items-center justify-between gap-2 p-2 lg:p-3 border-b rounded-2xl lg:rounded-3xl border-slate-100 hover:bg-slate-50 transition-colors"
+                        className="w-full flex items-center justify-between gap-2 p-2 lg:p-3 border-b rounded-t-2xl lg:rounded-t-3xl border-slate-100 hover:bg-slate-50 transition-colors shrink-0"
                      >
                         <div className="flex items-center gap-2">
                            <div className="p-1.5 lg:p-2 rounded-2xl lg:rounded-3xl bg-orangeFpt-100 text-orangeFpt-600">
@@ -949,7 +1000,7 @@ const TeamEvaluationPage = () => {
                         <ChevronDownIcon className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${isTeamMembersOpen ? 'rotate-180' : ''}`} />
                      </button>
                      {isTeamMembersOpen && (
-                        <div className="flex flex-col max-h-[280px] lg:max-h-[320px] xl:max-h-[360px] overflow-y-auto custom-scrollbar">
+                        <div className="flex flex-col overflow-y-auto custom-scrollbar flex-1 min-h-0">
                            {(teamInfo?.memberInfo?.members || []).map(member => (
                               <MemberItem key={member.studentId} member={member} />
                            ))}
@@ -958,14 +1009,14 @@ const TeamEvaluationPage = () => {
                   </div>
 
                   {/* Feedback Section */}
-                  <div className="flex-1 rounded-2xl lg:rounded-3xl border border-slate-200 bg-white p-3 lg:p-4 xl:p-6 shadow-sm overflow-hidden">
-                     <h3 className="text-[10px] lg:text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 lg:mb-3 xl:mb-4 flex items-center gap-1.5 lg:gap-2">
+                  <div className="flex-1 min-h-0 rounded-2xl lg:rounded-3xl border border-slate-200 bg-white p-3 lg:p-4 xl:p-6 shadow-sm overflow-hidden flex flex-col">
+                     <h3 className="text-[10px] lg:text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 lg:mb-3 xl:mb-4 flex items-center gap-1.5 lg:gap-2 shrink-0">
                         <ChatBubbleLeftRightIcon className="h-4 w-4" />
                         {selectedMilestoneId ? 'Feedback History' : 'Subject Evaluation Comments'}
                      </h3>
 
                      {selectedMilestoneId ? (
-                        <div className="flex-1 bg-slate-50 rounded-2xl p-4 border border-slate-100 h-5/6 overflow-y-auto custom-scrollbar">
+                        <div className="flex-1 min-h-0 bg-slate-50 rounded-2xl p-4 border border-slate-100 overflow-y-auto custom-scrollbar">
                            {milestoneDetail?.milestoneEvaluation ? (
                               <div className="space-y-4">
                                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
@@ -993,7 +1044,7 @@ const TeamEvaluationPage = () => {
                            )}
                         </div>
                      ) : (
-                        <div className="flex-1 flex flex-col h-5/6">
+                        <div className="flex-1 flex flex-col min-h-0">
                            <textarea
                               className="flex-1 w-full rounded-2xl border-slate-200 bg-slate-50 p-4 text-sm focus:ring-orangeFpt-500 focus:border-orangeFpt-500 resize-none focus:bg-white transition-colors"
                               placeholder="Enter general feedback for the team here..."
@@ -1011,6 +1062,7 @@ const TeamEvaluationPage = () => {
 
             </div>
          </div>
+      </div>
       </DashboardLayout>
    );
 };
@@ -1394,30 +1446,7 @@ const PeerReviewsSection = ({ reviews, children }) => {
             <div className="flex-1">
                {children}
             </div>
-
-            {/* Right side: Toggle Button */}
-            {reviews && reviews.length > 0 ? (
-               <button
-                  type="button"
-                  onClick={() => setIsOpen(!isOpen)}
-                  className="flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-indigo-600 transition-colors"
-               >
-                  <span>Peer Reviews ({reviews.length})</span>
-                  <ChevronDownIcon className={`h-3 w-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-               </button>
-            ) : (
-               <span className="text-[10px] text-slate-400 italic">No reviews</span>
-            )}
          </div>
-
-         {/* Collapsible Content */}
-         {isOpen && reviews && reviews.length > 0 && (
-            <div className="mt-3 space-y-3 pl-2 border-l-2 border-slate-100">
-               {reviews.map((review, idx) => (
-                  <PeerReviewItem key={idx} review={review} />
-               ))}
-            </div>
-         )}
       </div>
    );
 };
@@ -1456,7 +1485,14 @@ const PeerReviewItem = ({ review }) => {
             {review.scoreDetails.map((detail, dIdx) => (
                <div key={dIdx} className="flex justify-between items-center bg-white px-2 py-1 rounded border border-slate-100">
                   <span className="text-[10px] text-slate-500 truncate pr-2" title={detail.scoreDetailName}>{detail.scoreDetailName}</span>
-                  <span className="text-xs font-bold text-indigo-600">{detail.score}</span>
+                  <div className="flex gap-0.5">
+                     {Array.from({ length: 5 }).map((_, i) => (
+                        <StarIcon 
+                           key={i} 
+                           className={`w-3 h-3 ${i < Math.round(detail.score) ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} 
+                        />
+                     ))}
+                  </div>
                </div>
             ))}
          </div>

@@ -5,6 +5,10 @@
 @tailwind utilities;
 
 @layer base {
+	:root {
+		--app-header-height: 64px; /* Adjust based on actual header height */
+	}
+
 	html {
 		font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 		background-color: #f7f7f8;

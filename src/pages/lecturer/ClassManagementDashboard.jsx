@@ -348,7 +348,7 @@ const ClassManagementDashboard = () => {
         <header className="relative flex flex-col gap-4 rounded-3xl border border-indigo-100 bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-6 shadow-[0_25px_80px_rgba(15,23,42,0.08)] lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Lecturer workspace</p>
-            <h1 className="mt-2 text-3xl font-semibold text-slate-900">Class Dashboarddd</h1>
+            <h1 className="mt-2 text-3xl font-semibold text-slate-900">Class Dashboard</h1>
             <p className="mt-1 text-sm text-slate-600">
               {stats.totalClasses > 0
                 ? `You are currently assigned to ${stats.totalClasses} classes (${stats.activeClasses} active).`

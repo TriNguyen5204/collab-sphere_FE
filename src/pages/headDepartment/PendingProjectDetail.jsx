@@ -36,11 +36,11 @@ const PendingProjectDetail = () => {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
   
   // State for Modals
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
 
   // Helper: Parse business rules
   const parseBusinessRules = (rules) => {
@@ -94,19 +94,25 @@ const PendingProjectDetail = () => {
   };
 
   const handleRejectProject = async () => {
+    if (!rejectReason.trim()) {
+      toast.error('Please provide a reason for rejection');
+      return;
+    }
+    
     setLoading(true);
     try {
       const response = await handleProject(project.projectId, false, rejectReason);
       if (response) {
-        toast.success('Project rejected');
+        toast.success('Project rejected successfully');
         setShowRejectModal(false);
+        setRejectReason('');
         navigate('/head-department/project-approvals');
       } else {
         toast.error('Failed to reject project');
       }
     } catch (error) {
       console.error(error);
-      toast.error('An error occurred');
+      toast.error('An error occurred while rejecting project');
     } finally {
       setLoading(false);
     }
@@ -442,7 +448,10 @@ const PendingProjectDetail = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setShowRejectModal(false)}
+            onClick={() => {
+              setShowRejectModal(false);
+              setRejectReason('');
+            }}
           >
             <motion.div
               className='relative w-full max-w-md overflow-hidden rounded-3xl bg-white p-8 shadow-2xl ring-1 ring-slate-100'
@@ -452,7 +461,10 @@ const PendingProjectDetail = () => {
               onClick={(e) => e.stopPropagation()}
             >
                 <button 
-                  onClick={() => setShowRejectModal(false)}
+                  onClick={() => {
+                    setShowRejectModal(false);
+                    setRejectReason('');
+                  }}
                   className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all"
                 >
                    <X size={20} />
@@ -483,7 +495,10 @@ const PendingProjectDetail = () => {
 
                     <div className="grid w-full grid-cols-2 gap-4">
                        <button
-                          onClick={() => setShowRejectModal(false)}
+                          onClick={() => {
+                            setShowRejectModal(false);
+                            setRejectReason('');
+                          }}
                           className="flex items-center justify-center rounded-xl border border-slate-200 bg-white py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-all active:scale-95"
                        >
                           Cancel

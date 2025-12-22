@@ -36,24 +36,6 @@ export const updateMeeting = async updateData => {
   return response.data;
 };
 
-export const getMeetingById = async meetingId => {
-  try {
-    const response = await apiClient.get(`/meeting/${meetingId}`);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching meeting by ID:', error);
-    throw error;
-  }
-};
-export const deleteMeeting = async meetingId => {
-  try {
-    const response = await apiClient.delete(`/meeting/${meetingId}`);
-    return response.data;
-  } catch (error) {
-    console.error('Error deleting meeting:', error);
-    throw error;
-  }
-};
 export const getRecordUrl = async (videoFile, onUploadProgress) => {
   const formData = new FormData();
   formData.append('VideoFile', videoFile);

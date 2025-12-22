@@ -15,6 +15,7 @@ import useToastConfirmation from '../../../hooks/useToastConfirmation';
  */
 const useLiveKitRecorder = ({
   meetingId,
+  meetingTitle, // Add meetingTitle prop
   currentUserId,
   sendDataChannelMessage,
   onRecordingComplete,
@@ -86,7 +87,7 @@ const useLiveKitRecorder = ({
       await updateMeeting({ 
         meetingId, 
         recordUrl,
-        title: `Meeting Recording - ${new Date().toLocaleString()}` // Add default title to satisfy validation
+        title: meetingTitle || `Meeting Recording - ${new Date().toLocaleString()}` // Use meetingTitle if available
       });
       
       toast.success('Recording saved successfully');
