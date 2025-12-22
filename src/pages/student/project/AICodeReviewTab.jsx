@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { getPRAnalysesByTeam } from '../../../services/prAnalysisApi';
 import { initConnection, getProjectInstallation } from '../../../services/githubApi';
+import { STORAGE_KEYS } from '../../../utils/storageUtils';
 import { toast } from 'sonner';
 
 const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
@@ -158,7 +159,7 @@ const AICodeReviewTab = ({ projectId, teamId, projectName }) => {
         redirectPath: window.location.pathname,
         savedAt: new Date().toISOString()
       };
-      localStorage.setItem('github_installation_context', JSON.stringify(context));
+      localStorage.setItem(STORAGE_KEYS.GITHUB_INSTALLATION_CONTEXT, JSON.stringify(context));
       
       const response = await initConnection(projectId, teamId);
       console.log('GitHub Connection Init Response:', response);

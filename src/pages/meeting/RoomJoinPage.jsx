@@ -21,13 +21,18 @@ function JoinPage() {
   const teamId = getMeetingTeamId();
   console.log('RoomJoinPage - teamId from sessionStorage:', teamId);
 
-  // Redirect if no teamId found in sessionStorage
+  // Redirect if no teamId found in sessionStorage (role-based redirect)
   useEffect(() => {
     if (!teamId) {
       toast.error('No team selected. Please select a team first.');
-      navigate('/lecturer/meetings');
+      // Redirect based on user role
+      if (roleName === 'LECTURER') {
+        navigate('/lecturer/meetings');
+      } else {
+        navigate('/student');
+      }
     }
-  }, [teamId, navigate]);
+  }, [teamId, navigate, roleName]);
 
   // Navigation function - pass user data securely
   const cleanupAndNavigate = (path, navState) => {

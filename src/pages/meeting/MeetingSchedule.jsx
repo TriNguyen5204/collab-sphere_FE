@@ -4,6 +4,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { createMeeting, getMeeting } from '../../features/meeting/services/meetingApi';
 import { toast } from 'sonner';
 import useIsoToLocalTime from '../../hooks/useIsoToLocalTime';
@@ -28,6 +29,7 @@ import {
 
 const MeetingSchedulerFull = () => {
   const navigate = useNavigate();
+  const roleName = useSelector(state => state.user.roleName);
   const teamId = getMeetingTeamId();
   const { formatIsoString } = useIsoToLocalTime(TIME_FORMATTER_CONFIG);
   
@@ -43,13 +45,18 @@ const MeetingSchedulerFull = () => {
   const [emptyMessage, setEmptyMessage] = useState('');
   const [eventForm, setEventForm] = useState(INITIAL_FORM_STATE);
 
-  // Validate teamId
+  // Validate teamId (role-based redirect)
   useEffect(() => {
     if (!teamId) {
       toast.error('No team selected. Please select a team first.');
-      navigate('/lecturer/meetings');
+      // Redirect based on user role
+      if (roleName === 'LECTURER') {
+        navigate('/lecturer/meetings');
+      } else {
+        navigate('/student');
+      }
     }
-  }, [teamId, navigate]);
+  }, [teamId, navigate, roleName]);
 
   // Fetch meetings on mount
   useEffect(() => {

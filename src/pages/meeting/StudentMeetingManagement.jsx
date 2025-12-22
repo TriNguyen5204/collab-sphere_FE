@@ -72,7 +72,7 @@ const StudentMeetingManagement = () => {
   useEffect(() => {
     if (!teamId) {
       toast.error('No team selected. Please select a team first.');
-      navigate('/student/home');
+      navigate('/student');
     }
   }, [teamId, navigate]);
 

@@ -5,6 +5,7 @@ import { handleCallback } from '../../../services/githubApi';
 import { useQueryClient } from '@tanstack/react-query';
 import useTeam from '../../../context/useTeam';
 import { getDetailOfTeamByTeamId } from '../../../services/studentApi';
+import { STORAGE_KEYS } from '../../../utils/storageUtils';
 
 const GitHubAppCallback = () => {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ const GitHubAppCallback = () => {
 
       try {
         let parsedContext = null;
-        const rawContext = localStorage.getItem('github_installation_context');
+        const rawContext = localStorage.getItem(STORAGE_KEYS.GITHUB_INSTALLATION_CONTEXT);
         if (rawContext) {
           try {
             parsedContext = JSON.parse(rawContext);
@@ -74,8 +75,8 @@ const GitHubAppCallback = () => {
           
           let redirectPath = parsedContext?.redirectPath ?? '/student/projects';
           if (parsedContext) {
-            localStorage.removeItem('github_installation_context');
-            localStorage.removeItem('github_installation_project_id');
+            localStorage.removeItem(STORAGE_KEYS.GITHUB_INSTALLATION_CONTEXT);
+            localStorage.removeItem(STORAGE_KEYS.GITHUB_INSTALLATION_PROJECT_ID);
           }
 
           setTimeout(() => {

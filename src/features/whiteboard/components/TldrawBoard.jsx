@@ -6,6 +6,7 @@ import {
   getPagesByWhiteboardId,
   getShapesByPageId,
 } from '../services/whiteboardService';
+import { STORAGE_KEYS } from '../../../utils/storageUtils';
 import 'tldraw/tldraw.css';
 
 export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
@@ -15,7 +16,6 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
   const hasInitialized = useRef(false);
   const containerRef = useRef(null);
 
-  // 🚀 OPTIMIZATION: Cache shapes per page
   const shapesCache = useRef(new Map());
   const loadingPages = useRef(new Set());
 
@@ -251,7 +251,7 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
             editor.store.remove([defaultTldrawPageId]);
           }
 
-          const storageKey = `tldraw_current_page_${whiteboardId}`;
+          const storageKey = `${STORAGE_KEYS.TLDRAW_PAGE_PREFIX}${whiteboardId}`;
           const savedPageId = localStorage.getItem(storageKey);
 
           // Check if the saved page still exists in the newly loaded list
@@ -305,7 +305,7 @@ export default function TldrawBoard({ drawerId, drawerName, whiteboardId }) {
         if (!newPageId || newPageId === currentPageId) return;
 
         console.log('User switched to page:', newPageId);
-        localStorage.setItem(`tldraw_current_page_${whiteboardId}`, newPageId);
+        localStorage.setItem(`${STORAGE_KEYS.TLDRAW_PAGE_PREFIX}${whiteboardId}`, newPageId);
         setCurrentPageId(newPageId);
 
         // Load shapes (will use cache if available)
