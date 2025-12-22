@@ -413,7 +413,7 @@ const DashboardLayout = ({ children }) => {
             onSignup={handleSignup}
           />
         </aside>
-        <main className='flex-1 min-w-0 ml-56 h-[calc(100vh-4rem)] overflow-hidden pt-6'>
+        <main className='flex-1 min-w-0 ml-56 h-[calc(100vh-4rem)] overflow-y-auto overflow-x-hidden pt-6'>
           {children}
         </main>
       </div>
