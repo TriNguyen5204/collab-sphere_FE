@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import AdminSidebar from '../../components/layout/AdminSidebar';
 import { getEmail, getEmailDetails, deleteEmail as apiDeleteEmail } from '../../services/adminApi';
+import useToastConfirmation from '../../hooks/useToastConfirmation';
 
 // --- CONFIG ---
 const BRAND_COLOR = {
@@ -33,6 +34,7 @@ const BRAND_COLOR = {
 
 export default function SystemReport() {
   // --- STATE ---
+  const confirm = useToastConfirmation();
   const [emailReports, setEmailReports] = useState([]);
   const [isLoadingEmails, setIsLoadingEmails] = useState(true);
   const [emailError, setEmailError] = useState(null);
@@ -112,14 +114,21 @@ export default function SystemReport() {
   };
 
   const onDeleteEmail = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this email permanently?')) return;
+    const isConfirmed = await confirm({
+      message: 'Delete Email?',
+      description: 'Are you sure you want to delete this email permanently? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+
+    if (!isConfirmed) return;
 
     try {
       await apiDeleteEmail(id);
 
       setEmailReports(prev => prev.filter(email => email.id !== id));
       if (selectedEmailDetail?.id === id) closeModal();
-
+      toast.success('Email deleted successfully');
     } catch (error) {
       console.error('Delete failed:', error);
       toast.error('Failed to delete email');
