@@ -82,11 +82,9 @@ export const useAIProjectForm = () => {
       }
     }
     
-    // Load rate limiting data
-    const savedGenCount = localStorage.getItem('ai_gen_count');
-    const savedLastGenTime = localStorage.getItem('ai_last_gen_time');
-    if (savedGenCount) setGenerationCount(parseInt(savedGenCount, 10));
-    if (savedLastGenTime) setLastGenerationTime(parseInt(savedLastGenTime, 10));
+    // Reset rate limiting data on mount (new session)
+    setGenerationCount(0);
+    setLastGenerationTime(0);
 
     setIsInitialized(true);
   }, []);
@@ -192,7 +190,7 @@ export const useAIProjectForm = () => {
     if (existingIdeas && existingIdeas.length > 0) {
       payload.existing_ideas = existingIdeas.map(idea => ({
         projectName: idea.projectName,
-        description: idea.description?.substring(0, 200), // Truncate to save tokens
+        description: idea.description?.substring(0, 500), // Truncate to save tokens
       }));
       payload.is_generate_more = true;
     }
@@ -223,20 +221,15 @@ export const useAIProjectForm = () => {
 
   // Rate Limiting Helpers
   const checkRateLimit = useCallback(() => {
-    // Check max count
-    if (generationCount >= 4) {
-      return { allowed: false, reason: 'limit_reached' };
-    }
+    // No longer checking generation count here, handled by UI logic (max 30 projects)
     return { allowed: true };
-  }, [generationCount]);
+  }, []);
 
   const incrementGenerationCount = useCallback(() => {
+    // No longer tracking generation count in localStorage
+    // Just update state for current session if needed, or remove entirely
     const newCount = generationCount + 1;
-    const now = Date.now();
     setGenerationCount(newCount);
-    setLastGenerationTime(now);
-    localStorage.setItem('ai_gen_count', newCount.toString());
-    localStorage.setItem('ai_last_gen_time', now.toString());
   }, [generationCount]);
 
   return {

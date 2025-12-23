@@ -997,9 +997,37 @@ const EditIdeaModal = ({ idea, onSave, onClose }) => {
                           <AlertCircle size={12} />
                           Why these choices?
                         </label>
-                        <p className="text-sm text-slate-600 leading-relaxed">
+                        <p className="text-sm text-slate-600 leading-relaxed mb-3">
                           {editedIdea.techStackAnalysis.reasoning}
                         </p>
+                        
+                        <button
+                          onClick={() => {
+                            const reasoning = editedIdea.techStackAnalysis.reasoning;
+                            const recommended = editedIdea.techStackAnalysis.aiRecommended?.join(', ');
+                            const textToAdd = `\n\n**Tech Stack Recommendations:** ${recommended}\n**Reasoning:** ${reasoning}`;
+                            
+                            setEditedIdea(prev => ({
+                              ...prev,
+                              description: (prev.description || '') + textToAdd
+                            }));
+                            setActiveTab('basic');
+                          }}
+                          disabled={editedIdea.description?.includes('**Tech Stack Recommendations:**')}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:text-[#e75710] hover:border-[#e75710] hover:bg-[#fcd8b6]/10 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {editedIdea.description?.includes('**Tech Stack Recommendations:**') ? (
+                            <>
+                              <Check size={12} />
+                              Added to Description
+                            </>
+                          ) : (
+                            <>
+                              <Plus size={12} />
+                              Add to Description
+                            </>
+                          )}
+                        </button>
                       </div>
                     )}
                   </>
@@ -1251,11 +1279,12 @@ const IdeaSelectionScreen = ({
   };
 
   const handleGenerateMoreClick = () => {
-    setRefinementModalOpen(true);
-  };
-
-  const handleRefinementSubmit = (refinementText) => {
-    onGenerateMore(refinementText);
+    // Check if we've reached the maximum number of projects (30)
+    if (ideas.length >= 30) {
+      // You might want to show a toast here instead of just returning
+      return; 
+    }
+    onGenerateMore();
   };
 
   const editingIdea = ideas.find(i => i.id === editingIdeaId);
@@ -1326,7 +1355,7 @@ const IdeaSelectionScreen = ({
           
           <button
             onClick={handleGenerateMoreClick}
-            disabled={isGeneratingMore || (generationCount >= 4)}
+            disabled={isGeneratingMore || ideas.length >= 30}
             className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#e75710] to-[#fb8239] rounded-xl hover:from-[#a51200] hover:to-[#e75710] hover:shadow-lg hover:shadow-[#fcd8b6] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
           >
             {isGeneratingMore ? (
@@ -1337,17 +1366,17 @@ const IdeaSelectionScreen = ({
             ) : (
               <>
                 <RefreshCw size={16} />
-                {generationCount >= 4 ? 'Limit Reached' : `Generate More (${generationCount}/4)`}
+                {ideas.length >= 30 ? 'Limit Reached' : `Generate More (${ideas.length}/30)`}
               </>
             )}
           </button>
         </div>
         
         {/* Rate Limit Info */}
-        {generationCount > 0 && (
+        {ideas.length > 0 && (
           <div className="flex justify-center mt-2">
             <p className="text-xs text-slate-400 font-medium">
-              Generations used: <span className={generationCount >= 4 ? "text-rose-500" : "text-[#e75710]"}>{generationCount}/4</span>
+              Projects generated: <span className={ideas.length >= 30 ? "text-rose-500" : "text-[#e75710]"}>{ideas.length}/30</span>
             </p>
           </div>
         )}
@@ -1437,17 +1466,6 @@ const IdeaSelectionScreen = ({
               setEditModalOpen(false);
               setEditingIdeaId(null);
             }}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Refinement Modal */}
-      <AnimatePresence>
-        {refinementModalOpen && (
-          <RefinementModal
-            isOpen={refinementModalOpen}
-            onClose={() => setRefinementModalOpen(false)}
-            onGenerate={handleRefinementSubmit}
           />
         )}
       </AnimatePresence>
